@@ -1,0 +1,346 @@
+import logging
+from uuid import uuid4
+
+from alpaca.trading.enums import OrderSide, TimeInForce
+
+from alpaca_data_provider import AlpacaMarketDataProvider
+from client_factory import create_trading_client
+from config import (
+    BASE_DIR,
+    LOG_FILE,
+    STATE_FILE,
+    RUN_REPORT_FILE,
+    LEGACY_LAST_ORDER_FILE,
+    OPENCLAW_ENABLED,
+    OPENCLAW_DRY_RUN,
+    OPENCLAW_SYMBOL,
+    OPENCLAW_QTY,
+    OPENCLAW_MAX_POSITION_SIZE,
+    OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
+    ALPACA_API_KEY,
+    ALPACA_SECRET_KEY,
+    ALPACA_BASE_URL,
+    ALLOWED_SYMBOLS,
+    env_str,
+    env_int,
+)
+from decision_engine import build_action_proposal
+from execution_engine import (
+    get_market_session_status,
+    build_market_order,
+    submit_market_order,
+)
+from market_data import get_historical_bars
+from reporting import persist_report
+from risk_engine import validate_config, risk_check, reconcile_position
+from signal_validator import validate_signal_result
+from state_manager import duplicate_check, write_order_state
+from strategy_engine import generate_signal_from_closes
+from utils import setup_logging, utc_now_iso
+
+setup_logging(LOG_FILE)
+client = create_trading_client()
+
+
+def main():
+    run_id = str(uuid4())[:8]
+    side = OrderSide.BUY.value
+    mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
+    trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
+    signal_timeframe = env_str("OPENCLAW_SIGNAL_TIMEFRAME", "1Day")
+    signal_limit = env_int("OPENCLAW_SIGNAL_LIMIT", 5)
+
+    logging.info("========== OpenClaw run started ==========")
+    logging.info(f"run_id={run_id}")
+    logging.info(f"Base directory: {BASE_DIR}")
+    logging.info(f"Log file: {LOG_FILE}")
+    logging.info(f"State file: {STATE_FILE}")
+    logging.info(f"Run report file: {RUN_REPORT_FILE}")
+    logging.info(f"Legacy duplicate file: {LEGACY_LAST_ORDER_FILE}")
+    logging.info(f"ALPACA_BASE_URL={ALPACA_BASE_URL}")
+    logging.info(f"OPENCLAW_ENABLED={OPENCLAW_ENABLED}")
+    logging.info(f"OPENCLAW_DRY_RUN={OPENCLAW_DRY_RUN}")
+    logging.info(f"OPENCLAW_SYMBOL={OPENCLAW_SYMBOL}")
+    logging.info(f"OPENCLAW_QTY={OPENCLAW_QTY}")
+    logging.info(f"OPENCLAW_MAX_POSITION_SIZE={OPENCLAW_MAX_POSITION_SIZE}")
+    logging.info(f"OPENCLAW_TRIGGER_SOURCE={trigger_source}")
+    logging.info(f"OPENCLAW_SIGNAL_TIMEFRAME={signal_timeframe}")
+    logging.info(f"OPENCLAW_SIGNAL_LIMIT={signal_limit}")
+    logging.info(
+        "OPENCLAW_DUPLICATE_COOLDOWN_SECONDS="
+        f"{OPENCLAW_DUPLICATE_COOLDOWN_SECONDS}"
+    )
+
+    if not OPENCLAW_ENABLED:
+        logging.warning("OPENCLAW_ENABLED is false — bot execution disabled")
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason="killswitch_disabled",
+            trigger_source=trigger_source,
+            side=side,
+            notes=["OPENCLAW_ENABLED=false"],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    if not validate_config(
+        alpaca_api_key=ALPACA_API_KEY,
+        alpaca_secret_key=ALPACA_SECRET_KEY,
+        qty=OPENCLAW_QTY,
+        max_position_size=OPENCLAW_MAX_POSITION_SIZE,
+        duplicate_cooldown_seconds=OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
+    ):
+        logging.error("Configuration validation failed")
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="error",
+            reason="config_validation_failed",
+            trigger_source=trigger_source,
+            side=side,
+            notes=["Configuration validation failed before market data lookup"],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    market_status = get_market_session_status(client)
+    if not market_status["is_open"]:
+        logging.warning(f"Market closed — blocking run: {market_status['reason']}")
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason=market_status["reason"],
+            trigger_source=trigger_source,
+            side=side,
+            notes=[
+                f"Blocked due to market session status: {market_status['reason']}",
+                f"current_time={market_status.get('current_time')}",
+                f"session_open={market_status.get('session_open')}",
+                f"session_close={market_status.get('session_close')}",
+                f"next_open={market_status.get('next_open')}",
+                f"next_close={market_status.get('next_close')}",
+            ],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    try:
+        provider = AlpacaMarketDataProvider()
+        bars_result = get_historical_bars(
+            provider=provider,
+            symbol=OPENCLAW_SYMBOL,
+            timeframe=signal_timeframe,
+            limit=signal_limit,
+        )
+        closes = [candle.close for candle in bars_result.candles]
+        raw_signal_result = generate_signal_from_closes(closes)
+        signal_result = validate_signal_result(raw_signal_result)
+        action_proposal = build_action_proposal(
+            symbol=OPENCLAW_SYMBOL,
+            qty=OPENCLAW_QTY,
+            signal_result=signal_result,
+        )
+    except Exception as exc:
+        logging.exception("Strategy pipeline failed")
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="error",
+            reason="strategy_pipeline_failed",
+            trigger_source=trigger_source,
+            side=side,
+            notes=[str(exc)],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    if bars_result.warnings:
+        for warning in bars_result.warnings:
+            logging.warning(f"Market data warning: {warning}")
+
+    logging.info(
+        "Strategy pipeline completed: "
+        f"signal={action_proposal['signal']}, "
+        f"decision={action_proposal['decision']}, "
+        f"action={action_proposal['action']}, "
+        f"reason={action_proposal['reason']}"
+    )
+
+    if not action_proposal["should_submit"]:
+        logging.info(
+            "Strategy proposed no order submission: "
+            f"action={action_proposal['action']}, reason={action_proposal['reason']}"
+        )
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason="strategy_hold",
+            trigger_source=trigger_source,
+            side=side,
+            notes=[
+                f"Strategy action={action_proposal['action']}",
+                f"Strategy reason={action_proposal['reason']}",
+                f"previous_close={action_proposal['previous_close']}",
+                f"latest_close={action_proposal['latest_close']}",
+                f"price_delta={action_proposal['price_delta']}",
+                f"percent_change={action_proposal['percent_change']}",
+            ],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    account = client.get_account()
+    buying_power = float(account.buying_power)
+    logging.info(f"Account buying power: {buying_power}")
+
+    duplicate_result = duplicate_check(OPENCLAW_SYMBOL, side, OPENCLAW_QTY)
+    if duplicate_result["is_duplicate"]:
+        logging.warning(
+            "Duplicate protection blocked current order attempt: "
+            f"symbol={OPENCLAW_SYMBOL}, side={side}, qty={OPENCLAW_QTY}"
+        )
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason=duplicate_result["reason"],
+            trigger_source=trigger_source,
+            side=side,
+            buying_power=buying_power,
+            duplicate_age_seconds=duplicate_result["age_seconds"],
+            notes=[
+                "Duplicate protection blocked current order attempt",
+                f"Strategy reason={action_proposal['reason']}",
+            ],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    risk_result = risk_check(
+        OPENCLAW_SYMBOL,
+        OPENCLAW_QTY,
+        buying_power,
+        max_position_size=OPENCLAW_MAX_POSITION_SIZE,
+        allowed_symbols=ALLOWED_SYMBOLS,
+    )
+    if not risk_result["passed"]:
+        logging.info("REJECTED — no order sent")
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason=risk_result["reason"],
+            trigger_source=trigger_source,
+            side=side,
+            buying_power=buying_power,
+            estimated_cost=risk_result["estimated_cost"],
+            notes=[
+                risk_result["message"],
+                f"Strategy reason={action_proposal['reason']}",
+            ],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    reconciliation_result = reconcile_position(
+        client,
+        OPENCLAW_SYMBOL,
+        OPENCLAW_QTY,
+        OPENCLAW_MAX_POSITION_SIZE,
+    )
+    if not reconciliation_result["passed"]:
+        logging.warning(
+            "Broker reconciliation blocked current order attempt: "
+            f"symbol={OPENCLAW_SYMBOL}, requested_qty={OPENCLAW_QTY}"
+        )
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason=reconciliation_result["reason"],
+            trigger_source=trigger_source,
+            side=side,
+            buying_power=buying_power,
+            estimated_cost=risk_result["estimated_cost"],
+            existing_position_qty=reconciliation_result["existing_qty"],
+            open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
+            projected_position_qty=reconciliation_result["projected_qty"],
+            notes=[
+                reconciliation_result["message"],
+                f"Strategy reason={action_proposal['reason']}",
+            ],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    order = build_market_order(OPENCLAW_SYMBOL, OPENCLAW_QTY)
+
+    state_record = {
+        "run_id": run_id,
+        "timestamp": utc_now_iso(),
+        "symbol": OPENCLAW_SYMBOL,
+        "side": side,
+        "qty": OPENCLAW_QTY,
+        "mode": mode,
+    }
+
+    if OPENCLAW_DRY_RUN:
+        logging.info("DRY RUN ENABLED — order was NOT submitted")
+        logging.info(
+            f"Simulated order: symbol={OPENCLAW_SYMBOL}, qty={OPENCLAW_QTY}, "
+            f"side={OrderSide.BUY}, tif={TimeInForce.DAY}"
+        )
+        write_order_state(state_record)
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="success",
+            reason="dry_run_completed",
+            trigger_source=trigger_source,
+            side=side,
+            buying_power=buying_power,
+            estimated_cost=risk_result["estimated_cost"],
+            existing_position_qty=reconciliation_result["existing_qty"],
+            open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
+            projected_position_qty=reconciliation_result["projected_qty"],
+            notes=[
+                "Dry run completed successfully; no live paper order submitted",
+                f"Strategy reason={action_proposal['reason']}",
+                f"signal={action_proposal['signal']}",
+                f"decision={action_proposal['decision']}",
+            ],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    response = submit_market_order(client, order)
+    write_order_state(state_record)
+    persist_report(
+        run_id=run_id,
+        mode=mode,
+        result="success",
+        reason="paper_order_submitted",
+        trigger_source=trigger_source,
+        side=side,
+        buying_power=buying_power,
+        estimated_cost=risk_result["estimated_cost"],
+        order_status=str(response.status),
+        existing_position_qty=reconciliation_result["existing_qty"],
+        open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
+        projected_position_qty=reconciliation_result["projected_qty"],
+        notes=[
+            "Live paper order submitted successfully",
+            f"Strategy reason={action_proposal['reason']}",
+            f"signal={action_proposal['signal']}",
+            f"decision={action_proposal['decision']}",
+        ],
+    )
+    logging.info("========== OpenClaw run finished ==========")
+
+
+if __name__ == "__main__":
+    main()
