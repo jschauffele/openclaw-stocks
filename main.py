@@ -42,6 +42,16 @@ setup_logging(LOG_FILE)
 client = create_trading_client()
 
 
+class InsufficientMarketDataError(Exception):
+    def __init__(self, available_closes: int, required_closes: int):
+        super().__init__(
+            "Need at least "
+            f"{required_closes} closing prices to generate a signal; got {available_closes}"
+        )
+        self.available_closes = available_closes
+        self.required_closes = required_closes
+
+
 def main():
     run_id = str(uuid4())[:8]
     side = OrderSide.BUY.value
@@ -136,6 +146,11 @@ def main():
             limit=signal_limit,
         )
         closes = [candle.close for candle in bars_result.candles]
+        if len(closes) < 2:
+            raise InsufficientMarketDataError(
+                available_closes=len(closes),
+                required_closes=2,
+            )
         raw_signal_result = generate_signal_from_closes(closes)
         signal_result = validate_signal_result(raw_signal_result)
         action_proposal = build_action_proposal(
@@ -143,6 +158,23 @@ def main():
             qty=OPENCLAW_QTY,
             signal_result=signal_result,
         )
+    except InsufficientMarketDataError as exc:
+        logging.warning("Strategy skipped due to insufficient market data")
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason="insufficient_market_data",
+            trigger_source=trigger_source,
+            side=side,
+            notes=[
+                str(exc),
+                f"required_closes={exc.required_closes}",
+                f"available_closes={exc.available_closes}",
+            ],
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
     except Exception as exc:
         logging.exception("Strategy pipeline failed")
         persist_report(
