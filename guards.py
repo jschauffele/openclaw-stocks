@@ -1,3 +1,17 @@
+"""
+Legacy module.
+
+Deprecated in favor of the active runtime path built around:
+- bot_service.py
+- execution_engine.py
+- risk_engine.py
+- state_manager.py
+- reporting.py
+
+Keep this file only as a compatibility/reference artifact during the current
+stabilization phase. Do not add new runtime behavior here.
+"""
+
 import logging
 from datetime import datetime, timezone
 
