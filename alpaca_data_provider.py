@@ -129,12 +129,16 @@ class AlpacaMarketDataProvider(MarketDataProvider):
         except APIError as exc:
             raise ValueError(f"Alpaca market data request failed: {exc}") from exc
 
-        if not bars:
+        requires_retry_window = (
+            validated_request.timeframe == "1Day" and len(bars) < 2
+        )
+
+        if not bars or requires_retry_window:
             end = datetime.now(timezone.utc)
             start = _fallback_start_for(validated_request.timeframe)
 
             try:
-                bars = self._fetch_bars(
+                fallback_bars = self._fetch_bars(
                     symbol=validated_request.symbol,
                     timeframe=timeframe,
                     limit=validated_request.limit,
@@ -144,10 +148,16 @@ class AlpacaMarketDataProvider(MarketDataProvider):
             except APIError as exc:
                 raise ValueError(f"Alpaca fallback market data request failed: {exc}") from exc
 
-            if bars:
-                warnings.append(
-                    "Default IEX request returned no bars; retried with explicit recent date window."
-                )
+            if fallback_bars:
+                bars = fallback_bars
+                if requires_retry_window:
+                    warnings.append(
+                        "Default IEX request returned fewer than 2 daily bars; retried with explicit recent date window."
+                    )
+                else:
+                    warnings.append(
+                        "Default IEX request returned no bars; retried with explicit recent date window."
+                    )
 
         candles = tuple(
             Candle(
@@ -180,4 +190,3 @@ class AlpacaMarketDataProvider(MarketDataProvider):
 
 
 AlpacaDataProvider = AlpacaMarketDataProvider
-

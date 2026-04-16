@@ -1,17 +1,9 @@
-from config import (
-    OPENCLAW_SYMBOL,
-    OPENCLAW_QTY,
-    OPENCLAW_ENABLED,
-    OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
-    OPENCLAW_MAX_POSITION_SIZE,
-    ALLOWED_SYMBOLS,
-    ALPACA_BASE_URL,
-)
 from utils import utc_now_iso
-from state_manager import write_run_report
+from state_manager import write_run_report_for_settings
 
 
-def build_run_report(
+def build_run_report_for_settings(
+    settings,
     run_id: str,
     mode: str,
     result: str,
@@ -33,15 +25,15 @@ def build_run_report(
         "trigger_source": trigger_source,
         "result": result,
         "reason": reason,
-        "symbol": OPENCLAW_SYMBOL,
+        "symbol": settings.symbol,
         "side": side,
-        "qty": OPENCLAW_QTY,
+        "qty": settings.qty,
         "mode": mode,
-        "openclaw_enabled": OPENCLAW_ENABLED,
-        "cooldown_seconds": OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
-        "max_position_size": OPENCLAW_MAX_POSITION_SIZE,
-        "allowed_symbols": ALLOWED_SYMBOLS,
-        "alpaca_base_url": ALPACA_BASE_URL,
+        "openclaw_enabled": settings.openclaw_enabled,
+        "cooldown_seconds": settings.duplicate_cooldown_seconds,
+        "max_position_size": settings.max_position_size,
+        "allowed_symbols": list(settings.allowed_symbols),
+        "alpaca_base_url": settings.alpaca_base_url,
         "buying_power": buying_power,
         "estimated_cost": estimated_cost,
         "duplicate_age_seconds": duplicate_age_seconds,
@@ -53,7 +45,8 @@ def build_run_report(
     }
 
 
-def persist_report(
+def persist_report_for_settings(
+    settings,
     run_id: str,
     mode: str,
     result: str,
@@ -69,7 +62,8 @@ def persist_report(
     open_buy_order_qty=None,
     projected_position_qty=None,
 ) -> None:
-    report = build_run_report(
+    report = build_run_report_for_settings(
+        settings=settings,
         run_id=run_id,
         mode=mode,
         result=result,
@@ -85,4 +79,4 @@ def persist_report(
         open_buy_order_qty=open_buy_order_qty,
         projected_position_qty=projected_position_qty,
     )
-    write_run_report(report)
+    write_run_report_for_settings(settings, report)
