@@ -56,6 +56,8 @@ class InsufficientMarketDataError(Exception):
 def main():
     run_id = generate_run_id()
     initialize_event_logger(run_id)
+    from event_logger import log_event
+    log_event('system','startup','ok',{'message':'run_started'})
     run_id = str(uuid4())[:8]
     side = OrderSide.BUY.value
     mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
