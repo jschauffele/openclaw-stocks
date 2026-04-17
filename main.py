@@ -123,6 +123,20 @@ def main():
     market_status = get_market_session_status(client)
     if not market_status["is_open"]:
         logging.warning(f"Market closed — blocking run: {market_status['reason']}")
+        from event_logger import log_event
+        log_event(
+            "system",
+            "market_session",
+            "blocked",
+            {
+                "reason": market_status["reason"],
+                "current_time": market_status.get("current_time"),
+                "session_open": market_status.get("session_open"),
+                "session_close": market_status.get("session_close"),
+                "next_open": market_status.get("next_open"),
+                "next_close": market_status.get("next_close"),
+            },
+        )
         persist_report(
             run_id=run_id,
             mode=mode,
