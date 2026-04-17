@@ -85,6 +85,7 @@ def main():
 
     if not OPENCLAW_ENABLED:
         logging.warning("OPENCLAW_ENABLED is false — bot execution disabled")
+        log_event("system", "killswitch", "blocked", {"openclaw_enabled": False})
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -105,6 +106,7 @@ def main():
         duplicate_cooldown_seconds=OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
     ):
         logging.error("Configuration validation failed")
+        log_event("system", "config", "invalid", {"reason": "config_validation_failed"})
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -152,6 +154,8 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
+    log_event("system", "market_session", "open", {"reason": market_status.get("reason")})
+
     try:
         provider = AlpacaMarketDataProvider()
         bars_result = get_historical_bars(
@@ -175,6 +179,7 @@ def main():
         )
     except InsufficientMarketDataError as exc:
         logging.warning("Strategy skipped due to insufficient market data")
+        log_event("data", "fetch", "insufficient", {"symbol": OPENCLAW_SYMBOL, "error": str(exc)})
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -192,6 +197,7 @@ def main():
         return
     except Exception as exc:
         logging.exception("Strategy pipeline failed")
+        log_event("data", "fetch", "error", {"symbol": OPENCLAW_SYMBOL, "error": str(exc)})
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -261,6 +267,7 @@ def main():
             "Duplicate protection blocked current order attempt: "
             f"symbol={OPENCLAW_SYMBOL}, side={side}, qty={OPENCLAW_QTY}"
         )
+        log_event("order", "duplicate_check", "blocked", {"symbol": OPENCLAW_SYMBOL, "reason": duplicate_result["reason"]})
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -277,6 +284,8 @@ def main():
         )
         logging.info("========== OpenClaw run finished ==========")
         return
+
+    log_event("order", "duplicate_check", "clear", {"symbol": OPENCLAW_SYMBOL})
 
     risk_result = risk_check(
         OPENCLAW_SYMBOL,
@@ -326,6 +335,13 @@ def main():
             "Broker reconciliation blocked current order attempt: "
             f"symbol={OPENCLAW_SYMBOL}, requested_qty={OPENCLAW_QTY}"
         )
+        log_event("position", "reconcile", "mismatch", {
+            "symbol": OPENCLAW_SYMBOL,
+            "broker_qty": reconciliation_result["existing_qty"],
+            "open_buy_order_qty": reconciliation_result["open_buy_order_qty"],
+            "projected_qty": reconciliation_result["projected_qty"],
+            "reason": reconciliation_result["reason"],
+        })
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -346,6 +362,13 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
+    log_event("position", "reconcile", "ok", {
+        "symbol": OPENCLAW_SYMBOL,
+        "broker_qty": reconciliation_result["existing_qty"],
+        "open_buy_order_qty": reconciliation_result["open_buy_order_qty"],
+        "projected_qty": reconciliation_result["projected_qty"],
+    })
+
     order = build_market_order(OPENCLAW_SYMBOL, OPENCLAW_QTY)
 
     state_record = {
@@ -363,6 +386,12 @@ def main():
             f"Simulated order: symbol={OPENCLAW_SYMBOL}, qty={OPENCLAW_QTY}, "
             f"side={OrderSide.BUY}, tif={TimeInForce.DAY}"
         )
+        log_event("order", "submission", "dry_run", {
+            "symbol": OPENCLAW_SYMBOL,
+            "qty": OPENCLAW_QTY,
+            "side": side,
+            "mode": "dry_run",
+        })
         write_order_state(state_record)
         persist_report(
             run_id=run_id,
@@ -386,7 +415,25 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
-    response = submit_market_order(client, order)
+    try:
+        response = submit_market_order(client, order)
+    except Exception as exc:
+        log_event("order", "submission", "error", {
+            "symbol": OPENCLAW_SYMBOL,
+            "qty": OPENCLAW_QTY,
+            "error": str(exc),
+        })
+        logging.exception("Order submission failed")
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
+    log_event("order", "submission", "paper_submitted", {
+        "symbol": OPENCLAW_SYMBOL,
+        "qty": OPENCLAW_QTY,
+        "side": side,
+        "order_id": str(response.id),
+        "mode": "paper_submit",
+    })
     write_order_state(state_record)
     persist_report(
         run_id=run_id,
