@@ -25,3 +25,7 @@ last_order.txt
 *.old
 *.tmp
 
+
+# Event logs
+logs/
+*.jsonl
