@@ -291,6 +291,7 @@ def main():
         OPENCLAW_SYMBOL,
         OPENCLAW_QTY,
         buying_power,
+        action_proposal["latest_close"],
         max_position_size=OPENCLAW_MAX_POSITION_SIZE,
         allowed_symbols=ALLOWED_SYMBOLS,
     )

@@ -174,7 +174,14 @@ def reconcile_position(client, symbol: str, requested_qty: int, max_position_siz
     }
 
 
-def risk_check(symbol, qty, buying_power, max_position_size=5, allowed_symbols=None):
+def risk_check(
+    symbol,
+    qty,
+    buying_power,
+    latest_close,
+    max_position_size=5,
+    allowed_symbols=None,
+):
     if qty <= 0:
         message = f"qty must be > 0 (got {qty})"
         logging.warning(f"Risk check failed: {message}")
@@ -205,7 +212,7 @@ def risk_check(symbol, qty, buying_power, max_position_size=5, allowed_symbols=N
             "estimated_cost": None,
         }
 
-    estimated_cost = qty * 100
+    estimated_cost = qty * latest_close
     if estimated_cost > buying_power:
         message = (
             f"estimated cost {estimated_cost} exceeds buying power {buying_power}"
