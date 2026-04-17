@@ -16,7 +16,6 @@ def read_run_events(file_path: str) -> list[dict[str, Any]]:
                 try:
                     event = json.loads(line)
                 except json.JSONDecodeError:
-                    # Likely trailing partial write — stop safely
                     break
 
                 if isinstance(event, dict):
