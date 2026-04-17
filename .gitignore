@@ -25,3 +25,10 @@ last_order.txt
 *.old
 *.tmp
 
+
+# Event logs
+logs/
+*.jsonl
+
+# Integration checkpoint
+INTEGRATION_CHECKPOINT.txt

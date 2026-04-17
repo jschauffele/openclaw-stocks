@@ -1,5 +1,5 @@
+from event_logger import initialize_event_logger, generate_run_id
 import logging
-from uuid import uuid4
 
 from alpaca.trading.enums import OrderSide, TimeInForce
 
@@ -53,7 +53,10 @@ class InsufficientMarketDataError(Exception):
 
 
 def main():
-    run_id = str(uuid4())[:8]
+    run_id = generate_run_id()
+    initialize_event_logger(run_id)
+    from event_logger import log_event
+    log_event('system','startup','ok',{'message':'run_started'})
     side = OrderSide.BUY.value
     mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
     trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
@@ -118,6 +121,20 @@ def main():
     market_status = get_market_session_status(client)
     if not market_status["is_open"]:
         logging.warning(f"Market closed — blocking run: {market_status['reason']}")
+        from event_logger import log_event
+        log_event(
+            "system",
+            "market_session",
+            "blocked",
+            {
+                "reason": market_status["reason"],
+                "current_time": market_status.get("current_time"),
+                "session_open": market_status.get("session_open"),
+                "session_close": market_status.get("session_close"),
+                "next_open": market_status.get("next_open"),
+                "next_close": market_status.get("next_close"),
+            },
+        )
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -200,6 +217,18 @@ def main():
         f"action={action_proposal['action']}, "
         f"reason={action_proposal['reason']}"
     )
+    from event_logger import log_event
+    log_event(
+        "strategy",
+        "signal_evaluation",
+        "ok",
+        {
+            "signal": action_proposal.get("signal"),
+            "decision": action_proposal.get("decision"),
+            "action": action_proposal.get("action"),
+            "reason": action_proposal.get("reason"),
+        },
+    )
 
     if not action_proposal["should_submit"]:
         logging.info(
@@ -258,6 +287,18 @@ def main():
         buying_power,
         max_position_size=OPENCLAW_MAX_POSITION_SIZE,
         allowed_symbols=ALLOWED_SYMBOLS,
+    )
+    from event_logger import log_event
+    log_event(
+        "risk",
+        "risk_check",
+        "ok" if risk_result.get("passed") else "blocked",
+        {
+            "passed": risk_result.get("passed"),
+            "reason": risk_result.get("reason"),
+            "symbol": OPENCLAW_SYMBOL,
+            "qty": OPENCLAW_QTY,
+        },
     )
     if not risk_result["passed"]:
         logging.info("REJECTED — no order sent")
