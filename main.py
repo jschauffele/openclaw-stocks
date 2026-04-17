@@ -219,6 +219,18 @@ def main():
         f"action={action_proposal['action']}, "
         f"reason={action_proposal['reason']}"
     )
+    from event_logger import log_event
+    log_event(
+        "strategy",
+        "signal_evaluation",
+        "ok",
+        {
+            "signal": action_proposal.get("signal"),
+            "decision": action_proposal.get("decision"),
+            "action": action_proposal.get("action"),
+            "reason": action_proposal.get("reason"),
+        },
+    )
 
     if not action_proposal["should_submit"]:
         logging.info(
