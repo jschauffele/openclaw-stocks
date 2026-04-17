@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 
-PROJECT_ROOT = Path("/opt/openclaw-stocks")
+PROJECT_ROOT = Path(__file__).parent.resolve()
 
 REQUIRED_FILES = (
     PROJECT_ROOT / ".env",
