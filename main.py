@@ -1,6 +1,5 @@
 from event_logger import initialize_event_logger, generate_run_id
 import logging
-from uuid import uuid4
 
 from alpaca.trading.enums import OrderSide, TimeInForce
 
@@ -58,7 +57,6 @@ def main():
     initialize_event_logger(run_id)
     from event_logger import log_event
     log_event('system','startup','ok',{'message':'run_started'})
-    run_id = str(uuid4())[:8]
     side = OrderSide.BUY.value
     mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
     trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
