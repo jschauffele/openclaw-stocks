@@ -72,13 +72,15 @@ def log_event(
         return
 
     _EVENT_COUNTER += 1
+    ts = _utc_now_iso_z()
     event = {
         "schema_version": 1,
         "run_id": _CURRENT_RUN_ID,
         "event_id": f"evt_{_EVENT_COUNTER:04d}",
         "event_type": event_type,
         "stage": stage,
-        "timestamp_utc": _utc_now_iso_z(),
+        "timestamp_utc": ts,
+        "timestamp": ts,
         "status": status,
         "payload": payload if isinstance(payload, dict) else {},
     }
