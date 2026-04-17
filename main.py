@@ -290,6 +290,18 @@ def main():
         max_position_size=OPENCLAW_MAX_POSITION_SIZE,
         allowed_symbols=ALLOWED_SYMBOLS,
     )
+    from event_logger import log_event
+    log_event(
+        "risk",
+        "risk_check",
+        "ok" if risk_result.get("passed") else "blocked",
+        {
+            "passed": risk_result.get("passed"),
+            "reason": risk_result.get("reason"),
+            "symbol": OPENCLAW_SYMBOL,
+            "qty": OPENCLAW_QTY,
+        },
+    )
     if not risk_result["passed"]:
         logging.info("REJECTED — no order sent")
         persist_report(
