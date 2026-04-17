@@ -1,4 +1,4 @@
-from event_logger import initialize_event_logger, generate_run_id
+from event_logger import initialize_event_logger, generate_run_id, log_event
 import logging
 
 from alpaca.trading.enums import OrderSide, TimeInForce
@@ -55,8 +55,7 @@ class InsufficientMarketDataError(Exception):
 def main():
     run_id = generate_run_id()
     initialize_event_logger(run_id)
-    from event_logger import log_event
-    log_event('system','startup','ok',{'message':'run_started'})
+    log_event("system", "startup", "ok", {"message": "run_started"})
     side = OrderSide.BUY.value
     mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
     trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
@@ -121,7 +120,6 @@ def main():
     market_status = get_market_session_status(client)
     if not market_status["is_open"]:
         logging.warning(f"Market closed — blocking run: {market_status['reason']}")
-        from event_logger import log_event
         log_event(
             "system",
             "market_session",
@@ -217,7 +215,6 @@ def main():
         f"action={action_proposal['action']}, "
         f"reason={action_proposal['reason']}"
     )
-    from event_logger import log_event
     log_event(
         "strategy",
         "signal_evaluation",
@@ -288,7 +285,6 @@ def main():
         max_position_size=OPENCLAW_MAX_POSITION_SIZE,
         allowed_symbols=ALLOWED_SYMBOLS,
     )
-    from event_logger import log_event
     log_event(
         "risk",
         "risk_check",
