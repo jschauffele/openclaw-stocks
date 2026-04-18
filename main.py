@@ -95,6 +95,7 @@ def main():
             side=side,
             notes=["OPENCLAW_ENABLED=false"],
         )
+        log_event("system", "completion", "blocked", {"reason": "killswitch_disabled"})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -116,8 +117,11 @@ def main():
             side=side,
             notes=["Configuration validation failed before market data lookup"],
         )
+        log_event("system", "completion", "error", {"reason": "config_validation_failed"})
         logging.info("========== OpenClaw run finished ==========")
         return
+
+    log_event("system", "config", "ok", {"message": "config_validation_passed"})
 
     market_status = get_market_session_status(client)
     if not market_status["is_open"]:
@@ -151,6 +155,7 @@ def main():
                 f"next_close={market_status.get('next_close')}",
             ],
         )
+        log_event("system", "completion", "blocked", {"reason": market_status["reason"]})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -193,6 +198,7 @@ def main():
                 f"available_closes={exc.available_closes}",
             ],
         )
+        log_event("system", "completion", "blocked", {"reason": "insufficient_market_data"})
         logging.info("========== OpenClaw run finished ==========")
         return
     except Exception as exc:
@@ -207,6 +213,7 @@ def main():
             side=side,
             notes=[str(exc)],
         )
+        log_event("system", "completion", "error", {"reason": "strategy_pipeline_failed"})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -214,6 +221,15 @@ def main():
         for warning in bars_result.warnings:
             logging.warning(f"Market data warning: {warning}")
 
+    log_event(
+        "data",
+        "fetch",
+        "ok",
+        {
+            "symbol": OPENCLAW_SYMBOL,
+            "candles": len(bars_result.candles),
+        },
+    )
     logging.info(
         "Strategy pipeline completed: "
         f"signal={action_proposal['signal']}, "
@@ -238,6 +254,15 @@ def main():
             "Strategy proposed no order submission: "
             f"action={action_proposal['action']}, reason={action_proposal['reason']}"
         )
+        log_event(
+            "strategy",
+            "signal_evaluation",
+            "blocked",
+            {
+                "action": action_proposal.get("action"),
+                "reason": action_proposal.get("reason"),
+            },
+        )
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -254,6 +279,7 @@ def main():
                 f"percent_change={action_proposal['percent_change']}",
             ],
         )
+        log_event("system", "completion", "blocked", {"reason": "strategy_hold"})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -282,6 +308,7 @@ def main():
                 f"Strategy reason={action_proposal['reason']}",
             ],
         )
+        log_event("system", "completion", "blocked", {"reason": duplicate_result["reason"]})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -322,6 +349,7 @@ def main():
                 f"Strategy reason={action_proposal['reason']}",
             ],
         )
+        log_event("system", "completion", "blocked", {"reason": risk_result["reason"]})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -360,6 +388,7 @@ def main():
                 f"Strategy reason={action_proposal['reason']}",
             ],
         )
+        log_event("system", "completion", "blocked", {"reason": reconciliation_result["reason"]})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -413,6 +442,7 @@ def main():
                 f"decision={action_proposal['decision']}",
             ],
         )
+        log_event("system", "completion", "ok", {"reason": "dry_run_completed"})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -425,6 +455,7 @@ def main():
             "error": str(exc),
         })
         logging.exception("Order submission failed")
+        log_event("system", "completion", "error", {"reason": "order_submission_failed"})
         logging.info("========== OpenClaw run finished ==========")
         return
 
@@ -456,6 +487,7 @@ def main():
             f"decision={action_proposal['decision']}",
         ],
     )
+    log_event("system", "completion", "ok", {"reason": "paper_order_submitted"})
     logging.info("========== OpenClaw run finished ==========")
 
 
