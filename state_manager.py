@@ -3,21 +3,16 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from config import (
-    STATE_FILE,
-    LEGACY_LAST_ORDER_FILE,
-    OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
-)
 from utils import parse_iso8601, write_json_atomic
 
 
-def load_order_state():
-    if not os.path.exists(STATE_FILE):
-        logging.info(f"No state file yet: {STATE_FILE}")
+def load_order_state(state_file: str):
+    if not os.path.exists(state_file):
+        logging.info(f"No state file yet: {state_file}")
         return None
 
     try:
-        with open(STATE_FILE, "r") as f:
+        with open(state_file, "r") as f:
             data = json.load(f)
 
         if not isinstance(data, dict):
@@ -42,9 +37,9 @@ def load_order_state():
         return None
 
 
-def write_order_state(state: dict) -> None:
-    write_json_atomic(STATE_FILE, state)
-    logging.info(f"Order state written to {STATE_FILE}")
+def write_order_state(state: dict, state_file: str) -> None:
+    write_json_atomic(state_file, state)
+    logging.info(f"Order state written to {state_file}")
 
 
 def write_run_report(report: dict, run_report_file: str) -> None:
@@ -52,12 +47,12 @@ def write_run_report(report: dict, run_report_file: str) -> None:
     logging.info(f"Run report written to {run_report_file}")
 
 
-def legacy_duplicate_match(symbol: str) -> bool:
-    if not os.path.exists(LEGACY_LAST_ORDER_FILE):
+def legacy_duplicate_match(symbol: str, legacy_last_order_file: str) -> bool:
+    if not os.path.exists(legacy_last_order_file):
         return False
 
     try:
-        with open(LEGACY_LAST_ORDER_FILE, "r") as f:
+        with open(legacy_last_order_file, "r") as f:
             last = f.read().strip()
         if last:
             logging.info(f"Legacy last_order.txt contains: {last}")
@@ -67,11 +62,18 @@ def legacy_duplicate_match(symbol: str) -> bool:
         return False
 
 
-def duplicate_check(symbol: str, side: str, qty: int):
-    state = load_order_state()
+def duplicate_check(
+    symbol: str,
+    side: str,
+    qty: int,
+    state_file: str,
+    legacy_last_order_file: str,
+    duplicate_cooldown_seconds: int,
+):
+    state = load_order_state(state_file)
 
     if state is None:
-        legacy_match = legacy_duplicate_match(symbol)
+        legacy_match = legacy_duplicate_match(symbol, legacy_last_order_file)
         if legacy_match:
             logging.warning(
                 "Legacy duplicate guard matched current symbol; blocking safely"
@@ -126,11 +128,11 @@ def duplicate_check(symbol: str, side: str, qty: int):
             "matched_state": state,
         }
 
-    if age_seconds < OPENCLAW_DUPLICATE_COOLDOWN_SECONDS:
+    if age_seconds < duplicate_cooldown_seconds:
         logging.warning(
             "Duplicate order blocked by cooldown: "
             f"symbol={symbol}, side={side}, qty={qty}, age_seconds={age_seconds}, "
-            f"cooldown_seconds={OPENCLAW_DUPLICATE_COOLDOWN_SECONDS}"
+            f"cooldown_seconds={duplicate_cooldown_seconds}"
         )
         return {
             "is_duplicate": True,
@@ -142,7 +144,7 @@ def duplicate_check(symbol: str, side: str, qty: int):
     logging.info(
         "Previous matching order is outside cooldown window: "
         f"age_seconds={age_seconds}, "
-        f"cooldown_seconds={OPENCLAW_DUPLICATE_COOLDOWN_SECONDS}"
+        f"cooldown_seconds={duplicate_cooldown_seconds}"
     )
     return {
         "is_duplicate": False,

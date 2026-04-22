@@ -290,7 +290,14 @@ def main():
     buying_power = float(account.buying_power)
     logging.info(f"Account buying power: {buying_power}")
 
-    duplicate_result = duplicate_check(OPENCLAW_SYMBOL, side, OPENCLAW_QTY)
+    duplicate_result = duplicate_check(
+        OPENCLAW_SYMBOL,
+        side,
+        OPENCLAW_QTY,
+        STATE_FILE,
+        LEGACY_LAST_ORDER_FILE,
+        OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
+    )
     if duplicate_result["is_duplicate"]:
         logging.warning(
             "Duplicate protection blocked current order attempt: "
@@ -425,7 +432,7 @@ def main():
             "side": side,
             "mode": "dry_run",
         })
-        write_order_state(state_record)
+        write_order_state(state_record, STATE_FILE)
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -469,7 +476,7 @@ def main():
         "order_id": str(response.id),
         "mode": "paper_submit",
     })
-    write_order_state(state_record)
+    write_order_state(state_record, STATE_FILE)
     persist_report(
         run_id=run_id,
         mode=mode,
