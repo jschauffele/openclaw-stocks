@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 
 from config import (
     STATE_FILE,
-    RUN_REPORT_FILE,
     LEGACY_LAST_ORDER_FILE,
     OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
 )
@@ -48,9 +47,9 @@ def write_order_state(state: dict) -> None:
     logging.info(f"Order state written to {STATE_FILE}")
 
 
-def write_run_report(report: dict) -> None:
-    write_json_atomic(RUN_REPORT_FILE, report)
-    logging.info(f"Run report written to {RUN_REPORT_FILE}")
+def write_run_report(report: dict, run_report_file: str) -> None:
+    write_json_atomic(run_report_file, report)
+    logging.info(f"Run report written to {run_report_file}")
 
 
 def legacy_duplicate_match(symbol: str) -> bool:

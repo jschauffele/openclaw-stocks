@@ -6,6 +6,7 @@ from config import (
     OPENCLAW_MAX_POSITION_SIZE,
     ALLOWED_SYMBOLS,
     ALPACA_BASE_URL,
+    RUN_REPORT_FILE,
 )
 from utils import utc_now_iso
 from state_manager import write_run_report
@@ -85,4 +86,4 @@ def persist_report(
         open_buy_order_qty=open_buy_order_qty,
         projected_position_qty=projected_position_qty,
     )
-    write_run_report(report)
+    write_run_report(report, RUN_REPORT_FILE)
