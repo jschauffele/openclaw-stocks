@@ -1,10 +1,9 @@
 from alpaca.trading.client import TradingClient
-from config import ALPACA_API_KEY, ALPACA_SECRET_KEY
 
 
-def create_trading_client():
+def create_trading_client(alpaca_api_key: str, alpaca_secret_key: str):
     return TradingClient(
-        ALPACA_API_KEY,
-        ALPACA_SECRET_KEY,
+        alpaca_api_key,
+        alpaca_secret_key,
         paper=True,
     )

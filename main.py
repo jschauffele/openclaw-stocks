@@ -54,7 +54,7 @@ def main():
     env_int = config.env_int
 
     setup_logging(LOG_FILE)
-    client = create_trading_client()
+    client = create_trading_client(ALPACA_API_KEY, ALPACA_SECRET_KEY)
 
     run_id = generate_run_id()
     initialize_event_logger(run_id)
