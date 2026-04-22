@@ -4,26 +4,7 @@ import logging
 from alpaca.trading.enums import OrderSide, TimeInForce
 
 from alpaca_data_provider import AlpacaMarketDataProvider
-from client_factory import create_trading_client
-from config import (
-    BASE_DIR,
-    LOG_FILE,
-    STATE_FILE,
-    RUN_REPORT_FILE,
-    LEGACY_LAST_ORDER_FILE,
-    OPENCLAW_ENABLED,
-    OPENCLAW_DRY_RUN,
-    OPENCLAW_SYMBOL,
-    OPENCLAW_QTY,
-    OPENCLAW_MAX_POSITION_SIZE,
-    OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
-    ALPACA_API_KEY,
-    ALPACA_SECRET_KEY,
-    ALPACA_BASE_URL,
-    ALLOWED_SYMBOLS,
-    env_str,
-    env_int,
-)
+import config
 from decision_engine import build_action_proposal
 from execution_engine import (
     get_market_session_status,
@@ -31,15 +12,10 @@ from execution_engine import (
     submit_market_order,
 )
 from market_data import get_historical_bars
-from reporting import persist_report
 from risk_engine import validate_config, risk_check, reconcile_position
 from signal_validator import validate_signal_result
-from state_manager import duplicate_check, write_order_state
 from strategy_engine import generate_signal_from_closes
 from utils import setup_logging, utc_now_iso
-
-setup_logging(LOG_FILE)
-client = create_trading_client()
 
 
 class InsufficientMarketDataError(Exception):
@@ -53,6 +29,33 @@ class InsufficientMarketDataError(Exception):
 
 
 def main():
+    config.load_config()
+
+    from client_factory import create_trading_client
+    from reporting import persist_report
+    from state_manager import duplicate_check, write_order_state
+
+    BASE_DIR = config.BASE_DIR
+    LOG_FILE = config.LOG_FILE
+    STATE_FILE = config.STATE_FILE
+    RUN_REPORT_FILE = config.RUN_REPORT_FILE
+    LEGACY_LAST_ORDER_FILE = config.LEGACY_LAST_ORDER_FILE
+    OPENCLAW_ENABLED = config.OPENCLAW_ENABLED
+    OPENCLAW_DRY_RUN = config.OPENCLAW_DRY_RUN
+    OPENCLAW_SYMBOL = config.OPENCLAW_SYMBOL
+    OPENCLAW_QTY = config.OPENCLAW_QTY
+    OPENCLAW_MAX_POSITION_SIZE = config.OPENCLAW_MAX_POSITION_SIZE
+    OPENCLAW_DUPLICATE_COOLDOWN_SECONDS = config.OPENCLAW_DUPLICATE_COOLDOWN_SECONDS
+    ALPACA_API_KEY = config.ALPACA_API_KEY
+    ALPACA_SECRET_KEY = config.ALPACA_SECRET_KEY
+    ALPACA_BASE_URL = config.ALPACA_BASE_URL
+    ALLOWED_SYMBOLS = config.ALLOWED_SYMBOLS
+    env_str = config.env_str
+    env_int = config.env_int
+
+    setup_logging(LOG_FILE)
+    client = create_trading_client()
+
     run_id = generate_run_id()
     initialize_event_logger(run_id)
     log_event("system", "startup", "ok", {"message": "run_started"})
