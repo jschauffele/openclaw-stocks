@@ -173,10 +173,10 @@ def main():
             limit=signal_limit,
         )
         closes = [candle.close for candle in bars_result.candles]
-        if len(closes) < 2:
+        if len(closes) < 3:
             raise InsufficientMarketDataError(
                 available_closes=len(closes),
-                required_closes=2,
+                required_closes=3,
             )
         raw_signal_result = generate_signal_from_closes(closes)
         signal_result = validate_signal_result(raw_signal_result)
@@ -186,7 +186,7 @@ def main():
             signal_result=signal_result,
         )
     except InsufficientMarketDataError as exc:
-        logging.warning("Strategy skipped due to insufficient market data")
+        logging.warning("Insufficient market data: need at least 3 closes")
         log_event("data", "fetch", "insufficient", {"symbol": OPENCLAW_SYMBOL, "error": str(exc)})
         persist_report(
             run_id=run_id,
