@@ -485,6 +485,26 @@ def main():
             "error": str(exc),
         })
         logging.exception("Order submission failed")
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="error",
+            reason="order_submission_failed",
+            trigger_source=trigger_source,
+            side=side,
+            **report_config,
+            buying_power=buying_power,
+            estimated_cost=risk_result["estimated_cost"],
+            existing_position_qty=reconciliation_result["existing_qty"],
+            open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
+            projected_position_qty=reconciliation_result["projected_qty"],
+            notes=[
+                str(exc),
+                f"Strategy reason={action_proposal['reason']}",
+                f"signal={action_proposal['signal']}",
+                f"decision={action_proposal['decision']}",
+            ],
+        )
         log_event("system", "completion", "error", {"reason": "order_submission_failed"})
         logging.info("========== OpenClaw run finished ==========")
         return
