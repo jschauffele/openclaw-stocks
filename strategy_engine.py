@@ -28,6 +28,7 @@ def generate_signal_from_closes(
             "latest_close": latest_close,
             "price_delta": price_delta,
             "percent_change": percent_change,
+            "three_close_percent_change": 0.0,
             "min_buy_percent_change_pct": min_buy_percent_change_pct,
         }
 
@@ -36,6 +37,10 @@ def generate_signal_from_closes(
     latest_close = close_values[-1]
     price_delta = latest_close - previous_close
     percent_change = (price_delta / previous_close) * 100 if previous_close else 0.0
+    three_close_price_delta = latest_close - prior_close
+    three_close_percent_change = (
+        (three_close_price_delta / prior_close) * 100 if prior_close else 0.0
+    )
 
     if not (prior_close < previous_close < latest_close):
         signal = "hold"
@@ -58,5 +63,6 @@ def generate_signal_from_closes(
         "latest_close": latest_close,
         "price_delta": price_delta,
         "percent_change": percent_change,
+        "three_close_percent_change": three_close_percent_change,
         "min_buy_percent_change_pct": min_buy_percent_change_pct,
     }

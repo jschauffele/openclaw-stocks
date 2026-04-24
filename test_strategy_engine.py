@@ -15,6 +15,8 @@ class GenerateSignalFromClosesTest(unittest.TestCase):
         self.assertEqual(result["decision"], "buy")
         self.assertEqual(result["reason"], "percent_change_meets_buy_threshold")
         self.assertGreaterEqual(result["percent_change"], 0.25)
+        self.assertAlmostEqual(result["percent_change"], (0.35 / 100.25) * 100)
+        self.assertAlmostEqual(result["three_close_percent_change"], 0.6)
 
     def test_hold_when_three_close_confirmation_fails_on_one_bar_rebound(self) -> None:
         result = generate_signal_from_closes([100.0, 99.0, 99.50])
@@ -43,6 +45,7 @@ class GenerateSignalFromClosesTest(unittest.TestCase):
         self.assertEqual(result["signal"], "hold")
         self.assertEqual(result["decision"], "hold")
         self.assertEqual(result["reason"], "insufficient_data_for_confirmation")
+        self.assertEqual(result["three_close_percent_change"], 0.0)
 
     def test_custom_threshold_can_be_used_for_deterministic_tests(self) -> None:
         result = generate_signal_from_closes(
