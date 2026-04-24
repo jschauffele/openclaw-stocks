@@ -52,6 +52,16 @@ def main():
     ALLOWED_SYMBOLS = config.ALLOWED_SYMBOLS
     env_str = config.env_str
     env_int = config.env_int
+    report_config = {
+        "symbol": OPENCLAW_SYMBOL,
+        "qty": OPENCLAW_QTY,
+        "openclaw_enabled": OPENCLAW_ENABLED,
+        "duplicate_cooldown_seconds": OPENCLAW_DUPLICATE_COOLDOWN_SECONDS,
+        "max_position_size": OPENCLAW_MAX_POSITION_SIZE,
+        "allowed_symbols": ALLOWED_SYMBOLS,
+        "alpaca_base_url": ALPACA_BASE_URL,
+        "run_report_file": RUN_REPORT_FILE,
+    }
 
     setup_logging(LOG_FILE)
     client = create_trading_client(ALPACA_API_KEY, ALPACA_SECRET_KEY)
@@ -96,6 +106,7 @@ def main():
             reason="killswitch_disabled",
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             notes=["OPENCLAW_ENABLED=false"],
         )
         log_event("system", "completion", "blocked", {"reason": "killswitch_disabled"})
@@ -118,6 +129,7 @@ def main():
             reason="config_validation_failed",
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             notes=["Configuration validation failed before market data lookup"],
         )
         log_event("system", "completion", "error", {"reason": "config_validation_failed"})
@@ -149,6 +161,7 @@ def main():
             reason=market_status["reason"],
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             notes=[
                 f"Blocked due to market session status: {market_status['reason']}",
                 f"current_time={market_status.get('current_time')}",
@@ -195,6 +208,7 @@ def main():
             reason="insufficient_market_data",
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             notes=[
                 str(exc),
                 f"required_closes={exc.required_closes}",
@@ -214,6 +228,7 @@ def main():
             reason="strategy_pipeline_failed",
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             notes=[str(exc)],
         )
         log_event("system", "completion", "error", {"reason": "strategy_pipeline_failed"})
@@ -273,6 +288,7 @@ def main():
             reason="strategy_hold",
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             notes=[
                 f"Strategy action={action_proposal['action']}",
                 f"Strategy reason={action_proposal['reason']}",
@@ -311,6 +327,7 @@ def main():
             reason=duplicate_result["reason"],
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             buying_power=buying_power,
             duplicate_age_seconds=duplicate_result["age_seconds"],
             notes=[
@@ -352,6 +369,7 @@ def main():
             reason=risk_result["reason"],
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             buying_power=buying_power,
             estimated_cost=risk_result["estimated_cost"],
             notes=[
@@ -388,6 +406,7 @@ def main():
             reason=reconciliation_result["reason"],
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             buying_power=buying_power,
             estimated_cost=risk_result["estimated_cost"],
             existing_position_qty=reconciliation_result["existing_qty"],
@@ -440,6 +459,7 @@ def main():
             reason="dry_run_completed",
             trigger_source=trigger_source,
             side=side,
+            **report_config,
             buying_power=buying_power,
             estimated_cost=risk_result["estimated_cost"],
             existing_position_qty=reconciliation_result["existing_qty"],
@@ -484,6 +504,7 @@ def main():
         reason="paper_order_submitted",
         trigger_source=trigger_source,
         side=side,
+        **report_config,
         buying_power=buying_power,
         estimated_cost=risk_result["estimated_cost"],
         order_status=str(response.status),
