@@ -229,7 +229,7 @@ def main():
             trigger_source=trigger_source,
             side=side,
             **report_config,
-            notes=[str(exc)],
+            notes=["Strategy pipeline failed before action proposal completed"],
         )
         log_event("system", "completion", "error", {"reason": "strategy_pipeline_failed"})
         logging.info("========== OpenClaw run finished ==========")
@@ -499,7 +499,7 @@ def main():
             open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
             projected_position_qty=reconciliation_result["projected_qty"],
             notes=[
-                str(exc),
+                "Order submission failed before broker accepted the order",
                 f"Strategy reason={action_proposal['reason']}",
                 f"signal={action_proposal['signal']}",
                 f"decision={action_proposal['decision']}",
