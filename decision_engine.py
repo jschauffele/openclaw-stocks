@@ -42,4 +42,7 @@ def build_action_proposal(
         "latest_close": float(signal_result["latest_close"]),
         "price_delta": float(signal_result["price_delta"]),
         "percent_change": float(signal_result["percent_change"]),
+        "three_close_percent_change": float(
+            signal_result["three_close_percent_change"]
+        ),
     }

@@ -28,6 +28,35 @@ class InsufficientMarketDataError(Exception):
         self.required_closes = required_closes
 
 
+def build_strategy_signal_event_payload(action_proposal: dict) -> dict:
+    return {
+        "signal": action_proposal.get("signal"),
+        "decision": action_proposal.get("decision"),
+        "action": action_proposal.get("action"),
+        "reason": action_proposal.get("reason"),
+        "previous_close": action_proposal.get("previous_close"),
+        "latest_close": action_proposal.get("latest_close"),
+        "price_delta": action_proposal.get("price_delta"),
+        "percent_change": action_proposal.get("percent_change"),
+        "three_close_percent_change": action_proposal.get(
+            "three_close_percent_change"
+        ),
+    }
+
+
+def build_strategy_hold_report_notes(action_proposal: dict) -> list[str]:
+    return [
+        f"Strategy action={action_proposal['action']}",
+        f"Strategy reason={action_proposal['reason']}",
+        f"previous_close={action_proposal['previous_close']}",
+        f"latest_close={action_proposal['latest_close']}",
+        f"price_delta={action_proposal['price_delta']}",
+        f"percent_change={action_proposal['percent_change']}",
+        "three_close_percent_change="
+        f"{action_proposal['three_close_percent_change']}",
+    ]
+
+
 def main():
     config.load_config()
 
@@ -259,12 +288,7 @@ def main():
         "strategy",
         "signal_evaluation",
         "ok",
-        {
-            "signal": action_proposal.get("signal"),
-            "decision": action_proposal.get("decision"),
-            "action": action_proposal.get("action"),
-            "reason": action_proposal.get("reason"),
-        },
+        build_strategy_signal_event_payload(action_proposal),
     )
 
     if not action_proposal["should_submit"]:
@@ -276,10 +300,7 @@ def main():
             "strategy",
             "signal_evaluation",
             "blocked",
-            {
-                "action": action_proposal.get("action"),
-                "reason": action_proposal.get("reason"),
-            },
+            build_strategy_signal_event_payload(action_proposal),
         )
         persist_report(
             run_id=run_id,
@@ -289,14 +310,7 @@ def main():
             trigger_source=trigger_source,
             side=side,
             **report_config,
-            notes=[
-                f"Strategy action={action_proposal['action']}",
-                f"Strategy reason={action_proposal['reason']}",
-                f"previous_close={action_proposal['previous_close']}",
-                f"latest_close={action_proposal['latest_close']}",
-                f"price_delta={action_proposal['price_delta']}",
-                f"percent_change={action_proposal['percent_change']}",
-            ],
+            notes=build_strategy_hold_report_notes(action_proposal),
         )
         log_event("system", "completion", "blocked", {"reason": "strategy_hold"})
         logging.info("========== OpenClaw run finished ==========")

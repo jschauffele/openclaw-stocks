@@ -17,6 +17,7 @@ def validate_signal_result(signal_result: dict) -> dict:
         "latest_close",
         "price_delta",
         "percent_change",
+        "three_close_percent_change",
     }
 
     missing = required_keys - set(signal_result.keys())
@@ -41,6 +42,7 @@ def validate_signal_result(signal_result: dict) -> dict:
     latest_close = float(signal_result["latest_close"])
     price_delta = float(signal_result["price_delta"])
     percent_change = float(signal_result["percent_change"])
+    three_close_percent_change = float(signal_result["three_close_percent_change"])
 
     return {
         "signal": signal,
@@ -50,4 +52,5 @@ def validate_signal_result(signal_result: dict) -> dict:
         "latest_close": latest_close,
         "price_delta": price_delta,
         "percent_change": percent_change,
+        "three_close_percent_change": three_close_percent_change,
     }
