@@ -12,6 +12,7 @@ from execution_engine import (
     submit_market_order,
 )
 from market_data import get_historical_bars
+from observation_logger import append_observation
 from risk_engine import validate_config, risk_check, reconcile_position
 from signal_validator import validate_signal_result
 from strategy_engine import generate_signal_from_closes
@@ -291,11 +292,22 @@ def main():
         build_strategy_signal_event_payload(action_proposal),
     )
 
+    def log_observation(result=None) -> None:
+        try:
+            append_observation(
+                run_id=run_id,
+                action_proposal=action_proposal,
+                result=result,
+            )
+        except Exception:
+            logging.exception("Failed to append observation log row")
+
     if not action_proposal["should_submit"]:
         logging.info(
             "Strategy proposed no order submission: "
             f"action={action_proposal['action']}, reason={action_proposal['reason']}"
         )
+        log_observation(result="blocked")
         log_event(
             "strategy",
             "signal_evaluation",
@@ -333,6 +345,7 @@ def main():
             "Duplicate protection blocked current order attempt: "
             f"symbol={OPENCLAW_SYMBOL}, side={side}, qty={OPENCLAW_QTY}"
         )
+        log_observation(result="blocked")
         log_event("order", "duplicate_check", "blocked", {"symbol": OPENCLAW_SYMBOL, "reason": duplicate_result["reason"]})
         persist_report(
             run_id=run_id,
@@ -376,6 +389,7 @@ def main():
     )
     if not risk_result["passed"]:
         logging.info("REJECTED — no order sent")
+        log_observation(result="blocked")
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -406,6 +420,7 @@ def main():
             "Broker reconciliation blocked current order attempt: "
             f"symbol={OPENCLAW_SYMBOL}, requested_qty={OPENCLAW_QTY}"
         )
+        log_observation(result="blocked")
         log_event("position", "reconcile", "mismatch", {
             "symbol": OPENCLAW_SYMBOL,
             "broker_qty": reconciliation_result["existing_qty"],
@@ -466,6 +481,7 @@ def main():
             "mode": "dry_run",
         })
         write_order_state(state_record, STATE_FILE)
+        log_observation(result="success")
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -493,6 +509,7 @@ def main():
     try:
         response = submit_market_order(client, order)
     except Exception as exc:
+        log_observation(result="error")
         log_event("order", "submission", "error", {
             "symbol": OPENCLAW_SYMBOL,
             "qty": OPENCLAW_QTY,
@@ -531,6 +548,7 @@ def main():
         "mode": "paper_submit",
     })
     write_order_state(state_record, STATE_FILE)
+    log_observation(result="success")
     persist_report(
         run_id=run_id,
         mode=mode,
