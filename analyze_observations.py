@@ -50,6 +50,11 @@ def summarize_observations(rows: list[dict]) -> dict:
     three_close_percent_changes = []
     percent_changes_by_symbol = defaultdict(list)
     three_close_percent_changes_by_symbol = defaultdict(list)
+    buy_percent_changes = []
+    buy_three_close_percent_changes = []
+    buy_counts_by_symbol = Counter()
+    buy_percent_changes_by_symbol = defaultdict(list)
+    buy_three_close_percent_changes_by_symbol = defaultdict(list)
 
     for row in rows:
         symbol = str(row.get("symbol", "")).strip().upper()
@@ -59,12 +64,21 @@ def summarize_observations(rows: list[dict]) -> dict:
         signal = str(row.get("signal", "")).strip().upper()
         if signal in ("BUY", "HOLD"):
             signals[signal] += 1
+        is_buy = signal == "BUY"
+        if is_buy and symbol:
+            buy_counts_by_symbol[symbol] += 1
 
         percent_change = _float_value(row, "percent_change")
         if percent_change is not None:
             percent_changes.append(percent_change)
             if symbol:
                 percent_changes_by_symbol[symbol].append(percent_change)
+            if is_buy:
+                buy_percent_changes.append(percent_change)
+                if symbol:
+                    buy_percent_changes_by_symbol[symbol].append(
+                        percent_change
+                    )
 
         three_close_percent_change = _float_value(
             row,
@@ -76,8 +90,17 @@ def summarize_observations(rows: list[dict]) -> dict:
                 three_close_percent_changes_by_symbol[symbol].append(
                     three_close_percent_change
                 )
+            if is_buy:
+                buy_three_close_percent_changes.append(
+                    three_close_percent_change
+                )
+                if symbol:
+                    buy_three_close_percent_changes_by_symbol[symbol].append(
+                        three_close_percent_change
+                    )
 
     symbols = sorted(by_symbol)
+    buy_symbols = sorted(buy_counts_by_symbol)
     return {
         "total": len(rows),
         "by_symbol": by_symbol,
@@ -96,6 +119,27 @@ def summarize_observations(rows: list[dict]) -> dict:
                 ),
             }
             for symbol in symbols
+        },
+        "buy_only": {
+            "count": signals.get("BUY", 0),
+            "averages": {
+                "percent_change": _average(buy_percent_changes),
+                "three_close_percent_change": _average(
+                    buy_three_close_percent_changes
+                ),
+            },
+            "by_symbol": {
+                symbol: {
+                    "count": buy_counts_by_symbol[symbol],
+                    "percent_change": _average(
+                        buy_percent_changes_by_symbol[symbol]
+                    ),
+                    "three_close_percent_change": _average(
+                        buy_three_close_percent_changes_by_symbol[symbol]
+                    ),
+                }
+                for symbol in buy_symbols
+            },
         },
     }
 
@@ -135,6 +179,30 @@ def format_summary(summary: dict) -> str:
                 "three_close_percent_change="
                 f"{averages['three_close_percent_change']:.4f}"
             )
+
+    buy_only = summary["buy_only"]
+    lines.extend(
+        [
+            "",
+            "BUY-Only Metrics:",
+            f"BUY Count: {buy_only['count']}",
+            "Avg BUY percent_change: "
+            f"{buy_only['averages']['percent_change']:.4f}",
+            "Avg BUY three_close_percent_change: "
+            f"{buy_only['averages']['three_close_percent_change']:.4f}",
+            "",
+            "BUY-Only By Symbol:",
+        ]
+    )
+
+    for symbol in sorted(buy_only["by_symbol"]):
+        metrics = buy_only["by_symbol"][symbol]
+        lines.append(
+            f"{symbol}: count={metrics['count']}, "
+            f"percent_change={metrics['percent_change']:.4f}, "
+            "three_close_percent_change="
+            f"{metrics['three_close_percent_change']:.4f}"
+        )
 
     return "\n".join(lines)
 
