@@ -47,6 +47,16 @@ class AnalyzeObservationsTests(unittest.TestCase):
             summary["averages"]["three_close_percent_change"],
             1.5,
         )
+        self.assertEqual(summary["distribution"]["percent_change"]["min"], -0.5)
+        self.assertEqual(summary["distribution"]["percent_change"]["max"], 2.0)
+        self.assertEqual(
+            summary["distribution"]["three_close_percent_change"]["min"],
+            0.0,
+        )
+        self.assertEqual(
+            summary["distribution"]["three_close_percent_change"]["max"],
+            3.0,
+        )
         self.assertAlmostEqual(
             summary["averages_by_symbol"]["AAPL"]["percent_change"],
             1.5,
@@ -64,6 +74,26 @@ class AnalyzeObservationsTests(unittest.TestCase):
         )
         self.assertAlmostEqual(
             summary["buy_only"]["averages"]["three_close_percent_change"],
+            1.5,
+        )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["percent_change"]["min"],
+            1.0,
+        )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["percent_change"]["max"],
+            1.0,
+        )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["three_close_percent_change"][
+                "min"
+            ],
+            1.5,
+        )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["three_close_percent_change"][
+                "max"
+            ],
             1.5,
         )
 
@@ -91,9 +121,17 @@ class AnalyzeObservationsTests(unittest.TestCase):
         self.assertIn("BUY Count: 1", output)
         self.assertIn("Avg BUY percent_change: 1.0000", output)
         self.assertIn("Avg BUY three_close_percent_change: 1.5000", output)
+        self.assertIn("Distribution:", output)
+        self.assertIn("percent_change: min=1.0000, max=1.0000", output)
         self.assertIn(
-            "AAPL: count=1, percent_change=1.0000, "
-            "three_close_percent_change=1.5000",
+            "three_close_percent_change: min=1.5000, max=1.5000",
+            output,
+        )
+        self.assertIn("BUY Distribution:", output)
+        self.assertIn(
+            "AAPL: count=1, percent_change avg=1.0000 min=1.0000 "
+            "max=1.0000, three_close_percent_change avg=1.5000 "
+            "min=1.5000 max=1.5000",
             output,
         )
 
@@ -130,6 +168,26 @@ class AnalyzeObservationsTests(unittest.TestCase):
             summary["buy_only"]["averages"]["three_close_percent_change"],
             3.0,
         )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["percent_change"]["min"],
+            1.0,
+        )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["percent_change"]["max"],
+            3.0,
+        )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["three_close_percent_change"][
+                "min"
+            ],
+            1.5,
+        )
+        self.assertEqual(
+            summary["buy_only"]["distribution"]["three_close_percent_change"][
+                "max"
+            ],
+            4.5,
+        )
 
     def test_buy_only_count_by_symbol(self) -> None:
         summary = summarize_observations(
@@ -164,14 +222,42 @@ class AnalyzeObservationsTests(unittest.TestCase):
         self.assertEqual(summary["buy_only"]["by_symbol"]["AAPL"]["count"], 2)
         self.assertEqual(summary["buy_only"]["by_symbol"]["MSFT"]["count"], 1)
         self.assertAlmostEqual(
-            summary["buy_only"]["by_symbol"]["AAPL"]["percent_change"],
+            summary["buy_only"]["by_symbol"]["AAPL"]["percent_change"]["avg"],
             1.5,
+        )
+        self.assertEqual(
+            summary["buy_only"]["by_symbol"]["AAPL"]["percent_change"]["min"],
+            1.0,
+        )
+        self.assertEqual(
+            summary["buy_only"]["by_symbol"]["AAPL"]["percent_change"]["max"],
+            2.0,
         )
         self.assertAlmostEqual(
             summary["buy_only"]["by_symbol"]["AAPL"][
                 "three_close_percent_change"
-            ],
+            ]["avg"],
             2.0,
+        )
+        self.assertEqual(
+            summary["buy_only"]["by_symbol"]["AAPL"][
+                "three_close_percent_change"
+            ]["min"],
+            1.5,
+        )
+        self.assertEqual(
+            summary["buy_only"]["by_symbol"]["AAPL"][
+                "three_close_percent_change"
+            ]["max"],
+            2.5,
+        )
+        self.assertEqual(
+            summary["buy_only"]["by_symbol"]["MSFT"]["percent_change"]["min"],
+            3.0,
+        )
+        self.assertEqual(
+            summary["buy_only"]["by_symbol"]["MSFT"]["percent_change"]["max"],
+            3.0,
         )
 
     def test_zero_buy_rows_do_not_crash(self) -> None:
@@ -201,6 +287,8 @@ class AnalyzeObservationsTests(unittest.TestCase):
         self.assertIn("BUY Count: 0", output)
         self.assertIn("Avg BUY percent_change: 0.0000", output)
         self.assertIn("Avg BUY three_close_percent_change: 0.0000", output)
+        self.assertIn("BUY Distribution:", output)
+        self.assertIn("percent_change: min=0.0000, max=0.0000", output)
 
     def test_load_observations_handles_missing_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

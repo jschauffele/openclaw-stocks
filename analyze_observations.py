@@ -18,6 +18,18 @@ def _average(values: list[float]) -> float:
     return sum(values) / len(values)
 
 
+def _minimum(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return min(values)
+
+
+def _maximum(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return max(values)
+
+
 def _float_value(row: dict, field: str) -> float | None:
     value = row.get(field)
     if value is None:
@@ -111,6 +123,16 @@ def summarize_observations(rows: list[dict]) -> dict:
                 three_close_percent_changes
             ),
         },
+        "distribution": {
+            "percent_change": {
+                "min": _minimum(percent_changes),
+                "max": _maximum(percent_changes),
+            },
+            "three_close_percent_change": {
+                "min": _minimum(three_close_percent_changes),
+                "max": _maximum(three_close_percent_changes),
+            },
+        },
         "averages_by_symbol": {
             symbol: {
                 "percent_change": _average(percent_changes_by_symbol[symbol]),
@@ -128,15 +150,41 @@ def summarize_observations(rows: list[dict]) -> dict:
                     buy_three_close_percent_changes
                 ),
             },
+            "distribution": {
+                "percent_change": {
+                    "min": _minimum(buy_percent_changes),
+                    "max": _maximum(buy_percent_changes),
+                },
+                "three_close_percent_change": {
+                    "min": _minimum(buy_three_close_percent_changes),
+                    "max": _maximum(buy_three_close_percent_changes),
+                },
+            },
             "by_symbol": {
                 symbol: {
                     "count": buy_counts_by_symbol[symbol],
-                    "percent_change": _average(
-                        buy_percent_changes_by_symbol[symbol]
-                    ),
-                    "three_close_percent_change": _average(
-                        buy_three_close_percent_changes_by_symbol[symbol]
-                    ),
+                    "percent_change": {
+                        "avg": _average(
+                            buy_percent_changes_by_symbol[symbol]
+                        ),
+                        "min": _minimum(
+                            buy_percent_changes_by_symbol[symbol]
+                        ),
+                        "max": _maximum(
+                            buy_percent_changes_by_symbol[symbol]
+                        ),
+                    },
+                    "three_close_percent_change": {
+                        "avg": _average(
+                            buy_three_close_percent_changes_by_symbol[symbol]
+                        ),
+                        "min": _minimum(
+                            buy_three_close_percent_changes_by_symbol[symbol]
+                        ),
+                        "max": _maximum(
+                            buy_three_close_percent_changes_by_symbol[symbol]
+                        ),
+                    },
                 }
                 for symbol in buy_symbols
             },
@@ -166,6 +214,16 @@ def format_summary(summary: dict) -> str:
             f"{summary['averages']['percent_change']:.4f}",
             "three_close_percent_change: "
             f"{summary['averages']['three_close_percent_change']:.4f}",
+            "",
+            "Distribution:",
+            "percent_change: "
+            f"min={summary['distribution']['percent_change']['min']:.4f}, "
+            f"max={summary['distribution']['percent_change']['max']:.4f}",
+            "three_close_percent_change: "
+            "min="
+            f"{summary['distribution']['three_close_percent_change']['min']:.4f}, "
+            "max="
+            f"{summary['distribution']['three_close_percent_change']['max']:.4f}",
         ]
     )
 
@@ -191,6 +249,16 @@ def format_summary(summary: dict) -> str:
             "Avg BUY three_close_percent_change: "
             f"{buy_only['averages']['three_close_percent_change']:.4f}",
             "",
+            "BUY Distribution:",
+            "percent_change: "
+            f"min={buy_only['distribution']['percent_change']['min']:.4f}, "
+            f"max={buy_only['distribution']['percent_change']['max']:.4f}",
+            "three_close_percent_change: "
+            "min="
+            f"{buy_only['distribution']['three_close_percent_change']['min']:.4f}, "
+            "max="
+            f"{buy_only['distribution']['three_close_percent_change']['max']:.4f}",
+            "",
             "BUY-Only By Symbol:",
         ]
     )
@@ -199,9 +267,14 @@ def format_summary(summary: dict) -> str:
         metrics = buy_only["by_symbol"][symbol]
         lines.append(
             f"{symbol}: count={metrics['count']}, "
-            f"percent_change={metrics['percent_change']:.4f}, "
-            "three_close_percent_change="
-            f"{metrics['three_close_percent_change']:.4f}"
+            "percent_change "
+            f"avg={metrics['percent_change']['avg']:.4f} "
+            f"min={metrics['percent_change']['min']:.4f} "
+            f"max={metrics['percent_change']['max']:.4f}, "
+            "three_close_percent_change "
+            f"avg={metrics['three_close_percent_change']['avg']:.4f} "
+            f"min={metrics['three_close_percent_change']['min']:.4f} "
+            f"max={metrics['three_close_percent_change']['max']:.4f}"
         )
 
     return "\n".join(lines)
