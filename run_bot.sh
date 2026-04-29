@@ -4,4 +4,10 @@ set -e
 
 cd /opt/openclaw-stocks
 source venv/bin/activate
-OPENCLAW_TRIGGER_SOURCE=systemd_timer python3 main.py
+
+SYMBOLS=("AAPL" "MSFT" "GOOG" "NVDA" "TSLA" "MSTR")
+
+for SYMBOL in "${SYMBOLS[@]}"
+do
+  OPENCLAW_TRIGGER_SOURCE="systemd_timer" OPENCLAW_SYMBOL="$SYMBOL" venv/bin/python main.py
+done
