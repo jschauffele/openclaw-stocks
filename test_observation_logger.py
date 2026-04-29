@@ -33,6 +33,8 @@ class ObservationLoggerTests(unittest.TestCase):
                 run_id="run_1",
                 action_proposal=ACTION_PROPOSAL,
                 result="success",
+                signal_timeframe="5Min",
+                signal_limit=5,
                 log_file=log_file,
             )
 
@@ -47,19 +49,27 @@ class ObservationLoggerTests(unittest.TestCase):
         self.assertEqual(rows[0]["signal"], "buy")
         self.assertEqual(rows[0]["action"], "buy")
         self.assertEqual(rows[0]["result"], "success")
+        self.assertEqual(rows[0]["signal_timeframe"], "5Min")
+        self.assertEqual(rows[0]["signal_limit"], 5)
 
-    def test_percent_change_fields_are_present(self) -> None:
+    def test_data_safety_fields_are_present(self) -> None:
         row = build_observation_row(
             run_id="run_1",
             action_proposal=ACTION_PROPOSAL,
             result="success",
+            signal_timeframe="5Min",
+            signal_limit=5,
             timestamp_utc="2026-04-27T00:00:00+00:00",
         )
 
         self.assertIn("percent_change", row)
         self.assertIn("three_close_percent_change", row)
+        self.assertIn("signal_timeframe", row)
+        self.assertIn("signal_limit", row)
         self.assertEqual(row["percent_change"], 1.0)
         self.assertEqual(row["three_close_percent_change"], 1.5)
+        self.assertEqual(row["signal_timeframe"], "5Min")
+        self.assertEqual(row["signal_limit"], 5)
 
     def test_append_behavior_preserves_prior_observations(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

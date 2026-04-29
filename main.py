@@ -29,6 +29,28 @@ class InsufficientMarketDataError(Exception):
         self.required_closes = required_closes
 
 
+def validate_data_config(
+    *,
+    trigger_source: str,
+    signal_timeframe: str,
+    signal_limit: int,
+) -> None:
+    if trigger_source != "systemd_timer":
+        return
+
+    if signal_timeframe == "1Day":
+        raise ValueError(
+            "OPENCLAW_SIGNAL_TIMEFRAME must not be 1Day when "
+            "OPENCLAW_TRIGGER_SOURCE=systemd_timer"
+        )
+
+    if signal_limit < 3:
+        raise ValueError(
+            "OPENCLAW_SIGNAL_LIMIT must be >= 3 when "
+            "OPENCLAW_TRIGGER_SOURCE=systemd_timer"
+        )
+
+
 def build_strategy_signal_event_payload(action_proposal: dict) -> dict:
     return {
         "signal": action_proposal.get("signal"),
@@ -104,6 +126,8 @@ def main():
     trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
     signal_timeframe = env_str("OPENCLAW_SIGNAL_TIMEFRAME", "1Day")
     signal_limit = env_int("OPENCLAW_SIGNAL_LIMIT", 5)
+    report_config["signal_timeframe"] = signal_timeframe
+    report_config["signal_limit"] = signal_limit
 
     logging.info("========== OpenClaw run started ==========")
     logging.info(f"run_id={run_id}")
@@ -125,6 +149,34 @@ def main():
         "OPENCLAW_DUPLICATE_COOLDOWN_SECONDS="
         f"{OPENCLAW_DUPLICATE_COOLDOWN_SECONDS}"
     )
+
+    try:
+        validate_data_config(
+            trigger_source=trigger_source,
+            signal_timeframe=signal_timeframe,
+            signal_limit=signal_limit,
+        )
+    except ValueError as exc:
+        logging.error(f"Data configuration validation failed: {exc}")
+        log_event("system", "config", "invalid", {"reason": str(exc)})
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="error",
+            reason="data_config_validation_failed",
+            trigger_source=trigger_source,
+            side=side,
+            **report_config,
+            notes=[str(exc)],
+        )
+        log_event(
+            "system",
+            "completion",
+            "error",
+            {"reason": "data_config_validation_failed"},
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
 
     if not OPENCLAW_ENABLED:
         logging.warning("OPENCLAW_ENABLED is false — bot execution disabled")
@@ -298,6 +350,8 @@ def main():
                 run_id=run_id,
                 action_proposal=action_proposal,
                 result=result,
+                signal_timeframe=signal_timeframe,
+                signal_limit=signal_limit,
             )
         except Exception:
             logging.exception("Failed to append observation log row")

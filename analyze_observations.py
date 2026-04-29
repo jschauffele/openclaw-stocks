@@ -10,6 +10,7 @@ import config
 OBSERVATION_LOG_FILE = (
     Path(config.BASE_DIR) / "observations" / "observation_log.jsonl"
 )
+STALE_OBSERVATION_REPEAT_THRESHOLD = 3
 
 
 def _average(values: list[float]) -> float:
@@ -40,6 +41,44 @@ def _float_value(row: dict, field: str) -> float | None:
         return None
 
 
+def _stale_observation_warnings(
+    rows: list[dict],
+    repeat_threshold: int = STALE_OBSERVATION_REPEAT_THRESHOLD,
+) -> list[dict]:
+    repeated_metrics_by_symbol = defaultdict(Counter)
+    for row in rows:
+        symbol = str(row.get("symbol", "")).strip().upper()
+        if not symbol:
+            continue
+
+        percent_change = _float_value(row, "percent_change")
+        three_close_percent_change = _float_value(
+            row,
+            "three_close_percent_change",
+        )
+        if percent_change is None or three_close_percent_change is None:
+            continue
+
+        repeated_metrics_by_symbol[symbol][
+            (percent_change, three_close_percent_change)
+        ] += 1
+
+    warnings = []
+    for symbol in sorted(repeated_metrics_by_symbol):
+        for metrics, count in repeated_metrics_by_symbol[symbol].items():
+            if count >= repeat_threshold:
+                warnings.append(
+                    {
+                        "warning": "POSSIBLE_STALE_DATA",
+                        "symbol": symbol,
+                        "count": count,
+                        "percent_change": metrics[0],
+                        "three_close_percent_change": metrics[1],
+                    }
+                )
+    return warnings
+
+
 def load_observations(log_file: str | Path = OBSERVATION_LOG_FILE) -> list[dict]:
     path = Path(log_file)
     if not path.exists():
@@ -67,6 +106,7 @@ def summarize_observations(rows: list[dict]) -> dict:
     buy_counts_by_symbol = Counter()
     buy_percent_changes_by_symbol = defaultdict(list)
     buy_three_close_percent_changes_by_symbol = defaultdict(list)
+    stale_observation_warnings = _stale_observation_warnings(rows)
 
     for row in rows:
         symbol = str(row.get("symbol", "")).strip().upper()
@@ -189,6 +229,7 @@ def summarize_observations(rows: list[dict]) -> dict:
                 for symbol in buy_symbols
             },
         },
+        "warnings": stale_observation_warnings,
     }
 
 
@@ -276,6 +317,17 @@ def format_summary(summary: dict) -> str:
             f"min={metrics['three_close_percent_change']['min']:.4f} "
             f"max={metrics['three_close_percent_change']['max']:.4f}"
         )
+
+    if summary["warnings"]:
+        lines.extend(["", "Warnings:"])
+        for warning in summary["warnings"]:
+            lines.append(
+                f"{warning['warning']}: symbol={warning['symbol']} "
+                f"count={warning['count']} "
+                f"percent_change={warning['percent_change']:.4f} "
+                "three_close_percent_change="
+                f"{warning['three_close_percent_change']:.4f}"
+            )
 
     return "\n".join(lines)
 

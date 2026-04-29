@@ -17,6 +17,8 @@ def build_observation_row(
     run_id: str,
     action_proposal: dict,
     result=None,
+    signal_timeframe: str | None = None,
+    signal_limit: int | None = None,
     timestamp_utc: str | None = None,
 ) -> dict:
     return {
@@ -34,6 +36,8 @@ def build_observation_row(
         "three_close_percent_change": action_proposal[
             "three_close_percent_change"
         ],
+        "signal_timeframe": signal_timeframe,
+        "signal_limit": signal_limit,
     }
 
 
@@ -42,12 +46,16 @@ def append_observation(
     run_id: str,
     action_proposal: dict,
     result=None,
+    signal_timeframe: str | None = None,
+    signal_limit: int | None = None,
     log_file: str | Path = OBSERVATION_LOG_FILE,
 ) -> None:
     row = build_observation_row(
         run_id=run_id,
         action_proposal=action_proposal,
         result=result,
+        signal_timeframe=signal_timeframe,
+        signal_limit=signal_limit,
     )
     path = Path(log_file)
     path.parent.mkdir(parents=True, exist_ok=True)

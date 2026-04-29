@@ -10,6 +10,7 @@ from event_logger import initialize_event_logger, log_event
 from main import (
     build_strategy_hold_report_notes,
     build_strategy_signal_event_payload,
+    validate_data_config,
 )
 from reporting import build_run_report
 from signal_validator import validate_signal_result
@@ -82,9 +83,13 @@ class ObservabilityPayloadsTest(unittest.TestCase):
             max_position_size=5,
             allowed_symbols=["AAPL"],
             alpaca_base_url="https://paper-api.alpaca.markets",
+            signal_timeframe="5Min",
+            signal_limit=5,
             notes=build_strategy_hold_report_notes(action_proposal),
         )
 
+        self.assertEqual(report["signal_timeframe"], "5Min")
+        self.assertEqual(report["signal_limit"], 5)
         self.assertTrue(
             any(note.startswith("percent_change=") for note in report["notes"])
         )
@@ -93,6 +98,35 @@ class ObservabilityPayloadsTest(unittest.TestCase):
                 note.startswith("three_close_percent_change=")
                 for note in report["notes"]
             )
+        )
+
+    def test_systemd_timer_rejects_daily_signal_timeframe(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "OPENCLAW_SIGNAL_TIMEFRAME must not be 1Day",
+        ):
+            validate_data_config(
+                trigger_source="systemd_timer",
+                signal_timeframe="1Day",
+                signal_limit=5,
+            )
+
+    def test_systemd_timer_rejects_signal_limit_below_three(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "OPENCLAW_SIGNAL_LIMIT must be >= 3",
+        ):
+            validate_data_config(
+                trigger_source="systemd_timer",
+                signal_timeframe="5Min",
+                signal_limit=2,
+            )
+
+    def test_non_timer_trigger_allows_existing_defaults(self) -> None:
+        validate_data_config(
+            trigger_source="manual_or_systemd",
+            signal_timeframe="1Day",
+            signal_limit=1,
         )
 
 

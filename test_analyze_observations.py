@@ -42,6 +42,7 @@ class AnalyzeObservationsTests(unittest.TestCase):
         self.assertEqual(summary["by_symbol"]["MSFT"], 1)
         self.assertEqual(summary["signals"]["BUY"], 1)
         self.assertEqual(summary["signals"]["HOLD"], 2)
+        self.assertEqual(summary["warnings"], [])
         self.assertAlmostEqual(summary["averages"]["percent_change"], 0.8333, 4)
         self.assertAlmostEqual(
             summary["averages"]["three_close_percent_change"],
@@ -320,6 +321,50 @@ class AnalyzeObservationsTests(unittest.TestCase):
             rows = load_observations(log_file)
 
         self.assertEqual(rows, [{"symbol": "AAPL", "signal": "buy"}])
+
+    def test_warns_on_repeated_identical_symbol_metrics(self) -> None:
+        summary = summarize_observations(
+            [
+                {
+                    "symbol": "AAPL",
+                    "signal": "hold",
+                    "percent_change": 1.25,
+                    "three_close_percent_change": 2.5,
+                },
+                {
+                    "symbol": "AAPL",
+                    "signal": "hold",
+                    "percent_change": 1.25,
+                    "three_close_percent_change": 2.5,
+                },
+                {
+                    "symbol": "AAPL",
+                    "signal": "buy",
+                    "percent_change": 1.25,
+                    "three_close_percent_change": 2.5,
+                },
+                {
+                    "symbol": "MSFT",
+                    "signal": "hold",
+                    "percent_change": 1.25,
+                    "three_close_percent_change": 2.5,
+                },
+            ]
+        )
+
+        self.assertEqual(
+            summary["warnings"],
+            [
+                {
+                    "warning": "POSSIBLE_STALE_DATA",
+                    "symbol": "AAPL",
+                    "count": 3,
+                    "percent_change": 1.25,
+                    "three_close_percent_change": 2.5,
+                }
+            ],
+        )
+        self.assertIn("POSSIBLE_STALE_DATA", format_summary(summary))
 
 
 if __name__ == "__main__":
