@@ -5,7 +5,7 @@ set -e
 cd /opt/openclaw-stocks
 source venv/bin/activate
 
-SYMBOLS=("AAPL" "MSFT" "GOOG" "NVDA" "TSLA" "MSTR")
+SYMBOLS=("AAPL" "MSFT" "NVDA" "TSLA" "MSTR")
 
 for SYMBOL in "${SYMBOLS[@]}"
 do

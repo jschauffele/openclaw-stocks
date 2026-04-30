@@ -55,4 +55,4 @@ def load_config() -> None:
     refresh_config_from_env()
 
 
-ALLOWED_SYMBOLS = ["AAPL", "MSFT", "GOOG"]
+ALLOWED_SYMBOLS = ["AAPL", "MSFT", "NVDA", "TSLA", "MSTR"]
