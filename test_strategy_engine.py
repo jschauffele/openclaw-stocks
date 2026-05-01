@@ -9,14 +9,14 @@ class GenerateSignalFromClosesTest(unittest.TestCase):
     def test_buy_when_percent_change_meets_default_threshold_with_three_close_uptrend(
         self,
     ) -> None:
-        result = generate_signal_from_closes([100.0, 100.25, 100.60])
+        result = generate_signal_from_closes([100.0, 100.50, 101.00])
 
         self.assertEqual(result["signal"], "buy")
         self.assertEqual(result["decision"], "buy")
         self.assertEqual(result["reason"], "percent_change_meets_buy_threshold")
         self.assertGreaterEqual(result["percent_change"], 0.25)
-        self.assertAlmostEqual(result["percent_change"], (0.35 / 100.25) * 100)
-        self.assertAlmostEqual(result["three_close_percent_change"], 0.6)
+        self.assertAlmostEqual(result["percent_change"], (0.50 / 100.50) * 100)
+        self.assertAlmostEqual(result["three_close_percent_change"], 1.0)
 
     def test_hold_when_three_close_confirmation_fails_on_one_bar_rebound(self) -> None:
         result = generate_signal_from_closes([100.0, 99.0, 99.50])
@@ -49,7 +49,7 @@ class GenerateSignalFromClosesTest(unittest.TestCase):
 
     def test_custom_threshold_can_be_used_for_deterministic_tests(self) -> None:
         result = generate_signal_from_closes(
-            [100.0, 100.10, 100.20],
+            [100.0, 100.50, 101.00],
             min_buy_percent_change_pct=0.05,
         )
 
