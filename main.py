@@ -281,6 +281,8 @@ def main():
             qty=OPENCLAW_QTY,
             signal_result=signal_result,
         )
+        if action_proposal["action"] == "sell":
+            side = OrderSide.SELL.value
     except InsufficientMarketDataError as exc:
         logging.warning("Insufficient market data: need at least 3 closes")
         log_event("data", "fetch", "insufficient", {"symbol": OPENCLAW_SYMBOL, "error": str(exc)})
@@ -340,7 +342,7 @@ def main():
     )
     log_event(
         "strategy",
-        "signal_evaluation",
+        "strategy_evaluated",
         "ok",
         build_strategy_signal_event_payload(action_proposal),
     )
@@ -359,6 +361,11 @@ def main():
             logging.exception("Failed to append observation log row")
 
     if not action_proposal["should_submit"]:
+        strategy_block_reason = (
+            action_proposal["reason"]
+            if action_proposal["action"] == "sell"
+            else "strategy_hold"
+        )
         logging.info(
             "Strategy proposed no order submission: "
             f"action={action_proposal['action']}, reason={action_proposal['reason']}"
@@ -366,7 +373,7 @@ def main():
         log_observation(result="blocked")
         log_event(
             "strategy",
-            "signal_evaluation",
+            "strategy_evaluated",
             "blocked",
             build_strategy_signal_event_payload(action_proposal),
         )
@@ -374,13 +381,13 @@ def main():
             run_id=run_id,
             mode=mode,
             result="blocked",
-            reason="strategy_hold",
+            reason=strategy_block_reason,
             trigger_source=trigger_source,
             side=side,
             **report_config,
             notes=build_strategy_hold_report_notes(action_proposal),
         )
-        log_event("system", "completion", "blocked", {"reason": "strategy_hold"})
+        log_event("system", "completion", "blocked", {"reason": strategy_block_reason})
         logging.info("========== OpenClaw run finished ==========")
         return
 

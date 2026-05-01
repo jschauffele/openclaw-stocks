@@ -55,15 +55,65 @@ class ObservabilityPayloadsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             run_id = "run_test_observability"
             initialize_event_logger(run_id, base_dir=temp_dir)
-            log_event("strategy", "signal_evaluation", "ok", payload)
+            log_event("strategy", "strategy_evaluated", "ok", payload)
 
             event_path = Path(temp_dir) / f"{run_id}.jsonl"
             event = json.loads(event_path.read_text(encoding="utf-8").strip())
 
         self.assertEqual(event["event_type"], "strategy")
-        self.assertEqual(event["stage"], "signal_evaluation")
+        self.assertEqual(event["stage"], "strategy_evaluated")
         self.assertIn("percent_change", event["payload"])
         self.assertIn("three_close_percent_change", event["payload"])
+
+    def test_sell_signal_survives_report_and_strategy_event_payload(self) -> None:
+        signal_result = validate_signal_result(
+            generate_signal_from_closes([100.0, 100.0, 99.4])
+        )
+        action_proposal = build_action_proposal(
+            symbol="aapl",
+            qty=1,
+            signal_result=signal_result,
+        )
+        payload = build_strategy_signal_event_payload(action_proposal)
+        report = build_run_report(
+            run_id="run_test",
+            mode="dry_run",
+            result="blocked",
+            reason=action_proposal["reason"],
+            trigger_source="test",
+            side=action_proposal["action"],
+            symbol="AAPL",
+            qty=1,
+            openclaw_enabled=True,
+            duplicate_cooldown_seconds=600,
+            max_position_size=5,
+            allowed_symbols=["AAPL"],
+            alpaca_base_url="https://paper-api.alpaca.markets",
+        )
+
+        self.assertEqual(action_proposal["action"], "sell")
+        self.assertFalse(action_proposal["should_submit"])
+        self.assertEqual(report["side"], "sell")
+        self.assertEqual(report["reason"], "percent_change_meets_sell_threshold")
+        self.assertEqual(payload["signal"], "sell")
+        self.assertEqual(payload["decision"], "sell")
+        self.assertEqual(payload["action"], "sell")
+        self.assertEqual(payload["reason"], "percent_change_meets_sell_threshold")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_id = "run_test_sell_observability"
+            initialize_event_logger(run_id, base_dir=temp_dir)
+            log_event("strategy", "strategy_evaluated", "blocked", payload)
+
+            event_path = Path(temp_dir) / f"{run_id}.jsonl"
+            event = json.loads(event_path.read_text(encoding="utf-8").strip())
+
+        self.assertEqual(event["stage"], "strategy_evaluated")
+        self.assertEqual(event["payload"]["action"], "sell")
+        self.assertEqual(
+            event["payload"]["reason"],
+            "percent_change_meets_sell_threshold",
+        )
 
     def test_strategy_hold_report_notes_include_three_close_metric_next_to_percent_change(
         self,

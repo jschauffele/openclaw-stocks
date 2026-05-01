@@ -39,6 +39,42 @@ class GenerateSignalFromClosesTest(unittest.TestCase):
         self.assertEqual(result["decision"], "hold")
         self.assertEqual(result["reason"], "three_close_confirmation_failed")
 
+    def test_sell_when_percent_change_is_below_sell_threshold(self) -> None:
+        result = generate_signal_from_closes([100.0, 100.0, 99.4])
+
+        self.assertEqual(result["signal"], "sell")
+        self.assertEqual(result["decision"], "sell")
+        self.assertEqual(result["action"], "SELL")
+        self.assertEqual(result["reason"], "percent_change_meets_sell_threshold")
+        self.assertLessEqual(result["percent_change"], -0.5)
+
+    def test_sell_when_percent_change_is_at_sell_threshold_boundary(self) -> None:
+        result = generate_signal_from_closes([100.0, 100.0, 99.5])
+
+        self.assertEqual(result["signal"], "sell")
+        self.assertEqual(result["decision"], "sell")
+        self.assertEqual(result["action"], "SELL")
+        self.assertEqual(result["reason"], "percent_change_meets_sell_threshold")
+        self.assertAlmostEqual(result["percent_change"], -0.5)
+
+    def test_no_sell_when_percent_change_is_above_sell_threshold(self) -> None:
+        result = generate_signal_from_closes([100.0, 100.0, 99.51])
+
+        self.assertNotEqual(result["signal"], "sell")
+        self.assertNotEqual(result["decision"], "sell")
+        self.assertNotIn("action", result)
+        self.assertAlmostEqual(result["percent_change"], -0.49)
+
+    def test_sell_takes_precedence_over_positive_multi_close_momentum(self) -> None:
+        result = generate_signal_from_closes([99.0, 101.2, 100.6])
+
+        self.assertEqual(result["signal"], "sell")
+        self.assertEqual(result["decision"], "sell")
+        self.assertEqual(result["action"], "SELL")
+        self.assertEqual(result["reason"], "percent_change_meets_sell_threshold")
+        self.assertLessEqual(result["percent_change"], -0.5)
+        self.assertGreaterEqual(result["three_close_percent_change"], 1.0)
+
     def test_hold_when_insufficient_closes_are_available(self) -> None:
         result = generate_signal_from_closes([100.0, 100.25])
 

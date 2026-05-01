@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 
-ALLOWED_SIGNALS = {"buy", "hold"}
-ALLOWED_DECISIONS = {"buy", "hold"}
+ALLOWED_SIGNALS = {"buy", "hold", "sell"}
+ALLOWED_DECISIONS = {"buy", "hold", "sell"}
 
 
 def validate_signal_result(signal_result: dict) -> dict:

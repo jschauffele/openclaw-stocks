@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-ALLOWED_ACTIONS = {"buy", "hold"}
+ALLOWED_ACTIONS = {"buy", "hold", "sell"}
 
 
 def build_action_proposal(
@@ -23,6 +23,9 @@ def build_action_proposal(
     if decision == "buy":
         action = "buy"
         should_submit = True
+    elif decision == "sell":
+        action = "sell"
+        should_submit = False
     else:
         action = "hold"
         should_submit = False
