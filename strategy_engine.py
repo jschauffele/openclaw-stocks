@@ -46,7 +46,10 @@ def generate_signal_from_closes(
         signal = "hold"
         decision = "hold"
         reason = "three_close_confirmation_failed"
-    elif percent_change >= min_buy_percent_change_pct:
+    elif (
+        percent_change >= min_buy_percent_change_pct
+        and three_close_percent_change >= 1.0
+    ):
         signal = "buy"
         decision = "buy"
         reason = "percent_change_meets_buy_threshold"
