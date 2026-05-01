@@ -42,7 +42,11 @@ def generate_signal_from_closes(
         (three_close_price_delta / prior_close) * 100 if prior_close else 0.0
     )
 
-    if not (prior_close < previous_close < latest_close):
+    if percent_change <= -0.5:
+        signal = "sell"
+        decision = "sell"
+        reason = "percent_change_meets_sell_threshold"
+    elif not (prior_close < previous_close < latest_close):
         signal = "hold"
         decision = "hold"
         reason = "three_close_confirmation_failed"
@@ -58,7 +62,7 @@ def generate_signal_from_closes(
         decision = "hold"
         reason = "percent_change_below_buy_threshold"
 
-    return {
+    result = {
         "signal": signal,
         "decision": decision,
         "reason": reason,
@@ -69,3 +73,8 @@ def generate_signal_from_closes(
         "three_close_percent_change": three_close_percent_change,
         "min_buy_percent_change_pct": min_buy_percent_change_pct,
     }
+
+    if decision == "sell":
+        result["action"] = "SELL"
+
+    return result
