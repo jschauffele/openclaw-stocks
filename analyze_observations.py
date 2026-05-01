@@ -94,7 +94,40 @@ def load_observations(log_file: str | Path = OBSERVATION_LOG_FILE) -> list[dict]
     return rows
 
 
+def clean_observations(
+    rows: list[dict],
+    allowed_symbols: list[str] | tuple[str, ...] | None = None,
+) -> list[dict]:
+    symbol_source = (
+        config.ALLOWED_SYMBOLS if allowed_symbols is None else allowed_symbols
+    )
+    allowed = {
+        symbol.strip().upper()
+        for symbol in symbol_source
+        if symbol.strip()
+    }
+    seen_market_snapshots = set()
+    cleaned_rows = []
+
+    for row in rows:
+        symbol = str(row.get("symbol", "")).strip().upper()
+        if not symbol or symbol not in allowed:
+            continue
+
+        latest_candle_timestamp = row.get("latest_candle_timestamp")
+        if latest_candle_timestamp:
+            snapshot_key = (symbol, str(latest_candle_timestamp).strip())
+            if snapshot_key in seen_market_snapshots:
+                continue
+            seen_market_snapshots.add(snapshot_key)
+
+        cleaned_rows.append(row)
+
+    return cleaned_rows
+
+
 def summarize_observations(rows: list[dict]) -> dict:
+    rows = clean_observations(rows)
     by_symbol = Counter()
     signals = Counter()
     percent_changes = []

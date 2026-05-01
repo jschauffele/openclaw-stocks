@@ -19,6 +19,7 @@ def build_observation_row(
     result=None,
     signal_timeframe: str | None = None,
     signal_limit: int | None = None,
+    latest_candle_timestamp: str | None = None,
     timestamp_utc: str | None = None,
 ) -> dict:
     return {
@@ -38,6 +39,7 @@ def build_observation_row(
         ],
         "signal_timeframe": signal_timeframe,
         "signal_limit": signal_limit,
+        "latest_candle_timestamp": latest_candle_timestamp,
     }
 
 
@@ -48,6 +50,7 @@ def append_observation(
     result=None,
     signal_timeframe: str | None = None,
     signal_limit: int | None = None,
+    latest_candle_timestamp: str | None = None,
     log_file: str | Path = OBSERVATION_LOG_FILE,
 ) -> None:
     row = build_observation_row(
@@ -56,6 +59,7 @@ def append_observation(
         result=result,
         signal_timeframe=signal_timeframe,
         signal_limit=signal_limit,
+        latest_candle_timestamp=latest_candle_timestamp,
     )
     path = Path(log_file)
     path.parent.mkdir(parents=True, exist_ok=True)

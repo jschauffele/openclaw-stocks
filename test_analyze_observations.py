@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from analyze_observations import (
+    clean_observations,
     format_summary,
     load_observations,
     summarize_observations,
@@ -321,6 +322,51 @@ class AnalyzeObservationsTests(unittest.TestCase):
             rows = load_observations(log_file)
 
         self.assertEqual(rows, [{"symbol": "AAPL", "signal": "buy"}])
+
+    def test_clean_observations_removes_duplicate_snapshots_and_disallowed_symbols(
+        self,
+    ) -> None:
+        rows = [
+            {
+                "symbol": "AAPL",
+                "signal": "buy",
+                "latest_candle_timestamp": "2026-04-27T14:35:00+00:00",
+                "percent_change": 1.0,
+                "three_close_percent_change": 1.5,
+            },
+            {
+                "symbol": "AAPL",
+                "signal": "hold",
+                "latest_candle_timestamp": "2026-04-27T14:35:00+00:00",
+                "percent_change": 99.0,
+                "three_close_percent_change": 99.0,
+            },
+            {
+                "symbol": "GOOG",
+                "signal": "buy",
+                "latest_candle_timestamp": "2026-04-27T14:35:00+00:00",
+                "percent_change": 50.0,
+                "three_close_percent_change": 50.0,
+            },
+            {
+                "symbol": "MSFT",
+                "signal": "hold",
+                "latest_candle_timestamp": "2026-04-27T14:40:00+00:00",
+                "percent_change": -0.5,
+                "three_close_percent_change": 0.0,
+            },
+        ]
+
+        cleaned = clean_observations(rows, allowed_symbols=["AAPL", "MSFT"])
+        summary = summarize_observations(rows)
+
+        self.assertEqual([row["symbol"] for row in cleaned], ["AAPL", "MSFT"])
+        self.assertEqual(summary["total"], 2)
+        self.assertEqual(summary["by_symbol"]["AAPL"], 1)
+        self.assertEqual(summary["by_symbol"]["MSFT"], 1)
+        self.assertEqual(summary["signals"]["BUY"], 1)
+        self.assertEqual(summary["signals"]["HOLD"], 1)
+        self.assertAlmostEqual(summary["averages"]["percent_change"], 0.25)
 
     def test_warns_on_repeated_identical_symbol_metrics(self) -> None:
         summary = summarize_observations(

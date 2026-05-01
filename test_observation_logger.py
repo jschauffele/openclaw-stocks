@@ -35,6 +35,7 @@ class ObservationLoggerTests(unittest.TestCase):
                 result="success",
                 signal_timeframe="5Min",
                 signal_limit=5,
+                latest_candle_timestamp="2026-04-27T14:35:00+00:00",
                 log_file=log_file,
             )
 
@@ -51,6 +52,10 @@ class ObservationLoggerTests(unittest.TestCase):
         self.assertEqual(rows[0]["result"], "success")
         self.assertEqual(rows[0]["signal_timeframe"], "5Min")
         self.assertEqual(rows[0]["signal_limit"], 5)
+        self.assertEqual(
+            rows[0]["latest_candle_timestamp"],
+            "2026-04-27T14:35:00+00:00",
+        )
 
     def test_data_safety_fields_are_present(self) -> None:
         row = build_observation_row(
@@ -59,6 +64,7 @@ class ObservationLoggerTests(unittest.TestCase):
             result="success",
             signal_timeframe="5Min",
             signal_limit=5,
+            latest_candle_timestamp="2026-04-27T14:35:00+00:00",
             timestamp_utc="2026-04-27T00:00:00+00:00",
         )
 
@@ -66,10 +72,15 @@ class ObservationLoggerTests(unittest.TestCase):
         self.assertIn("three_close_percent_change", row)
         self.assertIn("signal_timeframe", row)
         self.assertIn("signal_limit", row)
+        self.assertIn("latest_candle_timestamp", row)
         self.assertEqual(row["percent_change"], 1.0)
         self.assertEqual(row["three_close_percent_change"], 1.5)
         self.assertEqual(row["signal_timeframe"], "5Min")
         self.assertEqual(row["signal_limit"], 5)
+        self.assertEqual(
+            row["latest_candle_timestamp"],
+            "2026-04-27T14:35:00+00:00",
+        )
 
     def test_append_behavior_preserves_prior_observations(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

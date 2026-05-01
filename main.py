@@ -273,6 +273,7 @@ def main():
                 available_closes=len(closes),
                 required_closes=3,
             )
+        latest_candle_timestamp = bars_result.candles[-1].timestamp.isoformat()
         raw_signal_result = generate_signal_from_closes(closes)
         signal_result = validate_signal_result(raw_signal_result)
         action_proposal = build_action_proposal(
@@ -352,6 +353,7 @@ def main():
                 result=result,
                 signal_timeframe=signal_timeframe,
                 signal_limit=signal_limit,
+                latest_candle_timestamp=latest_candle_timestamp,
             )
         except Exception:
             logging.exception("Failed to append observation log row")
