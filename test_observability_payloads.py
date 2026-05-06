@@ -103,12 +103,12 @@ class ObservabilityPayloadsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             run_id = "run_test_sell_observability"
             initialize_event_logger(run_id, base_dir=temp_dir)
-            log_event("strategy", "strategy_evaluated", "blocked", payload)
+            log_event("strategy", "action_proposal", "blocked", payload)
 
             event_path = Path(temp_dir) / f"{run_id}.jsonl"
             event = json.loads(event_path.read_text(encoding="utf-8").strip())
 
-        self.assertEqual(event["stage"], "strategy_evaluated")
+        self.assertEqual(event["stage"], "action_proposal")
         self.assertEqual(event["payload"]["action"], "sell")
         self.assertEqual(
             event["payload"]["reason"],

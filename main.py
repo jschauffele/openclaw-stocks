@@ -373,7 +373,7 @@ def main():
         log_observation(result="blocked")
         log_event(
             "strategy",
-            "strategy_evaluated",
+            "action_proposal",
             "blocked",
             build_strategy_signal_event_payload(action_proposal),
         )
