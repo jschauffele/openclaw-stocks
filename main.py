@@ -7,10 +7,10 @@ from alpaca_data_provider import AlpacaMarketDataProvider
 import config
 from decision_engine import build_action_proposal
 from execution_engine import (
-    get_market_session_status,
     build_market_order,
     submit_market_order,
 )
+from market_session_service import get_market_session_status
 from market_data import get_historical_bars
 from observation_logger import append_observation
 from risk_engine import validate_config, risk_check, reconcile_position
