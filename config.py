@@ -32,6 +32,7 @@ def refresh_config_from_env() -> None:
     global OPENCLAW_QTY
     global OPENCLAW_MAX_POSITION_SIZE
     global OPENCLAW_DUPLICATE_COOLDOWN_SECONDS
+    global OPENCLAW_BROKER
     global ALPACA_API_KEY
     global ALPACA_SECRET_KEY
     global ALPACA_BASE_URL
@@ -44,6 +45,7 @@ def refresh_config_from_env() -> None:
     OPENCLAW_DUPLICATE_COOLDOWN_SECONDS = env_int(
         "OPENCLAW_DUPLICATE_COOLDOWN_SECONDS", 900
     )
+    OPENCLAW_BROKER = env_str("OPENCLAW_BROKER", "alpaca").lower()
 
     ALPACA_API_KEY = env_str("ALPACA_API_KEY")
     ALPACA_SECRET_KEY = env_str("ALPACA_SECRET_KEY")

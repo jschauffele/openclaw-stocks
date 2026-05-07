@@ -3,6 +3,17 @@ from __future__ import annotations
 from typing import Protocol
 
 
+class BrokerLifecycle(Protocol):
+    def connect(self):
+        ...
+
+    def health_check(self):
+        ...
+
+    def disconnect(self):
+        ...
+
+
 class BrokerStateReader(Protocol):
     def get_account_buying_power(self) -> float:
         ...

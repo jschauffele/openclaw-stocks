@@ -1,8 +1,8 @@
 from event_logger import initialize_event_logger, generate_run_id, log_event
 import logging
 
-from alpaca_broker_adapter import AlpacaBrokerAdapter
 from alpaca_data_provider import AlpacaMarketDataProvider
+from broker_factory import create_broker_adapter
 import config
 from decision_engine import build_action_proposal
 from execution_engine import (
@@ -82,7 +82,6 @@ def build_strategy_hold_report_notes(action_proposal: dict) -> list[str]:
 def main():
     config.load_config()
 
-    from client_factory import create_trading_client
     from reporting import persist_report
     from state_manager import duplicate_check, write_order_state
 
@@ -97,6 +96,7 @@ def main():
     OPENCLAW_QTY = config.OPENCLAW_QTY
     OPENCLAW_MAX_POSITION_SIZE = config.OPENCLAW_MAX_POSITION_SIZE
     OPENCLAW_DUPLICATE_COOLDOWN_SECONDS = config.OPENCLAW_DUPLICATE_COOLDOWN_SECONDS
+    OPENCLAW_BROKER = config.OPENCLAW_BROKER
     ALPACA_API_KEY = config.ALPACA_API_KEY
     ALPACA_SECRET_KEY = config.ALPACA_SECRET_KEY
     ALPACA_BASE_URL = config.ALPACA_BASE_URL
@@ -115,7 +115,12 @@ def main():
     }
 
     setup_logging(LOG_FILE)
-    client = create_trading_client(ALPACA_API_KEY, ALPACA_SECRET_KEY)
+    broker_state = create_broker_adapter(
+        OPENCLAW_BROKER,
+        alpaca_api_key=ALPACA_API_KEY,
+        alpaca_secret_key=ALPACA_SECRET_KEY,
+    )
+    client = broker_state.client
 
     run_id = generate_run_id()
     initialize_event_logger(run_id)
@@ -390,7 +395,6 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
-    broker_state = AlpacaBrokerAdapter(client)
     buying_power = broker_state.get_account_buying_power()
 
     duplicate_result = duplicate_check(

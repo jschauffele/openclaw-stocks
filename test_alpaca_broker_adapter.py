@@ -59,6 +59,13 @@ def api_error(message: str, status_code: int | None = None) -> APIError:
 
 
 class AlpacaBrokerAdapterTests(unittest.TestCase):
+    def test_lifecycle_methods_are_noops_for_alpaca(self) -> None:
+        adapter = AlpacaBrokerAdapter(FakeClient())
+
+        self.assertIsNone(adapter.connect())
+        self.assertTrue(adapter.health_check())
+        self.assertIsNone(adapter.disconnect())
+
     def test_build_market_order_preserves_current_alpaca_request(self) -> None:
         adapter = AlpacaBrokerAdapter(None)
 

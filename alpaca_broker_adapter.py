@@ -9,6 +9,15 @@ class AlpacaBrokerAdapter:
     def __init__(self, client) -> None:
         self.client = client
 
+    def connect(self):
+        return None
+
+    def health_check(self):
+        return True
+
+    def disconnect(self):
+        return None
+
     def get_account_buying_power(self) -> float:
         account = self.client.get_account()
         buying_power = float(account.buying_power)
