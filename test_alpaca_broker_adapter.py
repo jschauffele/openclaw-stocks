@@ -7,6 +7,7 @@ from alpaca.common.exceptions import APIError
 from alpaca.trading.enums import OrderSide, TimeInForce
 
 from alpaca_broker_adapter import AlpacaBrokerAdapter
+from broker_interface import BrokerCapabilities
 
 
 class FakeClient:
@@ -65,6 +66,22 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
         self.assertIsNone(adapter.connect())
         self.assertTrue(adapter.health_check())
         self.assertIsNone(adapter.disconnect())
+
+    def test_capabilities_return_current_alpaca_metadata(self) -> None:
+        adapter = AlpacaBrokerAdapter(FakeClient())
+
+        self.assertEqual(
+            adapter.get_capabilities(),
+            BrokerCapabilities(
+                broker_name="alpaca",
+                supports_market_orders=True,
+                supports_account_read=True,
+                supports_positions_read=True,
+                supports_open_orders_read=True,
+                supports_paper_trading=True,
+                lifecycle_async=False,
+            ),
+        )
 
     def test_build_market_order_preserves_current_alpaca_request(self) -> None:
         adapter = AlpacaBrokerAdapter(None)
@@ -229,8 +246,11 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
         self.assertEqual(
             result,
             {
+                "broker_name": "alpaca",
                 "order_id": "123",
                 "order_status": "accepted",
+                "broker_status": "accepted",
+                "is_terminal": False,
                 "raw_response": response,
             },
         )

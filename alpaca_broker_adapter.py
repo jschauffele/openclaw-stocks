@@ -4,6 +4,17 @@ from alpaca.common.exceptions import APIError
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
 from alpaca.trading.requests import GetOrdersRequest, MarketOrderRequest
 
+from broker_interface import BrokerCapabilities
+
+
+_TERMINAL_ORDER_STATUSES = {
+    "filled",
+    "canceled",
+    "cancelled",
+    "rejected",
+    "expired",
+}
+
 
 class AlpacaBrokerAdapter:
     def __init__(self, client) -> None:
@@ -17,6 +28,17 @@ class AlpacaBrokerAdapter:
 
     def disconnect(self):
         return None
+
+    def get_capabilities(self) -> BrokerCapabilities:
+        return BrokerCapabilities(
+            broker_name="alpaca",
+            supports_market_orders=True,
+            supports_account_read=True,
+            supports_positions_read=True,
+            supports_open_orders_read=True,
+            supports_paper_trading=True,
+            lifecycle_async=False,
+        )
 
     def get_account_buying_power(self) -> float:
         account = self.client.get_account()
@@ -112,8 +134,12 @@ class AlpacaBrokerAdapter:
         return response
 
     def normalize_order_response(self, response) -> dict:
+        broker_status = str(response.status)
         return {
+            "broker_name": "alpaca",
             "order_id": str(response.id),
-            "order_status": str(response.status),
+            "order_status": broker_status,
+            "broker_status": broker_status,
+            "is_terminal": broker_status.lower() in _TERMINAL_ORDER_STATUSES,
             "raw_response": response,
         }
