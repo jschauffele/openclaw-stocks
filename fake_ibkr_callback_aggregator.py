@@ -101,9 +101,13 @@ def aggregate_account(events: Iterable[Event]) -> BrokerAccountState:
             continue
         if "buying_power" not in event:
             continue
+        try:
+            buying_power = float(event["buying_power"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Invalid fake IBKR account buying_power callback") from exc
         return BrokerAccountState(
             broker_name="ibkr",
-            buying_power=float(event["buying_power"]),
+            buying_power=buying_power,
             raw_account=event,
         )
 
@@ -112,15 +116,28 @@ def aggregate_account(events: Iterable[Event]) -> BrokerAccountState:
 
 def aggregate_position(events: Iterable[Event], *, symbol: str) -> BrokerPositionState:
     normalized_symbol = symbol.upper()
+    matched_position: BrokerPositionState | None = None
+
     for event in events:
         event_type = event.get("event_type")
         if event_type == "position":
             if str(event.get("symbol", "")).upper() != normalized_symbol:
                 continue
             raw_qty = str(event.get("qty", "0"))
-            qty = int(float(raw_qty))
-            if qty == 0:
+            try:
+                qty = int(float(raw_qty))
+            except (TypeError, ValueError):
                 return BrokerPositionState(
+                    broker_name="ibkr",
+                    found=None,
+                    qty=None,
+                    raw_qty=raw_qty,
+                    side=None,
+                    reason="position_lookup_error",
+                    error="invalid_position_qty",
+                )
+            if qty == 0:
+                matched_position = BrokerPositionState(
                     broker_name="ibkr",
                     found=False,
                     qty=0,
@@ -128,7 +145,8 @@ def aggregate_position(events: Iterable[Event], *, symbol: str) -> BrokerPositio
                     side=None,
                     reason="no_position",
                 )
-            return BrokerPositionState(
+                continue
+            matched_position = BrokerPositionState(
                 broker_name="ibkr",
                 found=True,
                 qty=abs(qty),
@@ -137,15 +155,25 @@ def aggregate_position(events: Iterable[Event], *, symbol: str) -> BrokerPositio
                 reason="position_found",
             )
         if event_type == "position_end":
-            break
+            if matched_position is not None:
+                return matched_position
+            return BrokerPositionState(
+                broker_name="ibkr",
+                found=False,
+                qty=0,
+                raw_qty="0",
+                side=None,
+                reason="no_position",
+            )
 
     return BrokerPositionState(
         broker_name="ibkr",
-        found=False,
-        qty=0,
-        raw_qty="0",
+        found=None,
+        qty=None,
+        raw_qty=None,
         side=None,
-        reason="no_position",
+        reason="position_lookup_error",
+        error="position_snapshot_incomplete",
     )
 
 
@@ -157,6 +185,7 @@ def aggregate_open_buy_orders(
     normalized_symbol = symbol.upper()
     total_qty = 0
     order_count = 0
+    seen_order_ids: set[str] = set()
 
     for event in events:
         event_type = event.get("event_type")
@@ -168,17 +197,42 @@ def aggregate_open_buy_orders(
             status = str(event.get("status", "")).lower()
             if status not in _OPEN_ORDER_STATUSES:
                 continue
-            total_qty += int(float(str(event.get("qty", "0"))))
+            order_id = event.get("order_id")
+            if order_id is not None:
+                order_id_text = str(order_id)
+                if order_id_text in seen_order_ids:
+                    continue
+                seen_order_ids.add(order_id_text)
+            raw_qty = str(event.get("qty", "0"))
+            try:
+                qty = int(float(raw_qty))
+            except (TypeError, ValueError):
+                return BrokerOpenOrderState(
+                    broker_name="ibkr",
+                    passed=False,
+                    open_buy_order_qty=None,
+                    open_buy_order_count=None,
+                    reason="open_buy_order_lookup_failed",
+                    error="invalid_open_order_qty",
+                )
+            total_qty += qty
             order_count += 1
         if event_type == "open_order_end":
-            break
+            return BrokerOpenOrderState(
+                broker_name="ibkr",
+                passed=True,
+                open_buy_order_qty=total_qty,
+                open_buy_order_count=order_count,
+                reason="open_buy_orders_loaded",
+            )
 
     return BrokerOpenOrderState(
         broker_name="ibkr",
-        passed=True,
-        open_buy_order_qty=total_qty,
-        open_buy_order_count=order_count,
-        reason="open_buy_orders_loaded",
+        passed=False,
+        open_buy_order_qty=None,
+        open_buy_order_count=None,
+        reason="open_buy_order_lookup_failed",
+        error="open_order_snapshot_incomplete",
     )
 
 
@@ -188,6 +242,7 @@ def aggregate_order_result(events: Iterable[Event]) -> BrokerOrderResult:
     last_order_status: str | None = None
     is_terminal = False
     last_raw_event: Event | None = None
+    terminal_status: str | None = None
 
     for event in events:
         event_type = event.get("event_type")
@@ -208,10 +263,22 @@ def aggregate_order_result(events: Iterable[Event]) -> BrokerOrderResult:
             last_raw_event = event
             last_broker_status = str(event.get("status"))
             normalized_status = _normalize_order_status(last_broker_status)
+            if terminal_status is not None:
+                if normalized_status != terminal_status:
+                    return BrokerOrderResult(
+                        broker_name="ibkr",
+                        order_id=order_id,
+                        order_status="conflicting_terminal_status",
+                        broker_status=last_broker_status,
+                        is_terminal=True,
+                        raw_response=event,
+                    )
+                continue
             last_order_status = normalized_status
             is_terminal = normalized_status in {"filled", "canceled", "rejected"}
             if is_terminal:
-                break
+                terminal_status = normalized_status
+                continue
 
         if event_type == "timeout" and event.get("operation") == "submit_market_order":
             if order_id is None:
@@ -223,7 +290,14 @@ def aggregate_order_result(events: Iterable[Event]) -> BrokerOrderResult:
                     is_terminal=True,
                     raw_response=event,
                 )
-            break
+            return BrokerOrderResult(
+                broker_name="ibkr",
+                order_id=order_id,
+                order_status="timeout",
+                broker_status=last_broker_status,
+                is_terminal=True,
+                raw_response=event,
+            )
 
     if order_id is None:
         return BrokerOrderResult(

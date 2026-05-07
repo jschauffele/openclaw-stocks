@@ -84,6 +84,15 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
             ),
         )
 
+    def test_invalid_account_buying_power_fails_explicitly(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "Invalid fake IBKR account buying_power callback",
+        ):
+            aggregate_account(
+                [{"event_type": "account_value", "buying_power": "not-a-number"}]
+            )
+
     def test_position_found(self) -> None:
         result = aggregate_position(
             [
@@ -129,6 +138,47 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
                 raw_qty="0",
                 side=None,
                 reason="no_position",
+            ),
+        )
+
+    def test_invalid_position_qty_returns_lookup_error(self) -> None:
+        result = aggregate_position(
+            [
+                {"event_type": "position", "symbol": "AAPL", "qty": "bad"},
+                {"event_type": "position_end"},
+            ],
+            symbol="AAPL",
+        )
+
+        self.assertEqual(
+            result,
+            BrokerPositionState(
+                broker_name="ibkr",
+                found=None,
+                qty=None,
+                raw_qty="bad",
+                side=None,
+                reason="position_lookup_error",
+                error="invalid_position_qty",
+            ),
+        )
+
+    def test_missing_position_end_marker_returns_incomplete_error(self) -> None:
+        result = aggregate_position(
+            [{"event_type": "position", "symbol": "MSFT", "qty": "2"}],
+            symbol="AAPL",
+        )
+
+        self.assertEqual(
+            result,
+            BrokerPositionState(
+                broker_name="ibkr",
+                found=None,
+                qty=None,
+                raw_qty=None,
+                side=None,
+                reason="position_lookup_error",
+                error="position_snapshot_incomplete",
             ),
         )
 
@@ -186,6 +236,94 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
             ),
         )
 
+    def test_duplicate_open_order_events_with_same_order_id_are_deduped(self) -> None:
+        result = aggregate_open_buy_orders(
+            [
+                {
+                    "event_type": "open_order",
+                    "order_id": 50,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "2",
+                    "status": "Submitted",
+                },
+                {
+                    "event_type": "open_order",
+                    "order_id": 50,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "2",
+                    "status": "Submitted",
+                },
+                {"event_type": "open_order_end"},
+            ],
+            symbol="AAPL",
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOpenOrderState(
+                broker_name="ibkr",
+                passed=True,
+                open_buy_order_qty=2,
+                open_buy_order_count=1,
+                reason="open_buy_orders_loaded",
+            ),
+        )
+
+    def test_invalid_open_order_qty_returns_lookup_failure(self) -> None:
+        result = aggregate_open_buy_orders(
+            [
+                {
+                    "event_type": "open_order",
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "bad",
+                    "status": "Submitted",
+                },
+                {"event_type": "open_order_end"},
+            ],
+            symbol="AAPL",
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOpenOrderState(
+                broker_name="ibkr",
+                passed=False,
+                open_buy_order_qty=None,
+                open_buy_order_count=None,
+                reason="open_buy_order_lookup_failed",
+                error="invalid_open_order_qty",
+            ),
+        )
+
+    def test_missing_open_order_end_marker_returns_incomplete_failure(self) -> None:
+        result = aggregate_open_buy_orders(
+            [
+                {
+                    "event_type": "open_order",
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "2",
+                    "status": "Submitted",
+                }
+            ],
+            symbol="AAPL",
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOpenOrderState(
+                broker_name="ibkr",
+                passed=False,
+                open_buy_order_qty=None,
+                open_buy_order_count=None,
+                reason="open_buy_order_lookup_failed",
+                error="open_order_snapshot_incomplete",
+            ),
+        )
+
     def test_submitted_order(self) -> None:
         submitted_event = {
             "event_type": "order_status",
@@ -209,6 +347,59 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
                 broker_status="Submitted",
                 is_terminal=False,
                 raw_response=submitted_event,
+            ),
+        )
+
+    def test_out_of_order_order_status_assigns_order_id(self) -> None:
+        submitted_event = {
+            "event_type": "order_status",
+            "order_id": 101,
+            "status": "Submitted",
+        }
+
+        result = aggregate_order_result(
+            [
+                submitted_event,
+                {"event_type": "next_valid_id", "order_id": 101},
+            ]
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOrderResult(
+                broker_name="ibkr",
+                order_id="101",
+                order_status="submitted",
+                broker_status="Submitted",
+                is_terminal=False,
+                raw_response=submitted_event,
+            ),
+        )
+
+    def test_repeated_non_terminal_statuses_are_last_status_wins(self) -> None:
+        presubmitted_event = {
+            "event_type": "order_status",
+            "order_id": 101,
+            "status": "PreSubmitted",
+        }
+
+        result = aggregate_order_result(
+            [
+                {"event_type": "next_valid_id", "order_id": 101},
+                {"event_type": "order_status", "order_id": 101, "status": "Submitted"},
+                presubmitted_event,
+            ]
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOrderResult(
+                broker_name="ibkr",
+                order_id="101",
+                order_status="submitted",
+                broker_status="PreSubmitted",
+                is_terminal=False,
+                raw_response=presubmitted_event,
             ),
         )
 
@@ -239,6 +430,33 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
             ),
         )
 
+    def test_terminal_after_terminal_conflict_returns_explicit_conflict(self) -> None:
+        rejected_event = {
+            "event_type": "order_status",
+            "order_id": 101,
+            "status": "Rejected",
+        }
+
+        result = aggregate_order_result(
+            [
+                {"event_type": "next_valid_id", "order_id": 101},
+                {"event_type": "order_status", "order_id": 101, "status": "Filled"},
+                rejected_event,
+            ]
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOrderResult(
+                broker_name="ibkr",
+                order_id="101",
+                order_status="conflicting_terminal_status",
+                broker_status="Rejected",
+                is_terminal=True,
+                raw_response=rejected_event,
+            ),
+        )
+
     def test_rejected_order(self) -> None:
         rejected_event = {
             "event_type": "order_status",
@@ -262,6 +480,60 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
                 broker_status="Rejected",
                 is_terminal=True,
                 raw_response=rejected_event,
+            ),
+        )
+
+    def test_timeout_after_order_id_assignment_returns_timeout_result(self) -> None:
+        timeout_event = {
+            "event_type": "timeout",
+            "operation": "submit_market_order",
+            "message": "no terminal callback",
+        }
+
+        result = aggregate_order_result(
+            [
+                {"event_type": "next_valid_id", "order_id": 101},
+                {"event_type": "order_status", "order_id": 101, "status": "Submitted"},
+                timeout_event,
+            ]
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOrderResult(
+                broker_name="ibkr",
+                order_id="101",
+                order_status="timeout",
+                broker_status="Submitted",
+                is_terminal=True,
+                raw_response=timeout_event,
+            ),
+        )
+
+    def test_multiple_simultaneous_order_ids_keep_first_tracked_order(self) -> None:
+        submitted_event = {
+            "event_type": "order_status",
+            "order_id": 101,
+            "status": "Submitted",
+        }
+
+        result = aggregate_order_result(
+            [
+                {"event_type": "next_valid_id", "order_id": 101},
+                {"event_type": "order_status", "order_id": 202, "status": "Filled"},
+                submitted_event,
+            ]
+        )
+
+        self.assertEqual(
+            result,
+            BrokerOrderResult(
+                broker_name="ibkr",
+                order_id="101",
+                order_status="submitted",
+                broker_status="Submitted",
+                is_terminal=False,
+                raw_response=submitted_event,
             ),
         )
 
