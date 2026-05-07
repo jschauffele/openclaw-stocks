@@ -9,6 +9,7 @@ from broker_interface import (
     BrokerCapabilities,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
+    BrokerOrderResult,
     BrokerPositionState,
 )
 
@@ -176,19 +177,19 @@ class AlpacaBrokerAdapter:
                 error=str(e),
             )
 
-    def submit_market_order(self, order):
+    def submit_market_order(self, order) -> BrokerOrderResult:
         logging.info("APPROVED — sending LIVE PAPER order")
         response = self.client.submit_order(order)
         logging.info(f"Order submitted with status: {response.status}")
-        return response
+        return self.normalize_order_response(response)
 
-    def normalize_order_response(self, response) -> dict:
+    def normalize_order_response(self, response) -> BrokerOrderResult:
         broker_status = str(response.status)
-        return {
-            "broker_name": "alpaca",
-            "order_id": str(response.id),
-            "order_status": broker_status,
-            "broker_status": broker_status,
-            "is_terminal": broker_status.lower() in _TERMINAL_ORDER_STATUSES,
-            "raw_response": response,
-        }
+        return BrokerOrderResult(
+            broker_name="alpaca",
+            order_id=str(response.id),
+            order_status=broker_status,
+            broker_status=broker_status,
+            is_terminal=broker_status.lower() in _TERMINAL_ORDER_STATUSES,
+            raw_response=response,
+        )

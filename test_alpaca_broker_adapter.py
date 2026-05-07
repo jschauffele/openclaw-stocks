@@ -12,6 +12,7 @@ from broker_interface import (
     BrokerCapabilities,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
+    BrokerOrderResult,
     BrokerPositionState,
 )
 
@@ -282,7 +283,7 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
             ),
         )
 
-    def test_submit_market_order_returns_raw_response(self) -> None:
+    def test_submit_market_order_returns_normalized_order_result(self) -> None:
         order = object()
         response = SimpleNamespace(id="order-1", status="accepted")
         client = FakeClient()
@@ -291,11 +292,21 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         result = adapter.submit_market_order(order)
 
-        self.assertIs(result, response)
+        self.assertEqual(
+            result,
+            BrokerOrderResult(
+                broker_name="alpaca",
+                order_id="order-1",
+                order_status="accepted",
+                broker_status="accepted",
+                is_terminal=False,
+                raw_response=response,
+            ),
+        )
         self.assertIs(client.submitted_order, order)
-        self.assertEqual(result.status, "accepted")
+        self.assertIs(result.raw_response, response)
 
-    def test_normalize_order_response_preserves_raw_response(self) -> None:
+    def test_normalize_order_response_returns_normalized_order_result(self) -> None:
         response = SimpleNamespace(id=123, status="accepted")
         adapter = AlpacaBrokerAdapter(FakeClient())
 
@@ -303,16 +314,16 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         self.assertEqual(
             result,
-            {
-                "broker_name": "alpaca",
-                "order_id": "123",
-                "order_status": "accepted",
-                "broker_status": "accepted",
-                "is_terminal": False,
-                "raw_response": response,
-            },
+            BrokerOrderResult(
+                broker_name="alpaca",
+                order_id="123",
+                order_status="accepted",
+                broker_status="accepted",
+                is_terminal=False,
+                raw_response=response,
+            ),
         )
-        self.assertIs(result["raw_response"], response)
+        self.assertIs(result.raw_response, response)
 
     def test_submit_market_order_failure_propagates(self) -> None:
         error = RuntimeError("submit failed")

@@ -100,7 +100,7 @@ class BrokerStateReader(Protocol):
 
 
 class BrokerOrderExecutor(Protocol):
-    def submit_market_order(self, order):
+    def submit_market_order(self, order) -> BrokerOrderResult:
         ...
 
 
@@ -110,7 +110,7 @@ class BrokerOrderBuilder(Protocol):
 
 
 class BrokerOrderResponseNormalizer(Protocol):
-    def normalize_order_response(self, response) -> dict:
+    def normalize_order_response(self, response) -> BrokerOrderResult:
         ...
 
 

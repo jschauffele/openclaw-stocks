@@ -569,7 +569,7 @@ def main():
         return
 
     try:
-        response = broker_state.submit_market_order(order)
+        order_result = broker_state.submit_market_order(order)
     except Exception as exc:
         log_observation(result="error")
         log_event("order", "submission", "error", {
@@ -602,12 +602,11 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
-    order_result = broker_state.normalize_order_response(response)
     log_event("order", "submission", "paper_submitted", {
         "symbol": OPENCLAW_SYMBOL,
         "qty": OPENCLAW_QTY,
         "side": side,
-        "order_id": order_result["order_id"],
+        "order_id": order_result.order_id,
         "mode": "paper_submit",
     })
     write_order_state(state_record, STATE_FILE)
@@ -622,7 +621,7 @@ def main():
         **report_config,
         buying_power=buying_power,
         estimated_cost=risk_result["estimated_cost"],
-        order_status=order_result["order_status"],
+        order_status=order_result.order_status,
         existing_position_qty=reconciliation_result["existing_qty"],
         open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
         projected_position_qty=reconciliation_result["projected_qty"],

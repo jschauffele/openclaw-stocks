@@ -9,6 +9,7 @@ from broker_interface import (
     BrokerCapabilities,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
+    BrokerOrderResult,
     BrokerPositionState,
 )
 from ibkr_broker_adapter import IBKRBrokerAdapter
@@ -139,16 +140,29 @@ class BrokerAdapterContractTests(unittest.TestCase):
 
         self.assertEqual(
             normalized,
-            {
-                "broker_name": "alpaca",
-                "order_id": "123",
-                "order_status": "accepted",
-                "broker_status": "accepted",
-                "is_terminal": False,
-                "raw_response": response,
-            },
+            BrokerOrderResult(
+                broker_name="alpaca",
+                order_id="123",
+                order_status="accepted",
+                broker_status="accepted",
+                is_terminal=False,
+                raw_response=response,
+            ),
         )
-        self.assertIs(normalized["raw_response"], response)
+        self.assertIs(normalized.raw_response, response)
+
+        submitted = adapter.submit_market_order(object())
+        self.assertEqual(
+            submitted,
+            BrokerOrderResult(
+                broker_name="alpaca",
+                order_id="order-1",
+                order_status="accepted",
+                broker_status="accepted",
+                is_terminal=False,
+                raw_response=submitted.raw_response,
+            ),
+        )
 
     def test_ibkr_skeleton_exposes_expected_broker_neutral_surface(self) -> None:
         adapter = IBKRBrokerAdapter()

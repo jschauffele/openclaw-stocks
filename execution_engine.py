@@ -1,6 +1,6 @@
 import logging
 
-from broker_interface import BrokerOpenOrderState, BrokerPositionState
+from broker_interface import BrokerOpenOrderState, BrokerOrderResult, BrokerPositionState
 from alpaca_broker_adapter import AlpacaBrokerAdapter
 from market_session_service import get_market_session_status
 
@@ -17,5 +17,5 @@ def get_open_buy_order_qty(client, symbol: str) -> BrokerOpenOrderState:
     return AlpacaBrokerAdapter(client).get_open_buy_order_qty(symbol)
 
 
-def submit_market_order(client, order):
+def submit_market_order(client, order) -> BrokerOrderResult:
     return AlpacaBrokerAdapter(client).submit_market_order(order)

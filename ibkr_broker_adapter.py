@@ -4,6 +4,7 @@ from broker_interface import (
     BrokerAccountState,
     BrokerCapabilities,
     BrokerOpenOrderState,
+    BrokerOrderResult,
     BrokerPositionState,
 )
 
@@ -47,8 +48,8 @@ class IBKRBrokerAdapter:
     def build_market_order(self, symbol: str, qty: int):
         raise NotImplementedError(_SKELETON_MESSAGE)
 
-    def submit_market_order(self, order):
+    def submit_market_order(self, order) -> BrokerOrderResult:
         raise NotImplementedError(_SKELETON_MESSAGE)
 
-    def normalize_order_response(self, response) -> dict:
+    def normalize_order_response(self, response) -> BrokerOrderResult:
         raise NotImplementedError(_SKELETON_MESSAGE)
