@@ -5,10 +5,6 @@ from alpaca_data_provider import AlpacaMarketDataProvider
 from broker_factory import create_broker_adapter
 import config
 from decision_engine import build_action_proposal
-from execution_engine import (
-    build_market_order,
-    submit_market_order,
-)
 from market_session_service import get_market_session_status
 from market_data import get_historical_bars
 from observation_logger import append_observation
@@ -522,7 +518,7 @@ def main():
         "projected_qty": reconciliation_result["projected_qty"],
     })
 
-    order = build_market_order(OPENCLAW_SYMBOL, OPENCLAW_QTY)
+    order = broker_state.build_market_order(OPENCLAW_SYMBOL, OPENCLAW_QTY)
 
     state_record = {
         "run_id": run_id,
@@ -572,7 +568,7 @@ def main():
         return
 
     try:
-        response = submit_market_order(client, order)
+        response = broker_state.submit_market_order(order)
     except Exception as exc:
         log_observation(result="error")
         log_event("order", "submission", "error", {
