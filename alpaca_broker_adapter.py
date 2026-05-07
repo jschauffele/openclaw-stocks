@@ -93,3 +93,10 @@ class AlpacaBrokerAdapter:
         response = self.client.submit_order(order)
         logging.info(f"Order submitted with status: {response.status}")
         return response
+
+    def normalize_order_response(self, response) -> dict:
+        return {
+            "order_id": str(response.id),
+            "order_status": str(response.status),
+            "raw_response": response,
+        }

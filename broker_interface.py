@@ -17,3 +17,8 @@ class BrokerStateReader(Protocol):
 class BrokerOrderExecutor(Protocol):
     def submit_market_order(self, order):
         ...
+
+
+class BrokerOrderResponseNormalizer(Protocol):
+    def normalize_order_response(self, response) -> dict:
+        ...

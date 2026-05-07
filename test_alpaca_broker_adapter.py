@@ -202,6 +202,22 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
         self.assertIs(client.submitted_order, order)
         self.assertEqual(result.status, "accepted")
 
+    def test_normalize_order_response_preserves_raw_response(self) -> None:
+        response = SimpleNamespace(id=123, status="accepted")
+        adapter = AlpacaBrokerAdapter(FakeClient())
+
+        result = adapter.normalize_order_response(response)
+
+        self.assertEqual(
+            result,
+            {
+                "order_id": "123",
+                "order_status": "accepted",
+                "raw_response": response,
+            },
+        )
+        self.assertIs(result["raw_response"], response)
+
     def test_submit_market_order_failure_propagates(self) -> None:
         error = RuntimeError("submit failed")
         client = FakeClient(submit_exception=error)
