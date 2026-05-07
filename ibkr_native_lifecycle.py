@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from broker_interface import BrokerLifecycleResult
@@ -140,3 +142,78 @@ class IBKRClientLifecycleController:
             elapsed_ms=0,
             raw_error=None,
         )
+
+
+class IBKRRuntimeThreadOwner:
+    def __init__(self) -> None:
+        self.lock = threading.RLock()
+        self.condition = threading.Condition(self.lock)
+        self.thread_state = "not_started"
+        self.shutdown_state = "active"
+        self.thread: threading.Thread | None = None
+        self.target_run_count = 0
+        self.target_exception: BaseException | None = None
+
+    def start_thread(self, target: Callable[[], None]) -> None:
+        with self.lock:
+            if self.thread_state != "not_started":
+                raise RuntimeError(f"IBKR runtime thread already {self.thread_state}")
+            self.thread_state = "starting"
+            self.thread = threading.Thread(
+                target=self._run_target,
+                args=(target,),
+                name="ibkr-runtime-owner",
+                daemon=True,
+            )
+            thread = self.thread
+        thread.start()
+
+    def _run_target(self, target: Callable[[], None]) -> None:
+        with self.lock:
+            self.thread_state = "running"
+            self.target_run_count += 1
+            self.condition.notify_all()
+        try:
+            target()
+        except BaseException as exc:
+            with self.lock:
+                self.target_exception = exc
+            raise
+        finally:
+            self.mark_thread_exited()
+
+    def mark_thread_exited(self) -> None:
+        with self.lock:
+            self.thread_state = "stopped"
+            self.condition.notify_all()
+
+    def request_shutdown(
+        self,
+        stop_signal: Callable[[], None] | None = None,
+    ) -> None:
+        with self.lock:
+            if self.shutdown_state != "active":
+                raise RuntimeError(f"IBKR runtime shutdown already {self.shutdown_state}")
+            self.shutdown_state = "stopping"
+            self.condition.notify_all()
+        if stop_signal is not None:
+            stop_signal()
+
+    def complete_shutdown(self) -> None:
+        with self.lock:
+            self.shutdown_state = "complete"
+            self.condition.notify_all()
+
+    def join_thread(self, timeout: float | None = None) -> bool:
+        with self.lock:
+            thread = self.thread
+        if thread is None:
+            raise RuntimeError("IBKR runtime thread has not been started")
+        thread.join(timeout=timeout)
+        joined = not thread.is_alive()
+        if joined:
+            with self.lock:
+                if self.shutdown_state == "stopping":
+                    self.shutdown_state = "complete"
+                    self.condition.notify_all()
+        return joined
