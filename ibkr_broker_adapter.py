@@ -7,6 +7,9 @@ from broker_interface import (
     BrokerOrderResult,
     BrokerPositionState,
 )
+from ibkr_callback_bridge import IBKRCallbackBridge
+from ibkr_pending_request_registry import IBKRPendingRequestRegistry
+from ibkr_timeout_injector import IBKRTimeoutInjector
 
 
 _SKELETON_MESSAGE = "IBKR adapter skeleton only; not runtime-enabled"
@@ -25,10 +28,12 @@ class IBKRBrokerAdapter:
     ) -> None:
         self.client = client
         self.native_api = native_api
-        self.bridge = bridge
-        self.registry = registry
-        self.timeout_injector = timeout_injector
         self.enabled = enabled
+        self.registry = registry or IBKRPendingRequestRegistry()
+        self.bridge = bridge or IBKRCallbackBridge(self.registry)
+        self.timeout_injector = timeout_injector or IBKRTimeoutInjector(
+            self.registry
+        )
 
     def get_capabilities(self) -> BrokerCapabilities:
         return BrokerCapabilities(

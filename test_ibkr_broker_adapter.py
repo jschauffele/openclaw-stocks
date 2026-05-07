@@ -5,6 +5,9 @@ from unittest.mock import patch
 
 from broker_interface import BrokerCapabilities
 from ibkr_broker_adapter import IBKRBrokerAdapter
+from ibkr_callback_bridge import IBKRCallbackBridge
+from ibkr_pending_request_registry import IBKRPendingRequestRegistry
+from ibkr_timeout_injector import IBKRTimeoutInjector
 
 
 class IBKRBrokerAdapterTests(unittest.TestCase):
@@ -84,6 +87,26 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
             "IBKR adapter skeleton only; not runtime-enabled",
         ):
             adapter.connect()
+
+    def test_constructor_builds_default_callback_scaffolding(self) -> None:
+        adapter = IBKRBrokerAdapter()
+
+        self.assertIsInstance(adapter.registry, IBKRPendingRequestRegistry)
+        self.assertIsInstance(adapter.bridge, IBKRCallbackBridge)
+        self.assertIsInstance(adapter.timeout_injector, IBKRTimeoutInjector)
+        self.assertIs(adapter.bridge.registry, adapter.registry)
+        self.assertIs(adapter.timeout_injector.registry, adapter.registry)
+
+    def test_constructor_preserves_injected_registry_with_default_bridge_and_timeout(
+        self,
+    ) -> None:
+        registry = IBKRPendingRequestRegistry()
+
+        adapter = IBKRBrokerAdapter(registry=registry)
+
+        self.assertIs(adapter.registry, registry)
+        self.assertIs(adapter.bridge.registry, registry)
+        self.assertIs(adapter.timeout_injector.registry, registry)
 
     def test_enabled_true_alone_does_not_implement_runtime_behavior(self) -> None:
         adapter = IBKRBrokerAdapter(enabled=True)
