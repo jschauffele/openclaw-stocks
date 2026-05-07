@@ -45,6 +45,17 @@ class BrokerFactoryTests(unittest.TestCase):
                 alpaca_secret_key="secret",
             )
 
+    def test_openclaw_broker_ibkr_is_not_runtime_enabled_yet(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "Unsupported OPENCLAW_BROKER='ibkr'; supported brokers: alpaca",
+        ):
+            create_broker_adapter(
+                "ibkr",
+                alpaca_api_key="key",
+                alpaca_secret_key="secret",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
