@@ -87,3 +87,9 @@ class AlpacaBrokerAdapter:
                 "reason": "open_buy_order_lookup_failed",
                 "error": str(e),
             }
+
+    def submit_market_order(self, order):
+        logging.info("APPROVED — sending LIVE PAPER order")
+        response = self.client.submit_order(order)
+        logging.info(f"Order submitted with status: {response.status}")
+        return response

@@ -24,7 +24,4 @@ def get_open_buy_order_qty(client, symbol: str) -> dict:
 
 
 def submit_market_order(client, order):
-    logging.info("APPROVED — sending LIVE PAPER order")
-    response = client.submit_order(order)
-    logging.info(f"Order submitted with status: {response.status}")
-    return response
+    return AlpacaBrokerAdapter(client).submit_market_order(order)

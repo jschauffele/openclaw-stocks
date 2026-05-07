@@ -16,12 +16,15 @@ class FakeClient:
         position_exception: Exception | None = None,
         orders=None,
         orders_exception: Exception | None = None,
+        submit_exception: Exception | None = None,
     ) -> None:
         self.position = position
         self.position_exception = position_exception
         self.orders = [] if orders is None else orders
         self.orders_exception = orders_exception
+        self.submit_exception = submit_exception
         self.order_filter = None
+        self.submitted_order = None
 
     def get_account(self):
         return SimpleNamespace(buying_power=self.buying_power)
@@ -36,6 +39,12 @@ class FakeClient:
             raise self.orders_exception
         self.order_filter = filter
         return self.orders
+
+    def submit_order(self, order):
+        if self.submit_exception is not None:
+            raise self.submit_exception
+        self.submitted_order = order
+        return self.submit_response
 
 
 def api_error(message: str, status_code: int | None = None) -> APIError:
@@ -179,6 +188,29 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
                 "error": str(error),
             },
         )
+
+    def test_submit_market_order_returns_raw_response(self) -> None:
+        order = object()
+        response = SimpleNamespace(id="order-1", status="accepted")
+        client = FakeClient()
+        client.submit_response = response
+        adapter = AlpacaBrokerAdapter(client)
+
+        result = adapter.submit_market_order(order)
+
+        self.assertIs(result, response)
+        self.assertIs(client.submitted_order, order)
+        self.assertEqual(result.status, "accepted")
+
+    def test_submit_market_order_failure_propagates(self) -> None:
+        error = RuntimeError("submit failed")
+        client = FakeClient(submit_exception=error)
+        adapter = AlpacaBrokerAdapter(client)
+
+        with self.assertRaises(RuntimeError) as context:
+            adapter.submit_market_order(object())
+
+        self.assertIs(context.exception, error)
 
 
 if __name__ == "__main__":

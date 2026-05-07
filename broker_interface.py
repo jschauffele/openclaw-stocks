@@ -12,3 +12,8 @@ class BrokerStateReader(Protocol):
 
     def get_open_buy_order_qty(self, symbol: str) -> dict:
         ...
+
+
+class BrokerOrderExecutor(Protocol):
+    def submit_market_order(self, order):
+        ...
