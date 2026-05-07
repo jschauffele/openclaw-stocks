@@ -1,8 +1,6 @@
 from event_logger import initialize_event_logger, generate_run_id, log_event
 import logging
 
-from alpaca.trading.enums import OrderSide, TimeInForce
-
 from alpaca_broker_adapter import AlpacaBrokerAdapter
 from alpaca_data_provider import AlpacaMarketDataProvider
 import config
@@ -122,7 +120,7 @@ def main():
     run_id = generate_run_id()
     initialize_event_logger(run_id)
     log_event("system", "startup", "ok", {"message": "run_started"})
-    side = OrderSide.BUY.value
+    side = "buy"
     mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
     trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
     signal_timeframe = env_str("OPENCLAW_SIGNAL_TIMEFRAME", "1Day")
@@ -283,7 +281,7 @@ def main():
             signal_result=signal_result,
         )
         if action_proposal["action"] == "sell":
-            side = OrderSide.SELL.value
+            side = "sell"
     except InsufficientMarketDataError as exc:
         logging.warning("Insufficient market data: need at least 3 closes")
         log_event("data", "fetch", "insufficient", {"symbol": OPENCLAW_SYMBOL, "error": str(exc)})
@@ -535,7 +533,7 @@ def main():
         logging.info("DRY RUN ENABLED — order was NOT submitted")
         logging.info(
             f"Simulated order: symbol={OPENCLAW_SYMBOL}, qty={OPENCLAW_QTY}, "
-            f"side={OrderSide.BUY}, tif={TimeInForce.DAY}"
+            "side=buy, order_type=market"
         )
         log_event("order", "submission", "dry_run", {
             "symbol": OPENCLAW_SYMBOL,
