@@ -4,7 +4,7 @@ from alpaca.common.exceptions import APIError
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
 from alpaca.trading.requests import GetOrdersRequest, MarketOrderRequest
 
-from broker_interface import BrokerCapabilities
+from broker_interface import BrokerCapabilities, BrokerLifecycleResult
 
 
 _TERMINAL_ORDER_STATUSES = {
@@ -20,14 +20,48 @@ class AlpacaBrokerAdapter:
     def __init__(self, client) -> None:
         self.client = client
 
-    def connect(self):
-        return None
+    def connect(self, timeout_seconds: float | None = None) -> BrokerLifecycleResult:
+        return BrokerLifecycleResult(
+            broker_name="alpaca",
+            operation="connect",
+            passed=True,
+            reason="alpaca_lifecycle_noop",
+            message="Alpaca lifecycle is a no-op in the adapter boundary",
+            connected=True,
+            retryable=False,
+            elapsed_ms=0,
+            raw_error=None,
+        )
 
-    def health_check(self):
-        return True
+    def health_check(
+        self, timeout_seconds: float | None = None
+    ) -> BrokerLifecycleResult:
+        return BrokerLifecycleResult(
+            broker_name="alpaca",
+            operation="health_check",
+            passed=True,
+            reason="alpaca_lifecycle_noop",
+            message="Alpaca lifecycle is a no-op in the adapter boundary",
+            connected=True,
+            retryable=False,
+            elapsed_ms=0,
+            raw_error=None,
+        )
 
-    def disconnect(self):
-        return None
+    def disconnect(
+        self, timeout_seconds: float | None = None
+    ) -> BrokerLifecycleResult:
+        return BrokerLifecycleResult(
+            broker_name="alpaca",
+            operation="disconnect",
+            passed=True,
+            reason="alpaca_lifecycle_noop",
+            message="Alpaca lifecycle is a no-op in the adapter boundary",
+            connected=False,
+            retryable=False,
+            elapsed_ms=0,
+            raw_error=None,
+        )
 
     def get_capabilities(self) -> BrokerCapabilities:
         return BrokerCapabilities(

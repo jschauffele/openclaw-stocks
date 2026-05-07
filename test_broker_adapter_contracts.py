@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 
 from alpaca_broker_adapter import AlpacaBrokerAdapter
-from broker_interface import BrokerCapabilities
+from broker_interface import BrokerCapabilities, BrokerLifecycleResult
 from ibkr_broker_adapter import IBKRBrokerAdapter
 
 
@@ -41,6 +41,49 @@ class BrokerAdapterContractTests(unittest.TestCase):
     def test_alpaca_adapter_exposes_expected_broker_neutral_surface(self) -> None:
         adapter = AlpacaBrokerAdapter(ContractFakeClient())
         self.assert_common_surface(adapter)
+
+        self.assertEqual(
+            adapter.connect(timeout_seconds=0.5),
+            BrokerLifecycleResult(
+                broker_name="alpaca",
+                operation="connect",
+                passed=True,
+                reason="alpaca_lifecycle_noop",
+                message="Alpaca lifecycle is a no-op in the adapter boundary",
+                connected=True,
+                retryable=False,
+                elapsed_ms=0,
+                raw_error=None,
+            ),
+        )
+        self.assertEqual(
+            adapter.health_check(timeout_seconds=0.5),
+            BrokerLifecycleResult(
+                broker_name="alpaca",
+                operation="health_check",
+                passed=True,
+                reason="alpaca_lifecycle_noop",
+                message="Alpaca lifecycle is a no-op in the adapter boundary",
+                connected=True,
+                retryable=False,
+                elapsed_ms=0,
+                raw_error=None,
+            ),
+        )
+        self.assertEqual(
+            adapter.disconnect(timeout_seconds=0.5),
+            BrokerLifecycleResult(
+                broker_name="alpaca",
+                operation="disconnect",
+                passed=True,
+                reason="alpaca_lifecycle_noop",
+                message="Alpaca lifecycle is a no-op in the adapter boundary",
+                connected=False,
+                retryable=False,
+                elapsed_ms=0,
+                raw_error=None,
+            ),
+        )
 
         self.assertEqual(
             adapter.get_capabilities(),
@@ -105,6 +148,14 @@ class BrokerAdapterContractTests(unittest.TestCase):
                     "IBKR adapter skeleton only; not runtime-enabled",
                 ):
                     getattr(adapter, method_name)(*args)
+
+        for method_name in ["connect", "health_check", "disconnect"]:
+            with self.subTest(timeout_method=method_name):
+                with self.assertRaisesRegex(
+                    NotImplementedError,
+                    "IBKR adapter skeleton only; not runtime-enabled",
+                ):
+                    getattr(adapter, method_name)(timeout_seconds=0.5)
 
 
 if __name__ == "__main__":

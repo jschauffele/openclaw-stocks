@@ -21,13 +21,13 @@ class IBKRBrokerAdapter:
             lifecycle_async=True,
         )
 
-    def connect(self):
+    def connect(self, timeout_seconds: float | None = None):
         raise NotImplementedError(_SKELETON_MESSAGE)
 
-    def health_check(self):
+    def health_check(self, timeout_seconds: float | None = None):
         raise NotImplementedError(_SKELETON_MESSAGE)
 
-    def disconnect(self):
+    def disconnect(self, timeout_seconds: float | None = None):
         raise NotImplementedError(_SKELETON_MESSAGE)
 
     def get_account_buying_power(self) -> float:

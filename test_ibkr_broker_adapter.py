@@ -43,6 +43,17 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
                 with self.assertRaisesRegex(NotImplementedError, expected_message):
                     getattr(adapter, method_name)(*args)
 
+    def test_timeout_parameters_are_accepted_on_lifecycle_methods(self) -> None:
+        adapter = IBKRBrokerAdapter()
+
+        for method_name in ["connect", "health_check", "disconnect"]:
+            with self.subTest(method=method_name):
+                with self.assertRaisesRegex(
+                    NotImplementedError,
+                    "IBKR adapter skeleton only; not runtime-enabled",
+                ):
+                    getattr(adapter, method_name)(timeout_seconds=1.5)
+
 
 if __name__ == "__main__":
     unittest.main()

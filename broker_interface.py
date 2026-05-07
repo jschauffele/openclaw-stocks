@@ -62,14 +62,29 @@ class BrokerError:
     raw_error: object | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class BrokerLifecycleResult:
+    broker_name: str
+    operation: str
+    passed: bool
+    reason: str
+    message: str
+    connected: bool
+    retryable: bool
+    elapsed_ms: int | None = None
+    raw_error: object | None = None
+
+
 class BrokerLifecycle(Protocol):
-    def connect(self):
+    def connect(self, timeout_seconds: float | None = None) -> BrokerLifecycleResult:
         ...
 
-    def health_check(self):
+    def health_check(
+        self, timeout_seconds: float | None = None
+    ) -> BrokerLifecycleResult:
         ...
 
-    def disconnect(self):
+    def disconnect(self, timeout_seconds: float | None = None) -> BrokerLifecycleResult:
         ...
 
 

@@ -7,7 +7,7 @@ from alpaca.common.exceptions import APIError
 from alpaca.trading.enums import OrderSide, TimeInForce
 
 from alpaca_broker_adapter import AlpacaBrokerAdapter
-from broker_interface import BrokerCapabilities
+from broker_interface import BrokerCapabilities, BrokerLifecycleResult
 
 
 class FakeClient:
@@ -63,9 +63,48 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
     def test_lifecycle_methods_are_noops_for_alpaca(self) -> None:
         adapter = AlpacaBrokerAdapter(FakeClient())
 
-        self.assertIsNone(adapter.connect())
-        self.assertTrue(adapter.health_check())
-        self.assertIsNone(adapter.disconnect())
+        self.assertEqual(
+            adapter.connect(timeout_seconds=1.0),
+            BrokerLifecycleResult(
+                broker_name="alpaca",
+                operation="connect",
+                passed=True,
+                reason="alpaca_lifecycle_noop",
+                message="Alpaca lifecycle is a no-op in the adapter boundary",
+                connected=True,
+                retryable=False,
+                elapsed_ms=0,
+                raw_error=None,
+            ),
+        )
+        self.assertEqual(
+            adapter.health_check(timeout_seconds=1.0),
+            BrokerLifecycleResult(
+                broker_name="alpaca",
+                operation="health_check",
+                passed=True,
+                reason="alpaca_lifecycle_noop",
+                message="Alpaca lifecycle is a no-op in the adapter boundary",
+                connected=True,
+                retryable=False,
+                elapsed_ms=0,
+                raw_error=None,
+            ),
+        )
+        self.assertEqual(
+            adapter.disconnect(timeout_seconds=1.0),
+            BrokerLifecycleResult(
+                broker_name="alpaca",
+                operation="disconnect",
+                passed=True,
+                reason="alpaca_lifecycle_noop",
+                message="Alpaca lifecycle is a no-op in the adapter boundary",
+                connected=False,
+                retryable=False,
+                elapsed_ms=0,
+                raw_error=None,
+            ),
+        )
 
     def test_capabilities_return_current_alpaca_metadata(self) -> None:
         adapter = AlpacaBrokerAdapter(FakeClient())
