@@ -89,13 +89,13 @@ class BrokerLifecycle(Protocol):
 
 
 class BrokerStateReader(Protocol):
-    def get_account_buying_power(self) -> float:
+    def get_account_buying_power(self) -> BrokerAccountState:
         ...
 
-    def get_existing_position(self, symbol: str) -> dict:
+    def get_existing_position(self, symbol: str) -> BrokerPositionState:
         ...
 
-    def get_open_buy_order_qty(self, symbol: str) -> dict:
+    def get_open_buy_order_qty(self, symbol: str) -> BrokerOpenOrderState:
         ...
 
 

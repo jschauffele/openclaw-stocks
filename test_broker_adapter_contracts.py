@@ -4,7 +4,13 @@ import unittest
 from types import SimpleNamespace
 
 from alpaca_broker_adapter import AlpacaBrokerAdapter
-from broker_interface import BrokerCapabilities, BrokerLifecycleResult
+from broker_interface import (
+    BrokerAccountState,
+    BrokerCapabilities,
+    BrokerLifecycleResult,
+    BrokerOpenOrderState,
+    BrokerPositionState,
+)
 from ibkr_broker_adapter import IBKRBrokerAdapter
 
 
@@ -95,6 +101,36 @@ class BrokerAdapterContractTests(unittest.TestCase):
                 supports_open_orders_read=True,
                 supports_paper_trading=True,
                 lifecycle_async=False,
+            ),
+        )
+        account_state = adapter.get_account_buying_power()
+        self.assertEqual(
+            account_state,
+            BrokerAccountState(
+                broker_name="alpaca",
+                buying_power=100.0,
+                raw_account=account_state.raw_account,
+            ),
+        )
+        self.assertEqual(
+            adapter.get_existing_position("AAPL"),
+            BrokerPositionState(
+                broker_name="alpaca",
+                found=True,
+                qty=3,
+                raw_qty="3",
+                side="long",
+                reason="position_found",
+            ),
+        )
+        self.assertEqual(
+            adapter.get_open_buy_order_qty("AAPL"),
+            BrokerOpenOrderState(
+                broker_name="alpaca",
+                passed=True,
+                open_buy_order_qty=2,
+                open_buy_order_count=1,
+                reason="open_buy_orders_loaded",
             ),
         )
 

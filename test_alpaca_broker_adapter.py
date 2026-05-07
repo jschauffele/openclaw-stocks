@@ -7,7 +7,13 @@ from alpaca.common.exceptions import APIError
 from alpaca.trading.enums import OrderSide, TimeInForce
 
 from alpaca_broker_adapter import AlpacaBrokerAdapter
-from broker_interface import BrokerCapabilities, BrokerLifecycleResult
+from broker_interface import (
+    BrokerAccountState,
+    BrokerCapabilities,
+    BrokerLifecycleResult,
+    BrokerOpenOrderState,
+    BrokerPositionState,
+)
 
 
 class FakeClient:
@@ -132,25 +138,33 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
         self.assertEqual(order.side, OrderSide.BUY)
         self.assertEqual(order.time_in_force, TimeInForce.DAY)
 
-    def test_string_buying_power_returns_float(self) -> None:
+    def test_string_buying_power_returns_normalized_account_state(self) -> None:
         client = FakeClient()
         client.buying_power = "123.45"
         adapter = AlpacaBrokerAdapter(client)
 
         result = adapter.get_account_buying_power()
 
-        self.assertEqual(result, 123.45)
-        self.assertIsInstance(result, float)
+        self.assertEqual(
+            result,
+            BrokerAccountState(
+                broker_name="alpaca",
+                buying_power=123.45,
+                raw_account=result.raw_account,
+            ),
+        )
+        self.assertEqual(result.raw_account.buying_power, "123.45")
 
-    def test_numeric_buying_power_returns_float_compatible_value(self) -> None:
+    def test_numeric_buying_power_returns_normalized_account_state(self) -> None:
         client = FakeClient()
         client.buying_power = 123.45
         adapter = AlpacaBrokerAdapter(client)
 
         result = adapter.get_account_buying_power()
 
-        self.assertEqual(result, 123.45)
-        self.assertIsInstance(result, float)
+        self.assertEqual(result.broker_name, "alpaca")
+        self.assertEqual(result.buying_power, 123.45)
+        self.assertEqual(result.raw_account.buying_power, 123.45)
 
     def test_existing_position_found(self) -> None:
         client = FakeClient(position=SimpleNamespace(qty="3.0"))
@@ -160,13 +174,14 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         self.assertEqual(
             result,
-            {
-                "found": True,
-                "qty": 3,
-                "raw_qty": "3.0",
-                "side": "long",
-                "reason": "position_found",
-            },
+            BrokerPositionState(
+                broker_name="alpaca",
+                found=True,
+                qty=3,
+                raw_qty="3.0",
+                side="long",
+                reason="position_found",
+            ),
         )
 
     def test_missing_position(self) -> None:
@@ -179,13 +194,14 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         self.assertEqual(
             result,
-            {
-                "found": False,
-                "qty": 0,
-                "raw_qty": "0",
-                "side": None,
-                "reason": "no_position",
-            },
+            BrokerPositionState(
+                broker_name="alpaca",
+                found=False,
+                qty=0,
+                raw_qty="0",
+                side=None,
+                reason="no_position",
+            ),
         )
 
     def test_lookup_error(self) -> None:
@@ -195,12 +211,12 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         result = adapter.get_existing_position("AAPL")
 
-        self.assertEqual(result["found"], None)
-        self.assertEqual(result["qty"], None)
-        self.assertEqual(result["raw_qty"], None)
-        self.assertEqual(result["side"], None)
-        self.assertEqual(result["reason"], "position_lookup_error")
-        self.assertEqual(result["error"], str(error))
+        self.assertEqual(result.found, None)
+        self.assertEqual(result.qty, None)
+        self.assertEqual(result.raw_qty, None)
+        self.assertEqual(result.side, None)
+        self.assertEqual(result.reason, "position_lookup_error")
+        self.assertEqual(result.error, str(error))
 
     def test_open_buy_orders_found(self) -> None:
         client = FakeClient(
@@ -215,12 +231,13 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         self.assertEqual(
             result,
-            {
-                "passed": True,
-                "open_buy_order_qty": 3,
-                "open_buy_order_count": 2,
-                "reason": "open_buy_orders_loaded",
-            },
+            BrokerOpenOrderState(
+                broker_name="alpaca",
+                passed=True,
+                open_buy_order_qty=3,
+                open_buy_order_count=2,
+                reason="open_buy_orders_loaded",
+            ),
         )
 
     def test_invalid_qty_handling(self) -> None:
@@ -237,12 +254,13 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         self.assertEqual(
             result,
-            {
-                "passed": True,
-                "open_buy_order_qty": 2,
-                "open_buy_order_count": 3,
-                "reason": "open_buy_orders_loaded",
-            },
+            BrokerOpenOrderState(
+                broker_name="alpaca",
+                passed=True,
+                open_buy_order_qty=2,
+                open_buy_order_count=3,
+                reason="open_buy_orders_loaded",
+            ),
         )
 
     def test_open_order_lookup_failure(self) -> None:
@@ -254,13 +272,14 @@ class AlpacaBrokerAdapterTests(unittest.TestCase):
 
         self.assertEqual(
             result,
-            {
-                "passed": False,
-                "open_buy_order_qty": None,
-                "open_buy_order_count": None,
-                "reason": "open_buy_order_lookup_failed",
-                "error": str(error),
-            },
+            BrokerOpenOrderState(
+                broker_name="alpaca",
+                passed=False,
+                open_buy_order_qty=None,
+                open_buy_order_count=None,
+                reason="open_buy_order_lookup_failed",
+                error=str(error),
+            ),
         )
 
     def test_submit_market_order_returns_raw_response(self) -> None:

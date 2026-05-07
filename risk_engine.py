@@ -43,29 +43,29 @@ def reconcile_position(
     max_position_size: int,
 ) -> dict:
     position_result = broker_state.get_existing_position(symbol)
-    if position_result["found"] is None:
+    if position_result.found is None:
         return {
             "passed": False,
             "reason": "broker_position_lookup_failed",
-            "message": position_result.get("error", "Unknown broker position lookup error"),
+            "message": position_result.error or "Unknown broker position lookup error",
             "existing_qty": None,
             "open_buy_order_qty": None,
             "projected_qty": None,
         }
 
     open_order_result = broker_state.get_open_buy_order_qty(symbol)
-    if not open_order_result["passed"]:
+    if not open_order_result.passed:
         return {
             "passed": False,
             "reason": "broker_open_buy_order_lookup_failed",
-            "message": open_order_result.get("error", "Unknown open buy order lookup error"),
-            "existing_qty": position_result["qty"],
+            "message": open_order_result.error or "Unknown open buy order lookup error",
+            "existing_qty": position_result.qty,
             "open_buy_order_qty": None,
             "projected_qty": None,
         }
 
-    existing_qty = position_result["qty"]
-    open_buy_order_qty = open_order_result["open_buy_order_qty"]
+    existing_qty = position_result.qty
+    open_buy_order_qty = open_order_result.open_buy_order_qty
     projected_qty = existing_qty + open_buy_order_qty + requested_qty
 
     if projected_qty > max_position_size:

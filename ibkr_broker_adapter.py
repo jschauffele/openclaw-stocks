@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from broker_interface import BrokerCapabilities
+from broker_interface import (
+    BrokerAccountState,
+    BrokerCapabilities,
+    BrokerOpenOrderState,
+    BrokerPositionState,
+)
 
 
 _SKELETON_MESSAGE = "IBKR adapter skeleton only; not runtime-enabled"
@@ -30,13 +35,13 @@ class IBKRBrokerAdapter:
     def disconnect(self, timeout_seconds: float | None = None):
         raise NotImplementedError(_SKELETON_MESSAGE)
 
-    def get_account_buying_power(self) -> float:
+    def get_account_buying_power(self) -> BrokerAccountState:
         raise NotImplementedError(_SKELETON_MESSAGE)
 
-    def get_existing_position(self, symbol: str) -> dict:
+    def get_existing_position(self, symbol: str) -> BrokerPositionState:
         raise NotImplementedError(_SKELETON_MESSAGE)
 
-    def get_open_buy_order_qty(self, symbol: str) -> dict:
+    def get_open_buy_order_qty(self, symbol: str) -> BrokerOpenOrderState:
         raise NotImplementedError(_SKELETON_MESSAGE)
 
     def build_market_order(self, symbol: str, qty: int):

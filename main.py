@@ -391,7 +391,8 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
-    buying_power = broker_state.get_account_buying_power()
+    account_state = broker_state.get_account_buying_power()
+    buying_power = account_state.buying_power
 
     duplicate_result = duplicate_check(
         OPENCLAW_SYMBOL,
