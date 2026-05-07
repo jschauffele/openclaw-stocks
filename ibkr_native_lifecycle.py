@@ -145,9 +145,14 @@ class IBKRClientLifecycleController:
 
 
 class IBKRRuntimeThreadOwner:
-    def __init__(self) -> None:
-        self.lock = threading.RLock()
-        self.condition = threading.Condition(self.lock)
+    def __init__(
+        self,
+        *,
+        lock: threading.RLock | None = None,
+        condition: threading.Condition | None = None,
+    ) -> None:
+        self.lock = lock or threading.RLock()
+        self.condition = condition or threading.Condition(self.lock)
         self.thread_state = "not_started"
         self.shutdown_state = "active"
         self.thread: threading.Thread | None = None
