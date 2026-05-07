@@ -9,11 +9,13 @@ from broker_interface import (
     BrokerOrderResult,
     BrokerPositionState,
 )
-from fake_ibkr_callback_aggregator import (
-    _NON_TERMINAL_ORDER_STATUS_MAP,
-    _OPEN_ORDER_STATUSES,
-    _TERMINAL_ORDER_STATUS_MAP,
-    _optional_int,
+from fake_ibkr_callback_normalization import (
+    is_open_order_status,
+    is_terminal_order_status,
+    normalize_order_status,
+    optional_int,
+    parse_buying_power,
+    parse_int_qty,
 )
 
 
@@ -39,7 +41,7 @@ class IBKRLifecycleAggregator:
                 message=str(event.get("message", "connect_ready")),
                 connected=True,
                 retryable=False,
-                elapsed_ms=_optional_int(event.get("elapsed_ms")),
+                elapsed_ms=optional_int(event.get("elapsed_ms")),
                 raw_error=None,
             )
             return
@@ -53,7 +55,7 @@ class IBKRLifecycleAggregator:
                 message=str(event.get("message", "connect_error")),
                 connected=False,
                 retryable=bool(event.get("retryable", True)),
-                elapsed_ms=_optional_int(event.get("elapsed_ms")),
+                elapsed_ms=optional_int(event.get("elapsed_ms")),
                 raw_error=event,
             )
             return
@@ -67,7 +69,7 @@ class IBKRLifecycleAggregator:
                 message=str(event.get("message", f"{self.operation}_timeout")),
                 connected=False,
                 retryable=True,
-                elapsed_ms=_optional_int(event.get("elapsed_ms")),
+                elapsed_ms=optional_int(event.get("elapsed_ms")),
                 raw_error=event,
             )
 
@@ -108,7 +110,7 @@ class IBKRAccountSnapshotAggregator:
             raise ValueError("No fake IBKR account buying_power callback received")
 
         try:
-            buying_power = float(self._account_event["buying_power"])
+            buying_power = parse_buying_power(self._account_event["buying_power"])
         except (TypeError, ValueError) as exc:
             self._error = "invalid_account_buying_power"
             raise ValueError("Invalid fake IBKR account buying_power callback") from exc
@@ -140,7 +142,7 @@ class IBKRPositionSnapshotAggregator:
                 return
             raw_qty = str(event.get("qty", "0"))
             try:
-                qty = int(float(raw_qty))
+                qty = parse_int_qty(raw_qty)
             except (TypeError, ValueError):
                 self._error_result = BrokerPositionState(
                     broker_name="ibkr",
@@ -224,8 +226,7 @@ class IBKROpenOrdersSnapshotAggregator:
                 return
             if str(event.get("side", "")).upper() != "BUY":
                 return
-            status = str(event.get("status", "")).lower()
-            if status not in _OPEN_ORDER_STATUSES:
+            if not is_open_order_status(event.get("status", "")):
                 return
 
             order_id = event.get("order_id")
@@ -237,7 +238,7 @@ class IBKROpenOrdersSnapshotAggregator:
 
             raw_qty = str(event.get("qty", "0"))
             try:
-                qty = int(float(raw_qty))
+                qty = parse_int_qty(raw_qty)
             except (TypeError, ValueError):
                 self._error_result = BrokerOpenOrderState(
                     broker_name="ibkr",
@@ -309,7 +310,7 @@ class IBKROrderStatusAggregator:
 
             self._last_raw_event = event
             self._last_broker_status = str(event.get("status"))
-            normalized_status = _normalize_order_status(self._last_broker_status)
+            normalized_status = normalize_order_status(self._last_broker_status)
 
             if self._terminal_status is not None:
                 if normalized_status != self._terminal_status:
@@ -324,7 +325,7 @@ class IBKROrderStatusAggregator:
                 return
 
             self._last_order_status = normalized_status
-            self._is_terminal = normalized_status in {"filled", "canceled", "rejected"}
+            self._is_terminal = is_terminal_order_status(normalized_status)
             if self._is_terminal:
                 self._terminal_status = normalized_status
             return
@@ -374,12 +375,3 @@ def _matches_request(event: Event, request_id: str | None) -> bool:
         return True
     event_request_id = event.get("request_id")
     return event_request_id is None or str(event_request_id) == request_id
-
-
-def _normalize_order_status(broker_status: str) -> str:
-    normalized = broker_status.lower()
-    if normalized in _TERMINAL_ORDER_STATUS_MAP:
-        return _TERMINAL_ORDER_STATUS_MAP[normalized]
-    if normalized in _NON_TERMINAL_ORDER_STATUS_MAP:
-        return _NON_TERMINAL_ORDER_STATUS_MAP[normalized]
-    return normalized

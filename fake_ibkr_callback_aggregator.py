@@ -9,33 +9,17 @@ from broker_interface import (
     BrokerOrderResult,
     BrokerPositionState,
 )
+from fake_ibkr_callback_normalization import (
+    is_open_order_status,
+    is_terminal_order_status,
+    normalize_order_status,
+    optional_int,
+    parse_buying_power,
+    parse_int_qty,
+)
 
 
 Event = Mapping[str, object]
-
-_OPEN_ORDER_STATUSES = {
-    "apisent",
-    "pendingcancel",
-    "pendingsubmit",
-    "presubmitted",
-    "submitted",
-}
-
-_TERMINAL_ORDER_STATUS_MAP = {
-    "filled": "filled",
-    "cancelled": "canceled",
-    "canceled": "canceled",
-    "inactive": "rejected",
-    "rejected": "rejected",
-}
-
-_NON_TERMINAL_ORDER_STATUS_MAP = {
-    "apisent": "submitted",
-    "pendingcancel": "submitted",
-    "pendingsubmit": "submitted",
-    "presubmitted": "submitted",
-    "submitted": "submitted",
-}
 
 
 def aggregate_lifecycle(
@@ -54,7 +38,7 @@ def aggregate_lifecycle(
                 message=str(event.get("message", "connect_ready")),
                 connected=True,
                 retryable=False,
-                elapsed_ms=_optional_int(event.get("elapsed_ms")),
+                elapsed_ms=optional_int(event.get("elapsed_ms")),
                 raw_error=None,
             )
         if event_type == "connect_error":
@@ -66,7 +50,7 @@ def aggregate_lifecycle(
                 message=str(event.get("message", "connect_error")),
                 connected=False,
                 retryable=bool(event.get("retryable", True)),
-                elapsed_ms=_optional_int(event.get("elapsed_ms")),
+                elapsed_ms=optional_int(event.get("elapsed_ms")),
                 raw_error=event,
             )
         if event_type == "timeout" and event.get("operation", operation) == operation:
@@ -78,7 +62,7 @@ def aggregate_lifecycle(
                 message=str(event.get("message", f"{operation}_timeout")),
                 connected=False,
                 retryable=True,
-                elapsed_ms=_optional_int(event.get("elapsed_ms")),
+                elapsed_ms=optional_int(event.get("elapsed_ms")),
                 raw_error=event,
             )
 
@@ -102,7 +86,7 @@ def aggregate_account(events: Iterable[Event]) -> BrokerAccountState:
         if "buying_power" not in event:
             continue
         try:
-            buying_power = float(event["buying_power"])
+            buying_power = parse_buying_power(event["buying_power"])
         except (TypeError, ValueError) as exc:
             raise ValueError("Invalid fake IBKR account buying_power callback") from exc
         return BrokerAccountState(
@@ -125,7 +109,7 @@ def aggregate_position(events: Iterable[Event], *, symbol: str) -> BrokerPositio
                 continue
             raw_qty = str(event.get("qty", "0"))
             try:
-                qty = int(float(raw_qty))
+                qty = parse_int_qty(raw_qty)
             except (TypeError, ValueError):
                 return BrokerPositionState(
                     broker_name="ibkr",
@@ -194,8 +178,7 @@ def aggregate_open_buy_orders(
                 continue
             if str(event.get("side", "")).upper() != "BUY":
                 continue
-            status = str(event.get("status", "")).lower()
-            if status not in _OPEN_ORDER_STATUSES:
+            if not is_open_order_status(event.get("status", "")):
                 continue
             order_id = event.get("order_id")
             if order_id is not None:
@@ -205,7 +188,7 @@ def aggregate_open_buy_orders(
                 seen_order_ids.add(order_id_text)
             raw_qty = str(event.get("qty", "0"))
             try:
-                qty = int(float(raw_qty))
+                qty = parse_int_qty(raw_qty)
             except (TypeError, ValueError):
                 return BrokerOpenOrderState(
                     broker_name="ibkr",
@@ -262,7 +245,7 @@ def aggregate_order_result(events: Iterable[Event]) -> BrokerOrderResult:
 
             last_raw_event = event
             last_broker_status = str(event.get("status"))
-            normalized_status = _normalize_order_status(last_broker_status)
+            normalized_status = normalize_order_status(last_broker_status)
             if terminal_status is not None:
                 if normalized_status != terminal_status:
                     return BrokerOrderResult(
@@ -275,7 +258,7 @@ def aggregate_order_result(events: Iterable[Event]) -> BrokerOrderResult:
                     )
                 continue
             last_order_status = normalized_status
-            is_terminal = normalized_status in {"filled", "canceled", "rejected"}
+            is_terminal = is_terminal_order_status(normalized_status)
             if is_terminal:
                 terminal_status = normalized_status
                 continue
@@ -317,18 +300,3 @@ def aggregate_order_result(events: Iterable[Event]) -> BrokerOrderResult:
         is_terminal=is_terminal,
         raw_response=last_raw_event,
     )
-
-
-def _normalize_order_status(broker_status: str) -> str:
-    normalized = broker_status.lower()
-    if normalized in _TERMINAL_ORDER_STATUS_MAP:
-        return _TERMINAL_ORDER_STATUS_MAP[normalized]
-    if normalized in _NON_TERMINAL_ORDER_STATUS_MAP:
-        return _NON_TERMINAL_ORDER_STATUS_MAP[normalized]
-    return normalized
-
-
-def _optional_int(value: object) -> int | None:
-    if value is None:
-        return None
-    return int(value)
