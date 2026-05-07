@@ -13,8 +13,22 @@ _SKELETON_MESSAGE = "IBKR adapter skeleton only; not runtime-enabled"
 
 
 class IBKRBrokerAdapter:
-    def __init__(self, client=None) -> None:
+    def __init__(
+        self,
+        client=None,
+        *,
+        native_api=None,
+        bridge=None,
+        registry=None,
+        timeout_injector=None,
+        enabled: bool = False,
+    ) -> None:
         self.client = client
+        self.native_api = native_api
+        self.bridge = bridge
+        self.registry = registry
+        self.timeout_injector = timeout_injector
+        self.enabled = enabled
 
     def get_capabilities(self) -> BrokerCapabilities:
         return BrokerCapabilities(
