@@ -2,10 +2,29 @@ from __future__ import annotations
 
 import sys
 import unittest
+from types import SimpleNamespace
 
 from ibkr_callback_bridge import IBKRCallbackBridge
-from ibkr_native_lifecycle import IBKRClientLifecycleController, IBKRWrapperBridge
+from ibkr_native_imports import IBKRDependencyUnavailable, load_ibkr_native_api
+from ibkr_native_lifecycle import (
+    IBKRClientLifecycleController,
+    IBKRWrapperBridge,
+    build_ibkr_native_client_bundle,
+)
 from ibkr_timeout_injector import IBKRTimeoutInjector
+
+
+class FakeEClient:
+    def __init__(self, wrapper) -> None:
+        self.wrapper = wrapper
+        self.connect_called = False
+        self.run_called = False
+
+    def connect(self, *args, **kwargs) -> None:
+        self.connect_called = True
+
+    def run(self) -> None:
+        self.run_called = True
 
 
 class FakeNativeClient:
@@ -114,12 +133,57 @@ class IBKRNativeLifecycleTests(unittest.TestCase):
         self.assertEqual(result.message, "no nextValidId callback")
         self.assertEqual(result.elapsed_ms, 5000)
 
-    def test_lifecycle_module_does_not_import_ibapi(self) -> None:
-        imported_ibapi_modules = [
-            name for name in sys.modules if name == "ibapi" or name.startswith("ibapi.")
-        ]
+    def test_build_native_client_bundle_constructs_wrapper_and_fake_client_only(
+        self,
+    ) -> None:
+        bridge = IBKRCallbackBridge()
+        native_api = SimpleNamespace(e_client=FakeEClient)
 
-        self.assertEqual(imported_ibapi_modules, [])
+        bundle = build_ibkr_native_client_bundle(
+            native_api=native_api,
+            bridge=bridge,
+        )
+
+        self.assertIsInstance(bundle.wrapper, IBKRWrapperBridge)
+        self.assertIsInstance(bundle.client, FakeEClient)
+        self.assertIs(bundle.wrapper.bridge, bridge)
+        self.assertIs(bundle.client.wrapper, bundle.wrapper)
+        self.assertEqual(bundle.client.connect_called, False)
+        self.assertEqual(bundle.client.run_called, False)
+
+    def test_build_native_client_bundle_with_real_ibapi_when_available(self) -> None:
+        try:
+            native_api = load_ibkr_native_api()
+        except IBKRDependencyUnavailable as exc:
+            self.skipTest(str(exc))
+
+        bundle = build_ibkr_native_client_bundle(
+            native_api=native_api,
+            bridge=IBKRCallbackBridge(),
+        )
+
+        self.assertEqual(type(bundle.wrapper).__name__, "IBKRWrapperBridge")
+        self.assertEqual(type(bundle.client).__name__, "EClient")
+        self.assertEqual(bundle.client.isConnected(), False)
+
+    def test_lifecycle_module_does_not_import_ibapi(self) -> None:
+        existing_ibapi_modules = {
+            name: module
+            for name, module in sys.modules.items()
+            if name == "ibapi" or name.startswith("ibapi.")
+        }
+        for name in existing_ibapi_modules:
+            sys.modules.pop(name, None)
+        try:
+            imported_ibapi_modules = [
+                name
+                for name in sys.modules
+                if name == "ibapi" or name.startswith("ibapi.")
+            ]
+
+            self.assertEqual(imported_ibapi_modules, [])
+        finally:
+            sys.modules.update(existing_ibapi_modules)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from broker_interface import BrokerLifecycleResult
 from ibkr_callback_bridge import IBKRCallbackBridge
 from ibkr_timeout_injector import IBKRTimeoutInjector
@@ -41,6 +43,25 @@ class IBKRWrapperBridge:
             retryable=retryable,
             elapsed_ms=elapsed_ms,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class IBKRNativeClientBundle:
+    wrapper: IBKRWrapperBridge
+    client: object
+
+
+def build_ibkr_native_client_bundle(
+    *,
+    native_api,
+    bridge: IBKRCallbackBridge,
+) -> IBKRNativeClientBundle:
+    wrapper = IBKRWrapperBridge(bridge)
+    client = native_api.e_client(wrapper)
+    return IBKRNativeClientBundle(
+        wrapper=wrapper,
+        client=client,
+    )
 
 
 class IBKRClientLifecycleController:
