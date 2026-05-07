@@ -4,6 +4,7 @@ import unittest
 from types import SimpleNamespace
 
 from alpaca.common.exceptions import APIError
+from alpaca.trading.enums import OrderSide, TimeInForce
 
 from alpaca_broker_adapter import AlpacaBrokerAdapter
 
@@ -58,6 +59,16 @@ def api_error(message: str, status_code: int | None = None) -> APIError:
 
 
 class AlpacaBrokerAdapterTests(unittest.TestCase):
+    def test_build_market_order_preserves_current_alpaca_request(self) -> None:
+        adapter = AlpacaBrokerAdapter(None)
+
+        order = adapter.build_market_order("AAPL", 1)
+
+        self.assertEqual(order.symbol, "AAPL")
+        self.assertEqual(order.qty, 1)
+        self.assertEqual(order.side, OrderSide.BUY)
+        self.assertEqual(order.time_in_force, TimeInForce.DAY)
+
     def test_string_buying_power_returns_float(self) -> None:
         client = FakeClient()
         client.buying_power = "123.45"

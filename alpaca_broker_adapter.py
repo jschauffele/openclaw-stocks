@@ -1,8 +1,8 @@
 import logging
 
 from alpaca.common.exceptions import APIError
-from alpaca.trading.enums import OrderSide, QueryOrderStatus
-from alpaca.trading.requests import GetOrdersRequest
+from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
+from alpaca.trading.requests import GetOrdersRequest, MarketOrderRequest
 
 
 class AlpacaBrokerAdapter:
@@ -14,6 +14,14 @@ class AlpacaBrokerAdapter:
         buying_power = float(account.buying_power)
         logging.info(f"Account buying power: {buying_power}")
         return buying_power
+
+    def build_market_order(self, symbol: str, qty: int):
+        return MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.DAY,
+        )
 
     def get_existing_position(self, symbol: str) -> dict:
         try:

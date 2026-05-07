@@ -1,18 +1,11 @@
 import logging
 
-from alpaca.trading.enums import OrderSide, TimeInForce
-from alpaca.trading.requests import MarketOrderRequest
 from alpaca_broker_adapter import AlpacaBrokerAdapter
 from market_session_service import get_market_session_status
 
 
 def build_market_order(symbol: str, qty: int):
-    return MarketOrderRequest(
-        symbol=symbol,
-        qty=qty,
-        side=OrderSide.BUY,
-        time_in_force=TimeInForce.DAY,
-    )
+    return AlpacaBrokerAdapter(None).build_market_order(symbol, qty)
 
 
 def get_existing_position(client, symbol: str) -> dict:

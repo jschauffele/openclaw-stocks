@@ -19,6 +19,11 @@ class BrokerOrderExecutor(Protocol):
         ...
 
 
+class BrokerOrderBuilder(Protocol):
+    def build_market_order(self, symbol: str, qty: int):
+        ...
+
+
 class BrokerOrderResponseNormalizer(Protocol):
     def normalize_order_response(self, response) -> dict:
         ...
