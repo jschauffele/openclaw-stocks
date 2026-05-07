@@ -9,6 +9,12 @@ class AlpacaBrokerAdapter:
     def __init__(self, client) -> None:
         self.client = client
 
+    def get_account_buying_power(self) -> float:
+        account = self.client.get_account()
+        buying_power = float(account.buying_power)
+        logging.info(f"Account buying power: {buying_power}")
+        return buying_power
+
     def get_existing_position(self, symbol: str) -> dict:
         try:
             position = self.client.get_open_position(symbol)

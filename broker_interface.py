@@ -4,6 +4,9 @@ from typing import Protocol
 
 
 class BrokerStateReader(Protocol):
+    def get_account_buying_power(self) -> float:
+        ...
+
     def get_existing_position(self, symbol: str) -> dict:
         ...
 

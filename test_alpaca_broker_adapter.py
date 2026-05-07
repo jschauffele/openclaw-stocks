@@ -23,6 +23,9 @@ class FakeClient:
         self.orders_exception = orders_exception
         self.order_filter = None
 
+    def get_account(self):
+        return SimpleNamespace(buying_power=self.buying_power)
+
     def get_open_position(self, symbol: str):
         if self.position_exception is not None:
             raise self.position_exception
@@ -46,6 +49,26 @@ def api_error(message: str, status_code: int | None = None) -> APIError:
 
 
 class AlpacaBrokerAdapterTests(unittest.TestCase):
+    def test_string_buying_power_returns_float(self) -> None:
+        client = FakeClient()
+        client.buying_power = "123.45"
+        adapter = AlpacaBrokerAdapter(client)
+
+        result = adapter.get_account_buying_power()
+
+        self.assertEqual(result, 123.45)
+        self.assertIsInstance(result, float)
+
+    def test_numeric_buying_power_returns_float_compatible_value(self) -> None:
+        client = FakeClient()
+        client.buying_power = 123.45
+        adapter = AlpacaBrokerAdapter(client)
+
+        result = adapter.get_account_buying_power()
+
+        self.assertEqual(result, 123.45)
+        self.assertIsInstance(result, float)
+
     def test_existing_position_found(self) -> None:
         client = FakeClient(position=SimpleNamespace(qty="3.0"))
         adapter = AlpacaBrokerAdapter(client)

@@ -392,9 +392,8 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
-    account = client.get_account()
-    buying_power = float(account.buying_power)
-    logging.info(f"Account buying power: {buying_power}")
+    broker_state = AlpacaBrokerAdapter(client)
+    buying_power = broker_state.get_account_buying_power()
 
     duplicate_result = duplicate_check(
         OPENCLAW_SYMBOL,
@@ -473,7 +472,6 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
-    broker_state = AlpacaBrokerAdapter(client)
     reconciliation_result = reconcile_position(
         broker_state,
         OPENCLAW_SYMBOL,
