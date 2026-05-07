@@ -1,6 +1,6 @@
 import logging
 
-from execution_engine import get_existing_position, get_open_buy_order_qty
+from broker_interface import BrokerStateReader
 
 
 def validate_config(
@@ -36,8 +36,13 @@ def validate_config(
     return True
 
 
-def reconcile_position(client, symbol: str, requested_qty: int, max_position_size: int) -> dict:
-    position_result = get_existing_position(client, symbol)
+def reconcile_position(
+    broker_state: BrokerStateReader,
+    symbol: str,
+    requested_qty: int,
+    max_position_size: int,
+) -> dict:
+    position_result = broker_state.get_existing_position(symbol)
     if position_result["found"] is None:
         return {
             "passed": False,
@@ -48,7 +53,7 @@ def reconcile_position(client, symbol: str, requested_qty: int, max_position_siz
             "projected_qty": None,
         }
 
-    open_order_result = get_open_buy_order_qty(client, symbol)
+    open_order_result = broker_state.get_open_buy_order_qty(symbol)
     if not open_order_result["passed"]:
         return {
             "passed": False,

@@ -3,6 +3,7 @@ import logging
 
 from alpaca.trading.enums import OrderSide, TimeInForce
 
+from alpaca_broker_adapter import AlpacaBrokerAdapter
 from alpaca_data_provider import AlpacaMarketDataProvider
 import config
 from decision_engine import build_action_proposal
@@ -472,8 +473,9 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
+    broker_state = AlpacaBrokerAdapter(client)
     reconciliation_result = reconcile_position(
-        client,
+        broker_state,
         OPENCLAW_SYMBOL,
         OPENCLAW_QTY,
         OPENCLAW_MAX_POSITION_SIZE,
