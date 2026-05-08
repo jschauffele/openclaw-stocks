@@ -28,6 +28,9 @@ class CoordinatorReadinessWrapper:
             retryable=True,
         )
 
+    def connectionClosed(self) -> bool:
+        return False
+
 
 @dataclass(frozen=True, slots=True)
 class ManualIBKRConnectSmokeBundle:

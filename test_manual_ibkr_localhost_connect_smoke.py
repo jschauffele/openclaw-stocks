@@ -123,6 +123,37 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         self.assertEqual(result.reason, "connect_error")
         self.assertEqual(coordinator.connect_state, "disconnected")
 
+    def test_wrapper_connection_closed_is_accepted(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        self.assertFalse(wrapper.connectionClosed())
+
+        self.assertEqual(coordinator.callback_calls, [])
+        self.assertEqual(coordinator.error_calls, [])
+
+    def test_connection_closed_after_error_does_not_replace_failed_result(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        wrapper.error(-1, 502, "connect failed")
+        failed_result = coordinator.connect_result()
+        self.assertFalse(wrapper.connectionClosed())
+
+        self.assertIs(coordinator.connect_result(), failed_result)
+        self.assertEqual(coordinator.connect_result().reason, "connect_error")
+
+    def test_connection_closed_before_readiness_does_not_create_false_success(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        coordinator.result = None
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        self.assertFalse(wrapper.connectionClosed())
+
+        self.assertIsNone(coordinator.connect_result())
+        self.assertEqual(coordinator.callback_calls, [])
+        self.assertEqual(coordinator.error_calls, [])
+
     def test_late_next_valid_id_after_error_is_ignored(self) -> None:
         coordinator = FakeCoordinator(enabled=True)
         wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
