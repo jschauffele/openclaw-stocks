@@ -22,6 +22,12 @@ class CoordinatorReadinessWrapper:
             message="next_valid_id",
         )
 
+    def error(self, reqId, code, msg, *args) -> bool:
+        return self.coordinator.callback_connect_error(
+            message=str(msg),
+            retryable=True,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class ManualIBKRConnectSmokeBundle:

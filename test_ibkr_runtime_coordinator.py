@@ -107,6 +107,20 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
         self.assertEqual(result.message, "no nextValidId callback")
         self.assertFalse(coordinator.has_pending_connect())
 
+    def test_connect_error_wins_before_callback(self) -> None:
+        coordinator = build_locked_coordinator()
+        coordinator.begin_connect()
+
+        self.assertTrue(coordinator.callback_connect_error(message="connect failed"))
+        self.assertFalse(coordinator.callback_connect_ready())
+
+        result = coordinator.connect_result()
+        self.assertEqual(coordinator.completed_by, "callback_error")
+        self.assertEqual(result.passed, False)
+        self.assertEqual(result.reason, "connect_error")
+        self.assertEqual(result.message, "connect failed")
+        self.assertFalse(coordinator.has_pending_connect())
+
     def test_late_callback_ignored_after_timeout(self) -> None:
         coordinator = build_locked_coordinator()
         coordinator.begin_connect()

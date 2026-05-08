@@ -121,6 +121,30 @@ class IBKRRuntimeArbitrationCoordinator:
             self._notify_waiters()
             return True
 
+    def callback_connect_error(
+        self,
+        *,
+        message: str = "connect_error",
+        retryable: bool = True,
+        elapsed_ms: int | None = None,
+    ) -> bool:
+        with self.lock:
+            if self.completed_result is not None:
+                return False
+            if not self.bridge.connect_error(
+                message=message,
+                retryable=retryable,
+                elapsed_ms=elapsed_ms,
+            ):
+                return False
+            self.completed_result = self.bridge.complete_lifecycle(
+                operation="connect"
+            )
+            self.completed_by = "callback_error"
+            self.connect_state = "disconnected"
+            self._notify_waiters()
+            return True
+
     def timeout_connect(
         self,
         *,

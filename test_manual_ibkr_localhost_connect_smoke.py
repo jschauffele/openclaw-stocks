@@ -16,6 +16,7 @@ class FakeCoordinator:
         self.callback_calls = []
         self.connect_calls = []
         self.timeout_calls = []
+        self.error_calls = []
         self.disconnect_calls = []
         self.wait_results = []
         self.connect_state = "disconnected"
@@ -24,8 +25,16 @@ class FakeCoordinator:
         self.result = SimpleNamespace(passed=True, reason="connect_ready")
 
     def callback_connect_ready(self, **kwargs) -> bool:
+        if self.result.reason == "connect_error":
+            return False
         self.callback_calls.append(kwargs)
         self.connect_state = "connected"
+        return True
+
+    def callback_connect_error(self, **kwargs) -> bool:
+        self.error_calls.append(kwargs)
+        self.result = SimpleNamespace(passed=False, reason="connect_error")
+        self.connect_state = "disconnected"
         return True
 
     def connect(self, **kwargs) -> None:
@@ -92,6 +101,38 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         self.assertEqual(coordinator.callback_calls, [{"message": "next_valid_id"}])
         self.assertEqual(coordinator.connect_state, "connected")
 
+    def test_wrapper_error_is_accepted(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        self.assertTrue(wrapper.error(-1, 502, "connect failed"))
+
+        self.assertEqual(
+            coordinator.error_calls,
+            [{"message": "connect failed", "retryable": True}],
+        )
+
+    def test_wrapper_error_produces_deterministic_failed_connect_result(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        wrapper.error(-1, 502, "connect failed")
+        result = coordinator.connect_result()
+
+        self.assertEqual(result.passed, False)
+        self.assertEqual(result.reason, "connect_error")
+        self.assertEqual(coordinator.connect_state, "disconnected")
+
+    def test_late_next_valid_id_after_error_is_ignored(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        self.assertTrue(wrapper.error(-1, 502, "connect failed"))
+        self.assertFalse(wrapper.nextValidId(101))
+
+        self.assertEqual(coordinator.callback_calls, [])
+        self.assertEqual(coordinator.error_calls[0]["message"], "connect failed")
+
     def test_timeout_path_calls_coordinator_timeout(self) -> None:
         coordinator = FakeCoordinator(enabled=True)
         coordinator.wait_results = [False]
@@ -125,6 +166,19 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         self.assertEqual(coordinator.disconnect_calls, [{"timeout": 2.0}])
         self.assertEqual(coordinator.shutdown_state, "complete")
         self.assertEqual(coordinator.thread_owner.thread_state, "stopped")
+
+    def test_error_path_cleanup_calls_coordinator_disconnect(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        wrapper.error(-1, 502, "connect failed")
+        run_smoke_silently(
+            native_api_loader=fake_native_api_loader,
+            coordinator_factory=lambda enabled: coordinator,
+            timeout=2.0,
+        )
+
+        self.assertEqual(coordinator.disconnect_calls, [{"timeout": 2.0}])
 
     def test_script_import_does_not_execute_smoke(self) -> None:
         module = importlib.reload(smoke)
