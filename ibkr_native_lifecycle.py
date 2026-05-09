@@ -34,6 +34,57 @@ class IBKRWrapperBridge:
     def accountSummaryEnd(self, reqId) -> bool:
         return self.bridge.account_summary_end(request_id=reqId)
 
+    def positionMulti(self, reqId, account, modelCode, contract, pos, avgCost) -> bool:
+        symbol = getattr(contract, "symbol", "")
+        side = "short" if _is_negative_position(pos) else "long"
+        return self.bridge.position_multi(
+            request_id=reqId,
+            account=account,
+            model_code=modelCode,
+            symbol=symbol,
+            qty=pos,
+            side=side,
+            avg_cost=avgCost,
+        )
+
+    def positionMultiEnd(self, reqId) -> bool:
+        return self.bridge.position_multi_end(request_id=reqId)
+
+    def openOrder(self, orderId, contract, order, orderState) -> bool:
+        return self.bridge.open_order(
+            order_id=orderId,
+            perm_id=getattr(order, "permId", None),
+            symbol=getattr(contract, "symbol", ""),
+            side=getattr(order, "action", ""),
+            qty=getattr(order, "totalQuantity", "0"),
+            status=getattr(orderState, "status", ""),
+        )
+
+    def openOrderEnd(self) -> bool:
+        return self.bridge.open_order_end()
+
+    def orderStatus(
+        self,
+        orderId,
+        status,
+        filled,
+        remaining,
+        avgFillPrice,
+        permId,
+        parentId,
+        lastFillPrice,
+        clientId,
+        whyHeld,
+        mktCapPrice,
+    ) -> bool:
+        routed_open_order = self.bridge.open_order_status_update(
+            order_id=orderId,
+            perm_id=permId,
+            status=status,
+        )
+        routed_order = self.bridge.order_status(order_id=orderId, status=status)
+        return routed_open_order or routed_order
+
     def connect_ready(
         self,
         *,
@@ -76,6 +127,13 @@ def build_ibkr_native_client_bundle(
         wrapper=wrapper,
         client=client,
     )
+
+
+def _is_negative_position(pos) -> bool:
+    try:
+        return float(pos) < 0
+    except (TypeError, ValueError):
+        return str(pos).strip().startswith("-")
 
 
 class IBKRClientLifecycleController:

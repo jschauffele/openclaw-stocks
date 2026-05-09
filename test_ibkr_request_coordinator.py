@@ -4,7 +4,10 @@ import threading
 import unittest
 from types import SimpleNamespace
 
-from fake_ibkr_callback_state_machine import IBKRAccountSnapshotAggregator
+from fake_ibkr_callback_state_machine import (
+    IBKRAccountSnapshotAggregator,
+    IBKRPositionSnapshotAggregator,
+)
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
 from ibkr_request_coordinator import IBKRRequestCoordinator
 
@@ -236,6 +239,44 @@ class IBKRRequestCoordinatorTests(unittest.TestCase):
             )
         )
         self.assertIs(coordinator.result("acct-1"), result)
+
+    def test_position_multi_result_retained_after_completion(self) -> None:
+        coordinator = IBKRRequestCoordinator()
+        coordinator.register_request(
+            "pos-1",
+            IBKRPositionSnapshotAggregator(symbol="AAPL", request_id="pos-1"),
+        )
+        coordinator.route_callback(
+            "pos-1",
+            {
+                "event_type": "position_multi",
+                "request_id": "pos-1",
+                "symbol": "AAPL",
+                "qty": "6",
+            },
+        )
+        coordinator.route_callback(
+            "pos-1",
+            {"event_type": "position_multi_end", "request_id": "pos-1"},
+        )
+
+        self.assertTrue(coordinator.complete_from_callback("pos-1"))
+        result = coordinator.result("pos-1")
+
+        self.assertEqual(result.found, True)
+        self.assertEqual(result.qty, 6)
+        self.assertFalse(
+            coordinator.route_callback(
+                "pos-1",
+                {
+                    "event_type": "position_multi",
+                    "request_id": "pos-1",
+                    "symbol": "AAPL",
+                    "qty": "9",
+                },
+            )
+        )
+        self.assertIs(coordinator.result("pos-1"), result)
 
     def test_no_callback_leakage_across_request_ids(self) -> None:
         coordinator = IBKRRequestCoordinator()

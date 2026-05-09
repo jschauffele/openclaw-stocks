@@ -3,7 +3,12 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from broker_interface import BrokerAccountState, BrokerCapabilities, BrokerLifecycleResult
+from broker_interface import (
+    BrokerAccountState,
+    BrokerCapabilities,
+    BrokerLifecycleResult,
+    BrokerPositionState,
+)
 from ibkr_broker_adapter import IBKRBrokerAdapter
 from ibkr_callback_bridge import IBKRCallbackBridge
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
@@ -57,6 +62,26 @@ class FakeAccountSummaryClient:
 
     def cancelAccountSummary(self, request_id) -> None:
         self.cancel_account_summary_calls.append(request_id)
+
+    def isConnected(self) -> bool:
+        return True
+
+
+class FakePositionClient:
+    def __init__(self) -> None:
+        self.req_positions_multi_calls = []
+        self.cancel_positions_multi_calls = []
+        self.on_request = None
+
+    def reqPositionsMulti(self, request_id, account, model_code) -> None:
+        self.req_positions_multi_calls.append(
+            {"request_id": request_id, "account": account, "model_code": model_code}
+        )
+        if self.on_request is not None:
+            self.on_request(request_id)
+
+    def cancelPositionsMulti(self, request_id) -> None:
+        self.cancel_positions_multi_calls.append(request_id)
 
     def isConnected(self) -> bool:
         return True
@@ -120,7 +145,7 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
                 broker_name="ibkr",
                 supports_market_orders=False,
                 supports_account_read=True,
-                supports_positions_read=False,
+                supports_positions_read=True,
                 supports_open_orders_read=False,
                 supports_paper_trading=True,
                 lifecycle_async=True,
@@ -495,6 +520,215 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
 
         self.assertIs(request_coordinator.result(7501), result)
         self.assertEqual(result.buying_power, 333.33)
+
+    def test_position_snapshot_success_issues_native_request(self) -> None:
+        client = FakePositionClient()
+        adapter = IBKRBrokerAdapter(
+            client=client,
+            position_account="DU123",
+            position_model_code="",
+            position_request_id_start=8001,
+        )
+
+        def complete(request_id) -> None:
+            adapter.bridge.position_multi(
+                request_id=request_id,
+                account="DU123",
+                model_code="",
+                symbol="MSFT",
+                qty="2",
+            )
+            adapter.bridge.position_multi(
+                request_id=request_id,
+                account="DU123",
+                model_code="",
+                symbol="AAPL",
+                qty="-3",
+                side="short",
+            )
+            adapter.bridge.position_multi_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_existing_position("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(
+            result,
+            BrokerPositionState(
+                broker_name="ibkr",
+                found=True,
+                qty=3,
+                raw_qty="-3",
+                side="short",
+                reason="position_found",
+            ),
+        )
+        self.assertEqual(
+            client.req_positions_multi_calls,
+            [{"request_id": 8001, "account": "DU123", "model_code": ""}],
+        )
+        self.assertEqual(client.cancel_positions_multi_calls, [8001])
+        self.assertEqual(adapter.request_coordinator.completed_by(8001), "callback")
+        self.assertFalse(adapter.request_coordinator.has_pending_request(8001))
+
+    def test_position_snapshot_no_position_result_after_end_marker(self) -> None:
+        client = FakePositionClient()
+        adapter = IBKRBrokerAdapter(client=client, position_request_id_start=8101)
+
+        def complete(request_id) -> None:
+            adapter.bridge.position_multi(
+                request_id=request_id,
+                symbol="MSFT",
+                qty="2",
+            )
+            adapter.bridge.position_multi_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_existing_position("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(
+            result,
+            BrokerPositionState(
+                broker_name="ibkr",
+                found=False,
+                qty=0,
+                raw_qty="0",
+                side=None,
+                reason="no_position",
+            ),
+        )
+        self.assertEqual(client.cancel_positions_multi_calls, [8101])
+        self.assertFalse(adapter.request_coordinator.has_pending_request(8101))
+
+    def test_position_timeout_removes_pending_request_and_cancels(self) -> None:
+        client = FakePositionClient()
+        adapter = IBKRBrokerAdapter(client=client, position_request_id_start=8201)
+
+        with self.assertRaisesRegex(TimeoutError, "reqId=8201"):
+            adapter.get_existing_position("AAPL", timeout_seconds=0.001)
+
+        self.assertEqual(
+            client.req_positions_multi_calls,
+            [{"request_id": 8201, "account": "", "model_code": ""}],
+        )
+        self.assertEqual(client.cancel_positions_multi_calls, [8201])
+        self.assertEqual(adapter.request_coordinator.completed_by(8201), "timeout")
+        result = adapter.request_coordinator.result(8201)
+        self.assertEqual(result.error, "position_snapshot_incomplete")
+        self.assertFalse(adapter.request_coordinator.has_pending_request(8201))
+        self.assertFalse(
+            adapter.bridge.position_multi(request_id=8201, symbol="AAPL", qty="9")
+        )
+        self.assertFalse(adapter.bridge.position_multi_end(request_id=8201))
+
+    def test_position_wrong_and_missing_req_id_callbacks_are_ignored(self) -> None:
+        client = FakePositionClient()
+        adapter = IBKRBrokerAdapter(client=client, position_request_id_start=8301)
+
+        def complete(request_id) -> None:
+            self.assertFalse(
+                adapter.bridge.position_multi(
+                    request_id=request_id + 1,
+                    symbol="AAPL",
+                    qty="999",
+                )
+            )
+            self.assertFalse(
+                adapter.bridge.position_multi(
+                    request_id=None,
+                    symbol="AAPL",
+                    qty="888",
+                )
+            )
+            adapter.bridge.position_multi(
+                request_id=request_id,
+                symbol="AAPL",
+                qty="4",
+            )
+            adapter.bridge.position_multi_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_existing_position("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(result.found, True)
+        self.assertEqual(result.qty, 4)
+
+    def test_position_duplicate_end_marker_ignored_after_completion(self) -> None:
+        client = FakePositionClient()
+        adapter = IBKRBrokerAdapter(client=client, position_request_id_start=8401)
+
+        def complete(request_id) -> None:
+            adapter.bridge.position_multi(
+                request_id=request_id,
+                symbol="AAPL",
+                qty="5",
+            )
+            self.assertTrue(adapter.bridge.position_multi_end(request_id=request_id))
+            self.assertFalse(adapter.bridge.position_multi_end(request_id=request_id))
+
+        client.on_request = complete
+
+        result = adapter.get_existing_position("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(result.qty, 5)
+        self.assertEqual(adapter.request_coordinator.notification_count, 1)
+
+    def test_position_request_ids_are_deterministic_and_isolated(self) -> None:
+        client = FakePositionClient()
+        adapter = IBKRBrokerAdapter(client=client, position_request_id_start=8501)
+
+        def complete(request_id) -> None:
+            adapter.bridge.position_multi(
+                request_id=request_id,
+                symbol="AAPL",
+                qty=str(request_id - 8500),
+            )
+            adapter.bridge.position_multi_end(request_id=request_id)
+
+        client.on_request = complete
+
+        first = adapter.get_existing_position("AAPL", timeout_seconds=0.25)
+        second = adapter.get_existing_position("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(first.qty, 1)
+        self.assertEqual(second.qty, 2)
+        self.assertEqual(
+            client.req_positions_multi_calls,
+            [
+                {"request_id": 8501, "account": "", "model_code": ""},
+                {"request_id": 8502, "account": "", "model_code": ""},
+            ],
+        )
+        self.assertFalse(adapter.request_coordinator.has_pending_request(8501))
+        self.assertFalse(adapter.request_coordinator.has_pending_request(8502))
+
+    def test_position_with_injected_request_coordinator_retains_result(self) -> None:
+        registry = IBKRPendingRequestRegistry()
+        request_coordinator = IBKRRequestCoordinator(registry=registry)
+        client = FakePositionClient()
+        adapter = IBKRBrokerAdapter(
+            client=client,
+            registry=registry,
+            request_coordinator=request_coordinator,
+            position_request_id_start=8601,
+        )
+
+        def complete(request_id) -> None:
+            adapter.bridge.position_multi(
+                request_id=request_id,
+                symbol="AAPL",
+                qty="7",
+            )
+            adapter.bridge.position_multi_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_existing_position("AAPL", timeout_seconds=0.25)
+
+        self.assertIs(request_coordinator.result(8601), result)
+        self.assertEqual(result.qty, 7)
 
     def test_health_check_connected(self) -> None:
         adapter = IBKRBrokerAdapter(client=FakeClient(connected=True))

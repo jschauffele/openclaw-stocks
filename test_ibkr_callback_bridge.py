@@ -14,13 +14,13 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         bridge.begin_position_snapshot(request_id="pos-b", symbol="MSFT")
 
         self.assertTrue(
-            bridge.position(request_id="pos-a", symbol="AAPL", qty="3", side="long")
+            bridge.position_multi(request_id="pos-a", symbol="AAPL", qty="3", side="long")
         )
         self.assertTrue(
-            bridge.position(request_id="pos-b", symbol="MSFT", qty="5", side="long")
+            bridge.position_multi(request_id="pos-b", symbol="MSFT", qty="5", side="long")
         )
-        self.assertTrue(bridge.position_end(request_id="pos-a"))
-        self.assertTrue(bridge.position_end(request_id="pos-b"))
+        self.assertTrue(bridge.position_multi_end(request_id="pos-a"))
+        self.assertTrue(bridge.position_multi_end(request_id="pos-b"))
 
         aapl = bridge.complete_position_snapshot(request_id="pos-a")
         msft = bridge.complete_position_snapshot(request_id="pos-b")
@@ -29,6 +29,57 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         self.assertEqual(aapl.qty, 3)
         self.assertEqual(msft.found, True)
         self.assertEqual(msft.qty, 5)
+
+    def test_position_multi_strict_req_id_routing(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_position_snapshot(request_id="pos-1", symbol="AAPL")
+
+        self.assertFalse(
+            bridge.position_multi(request_id="other", symbol="AAPL", qty="9")
+        )
+        self.assertFalse(
+            bridge.position_multi(request_id=None, symbol="AAPL", qty="8")
+        )
+        self.assertFalse(bridge.position_multi_end(request_id="other"))
+        self.assertFalse(bridge.position_multi_end(request_id=None))
+
+        self.assertTrue(
+            bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="3")
+        )
+        self.assertTrue(bridge.position_multi_end(request_id="pos-1"))
+
+        result = bridge.complete_position_snapshot(request_id="pos-1")
+
+        self.assertEqual(result.found, True)
+        self.assertEqual(result.qty, 3)
+
+    def test_position_multi_requires_matching_end_marker(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_position_snapshot(request_id="pos-1", symbol="AAPL")
+
+        self.assertTrue(
+            bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="3")
+        )
+
+        result = bridge.complete_position_snapshot(request_id="pos-1")
+
+        self.assertEqual(result.found, None)
+        self.assertEqual(result.error, "position_snapshot_incomplete")
+
+    def test_position_multi_no_matching_symbol_returns_no_position_after_end(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_position_snapshot(request_id="pos-1", symbol="AAPL")
+
+        self.assertTrue(
+            bridge.position_multi(request_id="pos-1", symbol="MSFT", qty="3")
+        )
+        self.assertTrue(bridge.position_multi_end(request_id="pos-1"))
+
+        result = bridge.complete_position_snapshot(request_id="pos-1")
+
+        self.assertEqual(result.found, False)
+        self.assertEqual(result.qty, 0)
+        self.assertEqual(result.reason, "no_position")
 
     def test_timeout_injection_routes_to_lifecycle_snapshot_and_order(self) -> None:
         bridge = IBKRCallbackBridge()
@@ -61,7 +112,7 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
     ) -> None:
         bridge = IBKRCallbackBridge()
         bridge.begin_account_snapshot(request_id="acct-1")
-        bridge.begin_open_orders_snapshot(request_id="open-1", symbol="AAPL")
+        generation = bridge.begin_open_orders_snapshot(symbol="AAPL")
 
         self.assertTrue(
             bridge.account_summary(request_id="acct-1", buying_power="12345.67")
@@ -69,8 +120,8 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         self.assertTrue(bridge.account_summary_end(request_id="acct-1"))
         self.assertTrue(
             bridge.open_order(
-                request_id="open-1",
                 order_id=50,
+                perm_id=1001,
                 symbol="AAPL",
                 side="BUY",
                 qty="2",
@@ -79,22 +130,172 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         )
         self.assertTrue(
             bridge.open_order(
-                request_id="open-1",
                 order_id=51,
+                perm_id=1002,
                 symbol="AAPL",
                 side="BUY",
                 qty="1",
                 status="PreSubmitted",
             )
         )
-        self.assertTrue(bridge.open_order_end(request_id="open-1"))
+        self.assertTrue(bridge.open_order_end())
 
         account = bridge.complete_account_snapshot(request_id="acct-1")
-        open_orders = bridge.complete_open_orders_snapshot(request_id="open-1")
+        open_orders = bridge.complete_open_orders_snapshot(generation=generation)
 
         self.assertEqual(account.buying_power, 12345.67)
         self.assertEqual(open_orders.open_buy_order_qty, 3)
         self.assertEqual(open_orders.open_buy_order_count, 2)
+
+    def test_open_orders_ignored_when_no_snapshot_active(self) -> None:
+        bridge = IBKRCallbackBridge()
+
+        self.assertFalse(
+            bridge.open_order(
+                order_id=50,
+                symbol="AAPL",
+                side="BUY",
+                qty="2",
+                status="Submitted",
+            )
+        )
+        self.assertFalse(bridge.open_order_end())
+
+    def test_open_order_singleton_filters_and_dedupes(self) -> None:
+        bridge = IBKRCallbackBridge()
+        generation = bridge.begin_open_orders_snapshot(symbol="AAPL")
+
+        self.assertTrue(
+            bridge.open_order(
+                order_id=50,
+                perm_id=1001,
+                symbol="AAPL",
+                side="BUY",
+                qty="2",
+                status="Submitted",
+            )
+        )
+        self.assertTrue(
+            bridge.open_order(
+                order_id=51,
+                perm_id=1001,
+                symbol="AAPL",
+                side="BUY",
+                qty="2",
+                status="Submitted",
+            )
+        )
+        self.assertTrue(
+            bridge.open_order(
+                order_id=52,
+                symbol="MSFT",
+                side="BUY",
+                qty="9",
+                status="Submitted",
+            )
+        )
+        self.assertTrue(
+            bridge.open_order(
+                order_id=53,
+                symbol="AAPL",
+                side="SELL",
+                qty="9",
+                status="Submitted",
+            )
+        )
+        self.assertTrue(
+            bridge.open_order(
+                order_id=54,
+                symbol="AAPL",
+                side="BUY",
+                qty="9",
+                status="Filled",
+            )
+        )
+        self.assertTrue(bridge.open_order_end())
+
+        result = bridge.complete_open_orders_snapshot(generation=generation)
+
+        self.assertEqual(result.passed, True)
+        self.assertEqual(result.open_buy_order_qty, 2)
+        self.assertEqual(result.open_buy_order_count, 1)
+
+    def test_open_order_status_enriches_existing_order_only(self) -> None:
+        bridge = IBKRCallbackBridge()
+        generation = bridge.begin_open_orders_snapshot(symbol="AAPL")
+
+        self.assertTrue(
+            bridge.open_order_status_update(order_id=999, status="Filled")
+        )
+        self.assertTrue(
+            bridge.open_order(
+                order_id=50,
+                symbol="AAPL",
+                side="BUY",
+                qty="2",
+                status="Submitted",
+            )
+        )
+        self.assertTrue(
+            bridge.open_order_status_update(order_id=50, status="Filled")
+        )
+        self.assertTrue(bridge.open_order_end())
+
+        result = bridge.complete_open_orders_snapshot(generation=generation)
+
+        self.assertEqual(result.open_buy_order_qty, 0)
+        self.assertEqual(result.open_buy_order_count, 0)
+
+    def test_open_order_duplicate_end_and_late_callbacks_are_ignored(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_open_orders_snapshot(symbol="AAPL")
+
+        self.assertTrue(
+            bridge.open_order(
+                order_id=50,
+                symbol="AAPL",
+                side="BUY",
+                qty="2",
+                status="Submitted",
+            )
+        )
+        self.assertTrue(bridge.open_order_end())
+        self.assertFalse(bridge.open_order_end())
+        self.assertFalse(
+            bridge.open_order(
+                order_id=51,
+                symbol="AAPL",
+                side="BUY",
+                qty="9",
+                status="Submitted",
+            )
+        )
+
+    def test_open_order_timeout_closes_generation_and_late_callbacks_are_ignored(self) -> None:
+        bridge = IBKRCallbackBridge()
+        generation = bridge.begin_open_orders_snapshot(symbol="AAPL")
+
+        result = bridge.timeout_open_orders_snapshot()
+
+        self.assertEqual(result.error, "open_order_snapshot_incomplete")
+        self.assertFalse(
+            bridge.open_order(
+                order_id=51,
+                symbol="AAPL",
+                side="BUY",
+                qty="9",
+                status="Submitted",
+            )
+        )
+        self.assertFalse(bridge.open_order_end())
+        self.assertIs(bridge.complete_open_orders_snapshot(generation=generation), result)
+
+    def test_concurrent_open_order_snapshot_rejected(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_open_orders_snapshot(symbol="AAPL")
+
+        with self.assertRaisesRegex(RuntimeError, "already active"):
+            bridge.begin_open_orders_snapshot(symbol="MSFT")
 
     def test_account_summary_strict_req_id_routing(self) -> None:
         bridge = IBKRCallbackBridge()
@@ -198,6 +399,25 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         self.assertEqual(request_coordinator.completed_by("acct-1"), "callback")
         self.assertFalse(request_coordinator.has_pending_request("acct-1"))
 
+    def test_position_multi_end_completes_request_coordinator_when_injected(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_position_snapshot(request_id="pos-1", symbol="AAPL")
+
+        self.assertTrue(
+            bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="-4")
+        )
+        self.assertTrue(bridge.position_multi_end(request_id="pos-1"))
+        self.assertFalse(bridge.position_multi_end(request_id="pos-1"))
+
+        result = bridge.complete_position_snapshot(request_id="pos-1")
+
+        self.assertEqual(result.found, True)
+        self.assertEqual(result.qty, 4)
+        self.assertEqual(result.side, "long")
+        self.assertEqual(request_coordinator.completed_by("pos-1"), "callback")
+        self.assertFalse(request_coordinator.has_pending_request("pos-1"))
+
     def test_late_callbacks_are_isolated_after_timeout_completion(self) -> None:
         bridge = IBKRCallbackBridge()
         timeout_injector = IBKRTimeoutInjector(bridge.registry)
@@ -207,17 +427,17 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
 
         self.assertEqual(result.error, "position_snapshot_incomplete")
         self.assertFalse(
-            bridge.position(request_id="pos-1", symbol="AAPL", qty="9", side="long")
+            bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="9", side="long")
         )
-        self.assertFalse(bridge.position_end(request_id="pos-1"))
+        self.assertFalse(bridge.position_multi_end(request_id="pos-1"))
         self.assertFalse(bridge.registry.has_request("pos-1"))
 
     def test_unrelated_request_and_order_callbacks_are_ignored(self) -> None:
         bridge = IBKRCallbackBridge()
-        bridge.begin_open_orders_snapshot(request_id="open-1", symbol="AAPL")
+        generation = bridge.begin_open_orders_snapshot(symbol="AAPL")
         bridge.begin_order_status(order_id=101)
 
-        self.assertFalse(
+        self.assertTrue(
             bridge.open_order(
                 request_id="other",
                 order_id=50,
@@ -228,13 +448,13 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
             )
         )
         self.assertFalse(bridge.order_status(order_id=202, status="Filled"))
-        self.assertTrue(bridge.open_order_end(request_id="open-1"))
+        self.assertTrue(bridge.open_order_end())
 
-        open_orders = bridge.complete_open_orders_snapshot(request_id="open-1")
+        open_orders = bridge.complete_open_orders_snapshot(generation=generation)
         order = bridge.complete_order_status(order_id=101)
 
-        self.assertEqual(open_orders.open_buy_order_qty, 0)
-        self.assertEqual(open_orders.open_buy_order_count, 0)
+        self.assertEqual(open_orders.open_buy_order_qty, 10)
+        self.assertEqual(open_orders.open_buy_order_count, 1)
         self.assertEqual(order.order_status, "submitted")
         self.assertEqual(order.broker_status, None)
 

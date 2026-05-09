@@ -102,25 +102,25 @@ class FakeIBKRCallbackStateMachineTests(unittest.TestCase):
             IBKRPositionSnapshotAggregator(symbol="AAPL", request_id="pos-1"),
             [
                 {
-                    "event_type": "position",
+                    "event_type": "position_multi",
                     "request_id": "other",
                     "symbol": "AAPL",
                     "qty": "9",
                 },
                 {
-                    "event_type": "position",
+                    "event_type": "position_multi",
                     "request_id": "pos-1",
                     "symbol": "MSFT",
                     "qty": "2",
                 },
                 {
-                    "event_type": "position",
+                    "event_type": "position_multi",
                     "request_id": "pos-1",
                     "symbol": "AAPL",
                     "qty": "3",
                     "side": "long",
                 },
-                {"event_type": "position_end", "request_id": "pos-1"},
+                {"event_type": "position_multi_end", "request_id": "pos-1"},
             ],
         )
 
@@ -136,14 +136,33 @@ class FakeIBKRCallbackStateMachineTests(unittest.TestCase):
             ),
         )
 
+    def test_position_multi_requires_matching_end_marker_replay(self) -> None:
+        result = replay(
+            IBKRPositionSnapshotAggregator(symbol="AAPL", request_id="pos-1"),
+            [
+                {
+                    "event_type": "position_multi",
+                    "request_id": "pos-1",
+                    "symbol": "AAPL",
+                    "qty": "3",
+                },
+                {"event_type": "position_multi_end", "request_id": "other"},
+                {"event_type": "position_multi_end"},
+            ],
+        )
+
+        self.assertEqual(result.found, None)
+        self.assertEqual(result.error, "position_snapshot_incomplete")
+
     def test_open_order_dedupe_replay(self) -> None:
         result = replay(
-            IBKROpenOrdersSnapshotAggregator(symbol="AAPL", request_id="open-1"),
+            IBKROpenOrdersSnapshotAggregator(symbol="AAPL", generation=1),
             [
                 {
                     "event_type": "open_order",
-                    "request_id": "open-1",
+                    "generation": 1,
                     "order_id": 50,
+                    "perm_id": 1001,
                     "symbol": "AAPL",
                     "side": "BUY",
                     "qty": "2",
@@ -151,8 +170,9 @@ class FakeIBKRCallbackStateMachineTests(unittest.TestCase):
                 },
                 {
                     "event_type": "open_order",
-                    "request_id": "open-1",
+                    "generation": 1,
                     "order_id": 50,
+                    "perm_id": 1001,
                     "symbol": "AAPL",
                     "side": "BUY",
                     "qty": "2",
@@ -160,14 +180,15 @@ class FakeIBKRCallbackStateMachineTests(unittest.TestCase):
                 },
                 {
                     "event_type": "open_order",
-                    "request_id": "open-1",
+                    "generation": 1,
                     "order_id": 51,
+                    "perm_id": 1002,
                     "symbol": "AAPL",
                     "side": "BUY",
                     "qty": "1",
                     "status": "PreSubmitted",
                 },
-                {"event_type": "open_order_end", "request_id": "open-1"},
+                {"event_type": "open_order_end", "generation": 1},
             ],
         )
 
@@ -181,6 +202,37 @@ class FakeIBKRCallbackStateMachineTests(unittest.TestCase):
                 reason="open_buy_orders_loaded",
             ),
         )
+
+    def test_open_order_requires_matching_generation_replay(self) -> None:
+        result = replay(
+            IBKROpenOrdersSnapshotAggregator(symbol="AAPL", generation=1),
+            [
+                {
+                    "event_type": "open_order",
+                    "generation": 2,
+                    "order_id": 50,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "9",
+                    "status": "Submitted",
+                },
+                {
+                    "event_type": "open_order",
+                    "order_id": 51,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "8",
+                    "status": "Submitted",
+                },
+                {"event_type": "open_order_end", "generation": 2},
+                {"event_type": "open_order_end"},
+                {"event_type": "open_order_end", "generation": 1},
+            ],
+        )
+
+        self.assertEqual(result.passed, True)
+        self.assertEqual(result.open_buy_order_qty, 0)
+        self.assertEqual(result.open_buy_order_count, 0)
 
     def test_order_status_progression_replay(self) -> None:
         filled_event = {

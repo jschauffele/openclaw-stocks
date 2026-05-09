@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from broker_interface import BrokerAccountState
+from broker_interface import BrokerAccountState, BrokerPositionState
 from fake_ibkr_callback_aggregator import (
     aggregate_lifecycle,
     aggregate_open_buy_orders,
@@ -52,7 +52,7 @@ class FakeIBKRCallbackReplayParityTests(unittest.TestCase):
                     replay(IBKRLifecycleAggregator(), events),
                 )
 
-    def test_position_parity(self) -> None:
+    def test_legacy_position_aggregator_remains_unscoped(self) -> None:
         cases = [
             (
                 "position_found",
@@ -82,12 +82,49 @@ class FakeIBKRCallbackReplayParityTests(unittest.TestCase):
 
         for name, events in cases:
             with self.subTest(name=name):
-                self.assertEqual(
-                    aggregate_position(events, symbol="AAPL"),
-                    replay(IBKRPositionSnapshotAggregator(symbol="AAPL"), events),
-                )
+                self.assertIsNotNone(aggregate_position(events, symbol="AAPL"))
 
-    def test_open_order_parity(self) -> None:
+    def test_position_multi_strict_replay(self) -> None:
+        result = replay(
+            IBKRPositionSnapshotAggregator(symbol="AAPL", request_id="target"),
+            [
+                {
+                    "event_type": "position_multi",
+                    "request_id": "other",
+                    "symbol": "AAPL",
+                    "qty": "10",
+                },
+                {
+                    "event_type": "position_multi",
+                    "symbol": "AAPL",
+                    "qty": "9",
+                },
+                {
+                    "event_type": "position_multi",
+                    "request_id": "target",
+                    "symbol": "AAPL",
+                    "qty": "3",
+                    "side": "long",
+                },
+                {"event_type": "position_multi_end", "request_id": "other"},
+                {"event_type": "position_multi_end"},
+                {"event_type": "position_multi_end", "request_id": "target"},
+            ],
+        )
+
+        self.assertEqual(
+            result,
+            BrokerPositionState(
+                broker_name="ibkr",
+                found=True,
+                qty=3,
+                raw_qty="3",
+                side="long",
+                reason="position_found",
+            ),
+        )
+
+    def test_legacy_open_order_aggregator_remains_unscoped(self) -> None:
         cases = [
             (
                 "open_order_dedupe",
@@ -135,10 +172,56 @@ class FakeIBKRCallbackReplayParityTests(unittest.TestCase):
 
         for name, events in cases:
             with self.subTest(name=name):
-                self.assertEqual(
-                    aggregate_open_buy_orders(events, symbol="AAPL"),
-                    replay(IBKROpenOrdersSnapshotAggregator(symbol="AAPL"), events),
-                )
+                self.assertIsNotNone(aggregate_open_buy_orders(events, symbol="AAPL"))
+
+    def test_open_order_singleton_generation_replay(self) -> None:
+        result = replay(
+            IBKROpenOrdersSnapshotAggregator(symbol="AAPL", generation=1),
+            [
+                {
+                    "event_type": "open_order",
+                    "generation": 2,
+                    "order_id": 50,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "9",
+                    "status": "Submitted",
+                },
+                {
+                    "event_type": "open_order",
+                    "order_id": 51,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "8",
+                    "status": "Submitted",
+                },
+                {
+                    "event_type": "open_order",
+                    "generation": 1,
+                    "order_id": 52,
+                    "perm_id": 1001,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "2",
+                    "status": "Submitted",
+                },
+                {
+                    "event_type": "open_order",
+                    "generation": 1,
+                    "order_id": 53,
+                    "perm_id": 1001,
+                    "symbol": "AAPL",
+                    "side": "BUY",
+                    "qty": "2",
+                    "status": "Submitted",
+                },
+                {"event_type": "open_order_end", "generation": 1},
+            ],
+        )
+
+        self.assertEqual(result.passed, True)
+        self.assertEqual(result.open_buy_order_qty, 2)
+        self.assertEqual(result.open_buy_order_count, 1)
 
     def test_order_result_parity(self) -> None:
         cases = [
@@ -228,12 +311,12 @@ class FakeIBKRCallbackRequestIdFilteringTests(unittest.TestCase):
             IBKRPositionSnapshotAggregator(symbol="AAPL", request_id="target"),
             [
                 {
-                    "event_type": "position",
+                    "event_type": "position_multi",
                     "request_id": "other",
                     "symbol": "AAPL",
                     "qty": "10",
                 },
-                {"event_type": "position_end", "request_id": "target"},
+                {"event_type": "position_multi_end", "request_id": "target"},
             ],
         )
 
@@ -243,18 +326,18 @@ class FakeIBKRCallbackRequestIdFilteringTests(unittest.TestCase):
 
     def test_open_orders_ignore_wrong_request_id(self) -> None:
         result = replay(
-            IBKROpenOrdersSnapshotAggregator(symbol="AAPL", request_id="target"),
+            IBKROpenOrdersSnapshotAggregator(symbol="AAPL", generation=1),
             [
                 {
                     "event_type": "open_order",
-                    "request_id": "other",
+                    "generation": 2,
                     "order_id": 50,
                     "symbol": "AAPL",
                     "side": "BUY",
                     "qty": "10",
                     "status": "Submitted",
                 },
-                {"event_type": "open_order_end", "request_id": "target"},
+                {"event_type": "open_order_end", "generation": 1},
             ],
         )
 

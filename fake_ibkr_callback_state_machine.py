@@ -141,11 +141,11 @@ class IBKRPositionSnapshotAggregator:
     def on_event(self, event: Event) -> None:
         if self._error_result is not None:
             return
-        if not _matches_request(event, self.request_id):
+        if not _strict_matches_request(event, self.request_id):
             return
 
         event_type = event.get("event_type")
-        if event_type == "position":
+        if event_type == "position_multi":
             if str(event.get("symbol", "")).upper() != self.symbol:
                 return
             raw_qty = str(event.get("qty", "0"))
@@ -184,7 +184,7 @@ class IBKRPositionSnapshotAggregator:
             )
             return
 
-        if event_type == "position_end":
+        if event_type == "position_multi_end":
             self._complete = True
 
     def result(self) -> BrokerPositionState:
@@ -213,19 +213,22 @@ class IBKRPositionSnapshotAggregator:
 
 
 class IBKROpenOrdersSnapshotAggregator:
-    def __init__(self, *, symbol: str, request_id: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        symbol: str,
+        generation: object | None = None,
+    ) -> None:
         self.symbol = symbol.upper()
-        self.request_id = request_id
-        self._total_qty = 0
-        self._order_count = 0
-        self._seen_order_ids: set[str] = set()
+        self.generation = str(generation) if generation is not None else None
+        self._orders: dict[str, dict[str, object]] = {}
         self._complete = False
         self._error_result: BrokerOpenOrderState | None = None
 
     def on_event(self, event: Event) -> None:
         if self._error_result is not None:
             return
-        if not _matches_request(event, self.request_id):
+        if not _strict_matches_generation(event, self.generation):
             return
 
         event_type = event.get("event_type")
@@ -238,11 +241,11 @@ class IBKROpenOrdersSnapshotAggregator:
                 return
 
             order_id = event.get("order_id")
-            if order_id is not None:
-                order_id_text = str(order_id)
-                if order_id_text in self._seen_order_ids:
-                    return
-                self._seen_order_ids.add(order_id_text)
+            order_key = _open_order_key(event)
+            if order_key is None:
+                return
+            if order_key in self._orders:
+                return
 
             raw_qty = str(event.get("qty", "0"))
             try:
@@ -258,8 +261,19 @@ class IBKROpenOrdersSnapshotAggregator:
                 )
                 return
 
-            self._total_qty += qty
-            self._order_count += 1
+            self._orders[order_key] = {
+                "qty": qty,
+                "status": str(event.get("status", "")),
+                "order_id": order_id,
+                "perm_id": event.get("perm_id"),
+            }
+            return
+
+        if event_type == "order_status":
+            order_key = _open_order_key(event)
+            if order_key is None or order_key not in self._orders:
+                return
+            self._orders[order_key]["status"] = str(event.get("status", ""))
             return
 
         if event_type == "open_order_end":
@@ -277,11 +291,16 @@ class IBKROpenOrdersSnapshotAggregator:
                 reason="open_buy_order_lookup_failed",
                 error="open_order_snapshot_incomplete",
             )
+        open_orders = [
+            order
+            for order in self._orders.values()
+            if is_open_order_status(order.get("status", ""))
+        ]
         return BrokerOpenOrderState(
             broker_name="ibkr",
             passed=True,
-            open_buy_order_qty=self._total_qty,
-            open_buy_order_count=self._order_count,
+            open_buy_order_qty=sum(int(order["qty"]) for order in open_orders),
+            open_buy_order_count=len(open_orders),
             reason="open_buy_orders_loaded",
         )
 
@@ -392,3 +411,22 @@ def _strict_matches_request(event: Event, request_id: str | None) -> bool:
     if event_request_id is None:
         return False
     return str(event_request_id) == request_id
+
+
+def _strict_matches_generation(event: Event, generation: str | None) -> bool:
+    if generation is None:
+        return False
+    event_generation = event.get("generation")
+    if event_generation is None:
+        return False
+    return str(event_generation) == generation
+
+
+def _open_order_key(event: Event) -> str | None:
+    perm_id = event.get("perm_id")
+    if perm_id not in {None, "", 0, "0"}:
+        return f"perm:{perm_id}"
+    order_id = event.get("order_id")
+    if order_id is None:
+        return None
+    return f"order:{order_id}"

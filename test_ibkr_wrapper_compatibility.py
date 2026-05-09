@@ -50,6 +50,11 @@ class IBKRWrapperCompatibilityTests(unittest.TestCase):
             "error",
             "accountSummary",
             "accountSummaryEnd",
+            "positionMulti",
+            "positionMultiEnd",
+            "openOrder",
+            "openOrderEnd",
+            "orderStatus",
             "connect_ready",
             "connect_error",
         ]:
@@ -63,6 +68,47 @@ class IBKRWrapperCompatibilityTests(unittest.TestCase):
             wrapper.accountSummary(101, "DU123", "BuyingPower", "123.45", "USD")
         )
         self.assertFalse(wrapper.accountSummaryEnd(101))
+
+    def test_native_position_multi_callbacks_route_to_bridge(self) -> None:
+        wrapper = IBKRWrapperBridge(IBKRCallbackBridge())
+        contract = SimpleNamespace(symbol="AAPL")
+
+        self.assertFalse(wrapper.positionMulti(201, "DU123", "", contract, "3", 100.0))
+        self.assertFalse(wrapper.positionMultiEnd(201))
+
+    def test_native_open_order_callbacks_route_only_with_active_snapshot(self) -> None:
+        bridge = IBKRCallbackBridge()
+        wrapper = IBKRWrapperBridge(bridge)
+        contract = SimpleNamespace(symbol="AAPL")
+        order = SimpleNamespace(action="BUY", totalQuantity="2", permId=1001)
+        order_state = SimpleNamespace(status="Submitted")
+
+        self.assertFalse(wrapper.openOrder(50, contract, order, order_state))
+        self.assertFalse(wrapper.openOrderEnd())
+        generation = bridge.begin_open_orders_snapshot(symbol="AAPL")
+
+        self.assertTrue(wrapper.openOrder(50, contract, order, order_state))
+        self.assertTrue(
+            wrapper.orderStatus(
+                50,
+                "PreSubmitted",
+                0,
+                2,
+                0.0,
+                1001,
+                0,
+                0.0,
+                1,
+                "",
+                0.0,
+            )
+        )
+        self.assertTrue(wrapper.openOrderEnd())
+
+        result = bridge.complete_open_orders_snapshot(generation=generation)
+
+        self.assertEqual(result.open_buy_order_qty, 2)
+        self.assertEqual(result.open_buy_order_count, 1)
 
     def test_wrapper_integrity_is_preserved_after_fake_client_construction(self) -> None:
         bridge = IBKRCallbackBridge()
@@ -101,6 +147,11 @@ class IBKRWrapperCompatibilityTests(unittest.TestCase):
         self.assertTrue(callable(getattr(bundle.wrapper, "error")))
         self.assertTrue(callable(getattr(bundle.wrapper, "accountSummary")))
         self.assertTrue(callable(getattr(bundle.wrapper, "accountSummaryEnd")))
+        self.assertTrue(callable(getattr(bundle.wrapper, "positionMulti")))
+        self.assertTrue(callable(getattr(bundle.wrapper, "positionMultiEnd")))
+        self.assertTrue(callable(getattr(bundle.wrapper, "openOrder")))
+        self.assertTrue(callable(getattr(bundle.wrapper, "openOrderEnd")))
+        self.assertTrue(callable(getattr(bundle.wrapper, "orderStatus")))
         self.assertEqual(bundle.client.isConnected(), False)
         self.assertEqual(after_threads, before_threads)
 

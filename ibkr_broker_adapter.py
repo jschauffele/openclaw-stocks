@@ -35,6 +35,9 @@ class IBKRBrokerAdapter:
         account_summary_group: str = "All",
         account_summary_tags: str = "BuyingPower",
         account_summary_request_id_start: int = 1,
+        position_account: str = "",
+        position_model_code: str = "",
+        position_request_id_start: int = 10001,
     ) -> None:
         self.client = client
         self.native_api = native_api
@@ -57,13 +60,16 @@ class IBKRBrokerAdapter:
         self.account_summary_group = account_summary_group
         self.account_summary_tags = account_summary_tags
         self._next_account_summary_request_id = account_summary_request_id_start
+        self.position_account = position_account
+        self.position_model_code = position_model_code
+        self._next_position_request_id = position_request_id_start
 
     def get_capabilities(self) -> BrokerCapabilities:
         return BrokerCapabilities(
             broker_name="ibkr",
             supports_market_orders=False,
             supports_account_read=True,
-            supports_positions_read=False,
+            supports_positions_read=True,
             supports_open_orders_read=False,
             supports_paper_trading=True,
             lifecycle_async=True,
@@ -190,8 +196,40 @@ class IBKRBrokerAdapter:
         finally:
             self._cancel_account_summary(request_id)
 
-    def get_existing_position(self, symbol: str) -> BrokerPositionState:
-        raise NotImplementedError(_SKELETON_MESSAGE)
+    def get_existing_position(
+        self,
+        symbol: str,
+        timeout_seconds: float | None = None,
+    ) -> BrokerPositionState:
+        client = self._require_position_client()
+        timeout = self._normalize_timeout(timeout_seconds)
+        request_id = self._allocate_position_request_id()
+
+        self.bridge.begin_position_snapshot(request_id=request_id, symbol=symbol)
+        try:
+            client.reqPositionsMulti(
+                request_id,
+                self.position_account,
+                self.position_model_code,
+            )
+            if not self.request_coordinator.wait_for_completion(
+                request_id,
+                timeout=timeout,
+            ):
+                self.request_coordinator.timeout_request(request_id)
+                raise TimeoutError(
+                    f"IBKR position request timed out: reqId={request_id}"
+                )
+            result = self.request_coordinator.result(request_id)
+            if result is None:
+                raise RuntimeError(
+                    f"IBKR position request produced no result: reqId={request_id}"
+                )
+            if isinstance(result, Exception):
+                raise result
+            return result
+        finally:
+            self._cancel_positions_multi(request_id)
 
     def get_open_buy_order_qty(self, symbol: str) -> BrokerOpenOrderState:
         raise NotImplementedError(_SKELETON_MESSAGE)
@@ -218,6 +256,14 @@ class IBKRBrokerAdapter:
             raise NotImplementedError(_SKELETON_MESSAGE)
         return client
 
+    def _require_position_client(self):
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        if getattr(client, "reqPositionsMulti", None) is None:
+            raise NotImplementedError(_SKELETON_MESSAGE)
+        return client
+
     def _client_is_connected(self) -> bool:
         client = self.client
         if client is None and self.coordinator is not None:
@@ -237,10 +283,23 @@ class IBKRBrokerAdapter:
         self._next_account_summary_request_id += 1
         return request_id
 
+    def _allocate_position_request_id(self) -> int:
+        request_id = self._next_position_request_id
+        self._next_position_request_id += 1
+        return request_id
+
     def _cancel_account_summary(self, request_id: object) -> None:
         client = self.client
         if client is None and self.coordinator is not None:
             client = getattr(self.coordinator, "client", None)
         cancel = getattr(client, "cancelAccountSummary", None)
+        if cancel is not None:
+            cancel(request_id)
+
+    def _cancel_positions_multi(self, request_id: object) -> None:
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        cancel = getattr(client, "cancelPositionsMulti", None)
         if cancel is not None:
             cancel(request_id)
