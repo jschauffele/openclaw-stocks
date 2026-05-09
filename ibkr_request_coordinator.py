@@ -49,7 +49,7 @@ class IBKRRequestCoordinator:
                 return False
             self._complete_locked(
                 request_id,
-                result=aggregator.result(),
+                result=self._result_from_aggregator(aggregator),
                 completed_by="callback",
             )
             return True
@@ -63,7 +63,7 @@ class IBKRRequestCoordinator:
                 return False
             self._complete_locked(
                 request_id,
-                result=aggregator.result(),
+                result=self._result_from_aggregator(aggregator),
                 completed_by="timeout",
             )
             return True
@@ -109,3 +109,9 @@ class IBKRRequestCoordinator:
 
     def _request_key(self, request_id: object) -> str:
         return str(request_id)
+
+    def _result_from_aggregator(self, aggregator: Any) -> Any:
+        try:
+            return aggregator.result()
+        except Exception as exc:
+            return exc

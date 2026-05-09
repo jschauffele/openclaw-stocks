@@ -175,7 +175,7 @@ class BrokerAdapterContractTests(unittest.TestCase):
             BrokerCapabilities(
                 broker_name="ibkr",
                 supports_market_orders=False,
-                supports_account_read=False,
+                supports_account_read=True,
                 supports_positions_read=False,
                 supports_open_orders_read=False,
                 supports_paper_trading=True,

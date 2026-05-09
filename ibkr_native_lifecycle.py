@@ -22,6 +22,18 @@ class IBKRWrapperBridge:
             retryable=True,
         )
 
+    def accountSummary(self, reqId, account, tag, value, currency) -> bool:
+        return self.bridge.account_summary(
+            request_id=reqId,
+            account=account,
+            tag=tag,
+            value=value,
+            currency=currency,
+        )
+
+    def accountSummaryEnd(self, reqId) -> bool:
+        return self.bridge.account_summary_end(request_id=reqId)
+
     def connect_ready(
         self,
         *,

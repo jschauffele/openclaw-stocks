@@ -10,6 +10,7 @@ from broker_interface import (
 )
 from ibkr_callback_bridge import IBKRCallbackBridge
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
+from ibkr_request_coordinator import IBKRRequestCoordinator
 from ibkr_timeout_injector import IBKRTimeoutInjector
 
 
@@ -25,11 +26,15 @@ class IBKRBrokerAdapter:
         bridge=None,
         registry=None,
         timeout_injector=None,
+        request_coordinator=None,
         coordinator=None,
         host: str = "127.0.0.1",
         port: int = 7497,
         client_id: int = 9107,
         enabled: bool = False,
+        account_summary_group: str = "All",
+        account_summary_tags: str = "BuyingPower",
+        account_summary_request_id_start: int = 1,
     ) -> None:
         self.client = client
         self.native_api = native_api
@@ -39,16 +44,25 @@ class IBKRBrokerAdapter:
         self.port = port
         self.client_id = client_id
         self.registry = registry or IBKRPendingRequestRegistry()
-        self.bridge = bridge or IBKRCallbackBridge(self.registry)
+        self.request_coordinator = request_coordinator or IBKRRequestCoordinator(
+            registry=self.registry
+        )
+        self.bridge = bridge or IBKRCallbackBridge(
+            self.registry,
+            request_coordinator=self.request_coordinator,
+        )
         self.timeout_injector = timeout_injector or IBKRTimeoutInjector(
             self.registry
         )
+        self.account_summary_group = account_summary_group
+        self.account_summary_tags = account_summary_tags
+        self._next_account_summary_request_id = account_summary_request_id_start
 
     def get_capabilities(self) -> BrokerCapabilities:
         return BrokerCapabilities(
             broker_name="ibkr",
             supports_market_orders=False,
-            supports_account_read=False,
+            supports_account_read=True,
             supports_positions_read=False,
             supports_open_orders_read=False,
             supports_paper_trading=True,
@@ -142,8 +156,39 @@ class IBKRBrokerAdapter:
             raw_error=None,
         )
 
-    def get_account_buying_power(self) -> BrokerAccountState:
-        raise NotImplementedError(_SKELETON_MESSAGE)
+    def get_account_buying_power(
+        self,
+        timeout_seconds: float | None = None,
+    ) -> BrokerAccountState:
+        client = self._require_account_summary_client()
+        timeout = self._normalize_timeout(timeout_seconds)
+        request_id = self._allocate_account_summary_request_id()
+
+        self.bridge.begin_account_snapshot(request_id=request_id)
+        try:
+            client.reqAccountSummary(
+                request_id,
+                self.account_summary_group,
+                self.account_summary_tags,
+            )
+            if not self.request_coordinator.wait_for_completion(
+                request_id,
+                timeout=timeout,
+            ):
+                self.request_coordinator.timeout_request(request_id)
+                raise TimeoutError(
+                    f"IBKR account summary request timed out: reqId={request_id}"
+                )
+            result = self.request_coordinator.result(request_id)
+            if result is None:
+                raise RuntimeError(
+                    f"IBKR account summary request produced no result: reqId={request_id}"
+                )
+            if isinstance(result, Exception):
+                raise result
+            return result
+        finally:
+            self._cancel_account_summary(request_id)
 
     def get_existing_position(self, symbol: str) -> BrokerPositionState:
         raise NotImplementedError(_SKELETON_MESSAGE)
@@ -165,6 +210,14 @@ class IBKRBrokerAdapter:
             raise NotImplementedError(_SKELETON_MESSAGE)
         return self.coordinator
 
+    def _require_account_summary_client(self):
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        if getattr(client, "reqAccountSummary", None) is None:
+            raise NotImplementedError(_SKELETON_MESSAGE)
+        return client
+
     def _client_is_connected(self) -> bool:
         client = self.client
         if client is None and self.coordinator is not None:
@@ -178,3 +231,16 @@ class IBKRBrokerAdapter:
         if timeout_seconds is None:
             return 5.0
         return timeout_seconds
+
+    def _allocate_account_summary_request_id(self) -> int:
+        request_id = self._next_account_summary_request_id
+        self._next_account_summary_request_id += 1
+        return request_id
+
+    def _cancel_account_summary(self, request_id: object) -> None:
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        cancel = getattr(client, "cancelAccountSummary", None)
+        if cancel is not None:
+            cancel(request_id)

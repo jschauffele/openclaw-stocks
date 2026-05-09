@@ -3,10 +3,11 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from broker_interface import BrokerCapabilities, BrokerLifecycleResult
+from broker_interface import BrokerAccountState, BrokerCapabilities, BrokerLifecycleResult
 from ibkr_broker_adapter import IBKRBrokerAdapter
 from ibkr_callback_bridge import IBKRCallbackBridge
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
+from ibkr_request_coordinator import IBKRRequestCoordinator
 from ibkr_timeout_injector import IBKRTimeoutInjector
 
 
@@ -39,6 +40,26 @@ class FakeClient:
 
     def isConnected(self) -> bool:
         return self.connected
+
+
+class FakeAccountSummaryClient:
+    def __init__(self) -> None:
+        self.req_account_summary_calls = []
+        self.cancel_account_summary_calls = []
+        self.on_request = None
+
+    def reqAccountSummary(self, request_id, group, tags) -> None:
+        self.req_account_summary_calls.append(
+            {"request_id": request_id, "group": group, "tags": tags}
+        )
+        if self.on_request is not None:
+            self.on_request(request_id)
+
+    def cancelAccountSummary(self, request_id) -> None:
+        self.cancel_account_summary_calls.append(request_id)
+
+    def isConnected(self) -> bool:
+        return True
 
 
 class FakeCoordinator:
@@ -98,7 +119,7 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
             BrokerCapabilities(
                 broker_name="ibkr",
                 supports_market_orders=False,
-                supports_account_read=False,
+                supports_account_read=True,
                 supports_positions_read=False,
                 supports_open_orders_read=False,
                 supports_paper_trading=True,
@@ -217,6 +238,7 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
 
         self.assertIs(adapter.registry, registry)
         self.assertIs(adapter.bridge.registry, registry)
+        self.assertIs(adapter.request_coordinator.registry, registry)
         self.assertIs(adapter.timeout_injector.registry, registry)
 
     def test_enabled_true_alone_does_not_implement_runtime_behavior(self) -> None:
@@ -308,6 +330,171 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
         self.assertEqual(result.reason, "connect_result_missing")
         self.assertEqual(result.connected, False)
         self.assertTrue(result.retryable)
+
+    def test_account_summary_snapshot_success_issues_native_request(self) -> None:
+        client = FakeAccountSummaryClient()
+        adapter = IBKRBrokerAdapter(client=client, account_summary_request_id_start=7001)
+
+        def complete(request_id) -> None:
+            adapter.bridge.account_summary(
+                request_id=request_id,
+                account="DU123",
+                tag="BuyingPower",
+                value="12345.67",
+                currency="USD",
+            )
+            adapter.bridge.account_summary_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_account_buying_power(timeout_seconds=0.25)
+
+        self.assertEqual(
+            result,
+            BrokerAccountState(
+                broker_name="ibkr",
+                buying_power=12345.67,
+                raw_account=result.raw_account,
+            ),
+        )
+        self.assertEqual(
+            client.req_account_summary_calls,
+            [{"request_id": 7001, "group": "All", "tags": "BuyingPower"}],
+        )
+        self.assertEqual(client.cancel_account_summary_calls, [7001])
+        self.assertEqual(adapter.request_coordinator.completed_by(7001), "callback")
+        self.assertFalse(adapter.request_coordinator.has_pending_request(7001))
+
+    def test_account_summary_timeout_removes_pending_request_and_cancels(self) -> None:
+        client = FakeAccountSummaryClient()
+        adapter = IBKRBrokerAdapter(client=client, account_summary_request_id_start=7101)
+
+        with self.assertRaisesRegex(TimeoutError, "reqId=7101"):
+            adapter.get_account_buying_power(timeout_seconds=0.001)
+
+        self.assertEqual(
+            client.req_account_summary_calls,
+            [{"request_id": 7101, "group": "All", "tags": "BuyingPower"}],
+        )
+        self.assertEqual(client.cancel_account_summary_calls, [7101])
+        self.assertEqual(adapter.request_coordinator.completed_by(7101), "timeout")
+        self.assertIsInstance(adapter.request_coordinator.result(7101), ValueError)
+        self.assertFalse(adapter.request_coordinator.has_pending_request(7101))
+        self.assertFalse(
+            adapter.bridge.account_summary(
+                request_id=7101,
+                tag="BuyingPower",
+                value="999.99",
+            )
+        )
+        self.assertFalse(adapter.bridge.account_summary_end(request_id=7101))
+
+    def test_account_summary_wrong_and_missing_req_id_callbacks_are_ignored(self) -> None:
+        client = FakeAccountSummaryClient()
+        adapter = IBKRBrokerAdapter(client=client, account_summary_request_id_start=7201)
+
+        def complete(request_id) -> None:
+            self.assertFalse(
+                adapter.bridge.account_summary(
+                    request_id=request_id + 1,
+                    tag="BuyingPower",
+                    value="999.99",
+                )
+            )
+            self.assertFalse(
+                adapter.bridge.account_summary(
+                    request_id=None,
+                    tag="BuyingPower",
+                    value="888.88",
+                )
+            )
+            adapter.bridge.account_summary(
+                request_id=request_id,
+                tag="BuyingPower",
+                value="111.11",
+            )
+            adapter.bridge.account_summary_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_account_buying_power(timeout_seconds=0.25)
+
+        self.assertEqual(result.buying_power, 111.11)
+
+    def test_account_summary_duplicate_end_marker_ignored_after_completion(self) -> None:
+        client = FakeAccountSummaryClient()
+        adapter = IBKRBrokerAdapter(client=client, account_summary_request_id_start=7301)
+
+        def complete(request_id) -> None:
+            adapter.bridge.account_summary(
+                request_id=request_id,
+                tag="BuyingPower",
+                value="222.22",
+            )
+            self.assertTrue(adapter.bridge.account_summary_end(request_id=request_id))
+            self.assertFalse(adapter.bridge.account_summary_end(request_id=request_id))
+
+        client.on_request = complete
+
+        result = adapter.get_account_buying_power(timeout_seconds=0.25)
+
+        self.assertEqual(result.buying_power, 222.22)
+        self.assertEqual(adapter.request_coordinator.notification_count, 1)
+
+    def test_account_summary_request_ids_are_deterministic_and_isolated(self) -> None:
+        client = FakeAccountSummaryClient()
+        adapter = IBKRBrokerAdapter(client=client, account_summary_request_id_start=7401)
+
+        def complete(request_id) -> None:
+            adapter.bridge.account_summary(
+                request_id=request_id,
+                tag="BuyingPower",
+                value=str(request_id),
+            )
+            adapter.bridge.account_summary_end(request_id=request_id)
+
+        client.on_request = complete
+
+        first = adapter.get_account_buying_power(timeout_seconds=0.25)
+        second = adapter.get_account_buying_power(timeout_seconds=0.25)
+
+        self.assertEqual(first.buying_power, 7401.0)
+        self.assertEqual(second.buying_power, 7402.0)
+        self.assertEqual(
+            client.req_account_summary_calls,
+            [
+                {"request_id": 7401, "group": "All", "tags": "BuyingPower"},
+                {"request_id": 7402, "group": "All", "tags": "BuyingPower"},
+            ],
+        )
+        self.assertFalse(adapter.request_coordinator.has_pending_request(7401))
+        self.assertFalse(adapter.request_coordinator.has_pending_request(7402))
+
+    def test_account_summary_with_injected_request_coordinator_retains_result(self) -> None:
+        registry = IBKRPendingRequestRegistry()
+        request_coordinator = IBKRRequestCoordinator(registry=registry)
+        client = FakeAccountSummaryClient()
+        adapter = IBKRBrokerAdapter(
+            client=client,
+            registry=registry,
+            request_coordinator=request_coordinator,
+            account_summary_request_id_start=7501,
+        )
+
+        def complete(request_id) -> None:
+            adapter.bridge.account_summary(
+                request_id=request_id,
+                tag="BuyingPower",
+                value="333.33",
+            )
+            adapter.bridge.account_summary_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_account_buying_power(timeout_seconds=0.25)
+
+        self.assertIs(request_coordinator.result(7501), result)
+        self.assertEqual(result.buying_power, 333.33)
 
     def test_health_check_connected(self) -> None:
         adapter = IBKRBrokerAdapter(client=FakeClient(connected=True))

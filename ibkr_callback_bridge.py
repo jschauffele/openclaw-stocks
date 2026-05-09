@@ -18,7 +18,15 @@ from ibkr_pending_request_registry import IBKRPendingRequestRegistry
 
 
 class IBKRCallbackBridge:
-    def __init__(self, registry: IBKRPendingRequestRegistry | None = None) -> None:
+    def __init__(
+        self,
+        registry: IBKRPendingRequestRegistry | None = None,
+        *,
+        request_coordinator=None,
+    ) -> None:
+        self.request_coordinator = request_coordinator
+        if registry is None and request_coordinator is not None:
+            registry = request_coordinator.registry
         self.registry = registry or IBKRPendingRequestRegistry()
 
     def begin_lifecycle(self, *, operation: str = "connect") -> None:
@@ -28,10 +36,11 @@ class IBKRCallbackBridge:
         )
 
     def begin_account_snapshot(self, *, request_id: object) -> None:
-        self.registry.register_request(
-            request_id,
-            IBKRAccountSnapshotAggregator(request_id=str(request_id)),
-        )
+        aggregator = IBKRAccountSnapshotAggregator(request_id=str(request_id))
+        if self.request_coordinator is not None:
+            self.request_coordinator.register_request(request_id, aggregator)
+            return
+        self.registry.register_request(request_id, aggregator)
 
     def begin_position_snapshot(self, *, request_id: object, symbol: str) -> None:
         self.registry.register_request(
@@ -58,6 +67,13 @@ class IBKRCallbackBridge:
         return aggregator.result()
 
     def complete_account_snapshot(self, *, request_id: object) -> BrokerAccountState:
+        if self.request_coordinator is not None:
+            result = self.request_coordinator.result(request_id)
+            if result is None:
+                raise KeyError(f"No completed IBKR account request: {request_id}")
+            if isinstance(result, Exception):
+                raise result
+            return result
         aggregator = self.registry.pop_request(request_id)
         if aggregator is None:
             raise KeyError(f"No pending IBKR account request: {request_id}")
@@ -126,14 +142,31 @@ class IBKRCallbackBridge:
     def account_value(self, *, request_id: object, buying_power: object) -> bool:
         return self.account_summary(request_id=request_id, buying_power=buying_power)
 
-    def account_summary(self, *, request_id: object, buying_power: object) -> bool:
+    def account_summary(
+        self,
+        *,
+        request_id: object,
+        buying_power: object | None = None,
+        account: object | None = None,
+        tag: object | None = None,
+        value: object | None = None,
+        currency: object | None = None,
+    ) -> bool:
         if request_id is None or not self.registry.has_request(request_id):
             return False
+        if buying_power is None:
+            if tag != "BuyingPower":
+                return False
+            buying_power = value
         return self.registry.route_request_event(
             request_id,
             {
                 "event_type": "account_summary",
                 "request_id": request_id,
+                "account": account,
+                "tag": tag,
+                "value": value,
+                "currency": currency,
                 "buying_power": buying_power,
             },
         )
@@ -141,13 +174,16 @@ class IBKRCallbackBridge:
     def account_summary_end(self, *, request_id: object) -> bool:
         if request_id is None or not self.registry.has_request(request_id):
             return False
-        return self.registry.route_request_event(
+        routed = self.registry.route_request_event(
             request_id,
             {
                 "event_type": "account_summary_end",
                 "request_id": request_id,
             },
         )
+        if routed and self.request_coordinator is not None:
+            return self.request_coordinator.complete_from_callback(request_id)
+        return routed
 
     def position(
         self,

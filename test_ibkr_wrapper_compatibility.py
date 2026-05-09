@@ -48,17 +48,21 @@ class IBKRWrapperCompatibilityTests(unittest.TestCase):
         for callback_name in [
             "nextValidId",
             "error",
+            "accountSummary",
+            "accountSummaryEnd",
             "connect_ready",
             "connect_error",
         ]:
             with self.subTest(callback=callback_name):
                 self.assertTrue(callable(getattr(wrapper, callback_name)))
 
-    def test_missing_callback_attribute_fails_deterministically(self) -> None:
+    def test_native_account_summary_callbacks_route_to_bridge(self) -> None:
         wrapper = IBKRWrapperBridge(IBKRCallbackBridge())
 
-        with self.assertRaises(AttributeError):
-            getattr(wrapper, "accountSummary")
+        self.assertFalse(
+            wrapper.accountSummary(101, "DU123", "BuyingPower", "123.45", "USD")
+        )
+        self.assertFalse(wrapper.accountSummaryEnd(101))
 
     def test_wrapper_integrity_is_preserved_after_fake_client_construction(self) -> None:
         bridge = IBKRCallbackBridge()
@@ -95,8 +99,8 @@ class IBKRWrapperCompatibilityTests(unittest.TestCase):
         self.assertEqual(type(bundle.client).__name__, "EClient")
         self.assertTrue(callable(getattr(bundle.wrapper, "nextValidId")))
         self.assertTrue(callable(getattr(bundle.wrapper, "error")))
-        with self.assertRaises(AttributeError):
-            getattr(bundle.wrapper, "accountSummary")
+        self.assertTrue(callable(getattr(bundle.wrapper, "accountSummary")))
+        self.assertTrue(callable(getattr(bundle.wrapper, "accountSummaryEnd")))
         self.assertEqual(bundle.client.isConnected(), False)
         self.assertEqual(after_threads, before_threads)
 

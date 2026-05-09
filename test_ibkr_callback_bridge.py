@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from ibkr_callback_bridge import IBKRCallbackBridge
+from ibkr_request_coordinator import IBKRRequestCoordinator
 from ibkr_timeout_injector import IBKRTimeoutInjector
 
 
@@ -173,6 +174,29 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
 
         self.assertEqual(account.buying_power, 12345.67)
         self.assertFalse(bridge.account_summary_end(request_id="acct-1"))
+
+    def test_account_summary_end_completes_request_coordinator_when_injected(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_account_snapshot(request_id="acct-1")
+
+        self.assertTrue(
+            bridge.account_summary(
+                request_id="acct-1",
+                account="DU123",
+                tag="BuyingPower",
+                value="12345.67",
+                currency="USD",
+            )
+        )
+        self.assertTrue(bridge.account_summary_end(request_id="acct-1"))
+        self.assertFalse(bridge.account_summary_end(request_id="acct-1"))
+
+        account = bridge.complete_account_snapshot(request_id="acct-1")
+
+        self.assertEqual(account.buying_power, 12345.67)
+        self.assertEqual(request_coordinator.completed_by("acct-1"), "callback")
+        self.assertFalse(request_coordinator.has_pending_request("acct-1"))
 
     def test_late_callbacks_are_isolated_after_timeout_completion(self) -> None:
         bridge = IBKRCallbackBridge()

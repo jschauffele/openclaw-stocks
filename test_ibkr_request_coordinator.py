@@ -25,6 +25,14 @@ class RecordingAggregator:
         )
 
 
+class FailingAggregator:
+    def on_event(self, event: dict[str, object]) -> None:
+        pass
+
+    def result(self):
+        raise ValueError("snapshot incomplete")
+
+
 class CountingRegistry(IBKRPendingRequestRegistry):
     def __init__(self) -> None:
         super().__init__()
@@ -70,6 +78,18 @@ class IBKRRequestCoordinatorTests(unittest.TestCase):
 
         result = coordinator.result("req-1")
         self.assertEqual(result.event_count, 0)
+        self.assertEqual(coordinator.completed_by("req-1"), "timeout")
+        self.assertFalse(coordinator.has_pending_request("req-1"))
+
+    def test_timeout_retains_aggregator_result_exception_deterministically(self) -> None:
+        coordinator = IBKRRequestCoordinator()
+        coordinator.register_request("req-1", FailingAggregator())
+
+        self.assertTrue(coordinator.timeout_request("req-1"))
+        result = coordinator.result("req-1")
+
+        self.assertIsInstance(result, ValueError)
+        self.assertEqual(str(result), "snapshot incomplete")
         self.assertEqual(coordinator.completed_by("req-1"), "timeout")
         self.assertFalse(coordinator.has_pending_request("req-1"))
 
