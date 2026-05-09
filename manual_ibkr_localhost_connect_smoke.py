@@ -11,6 +11,7 @@ DEFAULT_PORT = 7497
 DEFAULT_CLIENT_ID = 9107
 DEFAULT_TIMEOUT = 5.0
 SMOKE_EXECUTIONS = 0
+NON_FATAL_CONNECT_STATUS_CODES = frozenset({2104, 2106, 2158})
 
 
 class CoordinatorReadinessWrapper:
@@ -23,10 +24,15 @@ class CoordinatorReadinessWrapper:
         )
 
     def error(self, reqId, code, msg, *args) -> bool:
+        if code in NON_FATAL_CONNECT_STATUS_CODES:
+            return False
         return self.coordinator.callback_connect_error(
             message=str(msg),
             retryable=True,
         )
+
+    def connectAck(self) -> bool:
+        return False
 
     def connectionClosed(self) -> bool:
         return False

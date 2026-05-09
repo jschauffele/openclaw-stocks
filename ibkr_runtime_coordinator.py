@@ -83,6 +83,16 @@ class IBKRRuntimeArbitrationCoordinator:
             self.disconnect(timeout=timeout)
             raise
 
+        if not self._client_is_connected():
+            if self.connect_result() is None:
+                self._fail_connect_lifecycle(
+                    reason="connect_disconnected",
+                    message="IBKR client disconnected during connect",
+                    raw_error=None,
+                )
+            self.disconnect(timeout=timeout)
+            return
+
         try:
             self.thread_owner.start_thread(run_target)
         except Exception as exc:
@@ -251,3 +261,9 @@ class IBKRRuntimeArbitrationCoordinator:
             self.completed_by = reason
             self.shutdown_state = "stopping"
             self._notify_waiters()
+
+    def _client_is_connected(self) -> bool:
+        is_connected = getattr(self.client, "isConnected", None)
+        if is_connected is None:
+            return True
+        return bool(is_connected())

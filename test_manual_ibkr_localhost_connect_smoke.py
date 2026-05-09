@@ -25,9 +25,10 @@ class FakeCoordinator:
         self.result = SimpleNamespace(passed=True, reason="connect_ready")
 
     def callback_connect_ready(self, **kwargs) -> bool:
-        if self.result.reason == "connect_error":
+        if self.result is not None and self.result.reason == "connect_error":
             return False
         self.callback_calls.append(kwargs)
+        self.result = SimpleNamespace(passed=True, reason="connect_ready")
         self.connect_state = "connected"
         return True
 
@@ -122,6 +123,29 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         self.assertEqual(result.passed, False)
         self.assertEqual(result.reason, "connect_error")
         self.assertEqual(coordinator.connect_state, "disconnected")
+
+    def test_wrapper_ignores_nonfatal_farm_status_before_readiness(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        coordinator.result = None
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        self.assertFalse(
+            wrapper.error(-1, 2104, "Market data farm connection is OK:usfarm")
+        )
+        self.assertTrue(wrapper.nextValidId(101))
+
+        self.assertEqual(coordinator.error_calls, [])
+        self.assertEqual(coordinator.callback_calls, [{"message": "next_valid_id"}])
+        self.assertEqual(coordinator.connect_state, "connected")
+
+    def test_wrapper_connect_ack_is_non_terminal(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+
+        self.assertFalse(wrapper.connectAck())
+
+        self.assertEqual(coordinator.callback_calls, [])
+        self.assertEqual(coordinator.error_calls, [])
 
     def test_wrapper_connection_closed_is_accepted(self) -> None:
         coordinator = FakeCoordinator(enabled=True)

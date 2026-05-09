@@ -340,6 +340,22 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
         self.assertEqual(client.run_calls, 1)
         self.assertTrue(coordinator.disconnect(timeout=1.0))
 
+    def test_run_thread_does_not_start_when_client_reports_disconnected(self) -> None:
+        coordinator, client = build_connect_coordinator()
+        client.connected_after_connect = False
+
+        coordinator.connect(host="127.0.0.1", port=7497, client_id=7, timeout=1.0)
+
+        result = coordinator.connect_result()
+        self.assertEqual(result.passed, False)
+        self.assertEqual(result.reason, "connect_disconnected")
+        self.assertEqual(coordinator.connect_state, "disconnected")
+        self.assertEqual(coordinator.shutdown_state, "complete")
+        self.assertEqual(client.connect_calls, [("127.0.0.1", 7497, 7)])
+        self.assertEqual(client.disconnect_calls, 1)
+        self.assertEqual(client.run_calls, 0)
+        self.assertFalse(client.run_entered.is_set())
+
     def test_localhost_host_accepted(self) -> None:
         coordinator, client = build_connect_coordinator()
 
@@ -486,6 +502,8 @@ class ControlledFakeRuntimeClient:
         self.run_calls = 0
         self.connect_exception: Exception | None = None
         self.disconnect_exception: Exception | None = None
+        self.connected_after_connect = True
+        self.connected = False
         self.events: list[str] = []
         self.run_lock_owned: list[bool] = []
         self.connect_lock_owned: list[bool] = []
@@ -506,14 +524,19 @@ class ControlledFakeRuntimeClient:
         self.events.append("connect")
         if self.connect_exception is not None:
             raise self.connect_exception
+        self.connected = self.connected_after_connect
 
     def disconnect(self) -> None:
         self.disconnect_lock_owned.append(self._lock_is_owned())
         self.disconnect_calls += 1
         self.events.append("disconnect")
+        self.connected = False
         self.stop_event.set()
         if self.disconnect_exception is not None:
             raise self.disconnect_exception
+
+    def isConnected(self) -> bool:
+        return self.connected
 
     def _lock_is_owned(self) -> bool:
         is_owned = getattr(self.lock, "_is_owned", None)
