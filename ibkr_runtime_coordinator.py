@@ -73,24 +73,21 @@ class IBKRRuntimeArbitrationCoordinator:
             run_target = self.client.run
 
         try:
-            self.thread_owner.start_thread(run_target)
-        except Exception as exc:
-            self._fail_connect_lifecycle(
-                reason="runtime_thread_start_failed",
-                message=str(exc),
-                raw_error=exc,
-            )
-            with self.lock:
-                self.connect_state = "disconnected"
-                self.shutdown_state = "complete"
-                self._notify_waiters()
-            raise
-
-        try:
             self.client.connect(host, port, client_id)
         except Exception as exc:
             self._fail_connect_lifecycle(
                 reason="connect_exception",
+                message=str(exc),
+                raw_error=exc,
+            )
+            self.disconnect(timeout=timeout)
+            raise
+
+        try:
+            self.thread_owner.start_thread(run_target)
+        except Exception as exc:
+            self._fail_connect_lifecycle(
+                reason="runtime_thread_start_failed",
                 message=str(exc),
                 raw_error=exc,
             )

@@ -224,6 +224,10 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
         self.assertTrue(client.run_entered.wait(timeout=1.0))
 
         self.assertEqual(client.connect_calls, [("127.0.0.1", 7497, 7)])
+        self.assertLess(
+            client.events.index("connect"),
+            client.events.index("run_entered"),
+        )
         self.assertEqual(coordinator.connect_state, "connecting")
         self.assertTrue(coordinator.callback_connect_ready())
 
@@ -326,6 +330,16 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
         self.assertEqual(client.connect_lock_owned, [False])
         self.assertEqual(client.disconnect_lock_owned, [False])
 
+    def test_run_thread_starts_only_after_successful_connect_call(self) -> None:
+        coordinator, client = build_connect_coordinator()
+
+        coordinator.connect(host="127.0.0.1", port=7497, client_id=7, timeout=1.0)
+        self.assertTrue(client.run_entered.wait(timeout=1.0))
+
+        self.assertEqual(client.events[:2], ["connect", "run_entered"])
+        self.assertEqual(client.run_calls, 1)
+        self.assertTrue(coordinator.disconnect(timeout=1.0))
+
     def test_localhost_host_accepted(self) -> None:
         coordinator, client = build_connect_coordinator()
 
@@ -398,7 +412,10 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
         self.assertEqual(coordinator.shutdown_state, "complete")
         self.assertFalse(coordinator.has_pending_connect())
         self.assertEqual(client.disconnect_calls, 1)
-        self.assertTrue(client.run_exited.is_set())
+        self.assertEqual(client.run_calls, 0)
+        self.assertFalse(client.run_entered.is_set())
+        self.assertFalse(client.run_exited.is_set())
+        self.assertNotIn("run_entered", client.events)
 
     def test_runtime_thread_startup_failure_cleanup_completes(self) -> None:
         coordinator, client = build_connect_coordinator()
@@ -414,8 +431,10 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
         self.assertEqual(coordinator.connect_state, "disconnected")
         self.assertEqual(coordinator.shutdown_state, "complete")
         self.assertFalse(coordinator.has_pending_connect())
-        self.assertEqual(client.connect_calls, [])
-        self.assertEqual(client.disconnect_calls, 0)
+        self.assertEqual(client.connect_calls, [("127.0.0.1", 7497, 7)])
+        self.assertEqual(client.disconnect_calls, 1)
+        self.assertEqual(client.run_calls, 0)
+        self.assertEqual(client.events, ["connect", "disconnect"])
 
     def test_disconnect_exception_cleanup_still_finalizes_shutdown(self) -> None:
         coordinator, client = build_connect_coordinator()
