@@ -94,18 +94,26 @@ class IBKRAccountSnapshotAggregator:
     def __init__(self, *, request_id: str | None = None) -> None:
         self.request_id = request_id
         self._account_event: Event | None = None
+        self._complete = False
         self._error: str | None = None
 
     def on_event(self, event: Event) -> None:
-        if event.get("event_type") != "account_value":
+        if not _strict_matches_request(event, self.request_id):
             return
-        if not _matches_request(event, self.request_id):
+
+        event_type = event.get("event_type")
+        if event_type == "account_summary":
+            if "buying_power" not in event:
+                return
+            self._account_event = event
             return
-        if "buying_power" not in event:
-            return
-        self._account_event = event
+
+        if event_type == "account_summary_end":
+            self._complete = True
 
     def result(self) -> BrokerAccountState:
+        if not self._complete:
+            raise ValueError("IBKR account summary did not receive matching end marker")
         if self._account_event is None:
             raise ValueError("No fake IBKR account buying_power callback received")
 
@@ -375,3 +383,12 @@ def _matches_request(event: Event, request_id: str | None) -> bool:
         return True
     event_request_id = event.get("request_id")
     return event_request_id is None or str(event_request_id) == request_id
+
+
+def _strict_matches_request(event: Event, request_id: str | None) -> bool:
+    if request_id is None:
+        return False
+    event_request_id = event.get("request_id")
+    if event_request_id is None:
+        return False
+    return str(event_request_id) == request_id

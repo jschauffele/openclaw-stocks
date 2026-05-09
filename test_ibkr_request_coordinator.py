@@ -4,6 +4,7 @@ import threading
 import unittest
 from types import SimpleNamespace
 
+from fake_ibkr_callback_state_machine import IBKRAccountSnapshotAggregator
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
 from ibkr_request_coordinator import IBKRRequestCoordinator
 
@@ -180,6 +181,41 @@ class IBKRRequestCoordinatorTests(unittest.TestCase):
         self.assertEqual(result.label, "snapshot")
         self.assertEqual(result.event_count, 1)
         self.assertFalse(coordinator.has_pending_request("req-1"))
+
+    def test_account_summary_result_retained_after_completion(self) -> None:
+        coordinator = IBKRRequestCoordinator()
+        coordinator.register_request(
+            "acct-1",
+            IBKRAccountSnapshotAggregator(request_id="acct-1"),
+        )
+        coordinator.route_callback(
+            "acct-1",
+            {
+                "event_type": "account_summary",
+                "request_id": "acct-1",
+                "buying_power": "12345.67",
+            },
+        )
+        coordinator.route_callback(
+            "acct-1",
+            {"event_type": "account_summary_end", "request_id": "acct-1"},
+        )
+
+        self.assertTrue(coordinator.complete_from_callback("acct-1"))
+        result = coordinator.result("acct-1")
+
+        self.assertEqual(result.buying_power, 12345.67)
+        self.assertFalse(
+            coordinator.route_callback(
+                "acct-1",
+                {
+                    "event_type": "account_summary",
+                    "request_id": "acct-1",
+                    "buying_power": "999.99",
+                },
+            )
+        )
+        self.assertIs(coordinator.result("acct-1"), result)
 
     def test_no_callback_leakage_across_request_ids(self) -> None:
         coordinator = IBKRRequestCoordinator()

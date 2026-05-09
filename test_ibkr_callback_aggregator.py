@@ -71,9 +71,9 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
         )
 
     def test_account_snapshot_success(self) -> None:
-        account_event = {"event_type": "account_value", "buying_power": "12345.67"}
+        account_event = {"event_type": "account_summary", "buying_power": "12345.67"}
 
-        result = aggregate_account([account_event])
+        result = aggregate_account([account_event, {"event_type": "account_summary_end"}])
 
         self.assertEqual(
             result,
@@ -90,7 +90,16 @@ class FakeIBKRCallbackAggregatorTests(unittest.TestCase):
             "Invalid fake IBKR account buying_power callback",
         ):
             aggregate_account(
-                [{"event_type": "account_value", "buying_power": "not-a-number"}]
+                [
+                    {"event_type": "account_summary", "buying_power": "not-a-number"},
+                    {"event_type": "account_summary_end"},
+                ]
+            )
+
+    def test_account_snapshot_requires_end_marker(self) -> None:
+        with self.assertRaisesRegex(ValueError, "matching end marker"):
+            aggregate_account(
+                [{"event_type": "account_summary", "buying_power": "12345.67"}]
             )
 
     def test_position_found(self) -> None:

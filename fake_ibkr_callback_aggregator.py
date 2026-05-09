@@ -80,22 +80,27 @@ def aggregate_lifecycle(
 
 
 def aggregate_account(events: Iterable[Event]) -> BrokerAccountState:
+    account_event: Event | None = None
     for event in events:
-        if event.get("event_type") != "account_value":
+        if event.get("event_type") == "account_summary":
+            if "buying_power" not in event:
+                continue
+            account_event = event
             continue
-        if "buying_power" not in event:
-            continue
-        try:
-            buying_power = parse_buying_power(event["buying_power"])
-        except (TypeError, ValueError) as exc:
-            raise ValueError("Invalid fake IBKR account buying_power callback") from exc
-        return BrokerAccountState(
-            broker_name="ibkr",
-            buying_power=buying_power,
-            raw_account=event,
-        )
+        if event.get("event_type") == "account_summary_end":
+            if account_event is None:
+                raise ValueError("No fake IBKR account buying_power callback received")
+            try:
+                buying_power = parse_buying_power(account_event["buying_power"])
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Invalid fake IBKR account buying_power callback") from exc
+            return BrokerAccountState(
+                broker_name="ibkr",
+                buying_power=buying_power,
+                raw_account=account_event,
+            )
 
-    raise ValueError("No fake IBKR account buying_power callback received")
+    raise ValueError("IBKR account summary did not receive matching end marker")
 
 
 def aggregate_position(events: Iterable[Event], *, symbol: str) -> BrokerPositionState:

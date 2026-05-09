@@ -124,12 +124,28 @@ class IBKRCallbackBridge:
         return routed or routed_order
 
     def account_value(self, *, request_id: object, buying_power: object) -> bool:
+        return self.account_summary(request_id=request_id, buying_power=buying_power)
+
+    def account_summary(self, *, request_id: object, buying_power: object) -> bool:
+        if request_id is None or not self.registry.has_request(request_id):
+            return False
         return self.registry.route_request_event(
             request_id,
             {
-                "event_type": "account_value",
+                "event_type": "account_summary",
                 "request_id": request_id,
                 "buying_power": buying_power,
+            },
+        )
+
+    def account_summary_end(self, *, request_id: object) -> bool:
+        if request_id is None or not self.registry.has_request(request_id):
+            return False
+        return self.registry.route_request_event(
+            request_id,
+            {
+                "event_type": "account_summary_end",
+                "request_id": request_id,
             },
         )
 

@@ -3,12 +3,14 @@ from __future__ import annotations
 import unittest
 
 from broker_interface import (
+    BrokerAccountState,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
     BrokerOrderResult,
     BrokerPositionState,
 )
 from fake_ibkr_callback_state_machine import (
+    IBKRAccountSnapshotAggregator,
     IBKRLifecycleAggregator,
     IBKROpenOrdersSnapshotAggregator,
     IBKROrderStatusAggregator,
@@ -44,6 +46,56 @@ class FakeIBKRCallbackStateMachineTests(unittest.TestCase):
                 raw_error=None,
             ),
         )
+
+    def test_account_summary_strict_completion_replay(self) -> None:
+        account_event = {
+            "event_type": "account_summary",
+            "request_id": "acct-1",
+            "buying_power": "12345.67",
+        }
+
+        result = replay(
+            IBKRAccountSnapshotAggregator(request_id="acct-1"),
+            [
+                {
+                    "event_type": "account_summary",
+                    "request_id": "other",
+                    "buying_power": "999.99",
+                },
+                {
+                    "event_type": "account_summary",
+                    "buying_power": "888.88",
+                },
+                account_event,
+                {"event_type": "account_summary_end", "request_id": "other"},
+                {"event_type": "account_summary_end"},
+                {"event_type": "account_summary_end", "request_id": "acct-1"},
+            ],
+        )
+
+        self.assertEqual(
+            result,
+            BrokerAccountState(
+                broker_name="ibkr",
+                buying_power=12345.67,
+                raw_account=account_event,
+            ),
+        )
+
+    def test_account_summary_requires_matching_end_marker_replay(self) -> None:
+        with self.assertRaisesRegex(ValueError, "matching end marker"):
+            replay(
+                IBKRAccountSnapshotAggregator(request_id="acct-1"),
+                [
+                    {
+                        "event_type": "account_summary",
+                        "request_id": "acct-1",
+                        "buying_power": "12345.67",
+                    },
+                    {"event_type": "account_summary_end", "request_id": "other"},
+                    {"event_type": "account_summary_end"},
+                ],
+            )
 
     def test_position_snapshot_completion_replay(self) -> None:
         result = replay(

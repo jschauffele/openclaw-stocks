@@ -265,7 +265,7 @@ class FakeIBKRCallbackRequestIdFilteringTests(unittest.TestCase):
 
     def test_account_ignores_wrong_request_id(self) -> None:
         account_event = {
-            "event_type": "account_value",
+            "event_type": "account_summary",
             "request_id": "target",
             "buying_power": "123.45",
         }
@@ -273,11 +273,18 @@ class FakeIBKRCallbackRequestIdFilteringTests(unittest.TestCase):
             IBKRAccountSnapshotAggregator(request_id="target"),
             [
                 {
-                    "event_type": "account_value",
+                    "event_type": "account_summary",
                     "request_id": "other",
                     "buying_power": "999.99",
                 },
+                {
+                    "event_type": "account_summary",
+                    "buying_power": "888.88",
+                },
                 account_event,
+                {"event_type": "account_summary_end", "request_id": "other"},
+                {"event_type": "account_summary_end"},
+                {"event_type": "account_summary_end", "request_id": "target"},
             ],
         )
 

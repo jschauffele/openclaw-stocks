@@ -63,8 +63,9 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         bridge.begin_open_orders_snapshot(request_id="open-1", symbol="AAPL")
 
         self.assertTrue(
-            bridge.account_value(request_id="acct-1", buying_power="12345.67")
+            bridge.account_summary(request_id="acct-1", buying_power="12345.67")
         )
+        self.assertTrue(bridge.account_summary_end(request_id="acct-1"))
         self.assertTrue(
             bridge.open_order(
                 request_id="open-1",
@@ -93,6 +94,85 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         self.assertEqual(account.buying_power, 12345.67)
         self.assertEqual(open_orders.open_buy_order_qty, 3)
         self.assertEqual(open_orders.open_buy_order_count, 2)
+
+    def test_account_summary_strict_req_id_routing(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_account_snapshot(request_id="acct-1")
+
+        self.assertFalse(
+            bridge.account_summary(request_id="other", buying_power="999.99")
+        )
+        self.assertFalse(bridge.account_summary(request_id=None, buying_power="888.88"))
+        self.assertFalse(bridge.account_summary_end(request_id="other"))
+        self.assertFalse(bridge.account_summary_end(request_id=None))
+
+        self.assertTrue(
+            bridge.account_summary(request_id="acct-1", buying_power="12345.67")
+        )
+        self.assertTrue(bridge.account_summary_end(request_id="acct-1"))
+
+        account = bridge.complete_account_snapshot(request_id="acct-1")
+
+        self.assertEqual(account.buying_power, 12345.67)
+
+    def test_account_summary_requires_matching_end_marker(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_account_snapshot(request_id="acct-1")
+
+        self.assertTrue(
+            bridge.account_summary(request_id="acct-1", buying_power="12345.67")
+        )
+
+        with self.assertRaisesRegex(ValueError, "matching end marker"):
+            bridge.complete_account_snapshot(request_id="acct-1")
+
+    def test_concurrent_account_summary_requests_are_isolated(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_account_snapshot(request_id="acct-a")
+        bridge.begin_account_snapshot(request_id="acct-b")
+
+        self.assertTrue(
+            bridge.account_summary(request_id="acct-b", buying_power="222.22")
+        )
+        self.assertTrue(
+            bridge.account_summary(request_id="acct-a", buying_power="111.11")
+        )
+        self.assertTrue(bridge.account_summary_end(request_id="acct-a"))
+        self.assertTrue(bridge.account_summary_end(request_id="acct-b"))
+
+        account_a = bridge.complete_account_snapshot(request_id="acct-a")
+        account_b = bridge.complete_account_snapshot(request_id="acct-b")
+
+        self.assertEqual(account_a.buying_power, 111.11)
+        self.assertEqual(account_b.buying_power, 222.22)
+
+    def test_late_account_summary_callbacks_after_timeout_are_ignored(self) -> None:
+        bridge = IBKRCallbackBridge()
+        timeout_injector = IBKRTimeoutInjector(bridge.registry)
+        bridge.begin_account_snapshot(request_id="acct-1")
+
+        with self.assertRaisesRegex(ValueError, "matching end marker"):
+            timeout_injector.inject_snapshot_timeout(request_id="acct-1")
+
+        self.assertFalse(
+            bridge.account_summary(request_id="acct-1", buying_power="12345.67")
+        )
+        self.assertFalse(bridge.account_summary_end(request_id="acct-1"))
+        self.assertFalse(bridge.registry.has_request("acct-1"))
+
+    def test_duplicate_account_summary_end_marker_is_ignored_after_completion(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_account_snapshot(request_id="acct-1")
+
+        self.assertTrue(
+            bridge.account_summary(request_id="acct-1", buying_power="12345.67")
+        )
+        self.assertTrue(bridge.account_summary_end(request_id="acct-1"))
+
+        account = bridge.complete_account_snapshot(request_id="acct-1")
+
+        self.assertEqual(account.buying_power, 12345.67)
+        self.assertFalse(bridge.account_summary_end(request_id="acct-1"))
 
     def test_late_callbacks_are_isolated_after_timeout_completion(self) -> None:
         bridge = IBKRCallbackBridge()
