@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import io
+import threading
 import unittest
 from contextlib import redirect_stdout
 from types import SimpleNamespace
@@ -253,6 +254,37 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         self.assertIsNone(coordinator.connect_result())
         self.assertEqual(coordinator.callback_calls, [])
         self.assertEqual(coordinator.error_calls, [])
+
+    def test_connection_closed_before_readiness_under_threaded_callback_order(
+        self,
+    ) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        coordinator.result = None
+        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+        closed_done = threading.Event()
+        outcomes: list[tuple[str, bool]] = []
+
+        def connection_closed() -> None:
+            outcomes.append(("closed", wrapper.connectionClosed()))
+            closed_done.set()
+
+        def ready_after_closed() -> None:
+            closed_done.wait(timeout=1.0)
+            outcomes.append(("ready", wrapper.nextValidId(101)))
+
+        threads = [
+            threading.Thread(target=connection_closed),
+            threading.Thread(target=ready_after_closed),
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=1.0)
+
+        self.assertEqual(outcomes, [("closed", False), ("ready", True)])
+        self.assertEqual(coordinator.callback_calls, [{"message": "next_valid_id"}])
+        self.assertEqual(coordinator.error_calls, [])
+        self.assertEqual(coordinator.connect_result().reason, "connect_ready")
 
     def test_late_next_valid_id_after_error_is_ignored(self) -> None:
         coordinator = FakeCoordinator(enabled=True)

@@ -41,6 +41,8 @@ class IBKRRuntimeArbitrationCoordinator:
         )
         self.completed_result: BrokerLifecycleResult | None = None
         self.completed_by: str | None = None
+        self.shutdown_result: BrokerLifecycleResult | None = None
+        self.shutdown_completed_by: str | None = None
         self.notification_count = 0
         self.connect_state = "disconnected"
         self.shutdown_state = "active"
@@ -195,15 +197,65 @@ class IBKRRuntimeArbitrationCoordinator:
             joined = self.thread_owner.join_thread(timeout=timeout)
 
         with self.lock:
-            if joined:
-                self.connect_state = "disconnected"
-                self.shutdown_state = "complete"
+            if not joined:
+                self.shutdown_result = BrokerLifecycleResult(
+                    broker_name="ibkr",
+                    operation="disconnect",
+                    passed=False,
+                    reason="runtime_thread_join_timeout",
+                    message="IBKR runtime thread did not stop before join timeout",
+                    connected=self.connect_state == "connected",
+                    retryable=True,
+                    elapsed_ms=None,
+                    raw_error={
+                        "thread_state": self.thread_owner.thread_state,
+                        "timeout": timeout,
+                    },
+                )
+                self.shutdown_completed_by = "join_timeout"
+                self.shutdown_state = "stuck"
                 self._notify_waiters()
+                return False
+
+            self.connect_state = "disconnected"
+            self.shutdown_state = "complete"
+            target_exception = getattr(self.thread_owner, "target_exception", None)
+            if target_exception is not None:
+                self.shutdown_result = BrokerLifecycleResult(
+                    broker_name="ibkr",
+                    operation="disconnect",
+                    passed=False,
+                    reason="runtime_thread_exception",
+                    message=str(target_exception),
+                    connected=False,
+                    retryable=True,
+                    elapsed_ms=None,
+                    raw_error=target_exception,
+                )
+                self.shutdown_completed_by = "runtime_thread_exception"
+            else:
+                self.shutdown_result = BrokerLifecycleResult(
+                    broker_name="ibkr",
+                    operation="disconnect",
+                    passed=True,
+                    reason="disconnect_complete",
+                    message="IBKR runtime disconnected",
+                    connected=False,
+                    retryable=False,
+                    elapsed_ms=None,
+                    raw_error=None,
+                )
+                self.shutdown_completed_by = "disconnect"
+            self._notify_waiters()
             return joined
 
     def connect_result(self) -> BrokerLifecycleResult | None:
         with self.lock:
             return self.completed_result
+
+    def disconnect_result(self) -> BrokerLifecycleResult | None:
+        with self.lock:
+            return self.shutdown_result
 
     def has_pending_connect(self) -> bool:
         with self.lock:

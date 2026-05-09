@@ -157,6 +157,114 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
         self.assertEqual(coordinator.completed_by, "callback")
         self.assertEqual(coordinator.notification_count, 1)
 
+    def test_connect_ready_racing_timeout_has_single_terminal_winner(self) -> None:
+        coordinator = build_locked_coordinator()
+        coordinator.begin_connect()
+        barrier = threading.Barrier(3)
+        outcomes: list[tuple[str, bool]] = []
+
+        def ready() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(("ready", coordinator.callback_connect_ready()))
+
+        def timeout() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(("timeout", coordinator.timeout_connect()))
+
+        threads = [threading.Thread(target=ready), threading.Thread(target=timeout)]
+        for thread in threads:
+            thread.start()
+        barrier.wait(timeout=1.0)
+        for thread in threads:
+            thread.join(timeout=1.0)
+
+        self.assertEqual(len(outcomes), 2)
+        self.assertEqual(sum(1 for _, won in outcomes if won), 1)
+        result = coordinator.connect_result()
+        winner = next(name for name, won in outcomes if won)
+        if winner == "ready":
+            self.assertEqual(result.reason, "connect_ready")
+            self.assertEqual(coordinator.completed_by, "callback")
+        else:
+            self.assertEqual(result.reason, "connect_timeout")
+            self.assertEqual(coordinator.completed_by, "timeout")
+        self.assertFalse(coordinator.has_pending_connect())
+
+    def test_connect_error_racing_timeout_has_single_terminal_winner(self) -> None:
+        coordinator = build_locked_coordinator()
+        coordinator.begin_connect()
+        barrier = threading.Barrier(3)
+        outcomes: list[tuple[str, bool]] = []
+
+        def error() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(
+                ("error", coordinator.callback_connect_error(message="connect failed"))
+            )
+
+        def timeout() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(("timeout", coordinator.timeout_connect()))
+
+        threads = [threading.Thread(target=error), threading.Thread(target=timeout)]
+        for thread in threads:
+            thread.start()
+        barrier.wait(timeout=1.0)
+        for thread in threads:
+            thread.join(timeout=1.0)
+
+        self.assertEqual(len(outcomes), 2)
+        self.assertEqual(sum(1 for _, won in outcomes if won), 1)
+        result = coordinator.connect_result()
+        winner = next(name for name, won in outcomes if won)
+        if winner == "error":
+            self.assertEqual(result.reason, "connect_error")
+            self.assertEqual(result.message, "connect failed")
+            self.assertEqual(coordinator.completed_by, "callback_error")
+        else:
+            self.assertEqual(result.reason, "connect_timeout")
+            self.assertEqual(coordinator.completed_by, "timeout")
+        self.assertFalse(coordinator.has_pending_connect())
+
+    def test_duplicate_terminal_callbacks_racing_have_single_winner(self) -> None:
+        coordinator = build_locked_coordinator()
+        coordinator.begin_connect()
+        barrier = threading.Barrier(4)
+        outcomes: list[tuple[str, bool]] = []
+
+        def ready() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(("ready", coordinator.callback_connect_ready()))
+
+        def error() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(
+                ("error", coordinator.callback_connect_error(message="connect failed"))
+            )
+
+        def timeout() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(("timeout", coordinator.timeout_connect()))
+
+        threads = [
+            threading.Thread(target=ready),
+            threading.Thread(target=error),
+            threading.Thread(target=timeout),
+        ]
+        for thread in threads:
+            thread.start()
+        barrier.wait(timeout=1.0)
+        for thread in threads:
+            thread.join(timeout=1.0)
+
+        self.assertEqual(len(outcomes), 3)
+        self.assertEqual(sum(1 for _, won in outcomes if won), 1)
+        self.assertIn(
+            coordinator.connect_result().reason,
+            {"connect_ready", "connect_error", "connect_timeout"},
+        )
+        self.assertFalse(coordinator.has_pending_connect())
+
     def test_waiter_notified_on_terminal_completion(self) -> None:
         coordinator = build_locked_coordinator()
         coordinator.begin_connect()
@@ -266,6 +374,109 @@ class IBKRRuntimeCoordinatorTests(unittest.TestCase):
 
         self.assertEqual(client.disconnect_calls, 1)
         self.assertEqual(coordinator.connect_state, "disconnected")
+        self.assertEqual(coordinator.shutdown_state, "complete")
+        self.assertEqual(coordinator.thread_owner.thread_state, "stopped")
+        self.assertEqual(coordinator.disconnect_result().passed, True)
+        self.assertEqual(coordinator.disconnect_result().reason, "disconnect_complete")
+
+    def test_disconnect_during_startup_ignores_late_readiness(self) -> None:
+        coordinator, client = build_connect_coordinator()
+        coordinator.connect(host="127.0.0.1", port=7497, client_id=7, timeout=1.0)
+        self.assertTrue(client.run_entered.wait(timeout=1.0))
+        barrier = threading.Barrier(3)
+        outcomes: list[tuple[str, bool]] = []
+
+        def disconnect() -> None:
+            barrier.wait(timeout=1.0)
+            outcomes.append(("disconnect", coordinator.disconnect(timeout=1.0)))
+
+        def ready_after_disconnect() -> None:
+            barrier.wait(timeout=1.0)
+            client.run_exited.wait(timeout=1.0)
+            outcomes.append(("ready", coordinator.callback_connect_ready()))
+
+        threads = [
+            threading.Thread(target=disconnect),
+            threading.Thread(target=ready_after_disconnect),
+        ]
+        for thread in threads:
+            thread.start()
+        barrier.wait(timeout=1.0)
+        for thread in threads:
+            thread.join(timeout=1.0)
+
+        self.assertEqual(dict(outcomes), {"disconnect": True, "ready": False})
+        self.assertIsNone(coordinator.connect_result())
+        self.assertEqual(coordinator.connect_state, "disconnected")
+        self.assertEqual(coordinator.shutdown_state, "complete")
+        self.assertEqual(client.disconnect_calls, 1)
+
+    def test_join_timeout_surfaces_stuck_thread_diagnostic(self) -> None:
+        coordinator, client = build_connect_coordinator()
+        client.ignore_disconnect_stop = True
+        coordinator.connect(host="127.0.0.1", port=7497, client_id=7, timeout=1.0)
+        self.assertTrue(client.run_entered.wait(timeout=1.0))
+        self.assertTrue(coordinator.callback_connect_ready())
+
+        self.assertFalse(coordinator.disconnect(timeout=0.01))
+
+        result = coordinator.disconnect_result()
+        self.assertEqual(result.passed, False)
+        self.assertEqual(result.reason, "runtime_thread_join_timeout")
+        self.assertEqual(result.operation, "disconnect")
+        self.assertEqual(result.raw_error["thread_state"], "running")
+        self.assertEqual(coordinator.shutdown_completed_by, "join_timeout")
+        self.assertEqual(coordinator.shutdown_state, "stuck")
+        self.assertEqual(coordinator.connect_state, "connected")
+        self.assertEqual(coordinator.thread_owner.thread_state, "running")
+
+        client.stop_event.set()
+        coordinator.thread_owner.thread.join(timeout=1.0)
+
+    def test_runtime_thread_exception_surfaces_deterministic_diagnostic(self) -> None:
+        coordinator, client = build_connect_coordinator()
+        client.run_exception = RuntimeError("runtime loop crashed")
+        coordinator.connect(host="127.0.0.1", port=7497, client_id=7, timeout=1.0)
+        self.assertTrue(client.run_entered.wait(timeout=1.0))
+        self.assertTrue(client.run_exited.wait(timeout=1.0))
+
+        self.assertTrue(coordinator.disconnect(timeout=1.0))
+
+        result = coordinator.disconnect_result()
+        self.assertEqual(result.passed, False)
+        self.assertEqual(result.reason, "runtime_thread_exception")
+        self.assertEqual(result.message, "runtime loop crashed")
+        self.assertIs(result.raw_error, client.run_exception)
+        self.assertEqual(coordinator.shutdown_completed_by, "runtime_thread_exception")
+        self.assertEqual(coordinator.shutdown_state, "complete")
+        self.assertEqual(coordinator.thread_owner.thread_state, "stopped")
+
+    def test_disconnect_while_runtime_thread_exception_occurs(self) -> None:
+        coordinator, client = build_connect_coordinator()
+        client.run_exception = RuntimeError("runtime loop crashed")
+        client.run_exception_gate = threading.Event()
+        coordinator.connect(host="127.0.0.1", port=7497, client_id=7, timeout=1.0)
+        self.assertTrue(client.run_entered.wait(timeout=1.0))
+        self.assertTrue(coordinator.callback_connect_ready())
+        disconnect_started = threading.Event()
+        disconnect_outcome: list[bool] = []
+
+        def disconnect() -> None:
+            disconnect_started.set()
+            disconnect_outcome.append(coordinator.disconnect(timeout=1.0))
+
+        thread = threading.Thread(target=disconnect)
+        thread.start()
+        self.assertTrue(disconnect_started.wait(timeout=1.0))
+        self.assertTrue(client.disconnect_entered.wait(timeout=1.0))
+        client.run_exception_gate.set()
+        thread.join(timeout=1.0)
+
+        self.assertEqual(disconnect_outcome, [True])
+        result = coordinator.disconnect_result()
+        self.assertEqual(result.passed, False)
+        self.assertEqual(result.reason, "runtime_thread_exception")
+        self.assertEqual(result.message, "runtime loop crashed")
         self.assertEqual(coordinator.shutdown_state, "complete")
         self.assertEqual(coordinator.thread_owner.thread_state, "stopped")
 
@@ -502,8 +713,12 @@ class ControlledFakeRuntimeClient:
         self.run_calls = 0
         self.connect_exception: Exception | None = None
         self.disconnect_exception: Exception | None = None
+        self.run_exception: Exception | None = None
+        self.run_exception_gate: threading.Event | None = None
+        self.ignore_disconnect_stop = False
         self.connected_after_connect = True
         self.connected = False
+        self.disconnect_entered = threading.Event()
         self.events: list[str] = []
         self.run_lock_owned: list[bool] = []
         self.connect_lock_owned: list[bool] = []
@@ -514,6 +729,12 @@ class ControlledFakeRuntimeClient:
         self.run_lock_owned.append(self._lock_is_owned())
         self.events.append("run_entered")
         self.run_entered.set()
+        if self.run_exception is not None:
+            if self.run_exception_gate is not None:
+                self.run_exception_gate.wait(timeout=1.0)
+            self.events.append("run_exception")
+            self.run_exited.set()
+            raise self.run_exception
         self.stop_event.wait(timeout=2.0)
         self.events.append("run_exited")
         self.run_exited.set()
@@ -530,8 +751,10 @@ class ControlledFakeRuntimeClient:
         self.disconnect_lock_owned.append(self._lock_is_owned())
         self.disconnect_calls += 1
         self.events.append("disconnect")
+        self.disconnect_entered.set()
         self.connected = False
-        self.stop_event.set()
+        if not self.ignore_disconnect_stop:
+            self.stop_event.set()
         if self.disconnect_exception is not None:
             raise self.disconnect_exception
 

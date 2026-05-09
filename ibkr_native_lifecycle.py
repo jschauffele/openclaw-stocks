@@ -183,7 +183,6 @@ class IBKRRuntimeThreadOwner:
         except BaseException as exc:
             with self.lock:
                 self.target_exception = exc
-            raise
         finally:
             self.mark_thread_exited()
 
