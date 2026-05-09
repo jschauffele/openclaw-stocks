@@ -38,10 +38,22 @@ class CoordinatorReadinessWrapper:
         return False
 
 
+def build_native_readiness_wrapper_class(native_wrapper_class):
+    class NativeCoordinatorReadinessWrapper(
+        CoordinatorReadinessWrapper,
+        native_wrapper_class,
+    ):
+        def __init__(self, coordinator: IBKRRuntimeArbitrationCoordinator) -> None:
+            native_wrapper_class.__init__(self)
+            CoordinatorReadinessWrapper.__init__(self, coordinator)
+
+    return NativeCoordinatorReadinessWrapper
+
+
 @dataclass(frozen=True, slots=True)
 class ManualIBKRConnectSmokeBundle:
     coordinator: IBKRRuntimeArbitrationCoordinator
-    wrapper: CoordinatorReadinessWrapper
+    wrapper: object
     client: object
 
 
@@ -52,7 +64,8 @@ def build_manual_smoke_bundle(
 ) -> ManualIBKRConnectSmokeBundle:
     native_api = native_api_loader()
     coordinator = coordinator_factory(enabled=True)
-    wrapper = CoordinatorReadinessWrapper(coordinator)
+    wrapper_class = build_native_readiness_wrapper_class(native_api.e_wrapper)
+    wrapper = wrapper_class(coordinator)
     client = native_api.e_client(wrapper)
     coordinator.client = client
     return ManualIBKRConnectSmokeBundle(

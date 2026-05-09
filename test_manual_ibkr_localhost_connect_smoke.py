@@ -85,8 +85,13 @@ class FakeEClient:
         self.run_calls += 1
 
 
+class FakeEWrapper:
+    def __init__(self) -> None:
+        self.native_wrapper_initialized = True
+
+
 def fake_native_api_loader():
-    return SimpleNamespace(e_client=FakeEClient)
+    return SimpleNamespace(e_client=FakeEClient, e_wrapper=FakeEWrapper)
 
 
 class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
@@ -152,6 +157,77 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
 
         self.assertFalse(wrapper.connectionClosed())
+
+        self.assertEqual(coordinator.callback_calls, [])
+        self.assertEqual(coordinator.error_calls, [])
+
+    def test_manual_smoke_bundle_wrapper_subclasses_injected_native_wrapper(
+        self,
+    ) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+
+        bundle = smoke.build_manual_smoke_bundle(
+            native_api_loader=fake_native_api_loader,
+            coordinator_factory=lambda enabled: coordinator,
+        )
+
+        self.assertIsInstance(bundle.wrapper, FakeEWrapper)
+        self.assertIsInstance(bundle.wrapper, smoke.CoordinatorReadinessWrapper)
+        self.assertTrue(bundle.wrapper.native_wrapper_initialized)
+        self.assertIs(bundle.wrapper.coordinator, coordinator)
+        self.assertIs(FakeEClient.instances[0].wrapper, bundle.wrapper)
+
+    def test_native_wrapper_routes_next_valid_id_to_coordinator(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        bundle = smoke.build_manual_smoke_bundle(
+            native_api_loader=fake_native_api_loader,
+            coordinator_factory=lambda enabled: coordinator,
+        )
+
+        self.assertTrue(bundle.wrapper.nextValidId(101))
+
+        self.assertEqual(coordinator.callback_calls, [{"message": "next_valid_id"}])
+
+    def test_native_wrapper_ignores_nonfatal_status_code(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        coordinator.result = None
+        bundle = smoke.build_manual_smoke_bundle(
+            native_api_loader=fake_native_api_loader,
+            coordinator_factory=lambda enabled: coordinator,
+        )
+
+        self.assertFalse(
+            bundle.wrapper.error(-1, 2106, "HMDS data farm connection is OK:ushmds")
+        )
+
+        self.assertEqual(coordinator.error_calls, [])
+        self.assertIsNone(coordinator.connect_result())
+
+    def test_native_wrapper_routes_fatal_error_to_coordinator(self) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        bundle = smoke.build_manual_smoke_bundle(
+            native_api_loader=fake_native_api_loader,
+            coordinator_factory=lambda enabled: coordinator,
+        )
+
+        self.assertTrue(bundle.wrapper.error(-1, 502, "connect failed"))
+
+        self.assertEqual(
+            coordinator.error_calls,
+            [{"message": "connect failed", "retryable": True}],
+        )
+
+    def test_native_wrapper_connection_closed_and_connect_ack_are_accepted(
+        self,
+    ) -> None:
+        coordinator = FakeCoordinator(enabled=True)
+        bundle = smoke.build_manual_smoke_bundle(
+            native_api_loader=fake_native_api_loader,
+            coordinator_factory=lambda enabled: coordinator,
+        )
+
+        self.assertFalse(bundle.wrapper.connectionClosed())
+        self.assertFalse(bundle.wrapper.connectAck())
 
         self.assertEqual(coordinator.callback_calls, [])
         self.assertEqual(coordinator.error_calls, [])
