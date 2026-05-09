@@ -164,7 +164,9 @@ class BrokerAdapterContractTests(unittest.TestCase):
             ),
         )
 
-    def test_ibkr_skeleton_exposes_expected_broker_neutral_surface(self) -> None:
+    def test_ibkr_lifecycle_only_adapter_exposes_expected_broker_neutral_surface(
+        self,
+    ) -> None:
         adapter = IBKRBrokerAdapter()
         self.assert_common_surface(adapter)
 
@@ -180,11 +182,30 @@ class BrokerAdapterContractTests(unittest.TestCase):
                 lifecycle_async=True,
             ),
         )
+        self.assertEqual(
+            adapter.health_check(timeout_seconds=0.5),
+            BrokerLifecycleResult(
+                broker_name="ibkr",
+                operation="health_check",
+                passed=False,
+                reason="ibkr_client_disconnected",
+                message="IBKR client reports disconnected",
+                connected=False,
+                retryable=True,
+                elapsed_ms=0,
+                raw_error=None,
+            ),
+        )
+
+        for method_name in ["connect", "disconnect"]:
+            with self.subTest(lifecycle_method=method_name):
+                with self.assertRaisesRegex(
+                    NotImplementedError,
+                    "IBKR adapter skeleton only; not runtime-enabled",
+                ):
+                    getattr(adapter, method_name)(timeout_seconds=0.5)
 
         for method_name, args in [
-            ("connect", ()),
-            ("health_check", ()),
-            ("disconnect", ()),
             ("get_account_buying_power", ()),
             ("get_existing_position", ("AAPL",)),
             ("get_open_buy_order_qty", ("AAPL",)),
@@ -198,14 +219,6 @@ class BrokerAdapterContractTests(unittest.TestCase):
                     "IBKR adapter skeleton only; not runtime-enabled",
                 ):
                     getattr(adapter, method_name)(*args)
-
-        for method_name in ["connect", "health_check", "disconnect"]:
-            with self.subTest(timeout_method=method_name):
-                with self.assertRaisesRegex(
-                    NotImplementedError,
-                    "IBKR adapter skeleton only; not runtime-enabled",
-                ):
-                    getattr(adapter, method_name)(timeout_seconds=0.5)
 
 
 if __name__ == "__main__":

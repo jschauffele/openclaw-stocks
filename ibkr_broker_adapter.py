@@ -3,6 +3,7 @@ from __future__ import annotations
 from broker_interface import (
     BrokerAccountState,
     BrokerCapabilities,
+    BrokerLifecycleResult,
     BrokerOpenOrderState,
     BrokerOrderResult,
     BrokerPositionState,
@@ -24,11 +25,19 @@ class IBKRBrokerAdapter:
         bridge=None,
         registry=None,
         timeout_injector=None,
+        coordinator=None,
+        host: str = "127.0.0.1",
+        port: int = 7497,
+        client_id: int = 9107,
         enabled: bool = False,
     ) -> None:
         self.client = client
         self.native_api = native_api
         self.enabled = enabled
+        self.coordinator = coordinator
+        self.host = host
+        self.port = port
+        self.client_id = client_id
         self.registry = registry or IBKRPendingRequestRegistry()
         self.bridge = bridge or IBKRCallbackBridge(self.registry)
         self.timeout_injector = timeout_injector or IBKRTimeoutInjector(
@@ -46,14 +55,92 @@ class IBKRBrokerAdapter:
             lifecycle_async=True,
         )
 
-    def connect(self, timeout_seconds: float | None = None):
-        raise NotImplementedError(_SKELETON_MESSAGE)
+    def connect(
+        self,
+        timeout_seconds: float | None = None,
+    ) -> BrokerLifecycleResult:
+        coordinator = self._require_coordinator()
+        timeout = self._normalize_timeout(timeout_seconds)
+        coordinator.connect(
+            host=self.host,
+            port=self.port,
+            client_id=self.client_id,
+            timeout=timeout,
+        )
+        if not coordinator.wait_for_completion(timeout=timeout):
+            coordinator.timeout_connect(
+                message="IBKR adapter timed out waiting for nextValidId",
+                elapsed_ms=int(timeout * 1000),
+            )
+        result = coordinator.connect_result()
+        if result is None:
+            return BrokerLifecycleResult(
+                broker_name="ibkr",
+                operation="connect",
+                passed=False,
+                reason="connect_result_missing",
+                message="IBKR coordinator did not produce a connect result",
+                connected=False,
+                retryable=True,
+                elapsed_ms=None,
+                raw_error=None,
+            )
+        return result
 
-    def health_check(self, timeout_seconds: float | None = None):
-        raise NotImplementedError(_SKELETON_MESSAGE)
+    def health_check(
+        self,
+        timeout_seconds: float | None = None,
+    ) -> BrokerLifecycleResult:
+        connected = bool(self._client_is_connected())
+        if connected:
+            return BrokerLifecycleResult(
+                broker_name="ibkr",
+                operation="health_check",
+                passed=True,
+                reason="ibkr_client_connected",
+                message="IBKR client reports connected",
+                connected=True,
+                retryable=False,
+                elapsed_ms=0,
+                raw_error=None,
+            )
+        return BrokerLifecycleResult(
+            broker_name="ibkr",
+            operation="health_check",
+            passed=False,
+            reason="ibkr_client_disconnected",
+            message="IBKR client reports disconnected",
+            connected=False,
+            retryable=True,
+            elapsed_ms=0,
+            raw_error=None,
+        )
 
-    def disconnect(self, timeout_seconds: float | None = None):
-        raise NotImplementedError(_SKELETON_MESSAGE)
+    def disconnect(
+        self,
+        timeout_seconds: float | None = None,
+    ) -> BrokerLifecycleResult:
+        coordinator = self._require_coordinator()
+        timeout = self._normalize_timeout(timeout_seconds)
+        joined = coordinator.disconnect(timeout=timeout)
+        result = coordinator.disconnect_result()
+        if result is not None:
+            return result
+        return BrokerLifecycleResult(
+            broker_name="ibkr",
+            operation="disconnect",
+            passed=joined,
+            reason="disconnect_complete" if joined else "runtime_thread_join_timeout",
+            message=(
+                "IBKR runtime disconnected"
+                if joined
+                else "IBKR runtime thread did not stop before join timeout"
+            ),
+            connected=False,
+            retryable=not joined,
+            elapsed_ms=None,
+            raw_error=None,
+        )
 
     def get_account_buying_power(self) -> BrokerAccountState:
         raise NotImplementedError(_SKELETON_MESSAGE)
@@ -72,3 +159,22 @@ class IBKRBrokerAdapter:
 
     def normalize_order_response(self, response) -> BrokerOrderResult:
         raise NotImplementedError(_SKELETON_MESSAGE)
+
+    def _require_coordinator(self):
+        if self.coordinator is None:
+            raise NotImplementedError(_SKELETON_MESSAGE)
+        return self.coordinator
+
+    def _client_is_connected(self) -> bool:
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        is_connected = getattr(client, "isConnected", None)
+        if is_connected is None:
+            return False
+        return bool(is_connected())
+
+    def _normalize_timeout(self, timeout_seconds: float | None) -> float:
+        if timeout_seconds is None:
+            return 5.0
+        return timeout_seconds
