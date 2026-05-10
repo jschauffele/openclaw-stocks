@@ -7,6 +7,7 @@ from broker_interface import (
     BrokerAccountState,
     BrokerCapabilities,
     BrokerLifecycleResult,
+    BrokerOpenOrderState,
     BrokerPositionState,
 )
 from ibkr_broker_adapter import IBKRBrokerAdapter
@@ -87,6 +88,20 @@ class FakePositionClient:
         return True
 
 
+class FakeOpenOrdersClient:
+    def __init__(self) -> None:
+        self.req_all_open_orders_calls = 0
+        self.on_request = None
+
+    def reqAllOpenOrders(self) -> None:
+        self.req_all_open_orders_calls += 1
+        if self.on_request is not None:
+            self.on_request()
+
+    def isConnected(self) -> bool:
+        return True
+
+
 class FakeCoordinator:
     def __init__(
         self,
@@ -146,7 +161,7 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
                 supports_market_orders=False,
                 supports_account_read=True,
                 supports_positions_read=True,
-                supports_open_orders_read=False,
+                supports_open_orders_read=True,
                 supports_paper_trading=True,
                 lifecycle_async=True,
             ),
@@ -160,7 +175,6 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
         for method_name, args in [
             ("get_account_buying_power", ()),
             ("get_existing_position", ("AAPL",)),
-            ("get_open_buy_order_qty", ("AAPL",)),
             ("build_market_order", ("AAPL", 1)),
             ("submit_market_order", (object(),)),
             ("normalize_order_response", (object(),)),
@@ -621,6 +635,223 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
             adapter.bridge.position_multi(request_id=8201, symbol="AAPL", qty="9")
         )
         self.assertFalse(adapter.bridge.position_multi_end(request_id=8201))
+
+    def test_open_order_snapshot_success_issues_native_req_all_open_orders(self) -> None:
+        client = FakeOpenOrdersClient()
+        adapter = IBKRBrokerAdapter(client=client)
+
+        def complete() -> None:
+            self.assertTrue(
+                adapter.bridge.open_order(
+                    order_id=50,
+                    perm_id=1001,
+                    symbol="AAPL",
+                    side="BUY",
+                    qty="2",
+                    status="Submitted",
+                )
+            )
+            self.assertTrue(
+                adapter.bridge.open_order(
+                    order_id=51,
+                    perm_id=1002,
+                    symbol="AAPL",
+                    side="BUY",
+                    qty="1",
+                    status="PreSubmitted",
+                )
+            )
+            self.assertTrue(adapter.bridge.open_order_end())
+
+        client.on_request = complete
+
+        result = adapter.get_open_buy_order_qty("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(
+            result,
+            BrokerOpenOrderState(
+                broker_name="ibkr",
+                passed=True,
+                open_buy_order_qty=3,
+                open_buy_order_count=2,
+                reason="open_buy_orders_loaded",
+            ),
+        )
+        self.assertEqual(client.req_all_open_orders_calls, 1)
+        self.assertEqual(adapter.request_coordinator.completed_by(1), "callback")
+        self.assertFalse(adapter.request_coordinator.has_pending_request(1))
+
+    def test_open_order_snapshot_no_open_orders_returns_zero(self) -> None:
+        client = FakeOpenOrdersClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        client.on_request = adapter.bridge.open_order_end
+
+        result = adapter.get_open_buy_order_qty("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(result.passed, True)
+        self.assertEqual(result.open_buy_order_qty, 0)
+        self.assertEqual(result.open_buy_order_count, 0)
+        self.assertEqual(result.reason, "open_buy_orders_loaded")
+
+    def test_open_order_snapshot_filters_symbol_side_and_closed_statuses(self) -> None:
+        client = FakeOpenOrdersClient()
+        adapter = IBKRBrokerAdapter(client=client)
+
+        def complete() -> None:
+            adapter.bridge.open_order(
+                order_id=50,
+                symbol="MSFT",
+                side="BUY",
+                qty="9",
+                status="Submitted",
+            )
+            adapter.bridge.open_order(
+                order_id=51,
+                symbol="AAPL",
+                side="SELL",
+                qty="9",
+                status="Submitted",
+            )
+            adapter.bridge.open_order(
+                order_id=52,
+                symbol="AAPL",
+                side="BUY",
+                qty="9",
+                status="Filled",
+            )
+            adapter.bridge.open_order(
+                order_id=53,
+                symbol="AAPL",
+                side="BUY",
+                qty="9",
+                status="Cancelled",
+            )
+            adapter.bridge.open_order(
+                order_id=54,
+                symbol="AAPL",
+                side="BUY",
+                qty="9",
+                status="Inactive",
+            )
+            adapter.bridge.open_order(
+                order_id=55,
+                symbol="AAPL",
+                side="BUY",
+                qty="4",
+                status="Submitted",
+            )
+            adapter.bridge.open_order_end()
+
+        client.on_request = complete
+
+        result = adapter.get_open_buy_order_qty("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(result.open_buy_order_qty, 4)
+        self.assertEqual(result.open_buy_order_count, 1)
+
+    def test_open_order_snapshot_order_status_enriches_existing_only(self) -> None:
+        client = FakeOpenOrdersClient()
+        adapter = IBKRBrokerAdapter(client=client)
+
+        def complete() -> None:
+            self.assertTrue(
+                adapter.bridge.open_order_status_update(order_id=999, status="Filled")
+            )
+            adapter.bridge.open_order(
+                order_id=50,
+                symbol="AAPL",
+                side="BUY",
+                qty="2",
+                status="Submitted",
+            )
+            adapter.bridge.open_order_status_update(order_id=50, status="Filled")
+            adapter.bridge.open_order_end()
+
+        client.on_request = complete
+
+        result = adapter.get_open_buy_order_qty("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(result.open_buy_order_qty, 0)
+        self.assertEqual(result.open_buy_order_count, 0)
+
+    def test_open_order_snapshot_timeout_closes_generation_and_ignores_late_callbacks(
+        self,
+    ) -> None:
+        client = FakeOpenOrdersClient()
+        adapter = IBKRBrokerAdapter(client=client)
+
+        with self.assertRaisesRegex(
+            TimeoutError,
+            "generation=1, error=open_order_snapshot_incomplete",
+        ):
+            adapter.get_open_buy_order_qty("AAPL", timeout_seconds=0.001)
+
+        result = adapter.request_coordinator.result(1)
+        self.assertEqual(result.error, "open_order_snapshot_incomplete")
+        self.assertEqual(adapter.request_coordinator.completed_by(1), "timeout")
+        self.assertFalse(adapter.request_coordinator.has_pending_request(1))
+        self.assertFalse(
+            adapter.bridge.open_order(
+                order_id=50,
+                symbol="AAPL",
+                side="BUY",
+                qty="9",
+                status="Submitted",
+            )
+        )
+        self.assertFalse(adapter.bridge.open_order_end())
+
+    def test_open_order_snapshot_duplicate_end_and_late_callbacks_ignored(self) -> None:
+        client = FakeOpenOrdersClient()
+        adapter = IBKRBrokerAdapter(client=client)
+
+        def complete() -> None:
+            adapter.bridge.open_order(
+                order_id=50,
+                symbol="AAPL",
+                side="BUY",
+                qty="2",
+                status="Submitted",
+            )
+            self.assertTrue(adapter.bridge.open_order_end())
+            self.assertFalse(adapter.bridge.open_order_end())
+            self.assertFalse(
+                adapter.bridge.open_order(
+                    order_id=51,
+                    symbol="AAPL",
+                    side="BUY",
+                    qty="9",
+                    status="Submitted",
+                )
+            )
+
+        client.on_request = complete
+
+        result = adapter.get_open_buy_order_qty("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(result.open_buy_order_qty, 2)
+        self.assertEqual(result.open_buy_order_count, 1)
+        self.assertEqual(adapter.request_coordinator.notification_count, 1)
+
+    def test_open_order_snapshot_concurrent_begin_rejected(self) -> None:
+        client = FakeOpenOrdersClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        nested_error = []
+
+        def complete() -> None:
+            with self.assertRaisesRegex(RuntimeError, "already active") as context:
+                adapter.get_open_buy_order_qty("MSFT", timeout_seconds=0.001)
+            nested_error.append(str(context.exception))
+            adapter.bridge.open_order_end()
+
+        client.on_request = complete
+
+        result = adapter.get_open_buy_order_qty("AAPL", timeout_seconds=0.25)
+
+        self.assertEqual(result.open_buy_order_qty, 0)
+        self.assertEqual(nested_error, ["IBKR open-order snapshot already active"])
+        self.assertEqual(client.req_all_open_orders_calls, 1)
+        self.assertFalse(adapter.request_coordinator.has_pending_request(1))
 
     def test_position_wrong_and_missing_req_id_callbacks_are_ignored(self) -> None:
         client = FakePositionClient()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+
 from broker_interface import (
     BrokerAccountState,
     BrokerLifecycleResult,
@@ -32,6 +34,7 @@ class IBKRCallbackBridge:
         self._active_open_orders_generation: int | None = None
         self._latest_completed_open_orders_generation: int | None = None
         self._completed_open_orders_results: dict[int, BrokerOpenOrderState] = {}
+        self._open_orders_lock = threading.RLock()
 
     def begin_lifecycle(self, *, operation: str = "connect") -> None:
         self.registry.register_lifecycle(
@@ -62,16 +65,21 @@ class IBKRCallbackBridge:
         symbol: str,
         request_id: object | None = None,
     ) -> int:
-        if self._active_open_orders_generation is not None:
-            raise RuntimeError("IBKR open-order snapshot already active")
-        self._open_orders_generation += 1
-        generation = self._open_orders_generation
-        self._active_open_orders_generation = generation
-        self.registry.register_request(
-            generation,
-            IBKROpenOrdersSnapshotAggregator(symbol=symbol, generation=generation),
-        )
-        return generation
+        with self._open_orders_lock:
+            if self._active_open_orders_generation is not None:
+                raise RuntimeError("IBKR open-order snapshot already active")
+            self._open_orders_generation += 1
+            generation = self._open_orders_generation
+            aggregator = IBKROpenOrdersSnapshotAggregator(
+                symbol=symbol,
+                generation=generation,
+            )
+            if self.request_coordinator is not None:
+                self.request_coordinator.register_request(generation, aggregator)
+            else:
+                self.registry.register_request(generation, aggregator)
+            self._active_open_orders_generation = generation
+            return generation
 
     def begin_order_status(self, *, order_id: object) -> None:
         self.registry.register_order(
@@ -291,12 +299,11 @@ class IBKRCallbackBridge:
         perm_id: object | None = None,
         request_id: object | None = None,
     ) -> bool:
-        generation = self._active_open_orders_generation
-        if generation is None:
-            return False
-        return self.registry.route_request_event(
-            generation,
-            {
+        with self._open_orders_lock:
+            generation = self._active_open_orders_generation
+            if generation is None:
+                return False
+            event = {
                 "event_type": "open_order",
                 "generation": generation,
                 "order_id": order_id,
@@ -305,8 +312,10 @@ class IBKRCallbackBridge:
                 "side": side,
                 "qty": qty,
                 "status": status,
-            },
-        )
+            }
+            if self.request_coordinator is not None:
+                return self.request_coordinator.route_callback(generation, event)
+            return self.registry.route_request_event(generation, event)
 
     def open_order_status_update(
         self,
@@ -315,53 +324,70 @@ class IBKRCallbackBridge:
         status: str,
         perm_id: object | None = None,
     ) -> bool:
-        generation = self._active_open_orders_generation
-        if generation is None:
-            return False
-        return self.registry.route_request_event(
-            generation,
-            {
+        with self._open_orders_lock:
+            generation = self._active_open_orders_generation
+            if generation is None:
+                return False
+            event = {
                 "event_type": "order_status",
                 "generation": generation,
                 "order_id": order_id,
                 "perm_id": perm_id,
                 "status": status,
-            },
-        )
+            }
+            if self.request_coordinator is not None:
+                return self.request_coordinator.route_callback(generation, event)
+            return self.registry.route_request_event(generation, event)
 
     def open_order_end(self, *, request_id: object | None = None) -> bool:
-        generation = self._active_open_orders_generation
-        if generation is None:
-            return False
-        routed = self.registry.route_request_event(
-            generation,
-            {
+        with self._open_orders_lock:
+            generation = self._active_open_orders_generation
+            if generation is None:
+                return False
+            event = {
                 "event_type": "open_order_end",
                 "generation": generation,
-            },
-        )
-        if not routed:
-            return False
-        aggregator = self.registry.pop_request(generation)
-        if aggregator is None:
-            return False
-        self._completed_open_orders_results[generation] = aggregator.result()
-        self._latest_completed_open_orders_generation = generation
-        self._active_open_orders_generation = None
-        return True
+            }
+            if self.request_coordinator is not None:
+                routed = self.request_coordinator.route_callback(generation, event)
+                if not routed:
+                    return False
+                completed = self.request_coordinator.complete_from_callback(generation)
+                if not completed:
+                    return False
+                result = self.request_coordinator.result(generation)
+            else:
+                routed = self.registry.route_request_event(generation, event)
+                if not routed:
+                    return False
+                aggregator = self.registry.pop_request(generation)
+                if aggregator is None:
+                    return False
+                result = aggregator.result()
+            self._completed_open_orders_results[generation] = result
+            self._latest_completed_open_orders_generation = generation
+            self._active_open_orders_generation = None
+            return True
 
     def timeout_open_orders_snapshot(self) -> BrokerOpenOrderState:
-        generation = self._active_open_orders_generation
-        if generation is None:
-            raise KeyError("No active IBKR open-order snapshot")
-        aggregator = self.registry.pop_request(generation)
-        if aggregator is None:
-            raise KeyError(f"No pending IBKR open-order snapshot: {generation}")
-        result = aggregator.result()
-        self._completed_open_orders_results[generation] = result
-        self._latest_completed_open_orders_generation = generation
-        self._active_open_orders_generation = None
-        return result
+        with self._open_orders_lock:
+            generation = self._active_open_orders_generation
+            if generation is None:
+                raise KeyError("No active IBKR open-order snapshot")
+            if self.request_coordinator is not None:
+                timed_out = self.request_coordinator.timeout_request(generation)
+                if not timed_out:
+                    raise KeyError(f"No pending IBKR open-order snapshot: {generation}")
+                result = self.request_coordinator.result(generation)
+            else:
+                aggregator = self.registry.pop_request(generation)
+                if aggregator is None:
+                    raise KeyError(f"No pending IBKR open-order snapshot: {generation}")
+                result = aggregator.result()
+            self._completed_open_orders_results[generation] = result
+            self._latest_completed_open_orders_generation = generation
+            self._active_open_orders_generation = None
+            return result
 
     def order_status(self, *, order_id: object, status: str) -> bool:
         return self.registry.route_order_event(

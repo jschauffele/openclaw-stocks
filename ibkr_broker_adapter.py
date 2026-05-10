@@ -70,7 +70,7 @@ class IBKRBrokerAdapter:
             supports_market_orders=False,
             supports_account_read=True,
             supports_positions_read=True,
-            supports_open_orders_read=False,
+            supports_open_orders_read=True,
             supports_paper_trading=True,
             lifecycle_async=True,
         )
@@ -231,8 +231,38 @@ class IBKRBrokerAdapter:
         finally:
             self._cancel_positions_multi(request_id)
 
-    def get_open_buy_order_qty(self, symbol: str) -> BrokerOpenOrderState:
-        raise NotImplementedError(_SKELETON_MESSAGE)
+    def get_open_buy_order_qty(
+        self,
+        symbol: str,
+        timeout_seconds: float | None = None,
+    ) -> BrokerOpenOrderState:
+        client = self._require_open_orders_client()
+        timeout = self._normalize_timeout(timeout_seconds)
+        generation = self.bridge.begin_open_orders_snapshot(symbol=symbol)
+
+        try:
+            client.reqAllOpenOrders()
+        except Exception:
+            self.bridge.timeout_open_orders_snapshot()
+            raise
+        if not self.request_coordinator.wait_for_completion(
+            generation,
+            timeout=timeout,
+        ):
+            result = self.bridge.timeout_open_orders_snapshot()
+            raise TimeoutError(
+                "IBKR open-order request timed out: "
+                f"generation={generation}, error={result.error}"
+            )
+        result = self.request_coordinator.result(generation)
+        if result is None:
+            raise RuntimeError(
+                "IBKR open-order request produced no result: "
+                f"generation={generation}"
+            )
+        if isinstance(result, Exception):
+            raise result
+        return result
 
     def build_market_order(self, symbol: str, qty: int):
         raise NotImplementedError(_SKELETON_MESSAGE)
@@ -261,6 +291,14 @@ class IBKRBrokerAdapter:
         if client is None and self.coordinator is not None:
             client = getattr(self.coordinator, "client", None)
         if getattr(client, "reqPositionsMulti", None) is None:
+            raise NotImplementedError(_SKELETON_MESSAGE)
+        return client
+
+    def _require_open_orders_client(self):
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        if getattr(client, "reqAllOpenOrders", None) is None:
             raise NotImplementedError(_SKELETON_MESSAGE)
         return client
 

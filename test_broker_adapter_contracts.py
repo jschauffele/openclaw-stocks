@@ -177,7 +177,7 @@ class BrokerAdapterContractTests(unittest.TestCase):
                 supports_market_orders=False,
                 supports_account_read=True,
                 supports_positions_read=True,
-                supports_open_orders_read=False,
+                supports_open_orders_read=True,
                 supports_paper_trading=True,
                 lifecycle_async=True,
             ),
@@ -208,7 +208,6 @@ class BrokerAdapterContractTests(unittest.TestCase):
         for method_name, args in [
             ("get_account_buying_power", ()),
             ("get_existing_position", ("AAPL",)),
-            ("get_open_buy_order_qty", ("AAPL",)),
             ("build_market_order", ("AAPL", 1)),
             ("submit_market_order", (object(),)),
             ("normalize_order_response", (object(),)),
