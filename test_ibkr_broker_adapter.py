@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from broker_interface import (
@@ -8,6 +9,7 @@ from broker_interface import (
     BrokerCapabilities,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
+    BrokerOrderResult,
     BrokerPositionState,
 )
 from ibkr_broker_adapter import IBKRBrokerAdapter
@@ -102,6 +104,22 @@ class FakeOpenOrdersClient:
         return True
 
 
+class FakeOrderClient:
+    def __init__(self) -> None:
+        self.place_order_calls = []
+        self.on_place_order = None
+
+    def placeOrder(self, order_id, contract, order) -> None:
+        self.place_order_calls.append(
+            {"order_id": order_id, "contract": contract, "order": order}
+        )
+        if self.on_place_order is not None:
+            self.on_place_order(order_id, contract, order)
+
+    def isConnected(self) -> bool:
+        return True
+
+
 class FakeCoordinator:
     def __init__(
         self,
@@ -158,7 +176,7 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
             adapter.get_capabilities(),
             BrokerCapabilities(
                 broker_name="ibkr",
-                supports_market_orders=False,
+                supports_market_orders=True,
                 supports_account_read=True,
                 supports_positions_read=True,
                 supports_open_orders_read=True,
@@ -680,6 +698,273 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
         self.assertEqual(client.req_all_open_orders_calls, 1)
         self.assertEqual(adapter.request_coordinator.completed_by(1), "callback")
         self.assertFalse(adapter.request_coordinator.has_pending_request(1))
+
+    def test_submit_market_order_acknowledged_by_open_order(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=101)
+        payload = SimpleNamespace(contract=object(), order=object())
+        registration_seen = []
+
+        def acknowledge(order_id, contract, order) -> None:
+            registration_seen.append(
+                adapter.request_coordinator.has_pending_request(order_id)
+            )
+            self.assertTrue(
+                adapter.bridge.open_order(
+                    order_id=order_id,
+                    symbol="AAPL",
+                    side="BUY",
+                    qty="1",
+                    status="Submitted",
+                )
+            )
+
+        client.on_place_order = acknowledge
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(
+            result,
+            BrokerOrderResult(
+                broker_name="ibkr",
+                order_id="101",
+                order_status="submitted",
+                broker_status="Submitted",
+                is_terminal=False,
+                raw_response=result.raw_response,
+            ),
+        )
+        self.assertEqual(client.place_order_calls[0]["order_id"], 101)
+        self.assertEqual(registration_seen, [True])
+        self.assertEqual(adapter.request_coordinator.completed_by(101), "callback")
+        self.assertFalse(adapter.request_coordinator.has_pending_request(101))
+
+    def test_submit_market_order_submitted_status_acknowledges(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=201)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        def acknowledge(order_id, contract, order) -> None:
+            self.assertTrue(
+                adapter.bridge.order_status(order_id=order_id, status="Submitted")
+            )
+
+        client.on_place_order = acknowledge
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(result.order_id, "201")
+        self.assertEqual(result.order_status, "submitted")
+        self.assertEqual(result.broker_status, "Submitted")
+        self.assertEqual(result.is_terminal, False)
+
+    def test_submit_market_order_presubmitted_status_acknowledges(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=202)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        def acknowledge(order_id, contract, order) -> None:
+            adapter.bridge.order_status(order_id=order_id, status="PreSubmitted")
+
+        client.on_place_order = acknowledge
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(result.order_status, "submitted")
+        self.assertEqual(result.broker_status, "PreSubmitted")
+        self.assertEqual(result.is_terminal, False)
+
+    def test_submit_market_order_pending_submit_status_acknowledges(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=204)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        def acknowledge(order_id, contract, order) -> None:
+            adapter.bridge.order_status(order_id=order_id, status="PendingSubmit")
+
+        client.on_place_order = acknowledge
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(result.order_status, "submitted")
+        self.assertEqual(result.broker_status, "PendingSubmit")
+        self.assertEqual(result.is_terminal, False)
+
+    def test_submit_market_order_terminal_rejection_acknowledges(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=203)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        def reject(order_id, contract, order) -> None:
+            adapter.bridge.order_status(order_id=order_id, status="Rejected")
+
+        client.on_place_order = reject
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(result.order_status, "rejected")
+        self.assertEqual(result.broker_status, "Rejected")
+        self.assertEqual(result.is_terminal, True)
+
+    def test_submit_market_order_read_only_error_rejects(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=205)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        def reject(order_id, contract, order) -> None:
+            adapter.bridge.order_error(
+                order_id=order_id,
+                code=321,
+                message="The API interface is currently in Read-Only mode.",
+            )
+
+        client.on_place_order = reject
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(result.order_id, "205")
+        self.assertEqual(result.order_status, "rejected")
+        self.assertEqual(result.broker_status, "error")
+        self.assertTrue(result.is_terminal)
+        self.assertEqual(result.raw_response["code"], 321)
+        self.assertEqual(adapter.request_coordinator.completed_by(205), "callback")
+
+    def test_submit_market_order_etradeonly_warning_then_filled_completes_filled(
+        self,
+    ) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=206)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        def warn_then_fill(order_id, contract, order) -> None:
+            self.assertTrue(
+                adapter.bridge.order_error(
+                    order_id=order_id,
+                    code=10268,
+                    message="The 'EtradeOnly' order attribute is not supported.",
+                )
+            )
+            self.assertTrue(
+                adapter.request_coordinator.has_pending_request(order_id)
+            )
+            adapter.bridge.order_status(order_id=order_id, status="Filled")
+
+        client.on_place_order = warn_then_fill
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(result.order_id, "206")
+        self.assertEqual(result.order_status, "filled")
+        self.assertEqual(result.broker_status, "Filled")
+        self.assertTrue(result.is_terminal)
+        self.assertEqual(result.raw_response["warnings"][0]["code"], 10268)
+
+    def test_submit_market_order_timeout_requires_reconciliation(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=301)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.001)
+
+        self.assertEqual(result.order_id, "301")
+        self.assertEqual(result.order_status, "reconciliation_required")
+        self.assertIsNone(result.broker_status)
+        self.assertFalse(result.is_terminal)
+        self.assertEqual(adapter.request_coordinator.completed_by(301), "timeout")
+        self.assertFalse(adapter.request_coordinator.has_pending_request(301))
+        self.assertFalse(adapter.bridge.order_status(order_id=301, status="Submitted"))
+
+    def test_submit_market_order_duplicate_callback_ignored_after_ack(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=401)
+        payload = SimpleNamespace(contract=object(), order=object())
+        callback_routes = []
+
+        def acknowledge_twice(order_id, contract, order) -> None:
+            callback_routes.append(
+                adapter.bridge.order_status(order_id=order_id, status="Submitted")
+            )
+            callback_routes.append(
+                adapter.bridge.order_status(order_id=order_id, status="Filled")
+            )
+
+        client.on_place_order = acknowledge_twice
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(callback_routes, [True, False])
+        self.assertEqual(result.order_status, "submitted")
+        self.assertEqual(result.broker_status, "Submitted")
+        self.assertEqual(adapter.request_coordinator.notification_count, 1)
+
+    def test_order_id_allocator_is_monotonic(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=501)
+        payload = SimpleNamespace(contract=object(), order=object())
+
+        def acknowledge(order_id, contract, order) -> None:
+            adapter.bridge.order_status(order_id=order_id, status="Submitted")
+
+        client.on_place_order = acknowledge
+
+        first = adapter.submit_market_order(payload, timeout_seconds=0.25)
+        second = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(first.order_id, "501")
+        self.assertEqual(second.order_id, "502")
+        self.assertEqual(
+            [call["order_id"] for call in client.place_order_calls],
+            [501, 502],
+        )
+
+    def test_order_id_allocator_advances_on_reconnect_floor(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        payload = SimpleNamespace(contract=object(), order=object())
+        client.on_place_order = lambda order_id, contract, order: adapter.bridge.order_status(
+            order_id=order_id,
+            status="Submitted",
+        )
+
+        adapter.bridge.next_valid_id(order_id=601)
+        first = adapter.submit_market_order(payload, timeout_seconds=0.25)
+        adapter.bridge.next_valid_id(order_id=650)
+        second = adapter.submit_market_order(payload, timeout_seconds=0.25)
+        adapter.bridge.next_valid_id(order_id=620)
+        third = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual([first.order_id, second.order_id, third.order_id], ["601", "650", "651"])
+
+    def test_submit_market_order_concurrent_placement_rejected_for_now(self) -> None:
+        client = FakeOrderClient()
+        adapter = IBKRBrokerAdapter(client=client)
+        adapter.bridge.next_valid_id(order_id=701)
+        payload = SimpleNamespace(contract=object(), order=object())
+        nested_errors = []
+
+        def acknowledge(order_id, contract, order) -> None:
+            with self.assertRaisesRegex(RuntimeError, "already active") as context:
+                adapter.submit_market_order(payload, timeout_seconds=0.001)
+            nested_errors.append(str(context.exception))
+            adapter.bridge.order_status(order_id=order_id, status="Submitted")
+
+        client.on_place_order = acknowledge
+
+        result = adapter.submit_market_order(payload, timeout_seconds=0.25)
+
+        self.assertEqual(result.order_id, "701")
+        self.assertEqual(nested_errors, ["IBKR order placement already active"])
+        self.assertEqual(len(client.place_order_calls), 1)
 
     def test_open_order_snapshot_no_open_orders_returns_zero(self) -> None:
         client = FakeOpenOrdersClient()

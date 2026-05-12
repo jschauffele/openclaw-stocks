@@ -13,6 +13,7 @@ from fake_ibkr_callback_state_machine import (
     IBKRAccountSnapshotAggregator,
     IBKRLifecycleAggregator,
     IBKROpenOrdersSnapshotAggregator,
+    IBKROrderSubmissionAckAggregator,
     IBKROrderStatusAggregator,
     IBKRPositionSnapshotAggregator,
 )
@@ -35,6 +36,7 @@ class IBKRCallbackBridge:
         self._latest_completed_open_orders_generation: int | None = None
         self._completed_open_orders_results: dict[int, BrokerOpenOrderState] = {}
         self._open_orders_lock = threading.RLock()
+        self._latest_next_valid_id: int | None = None
 
     def begin_lifecycle(self, *, operation: str = "connect") -> None:
         self.registry.register_lifecycle(
@@ -86,6 +88,13 @@ class IBKRCallbackBridge:
             order_id,
             IBKROrderStatusAggregator(order_id=str(order_id)),
         )
+
+    def begin_order_submission(self, *, order_id: object) -> None:
+        aggregator = IBKROrderSubmissionAckAggregator(order_id=str(order_id))
+        if self.request_coordinator is not None:
+            self.request_coordinator.register_request(order_id, aggregator)
+            return
+        self.registry.register_request(order_id, aggregator)
 
     def complete_lifecycle(self, *, operation: str = "connect") -> BrokerLifecycleResult:
         aggregator = self.registry.pop_lifecycle(operation)
@@ -176,12 +185,20 @@ class IBKRCallbackBridge:
         )
 
     def next_valid_id(self, *, order_id: object) -> bool:
+        try:
+            self._latest_next_valid_id = int(order_id)
+        except (TypeError, ValueError):
+            pass
         routed = self.connect_ready(message="next_valid_id")
         routed_order = self.registry.route_order_event(
             order_id,
             {"event_type": "next_valid_id", "order_id": order_id},
         )
         return routed or routed_order
+
+    @property
+    def latest_next_valid_id(self) -> int | None:
+        return self._latest_next_valid_id
 
     def account_value(self, *, request_id: object, buying_power: object) -> bool:
         return self.account_summary(request_id=request_id, buying_power=buying_power)
@@ -301,8 +318,21 @@ class IBKRCallbackBridge:
     ) -> bool:
         with self._open_orders_lock:
             generation = self._active_open_orders_generation
+            routed_snapshot = False
+            routed_submission = self._route_order_submission_event(
+                order_id,
+                {
+                    "event_type": "open_order",
+                    "order_id": order_id,
+                    "perm_id": perm_id,
+                    "symbol": symbol,
+                    "side": side,
+                    "qty": qty,
+                    "status": status,
+                },
+            )
             if generation is None:
-                return False
+                return routed_submission
             event = {
                 "event_type": "open_order",
                 "generation": generation,
@@ -314,8 +344,13 @@ class IBKRCallbackBridge:
                 "status": status,
             }
             if self.request_coordinator is not None:
-                return self.request_coordinator.route_callback(generation, event)
-            return self.registry.route_request_event(generation, event)
+                routed_snapshot = self.request_coordinator.route_callback(
+                    generation,
+                    event,
+                )
+            else:
+                routed_snapshot = self.registry.route_request_event(generation, event)
+            return routed_snapshot or routed_submission
 
     def open_order_status_update(
         self,
@@ -326,8 +361,18 @@ class IBKRCallbackBridge:
     ) -> bool:
         with self._open_orders_lock:
             generation = self._active_open_orders_generation
+            routed_snapshot = False
+            routed_submission = self._route_order_submission_event(
+                order_id,
+                {
+                    "event_type": "order_status",
+                    "order_id": order_id,
+                    "perm_id": perm_id,
+                    "status": status,
+                },
+            )
             if generation is None:
-                return False
+                return routed_submission
             event = {
                 "event_type": "order_status",
                 "generation": generation,
@@ -336,8 +381,13 @@ class IBKRCallbackBridge:
                 "status": status,
             }
             if self.request_coordinator is not None:
-                return self.request_coordinator.route_callback(generation, event)
-            return self.registry.route_request_event(generation, event)
+                routed_snapshot = self.request_coordinator.route_callback(
+                    generation,
+                    event,
+                )
+            else:
+                routed_snapshot = self.registry.route_request_event(generation, event)
+            return routed_snapshot or routed_submission
 
     def open_order_end(self, *, request_id: object | None = None) -> bool:
         with self._open_orders_lock:
@@ -390,7 +440,7 @@ class IBKRCallbackBridge:
             return result
 
     def order_status(self, *, order_id: object, status: str) -> bool:
-        return self.registry.route_order_event(
+        routed_submission = self._route_order_submission_event(
             order_id,
             {
                 "event_type": "order_status",
@@ -398,3 +448,78 @@ class IBKRCallbackBridge:
                 "status": status,
             },
         )
+        routed_order = self.registry.route_order_event(
+            order_id,
+            {
+                "event_type": "order_status",
+                "order_id": order_id,
+                "status": status,
+            },
+        )
+        return routed_submission or routed_order
+
+    def order_error(
+        self,
+        *,
+        order_id: object,
+        code: object,
+        message: str,
+        advanced_order_reject_json: object | None = None,
+    ) -> bool:
+        return self._route_order_submission_event(
+            order_id,
+            {
+                "event_type": "order_error",
+                "order_id": order_id,
+                "code": code,
+                "message": message,
+                "advanced_order_reject_json": advanced_order_reject_json,
+            },
+        )
+
+    def timeout_order_submission(self, *, order_id: object) -> BrokerOrderResult:
+        event = {
+            "event_type": "timeout",
+            "operation": "submit_market_order",
+            "order_id": order_id,
+        }
+        if self.request_coordinator is not None:
+            routed = self.request_coordinator.route_callback(order_id, event)
+            if not routed:
+                raise KeyError(f"No pending IBKR order submission: {order_id}")
+            timed_out = self.request_coordinator.timeout_request(order_id)
+            if not timed_out:
+                raise KeyError(f"No pending IBKR order submission: {order_id}")
+            result = self.request_coordinator.result(order_id)
+            if isinstance(result, Exception):
+                raise result
+            return result
+        aggregator = self.registry.pop_request(order_id)
+        if aggregator is None:
+            raise KeyError(f"No pending IBKR order submission: {order_id}")
+        aggregator.on_event(event)
+        return aggregator.result()
+
+    def stale_order_submission(self, *, order_id: object) -> bool:
+        return False
+
+    def _route_order_submission_event(
+        self,
+        order_id: object,
+        event: dict[str, object],
+    ) -> bool:
+        if order_id is None:
+            return False
+        if self.request_coordinator is not None:
+            routed = self.request_coordinator.route_callback(order_id, event)
+            if not routed:
+                return False
+            aggregator = self.registry.get_request(order_id)
+            if getattr(aggregator, "acknowledged", False):
+                return self.request_coordinator.complete_from_callback(order_id)
+            return True
+        aggregator = self.registry.get_request(order_id)
+        if aggregator is None:
+            return False
+        aggregator.on_event(event)
+        return True

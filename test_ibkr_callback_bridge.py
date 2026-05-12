@@ -472,6 +472,229 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
         self.assertEqual(result.broker_status, "Filled")
         self.assertEqual(result.is_terminal, True)
 
+    def test_order_submission_open_order_ack_completes_request_coordinator(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=101)
+
+        self.assertTrue(
+            bridge.open_order(
+                order_id=101,
+                symbol="AAPL",
+                side="BUY",
+                qty="1",
+                status="Submitted",
+            )
+        )
+        self.assertFalse(
+            bridge.open_order(
+                order_id=101,
+                symbol="AAPL",
+                side="BUY",
+                qty="1",
+                status="Filled",
+            )
+        )
+
+        result = request_coordinator.result(101)
+
+        self.assertEqual(result.order_status, "submitted")
+        self.assertEqual(result.broker_status, "Submitted")
+        self.assertEqual(result.is_terminal, False)
+        self.assertEqual(request_coordinator.completed_by(101), "callback")
+        self.assertFalse(request_coordinator.has_pending_request(101))
+
+    def test_order_submission_status_ack_completes_request_coordinator(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=102)
+
+        self.assertTrue(bridge.order_status(order_id=102, status="PreSubmitted"))
+        self.assertFalse(bridge.order_status(order_id=102, status="Filled"))
+
+        result = request_coordinator.result(102)
+
+        self.assertEqual(result.order_status, "submitted")
+        self.assertEqual(result.broker_status, "PreSubmitted")
+        self.assertFalse(result.is_terminal)
+
+    def test_order_submission_api_cancelled_is_terminal_canceled(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=105)
+
+        self.assertTrue(bridge.order_status(order_id=105, status="ApiCancelled"))
+
+        result = request_coordinator.result(105)
+
+        self.assertEqual(result.order_status, "canceled")
+        self.assertEqual(result.broker_status, "ApiCancelled")
+        self.assertTrue(result.is_terminal)
+
+    def test_order_submission_timeout_is_reconciliation_required(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=103)
+
+        result = bridge.timeout_order_submission(order_id=103)
+
+        self.assertEqual(result.order_status, "reconciliation_required")
+        self.assertEqual(result.order_id, "103")
+        self.assertFalse(result.is_terminal)
+        self.assertEqual(request_coordinator.completed_by(103), "timeout")
+        self.assertFalse(request_coordinator.has_pending_request(103))
+        self.assertFalse(bridge.order_status(order_id=103, status="Submitted"))
+
+    def test_order_submission_error_completes_as_rejected(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=106)
+
+        self.assertTrue(
+            bridge.order_error(
+                order_id=106,
+                code=321,
+                message="The API interface is currently in Read-Only mode.",
+            )
+        )
+
+        result = request_coordinator.result(106)
+
+        self.assertEqual(result.order_id, "106")
+        self.assertEqual(result.order_status, "rejected")
+        self.assertEqual(result.broker_status, "error")
+        self.assertTrue(result.is_terminal)
+        self.assertEqual(result.raw_response["code"], 321)
+        self.assertEqual(request_coordinator.completed_by(106), "callback")
+        self.assertFalse(request_coordinator.has_pending_request(106))
+
+    def test_order_submission_etradeonly_warning_does_not_complete(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=109)
+
+        self.assertTrue(
+            bridge.order_error(
+                order_id=109,
+                code=10268,
+                message="The 'EtradeOnly' order attribute is not supported.",
+            )
+        )
+
+        self.assertIsNone(request_coordinator.result(109))
+        self.assertIsNone(request_coordinator.completed_by(109))
+        self.assertTrue(request_coordinator.has_pending_request(109))
+
+    def test_order_submission_etradeonly_warning_then_filled_completes_filled(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=110)
+
+        self.assertTrue(
+            bridge.order_error(
+                order_id=110,
+                code=10268,
+                message="The 'EtradeOnly' order attribute is not supported.",
+            )
+        )
+        self.assertTrue(bridge.order_status(order_id=110, status="Filled"))
+
+        result = request_coordinator.result(110)
+
+        self.assertEqual(result.order_status, "filled")
+        self.assertEqual(result.broker_status, "Filled")
+        self.assertTrue(result.is_terminal)
+        self.assertEqual(result.raw_response["warnings"][0]["code"], 10268)
+        self.assertEqual(request_coordinator.completed_by(110), "callback")
+
+    def test_order_submission_etradeonly_warning_then_submitted_completes_submitted(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=111)
+
+        self.assertTrue(
+            bridge.order_error(
+                order_id=111,
+                code=10268,
+                message="The 'EtradeOnly' order attribute is not supported.",
+            )
+        )
+        self.assertTrue(bridge.order_status(order_id=111, status="Submitted"))
+
+        result = request_coordinator.result(111)
+
+        self.assertEqual(result.order_status, "submitted")
+        self.assertEqual(result.broker_status, "Submitted")
+        self.assertFalse(result.is_terminal)
+        self.assertEqual(result.raw_response["warnings"][0]["code"], 10268)
+
+    def test_wrong_order_error_is_ignored(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=107)
+
+        self.assertFalse(
+            bridge.order_error(
+                order_id=999,
+                code=321,
+                message="The API interface is currently in Read-Only mode.",
+            )
+        )
+        result = bridge.timeout_order_submission(order_id=107)
+
+        self.assertEqual(result.order_status, "reconciliation_required")
+        self.assertFalse(result.is_terminal)
+
+    def test_timeout_after_only_etradeonly_warning_requires_reconciliation(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=112)
+
+        self.assertTrue(
+            bridge.order_error(
+                order_id=112,
+                code=10268,
+                message="The 'EtradeOnly' order attribute is not supported.",
+            )
+        )
+        result = bridge.timeout_order_submission(order_id=112)
+
+        self.assertEqual(result.order_status, "reconciliation_required")
+        self.assertFalse(result.is_terminal)
+        self.assertNotEqual(result.order_status, "rejected")
+
+    def test_late_order_status_after_error_rejection_does_not_mutate_result(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=108)
+
+        self.assertTrue(
+            bridge.order_error(
+                order_id=108,
+                code=321,
+                message="The API interface is currently in Read-Only mode.",
+            )
+        )
+        before = request_coordinator.result(108)
+        self.assertFalse(bridge.order_status(order_id=108, status="Submitted"))
+        after = request_coordinator.result(108)
+
+        self.assertIs(after, before)
+        self.assertEqual(after.order_status, "rejected")
+        self.assertEqual(after.broker_status, "error")
+
+    def test_order_submission_stale_callback_is_ignored(self) -> None:
+        request_coordinator = IBKRRequestCoordinator()
+        bridge = IBKRCallbackBridge(request_coordinator=request_coordinator)
+        bridge.begin_order_submission(order_id=104)
+
+        self.assertFalse(bridge.order_status(order_id=999, status="Submitted"))
+        self.assertFalse(bridge.stale_order_submission(order_id=104))
+        result = bridge.timeout_order_submission(order_id=104)
+
+        self.assertEqual(result.order_status, "reconciliation_required")
+        self.assertFalse(result.is_terminal)
+
 
 if __name__ == "__main__":
     unittest.main()

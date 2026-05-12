@@ -391,6 +391,114 @@ class IBKROrderStatusAggregator:
         )
 
 
+class IBKROrderSubmissionAckAggregator:
+    def __init__(self, *, order_id: str) -> None:
+        self.order_id = str(order_id)
+        self._last_broker_status: str | None = None
+        self._last_order_status: str | None = None
+        self._last_raw_event: Event | None = None
+        self._is_terminal = False
+        self._acknowledged = False
+        self._timeout = False
+        self._stale = False
+        self._rejected = False
+        self._warning_events: list[Event] = []
+
+    def on_event(self, event: Event) -> None:
+        if self._acknowledged or self._timeout or self._stale:
+            return
+        if not _strict_matches_order_id(event, self.order_id):
+            return
+
+        event_type = event.get("event_type")
+        if event_type == "stale":
+            self._stale = True
+            self._last_raw_event = event
+            return
+
+        if event_type == "timeout" and event.get("operation") == "submit_market_order":
+            self._timeout = True
+            self._last_raw_event = event
+            return
+
+        if event_type == "order_error":
+            if _is_non_terminal_order_warning(event):
+                self._warning_events.append(event)
+                self._last_raw_event = self._raw_response(event)
+                return
+            self._last_raw_event = event
+            self._last_broker_status = "error"
+            self._last_order_status = "rejected"
+            self._is_terminal = True
+            self._rejected = True
+            self._acknowledged = True
+            return
+
+        if event_type == "open_order":
+            self._last_raw_event = self._raw_response(event)
+            self._last_broker_status = str(event.get("status") or "Submitted")
+            self._last_order_status = normalize_order_status(self._last_broker_status)
+            self._is_terminal = is_terminal_order_status(self._last_order_status)
+            self._acknowledged = True
+            return
+
+        if event_type == "order_status":
+            self._last_raw_event = self._raw_response(event)
+            self._last_broker_status = str(event.get("status"))
+            self._last_order_status = normalize_order_status(self._last_broker_status)
+            self._is_terminal = is_terminal_order_status(self._last_order_status)
+            self._acknowledged = True
+
+    def result(self) -> BrokerOrderResult:
+        if self._timeout:
+            return BrokerOrderResult(
+                broker_name="ibkr",
+                order_id=self.order_id,
+                order_status="reconciliation_required",
+                broker_status=self._last_broker_status,
+                is_terminal=False,
+                raw_response=self._last_raw_event,
+            )
+        if self._stale:
+            return BrokerOrderResult(
+                broker_name="ibkr",
+                order_id=self.order_id,
+                order_status="stale_callback_ignored",
+                broker_status=self._last_broker_status,
+                is_terminal=False,
+                raw_response=self._last_raw_event,
+            )
+        if self._rejected:
+            return BrokerOrderResult(
+                broker_name="ibkr",
+                order_id=self.order_id,
+                order_status="rejected",
+                broker_status="error",
+                is_terminal=True,
+                raw_response=self._last_raw_event,
+            )
+        return BrokerOrderResult(
+            broker_name="ibkr",
+            order_id=self.order_id,
+            order_status=self._last_order_status or "submitted",
+            broker_status=self._last_broker_status,
+            is_terminal=self._is_terminal,
+            raw_response=self._last_raw_event,
+        )
+
+    @property
+    def acknowledged(self) -> bool:
+        return self._acknowledged
+
+    def _raw_response(self, event: Event) -> Event:
+        if not self._warning_events:
+            return event
+        return {
+            "event": event,
+            "warnings": list(self._warning_events),
+        }
+
+
 def replay(aggregator, events: Iterable[Event]):
     for event in events:
         aggregator.on_event(event)
@@ -420,6 +528,28 @@ def _strict_matches_generation(event: Event, generation: str | None) -> bool:
     if event_generation is None:
         return False
     return str(event_generation) == generation
+
+
+def _strict_matches_order_id(event: Event, order_id: str | None) -> bool:
+    if order_id is None:
+        return False
+    event_order_id = event.get("order_id")
+    if event_order_id is None:
+        return False
+    return str(event_order_id) == order_id
+
+
+def _is_non_terminal_order_warning(event: Event) -> bool:
+    try:
+        code = int(event.get("code"))
+    except (TypeError, ValueError):
+        code = None
+    message = str(event.get("message", "")).lower()
+    if code == 10268:
+        return True
+    if "etradeonly" in message and "not supported" in message:
+        return True
+    return False
 
 
 def _open_order_key(event: Event) -> str | None:

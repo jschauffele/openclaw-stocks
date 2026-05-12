@@ -10,6 +10,7 @@ OPEN_ORDER_STATUSES = {
 }
 
 TERMINAL_ORDER_STATUS_MAP = {
+    "apicancelled": "canceled",
     "filled": "filled",
     "cancelled": "canceled",
     "canceled": "canceled",
@@ -19,6 +20,7 @@ TERMINAL_ORDER_STATUS_MAP = {
 
 NON_TERMINAL_ORDER_STATUS_MAP = {
     "apisent": "submitted",
+    "apipending": "submitted",
     "pendingcancel": "submitted",
     "pendingsubmit": "submitted",
     "presubmitted": "submitted",

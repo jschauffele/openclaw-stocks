@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import threading
+from dataclasses import dataclass
+
 from broker_interface import (
     BrokerAccountState,
     BrokerCapabilities,
@@ -15,6 +18,14 @@ from ibkr_timeout_injector import IBKRTimeoutInjector
 
 
 _SKELETON_MESSAGE = "IBKR adapter skeleton only; not runtime-enabled"
+
+
+@dataclass(frozen=True, slots=True)
+class IBKRMarketOrder:
+    symbol: str
+    qty: int
+    contract: object
+    order: object
 
 
 class IBKRBrokerAdapter:
@@ -38,6 +49,7 @@ class IBKRBrokerAdapter:
         position_account: str = "",
         position_model_code: str = "",
         position_request_id_start: int = 10001,
+        order_id_start: int | None = None,
     ) -> None:
         self.client = client
         self.native_api = native_api
@@ -63,11 +75,14 @@ class IBKRBrokerAdapter:
         self.position_account = position_account
         self.position_model_code = position_model_code
         self._next_position_request_id = position_request_id_start
+        self._order_id_lock = threading.RLock()
+        self._next_order_id = order_id_start
+        self._active_order_id: int | None = None
 
     def get_capabilities(self) -> BrokerCapabilities:
         return BrokerCapabilities(
             broker_name="ibkr",
-            supports_market_orders=False,
+            supports_market_orders=True,
             supports_account_read=True,
             supports_positions_read=True,
             supports_open_orders_read=True,
@@ -265,10 +280,69 @@ class IBKRBrokerAdapter:
         return result
 
     def build_market_order(self, symbol: str, qty: int):
-        raise NotImplementedError(_SKELETON_MESSAGE)
+        if self.native_api is None:
+            raise NotImplementedError(_SKELETON_MESSAGE)
+        if int(qty) == 0:
+            raise ValueError("IBKR market order qty must be non-zero")
 
-    def submit_market_order(self, order) -> BrokerOrderResult:
-        raise NotImplementedError(_SKELETON_MESSAGE)
+        contract = self.native_api.contract()
+        contract.symbol = symbol
+        contract.secType = "STK"
+        contract.exchange = "SMART"
+        contract.currency = "USD"
+
+        order = self.native_api.order()
+        order.action = "BUY" if int(qty) > 0 else "SELL"
+        order.orderType = "MKT"
+        order.totalQuantity = abs(int(qty))
+
+        return IBKRMarketOrder(
+            symbol=symbol,
+            qty=int(qty),
+            contract=contract,
+            order=order,
+        )
+
+    def submit_market_order(
+        self,
+        order,
+        timeout_seconds: float | None = None,
+    ) -> BrokerOrderResult:
+        client = self._require_order_client()
+        timeout = self._normalize_timeout(timeout_seconds)
+        order_id = self._allocate_and_activate_order_id()
+        try:
+            self.bridge.begin_order_submission(order_id=order_id)
+        except Exception:
+            with self._order_id_lock:
+                if self._active_order_id == order_id:
+                    self._active_order_id = None
+            raise
+        try:
+            contract, native_order = self._extract_native_order_payload(order)
+            try:
+                client.placeOrder(order_id, contract, native_order)
+            except Exception:
+                self.bridge.timeout_order_submission(order_id=order_id)
+                raise
+            if not self.request_coordinator.wait_for_completion(
+                order_id,
+                timeout=timeout,
+            ):
+                return self.bridge.timeout_order_submission(order_id=order_id)
+            result = self.request_coordinator.result(order_id)
+            if result is None:
+                raise RuntimeError(
+                    "IBKR order submission produced no result: "
+                    f"orderId={order_id}"
+                )
+            if isinstance(result, Exception):
+                raise result
+            return result
+        finally:
+            with self._order_id_lock:
+                if self._active_order_id == order_id:
+                    self._active_order_id = None
 
     def normalize_order_response(self, response) -> BrokerOrderResult:
         raise NotImplementedError(_SKELETON_MESSAGE)
@@ -302,6 +376,14 @@ class IBKRBrokerAdapter:
             raise NotImplementedError(_SKELETON_MESSAGE)
         return client
 
+    def _require_order_client(self):
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        if getattr(client, "placeOrder", None) is None:
+            raise NotImplementedError(_SKELETON_MESSAGE)
+        return client
+
     def _client_is_connected(self) -> bool:
         client = self.client
         if client is None and self.coordinator is not None:
@@ -325,6 +407,40 @@ class IBKRBrokerAdapter:
         request_id = self._next_position_request_id
         self._next_position_request_id += 1
         return request_id
+
+    def advance_order_id_floor(self, next_valid_id: object) -> None:
+        next_order_id = int(next_valid_id)
+        with self._order_id_lock:
+            if self._next_order_id is None or self._next_order_id < next_order_id:
+                self._next_order_id = next_order_id
+
+    def _allocate_order_id(self) -> int:
+        with self._order_id_lock:
+            latest_next_valid_id = self.bridge.latest_next_valid_id
+            if latest_next_valid_id is not None:
+                self.advance_order_id_floor(latest_next_valid_id)
+            if self._next_order_id is None:
+                raise RuntimeError("IBKR order ID allocator has no nextValidId")
+            order_id = self._next_order_id
+            self._next_order_id += 1
+            return order_id
+
+    def _allocate_and_activate_order_id(self) -> int:
+        with self._order_id_lock:
+            if self._active_order_id is not None:
+                raise RuntimeError("IBKR order placement already active")
+            order_id = self._allocate_order_id()
+            self._active_order_id = order_id
+            return order_id
+
+    def _extract_native_order_payload(self, order) -> tuple[object, object]:
+        if isinstance(order, IBKRMarketOrder):
+            return order.contract, order.order
+        contract = getattr(order, "contract", None)
+        native_order = getattr(order, "order", None)
+        if contract is not None and native_order is not None:
+            return contract, native_order
+        raise TypeError("IBKR submit_market_order requires contract and order payload")
 
     def _cancel_account_summary(self, request_id: object) -> None:
         client = self.client
