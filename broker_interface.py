@@ -92,6 +92,23 @@ class BrokerReconciliationResult:
 
 
 @dataclass(frozen=True, slots=True)
+class BrokerSubmitReconciliationResult:
+    broker_name: str
+    submit_state: str
+    reconciliation_status: str | None
+    terminal_for_run: bool
+    manual_review_required: bool
+    order_id: str | None
+    perm_id: str | None
+    filled_qty: float
+    working_qty: float | None
+    reason: str
+    ambiguous: bool = False
+    submit_result: object | None = None
+    reconciliation_result: BrokerReconciliationResult | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class BrokerOrderResult:
     broker_name: str
     order_id: str | None
