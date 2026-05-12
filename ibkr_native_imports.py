@@ -13,12 +13,14 @@ class IBKRNativeAPI:
     e_wrapper: type
     contract: type
     order: type
+    execution_filter: type | None = None
 
 
 def load_ibkr_native_api() -> IBKRNativeAPI:
     try:
         from ibapi.client import EClient
         from ibapi.contract import Contract
+        from ibapi.execution import ExecutionFilter
         from ibapi.order import Order
         from ibapi.wrapper import EWrapper
     except ImportError as exc:
@@ -32,4 +34,5 @@ def load_ibkr_native_api() -> IBKRNativeAPI:
         e_wrapper=EWrapper,
         contract=Contract,
         order=Order,
+        execution_filter=ExecutionFilter,
     )

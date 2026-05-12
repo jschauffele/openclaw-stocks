@@ -33,6 +33,65 @@ class BrokerOpenOrderState:
 
 
 @dataclass(frozen=True, slots=True)
+class BrokerExecutionFill:
+    exec_id: str
+    order_id: str | None
+    client_id: str | None
+    perm_id: str | None
+    symbol: str
+    side: str
+    shares: float
+    cumulative_qty: float | None
+    avg_price: float | None
+    price: float | None = None
+    time: str | None = None
+    raw_execution: object | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class BrokerExecutionSnapshotState:
+    broker_name: str
+    passed: bool
+    fills: tuple[BrokerExecutionFill, ...]
+    fill_count: int
+    total_shares: float
+    cumulative_qty: float | None
+    avg_fill_price: float | None
+    reason: str
+    error: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class BrokerSubmitIntent:
+    broker_name: str
+    order_id: str | None
+    client_id: str | None
+    perm_id: str | None
+    symbol: str
+    side: str
+    qty: float
+    submitted_at: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class BrokerReconciliationResult:
+    broker_name: str
+    status: str
+    order_id: str | None
+    perm_id: str | None
+    symbol: str
+    side: str
+    intended_qty: float
+    filled_qty: float
+    working_qty: float | None
+    avg_fill_price: float | None
+    matched_exec_ids: tuple[str, ...]
+    reason: str
+    ambiguous: bool = False
+    raw_evidence: object | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class BrokerOrderResult:
     broker_name: str
     order_id: str | None

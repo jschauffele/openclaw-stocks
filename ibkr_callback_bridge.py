@@ -4,6 +4,7 @@ import threading
 
 from broker_interface import (
     BrokerAccountState,
+    BrokerExecutionSnapshotState,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
     BrokerOrderResult,
@@ -11,6 +12,7 @@ from broker_interface import (
 )
 from fake_ibkr_callback_state_machine import (
     IBKRAccountSnapshotAggregator,
+    IBKRExecutionSnapshotAggregator,
     IBKRLifecycleAggregator,
     IBKROpenOrdersSnapshotAggregator,
     IBKROrderSubmissionAckAggregator,
@@ -31,11 +33,23 @@ class IBKRCallbackBridge:
         if registry is None and request_coordinator is not None:
             registry = request_coordinator.registry
         self.registry = registry or IBKRPendingRequestRegistry()
+        self._position_generation = 0
+        self._active_position_generation: int | None = None
+        self._active_position_request_id: str | None = None
+        self._latest_completed_position_generation: int | None = None
+        self._completed_position_results: dict[str, BrokerPositionState] = {}
+        self._position_generation_keys: dict[int, str] = {}
+        self._position_lock = threading.RLock()
         self._open_orders_generation = 0
         self._active_open_orders_generation: int | None = None
         self._latest_completed_open_orders_generation: int | None = None
         self._completed_open_orders_results: dict[int, BrokerOpenOrderState] = {}
         self._open_orders_lock = threading.RLock()
+        self._execution_generation = 0
+        self._active_execution_generation: int | None = None
+        self._latest_completed_execution_generation: int | None = None
+        self._completed_execution_results: dict[int, BrokerExecutionSnapshotState] = {}
+        self._execution_lock = threading.RLock()
         self._latest_next_valid_id: int | None = None
 
     def begin_lifecycle(self, *, operation: str = "connect") -> None:
@@ -51,15 +65,26 @@ class IBKRCallbackBridge:
             return
         self.registry.register_request(request_id, aggregator)
 
-    def begin_position_snapshot(self, *, request_id: object, symbol: str) -> None:
-        aggregator = IBKRPositionSnapshotAggregator(
-            symbol=symbol,
-            request_id=str(request_id),
-        )
-        if self.request_coordinator is not None:
-            self.request_coordinator.register_request(request_id, aggregator)
-            return
-        self.registry.register_request(request_id, aggregator)
+    def begin_position_snapshot(self, *, request_id: object, symbol: str) -> int:
+        with self._position_lock:
+            if self._active_position_generation is not None:
+                raise RuntimeError("IBKR position snapshot already active")
+            self._position_generation += 1
+            generation = self._position_generation
+            request_key = str(request_id)
+            aggregator = IBKRPositionSnapshotAggregator(
+                symbol=symbol,
+                request_id=request_key,
+                generation=generation,
+            )
+            if self.request_coordinator is not None:
+                self.request_coordinator.register_request(request_id, aggregator)
+            else:
+                self.registry.register_request(request_id, aggregator)
+            self._active_position_generation = generation
+            self._active_position_request_id = request_key
+            self._position_generation_keys[generation] = request_key
+            return generation
 
     def begin_open_orders_snapshot(
         self,
@@ -81,6 +106,32 @@ class IBKRCallbackBridge:
             else:
                 self.registry.register_request(generation, aggregator)
             self._active_open_orders_generation = generation
+            return generation
+
+    def begin_execution_snapshot(
+        self,
+        *,
+        request_id: object | None = None,
+        symbol: str | None = None,
+    ) -> int:
+        with self._execution_lock:
+            if self._active_execution_generation is not None:
+                raise RuntimeError("IBKR execution snapshot already active")
+            if request_id is None:
+                self._execution_generation += 1
+                generation = self._execution_generation
+            else:
+                generation = int(request_id)
+                self._execution_generation = max(self._execution_generation, generation)
+            aggregator = IBKRExecutionSnapshotAggregator(
+                generation=generation,
+                symbol=symbol,
+            )
+            if self.request_coordinator is not None:
+                self.request_coordinator.register_request(generation, aggregator)
+            else:
+                self.registry.register_request(generation, aggregator)
+            self._active_execution_generation = generation
             return generation
 
     def begin_order_status(self, *, order_id: object) -> None:
@@ -115,18 +166,22 @@ class IBKRCallbackBridge:
             raise KeyError(f"No pending IBKR account request: {request_id}")
         return aggregator.result()
 
-    def complete_position_snapshot(self, *, request_id: object) -> BrokerPositionState:
-        if self.request_coordinator is not None:
-            result = self.request_coordinator.result(request_id)
-            if result is None:
-                raise KeyError(f"No completed IBKR position request: {request_id}")
-            if isinstance(result, Exception):
-                raise result
-            return result
-        aggregator = self.registry.pop_request(request_id)
-        if aggregator is None:
-            raise KeyError(f"No pending IBKR position request: {request_id}")
-        return aggregator.result()
+    def complete_position_snapshot(
+        self,
+        *,
+        request_id: object | None = None,
+        generation: object | None = None,
+    ) -> BrokerPositionState:
+        request_key = self._position_result_key(
+            request_id=request_id,
+            generation=generation,
+        )
+        if request_key is None:
+            raise KeyError("No completed IBKR position snapshot")
+        result = self._completed_position_results.get(request_key)
+        if result is None:
+            raise KeyError(f"No completed IBKR position snapshot: {request_key}")
+        return result
 
     def complete_open_orders_snapshot(
         self,
@@ -142,6 +197,24 @@ class IBKRCallbackBridge:
         result = self._completed_open_orders_results.get(generation_key)
         if result is None:
             raise KeyError(f"No completed IBKR open-order snapshot: {generation}")
+        return result
+
+    def complete_execution_snapshot(
+        self,
+        *,
+        generation: object | None = None,
+        request_id: object | None = None,
+    ) -> BrokerExecutionSnapshotState:
+        if generation is None:
+            generation = request_id
+        if generation is None:
+            generation = self._latest_completed_execution_generation
+        if generation is None:
+            raise KeyError("No completed IBKR execution snapshot")
+        generation_key = int(generation)
+        result = self._completed_execution_results.get(generation_key)
+        if result is None:
+            raise KeyError(f"No completed IBKR execution snapshot: {generation}")
         return result
 
     def complete_order_status(self, *, order_id: object) -> BrokerOrderResult:
@@ -257,12 +330,18 @@ class IBKRCallbackBridge:
         model_code: object | None = None,
         avg_cost: object | None = None,
     ) -> bool:
-        if request_id is None or not self.registry.has_request(request_id):
-            return False
-        return self.registry.route_request_event(
-            request_id,
-            {
+        with self._position_lock:
+            generation = self._active_position_generation
+            if (
+                request_id is None
+                or generation is None
+                or self._active_position_request_id != str(request_id)
+                or not self.registry.has_request(request_id)
+            ):
+                return False
+            event = {
                 "event_type": "position_multi",
+                "generation": generation,
                 "request_id": request_id,
                 "account": account,
                 "model_code": model_code,
@@ -270,22 +349,48 @@ class IBKRCallbackBridge:
                 "qty": qty,
                 "side": side,
                 "avg_cost": avg_cost,
-            },
-        )
+            }
+            if self.request_coordinator is not None:
+                return self.request_coordinator.route_callback(request_id, event)
+            return self.registry.route_request_event(request_id, event)
 
     def position_multi_end(self, *, request_id: object) -> bool:
-        if request_id is None or not self.registry.has_request(request_id):
-            return False
-        routed = self.registry.route_request_event(
-            request_id,
-            {
+        with self._position_lock:
+            generation = self._active_position_generation
+            if (
+                request_id is None
+                or generation is None
+                or self._active_position_request_id != str(request_id)
+                or not self.registry.has_request(request_id)
+            ):
+                return False
+            event = {
                 "event_type": "position_multi_end",
+                "generation": generation,
                 "request_id": request_id,
-            },
-        )
-        if routed and self.request_coordinator is not None:
-            return self.request_coordinator.complete_from_callback(request_id)
-        return routed
+            }
+            if self.request_coordinator is not None:
+                routed = self.request_coordinator.route_callback(request_id, event)
+                if not routed:
+                    return False
+                completed = self.request_coordinator.complete_from_callback(request_id)
+                if not completed:
+                    return False
+                result = self.request_coordinator.result(request_id)
+            else:
+                routed = self.registry.route_request_event(request_id, event)
+                if not routed:
+                    return False
+                aggregator = self.registry.pop_request(request_id)
+                if aggregator is None:
+                    return False
+                result = aggregator.result()
+            self._store_completed_position_result(
+                generation=generation,
+                request_id=request_id,
+                result=result,
+            )
+            return True
 
     def position(
         self,
@@ -304,6 +409,29 @@ class IBKRCallbackBridge:
 
     def position_end(self, *, request_id: object) -> bool:
         return self.position_multi_end(request_id=request_id)
+
+    def timeout_position_snapshot(self) -> BrokerPositionState:
+        with self._position_lock:
+            generation = self._active_position_generation
+            request_id = self._active_position_request_id
+            if generation is None or request_id is None:
+                raise KeyError("No active IBKR position snapshot")
+            if self.request_coordinator is not None:
+                timed_out = self.request_coordinator.timeout_request(request_id)
+                if not timed_out:
+                    raise KeyError(f"No pending IBKR position snapshot: {request_id}")
+                result = self.request_coordinator.result(request_id)
+            else:
+                aggregator = self.registry.pop_request(request_id)
+                if aggregator is None:
+                    raise KeyError(f"No pending IBKR position snapshot: {request_id}")
+                result = aggregator.result()
+            self._store_completed_position_result(
+                generation=generation,
+                request_id=request_id,
+                result=result,
+            )
+            return result
 
     def open_order(
         self,
@@ -439,6 +567,99 @@ class IBKRCallbackBridge:
             self._active_open_orders_generation = None
             return result
 
+    def exec_details(
+        self,
+        *,
+        request_id: object,
+        order_id: object | None = None,
+        client_id: object | None = None,
+        perm_id: object | None = None,
+        symbol: str = "",
+        side: str = "",
+        shares: object | None = None,
+        cumulative_qty: object | None = None,
+        avg_price: object | None = None,
+        price: object | None = None,
+        time: object | None = None,
+        exec_id: object | None = None,
+        raw_execution: object | None = None,
+    ) -> bool:
+        with self._execution_lock:
+            generation = self._active_execution_generation
+            if generation is None or str(request_id) != str(generation):
+                return False
+            event = {
+                "event_type": "exec_details",
+                "generation": generation,
+                "request_id": request_id,
+                "order_id": order_id,
+                "client_id": client_id,
+                "perm_id": perm_id,
+                "symbol": symbol,
+                "side": side,
+                "shares": shares,
+                "cumulative_qty": cumulative_qty,
+                "avg_price": avg_price,
+                "price": price,
+                "time": time,
+                "exec_id": exec_id,
+                "raw_execution": raw_execution,
+            }
+            if self.request_coordinator is not None:
+                return self.request_coordinator.route_callback(generation, event)
+            return self.registry.route_request_event(generation, event)
+
+    def exec_details_end(self, *, request_id: object) -> bool:
+        with self._execution_lock:
+            generation = self._active_execution_generation
+            if generation is None or str(request_id) != str(generation):
+                return False
+            event = {
+                "event_type": "exec_details_end",
+                "generation": generation,
+                "request_id": request_id,
+            }
+            if self.request_coordinator is not None:
+                routed = self.request_coordinator.route_callback(generation, event)
+                if not routed:
+                    return False
+                completed = self.request_coordinator.complete_from_callback(generation)
+                if not completed:
+                    return False
+                result = self.request_coordinator.result(generation)
+            else:
+                routed = self.registry.route_request_event(generation, event)
+                if not routed:
+                    return False
+                aggregator = self.registry.pop_request(generation)
+                if aggregator is None:
+                    return False
+                result = aggregator.result()
+            self._completed_execution_results[generation] = result
+            self._latest_completed_execution_generation = generation
+            self._active_execution_generation = None
+            return True
+
+    def timeout_execution_snapshot(self) -> BrokerExecutionSnapshotState:
+        with self._execution_lock:
+            generation = self._active_execution_generation
+            if generation is None:
+                raise KeyError("No active IBKR execution snapshot")
+            if self.request_coordinator is not None:
+                timed_out = self.request_coordinator.timeout_request(generation)
+                if not timed_out:
+                    raise KeyError(f"No pending IBKR execution snapshot: {generation}")
+                result = self.request_coordinator.result(generation)
+            else:
+                aggregator = self.registry.pop_request(generation)
+                if aggregator is None:
+                    raise KeyError(f"No pending IBKR execution snapshot: {generation}")
+                result = aggregator.result()
+            self._completed_execution_results[generation] = result
+            self._latest_completed_execution_generation = generation
+            self._active_execution_generation = None
+            return result
+
     def order_status(self, *, order_id: object, status: str) -> bool:
         routed_submission = self._route_order_submission_event(
             order_id,
@@ -502,6 +723,34 @@ class IBKRCallbackBridge:
 
     def stale_order_submission(self, *, order_id: object) -> bool:
         return False
+
+    def _store_completed_position_result(
+        self,
+        *,
+        generation: int,
+        request_id: object,
+        result: BrokerPositionState,
+    ) -> None:
+        request_key = str(request_id)
+        self._completed_position_results[request_key] = result
+        self._position_generation_keys[generation] = request_key
+        self._latest_completed_position_generation = generation
+        self._active_position_generation = None
+        self._active_position_request_id = None
+
+    def _position_result_key(
+        self,
+        *,
+        request_id: object | None,
+        generation: object | None,
+    ) -> str | None:
+        if request_id is not None:
+            return str(request_id)
+        if generation is None:
+            generation = self._latest_completed_position_generation
+        if generation is None:
+            return None
+        return self._position_generation_keys.get(int(generation))
 
     def _route_order_submission_event(
         self,

@@ -104,6 +104,22 @@ class FakeOpenOrdersClient:
         return True
 
 
+class FakeExecutionClient:
+    def __init__(self) -> None:
+        self.req_executions_calls = []
+        self.on_request = None
+
+    def reqExecutions(self, request_id, execution_filter) -> None:
+        self.req_executions_calls.append(
+            {"request_id": request_id, "execution_filter": execution_filter}
+        )
+        if self.on_request is not None:
+            self.on_request(request_id)
+
+    def isConnected(self) -> bool:
+        return True
+
+
 class FakeOrderClient:
     def __init__(self) -> None:
         self.place_order_calls = []
@@ -1137,6 +1153,63 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
         self.assertEqual(nested_error, ["IBKR open-order snapshot already active"])
         self.assertEqual(client.req_all_open_orders_calls, 1)
         self.assertFalse(adapter.request_coordinator.has_pending_request(1))
+
+    def test_execution_snapshot_success_issues_native_req_executions(self) -> None:
+        client = FakeExecutionClient()
+        adapter = IBKRBrokerAdapter(client=client, execution_request_id_start=23001)
+
+        def complete(request_id) -> None:
+            adapter.bridge.exec_details(
+                request_id=request_id,
+                order_id=101,
+                client_id=7,
+                perm_id=9001,
+                symbol="AAPL",
+                side="BOT",
+                shares="1",
+                cumulative_qty="1",
+                avg_price="185.50",
+                exec_id="0001.01",
+            )
+            adapter.bridge.exec_details_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_execution_snapshot(
+            symbol="AAPL",
+            side="BOT",
+            since="20260512 09:30:00",
+            timeout_seconds=0.25,
+        )
+
+        self.assertEqual(result.fill_count, 1)
+        self.assertEqual(result.total_shares, 1.0)
+        self.assertEqual(client.req_executions_calls[0]["request_id"], 23001)
+        execution_filter = client.req_executions_calls[0]["execution_filter"]
+        self.assertEqual(execution_filter.symbol, "AAPL")
+        self.assertEqual(execution_filter.side, "BOT")
+        self.assertEqual(execution_filter.time, "20260512 09:30:00")
+
+    def test_execution_snapshot_timeout_closes_generation(self) -> None:
+        client = FakeExecutionClient()
+        adapter = IBKRBrokerAdapter(client=client, execution_request_id_start=23001)
+
+        with self.assertRaisesRegex(TimeoutError, "execution request timed out"):
+            adapter.get_execution_snapshot(symbol="AAPL", timeout_seconds=0.001)
+
+        result = adapter.bridge.complete_execution_snapshot(request_id=23001)
+
+        self.assertFalse(result.passed)
+        self.assertEqual(result.error, "execution_snapshot_incomplete")
+        self.assertFalse(
+            adapter.bridge.exec_details(
+                request_id=23001,
+                symbol="AAPL",
+                side="BOT",
+                shares="1",
+                exec_id="late.01",
+            )
+        )
 
     def test_position_wrong_and_missing_req_id_callbacks_are_ignored(self) -> None:
         client = FakePositionClient()

@@ -4,6 +4,8 @@ from collections.abc import Iterable, Mapping
 
 from broker_interface import (
     BrokerAccountState,
+    BrokerExecutionFill,
+    BrokerExecutionSnapshotState,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
     BrokerOrderResult,
@@ -131,9 +133,16 @@ class IBKRAccountSnapshotAggregator:
 
 
 class IBKRPositionSnapshotAggregator:
-    def __init__(self, *, symbol: str, request_id: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        symbol: str,
+        request_id: str | None = None,
+        generation: object | None = None,
+    ) -> None:
         self.symbol = symbol.upper()
         self.request_id = request_id
+        self.generation = str(generation) if generation is not None else None
         self._matched_position: BrokerPositionState | None = None
         self._complete = False
         self._error_result: BrokerPositionState | None = None
@@ -142,6 +151,11 @@ class IBKRPositionSnapshotAggregator:
         if self._error_result is not None:
             return
         if not _strict_matches_request(event, self.request_id):
+            return
+        if self.generation is not None and not _strict_matches_generation(
+            event,
+            self.generation,
+        ):
             return
 
         event_type = event.get("event_type")
@@ -302,6 +316,117 @@ class IBKROpenOrdersSnapshotAggregator:
             open_buy_order_qty=sum(int(order["qty"]) for order in open_orders),
             open_buy_order_count=len(open_orders),
             reason="open_buy_orders_loaded",
+        )
+
+
+class IBKRExecutionSnapshotAggregator:
+    def __init__(
+        self,
+        *,
+        generation: object | None = None,
+        symbol: str | None = None,
+    ) -> None:
+        self.generation = str(generation) if generation is not None else None
+        self.symbol = symbol.upper() if symbol is not None else None
+        self._fills_by_correction_key: dict[str, BrokerExecutionFill] = {}
+        self._exec_ids: set[str] = set()
+        self._complete = False
+        self._error_result: BrokerExecutionSnapshotState | None = None
+
+    def on_event(self, event: Event) -> None:
+        if self._error_result is not None:
+            return
+        if not _strict_matches_generation(event, self.generation):
+            return
+
+        event_type = event.get("event_type")
+        if event_type == "exec_details":
+            if self.symbol is not None and str(event.get("symbol", "")).upper() != self.symbol:
+                return
+            exec_id = str(event.get("exec_id") or "")
+            if not exec_id:
+                return
+            if exec_id in self._exec_ids:
+                return
+
+            try:
+                shares = _optional_float(event.get("shares"))
+                cumulative_qty = _optional_float(event.get("cumulative_qty"))
+                avg_price = _optional_float(event.get("avg_price"))
+                price = _optional_float(event.get("price"))
+            except (TypeError, ValueError):
+                self._error_result = _execution_snapshot_error(
+                    error="invalid_execution_numeric_field",
+                )
+                return
+            if shares is None:
+                self._error_result = _execution_snapshot_error(
+                    error="missing_execution_shares",
+                )
+                return
+
+            fill = BrokerExecutionFill(
+                exec_id=exec_id,
+                order_id=_optional_text(event.get("order_id")),
+                client_id=_optional_text(event.get("client_id")),
+                perm_id=_optional_text(event.get("perm_id")),
+                symbol=str(event.get("symbol", "")),
+                side=str(event.get("side", "")),
+                shares=shares,
+                cumulative_qty=cumulative_qty,
+                avg_price=avg_price,
+                price=price,
+                time=_optional_text(event.get("time")),
+                raw_execution=event.get("raw_execution", event),
+            )
+            correction_key = _execution_correction_key(exec_id)
+            previous = self._fills_by_correction_key.get(correction_key)
+            if previous is not None:
+                self._exec_ids.discard(previous.exec_id)
+            self._fills_by_correction_key[correction_key] = fill
+            self._exec_ids.add(exec_id)
+            return
+
+        if event_type == "exec_details_end":
+            self._complete = True
+
+    def result(self) -> BrokerExecutionSnapshotState:
+        if self._error_result is not None:
+            return self._error_result
+        if not self._complete:
+            return _execution_snapshot_error(error="execution_snapshot_incomplete")
+
+        fills = tuple(
+            sorted(
+                self._fills_by_correction_key.values(),
+                key=lambda fill: (fill.time or "", fill.exec_id),
+            )
+        )
+        total_shares = sum(fill.shares for fill in fills)
+        cumulative_values = [
+            fill.cumulative_qty for fill in fills if fill.cumulative_qty is not None
+        ]
+        cumulative_qty = max(cumulative_values) if cumulative_values else None
+        weighted_prices = [
+            (fill.avg_price if fill.avg_price is not None else fill.price, fill.shares)
+            for fill in fills
+            if fill.avg_price is not None or fill.price is not None
+        ]
+        avg_fill_price = None
+        if weighted_prices and total_shares:
+            avg_fill_price = sum(price * shares for price, shares in weighted_prices) / sum(
+                shares for _price, shares in weighted_prices
+            )
+
+        return BrokerExecutionSnapshotState(
+            broker_name="ibkr",
+            passed=True,
+            fills=fills,
+            fill_count=len(fills),
+            total_shares=total_shares,
+            cumulative_qty=cumulative_qty,
+            avg_fill_price=avg_fill_price,
+            reason="executions_loaded",
         )
 
 
@@ -550,6 +675,39 @@ def _is_non_terminal_order_warning(event: Event) -> bool:
     if "etradeonly" in message and "not supported" in message:
         return True
     return False
+
+
+def _optional_text(value: object) -> str | None:
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
+def _optional_float(value: object) -> float | None:
+    if value is None or value == "":
+        return None
+    return float(str(value))
+
+
+def _execution_correction_key(exec_id: str) -> str:
+    prefix, separator, suffix = exec_id.rpartition(".")
+    if separator and suffix.isdigit():
+        return prefix
+    return exec_id
+
+
+def _execution_snapshot_error(*, error: str) -> BrokerExecutionSnapshotState:
+    return BrokerExecutionSnapshotState(
+        broker_name="ibkr",
+        passed=False,
+        fills=(),
+        fill_count=0,
+        total_shares=0.0,
+        cumulative_qty=None,
+        avg_fill_price=None,
+        reason="execution_lookup_failed",
+        error=error,
+    )
 
 
 def _open_order_key(event: Event) -> str | None:

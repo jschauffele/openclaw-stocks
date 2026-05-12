@@ -85,6 +85,26 @@ class IBKRWrapperBridge:
         routed_order = self.bridge.order_status(order_id=orderId, status=status)
         return routed_open_order or routed_order
 
+    def execDetails(self, reqId, contract, execution) -> bool:
+        return self.bridge.exec_details(
+            request_id=reqId,
+            order_id=getattr(execution, "orderId", None),
+            client_id=getattr(execution, "clientId", None),
+            perm_id=getattr(execution, "permId", None),
+            symbol=getattr(contract, "symbol", ""),
+            side=getattr(execution, "side", ""),
+            shares=getattr(execution, "shares", None),
+            cumulative_qty=getattr(execution, "cumQty", None),
+            avg_price=getattr(execution, "avgPrice", None),
+            price=getattr(execution, "price", None),
+            time=getattr(execution, "time", None),
+            exec_id=getattr(execution, "execId", None),
+            raw_execution=execution,
+        )
+
+    def execDetailsEnd(self, reqId) -> bool:
+        return self.bridge.exec_details_end(request_id=reqId)
+
     def connect_ready(
         self,
         *,

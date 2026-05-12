@@ -11,15 +11,15 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
     def test_request_registry_correlates_position_snapshots_by_request_id(self) -> None:
         bridge = IBKRCallbackBridge()
         bridge.begin_position_snapshot(request_id="pos-a", symbol="AAPL")
-        bridge.begin_position_snapshot(request_id="pos-b", symbol="MSFT")
 
         self.assertTrue(
             bridge.position_multi(request_id="pos-a", symbol="AAPL", qty="3", side="long")
         )
+        self.assertTrue(bridge.position_multi_end(request_id="pos-a"))
+        bridge.begin_position_snapshot(request_id="pos-b", symbol="MSFT")
         self.assertTrue(
             bridge.position_multi(request_id="pos-b", symbol="MSFT", qty="5", side="long")
         )
-        self.assertTrue(bridge.position_multi_end(request_id="pos-a"))
         self.assertTrue(bridge.position_multi_end(request_id="pos-b"))
 
         aapl = bridge.complete_position_snapshot(request_id="pos-a")
@@ -61,10 +61,47 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
             bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="3")
         )
 
-        result = bridge.complete_position_snapshot(request_id="pos-1")
+        result = bridge.timeout_position_snapshot()
 
         self.assertEqual(result.found, None)
         self.assertEqual(result.error, "position_snapshot_incomplete")
+
+    def test_concurrent_position_snapshot_rejected(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_position_snapshot(request_id="pos-1", symbol="AAPL")
+
+        with self.assertRaisesRegex(RuntimeError, "already active"):
+            bridge.begin_position_snapshot(request_id="pos-2", symbol="MSFT")
+
+    def test_position_timeout_closes_generation_and_ignores_late_callbacks(self) -> None:
+        bridge = IBKRCallbackBridge()
+        generation = bridge.begin_position_snapshot(request_id="pos-1", symbol="AAPL")
+
+        result = bridge.timeout_position_snapshot()
+
+        self.assertEqual(result.error, "position_snapshot_incomplete")
+        self.assertFalse(
+            bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="9")
+        )
+        self.assertFalse(bridge.position_multi_end(request_id="pos-1"))
+        self.assertIs(bridge.complete_position_snapshot(generation=generation), result)
+
+    def test_position_late_callback_after_completion_does_not_mutate_result(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_position_snapshot(request_id="pos-1", symbol="AAPL")
+
+        self.assertTrue(
+            bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="3")
+        )
+        self.assertTrue(bridge.position_multi_end(request_id="pos-1"))
+        before = bridge.complete_position_snapshot(request_id="pos-1")
+        self.assertFalse(
+            bridge.position_multi(request_id="pos-1", symbol="AAPL", qty="99")
+        )
+        after = bridge.complete_position_snapshot(request_id="pos-1")
+
+        self.assertIs(after, before)
+        self.assertEqual(after.qty, 3)
 
     def test_position_multi_no_matching_symbol_returns_no_position_after_end(self) -> None:
         bridge = IBKRCallbackBridge()
@@ -296,6 +333,183 @@ class IBKRCallbackBridgeTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "already active"):
             bridge.begin_open_orders_snapshot(symbol="MSFT")
+
+    def test_execution_snapshot_aggregates_fills_after_end(self) -> None:
+        bridge = IBKRCallbackBridge()
+        generation = bridge.begin_execution_snapshot(request_id=20001, symbol="AAPL")
+
+        self.assertTrue(
+            bridge.exec_details(
+                request_id=20001,
+                order_id=101,
+                client_id=7,
+                perm_id=9001,
+                symbol="AAPL",
+                side="BOT",
+                shares="1",
+                cumulative_qty="1",
+                avg_price="185.50",
+                price="185.50",
+                time="20260512 10:00:00",
+                exec_id="0001.01",
+            )
+        )
+        self.assertTrue(bridge.exec_details_end(request_id=20001))
+
+        result = bridge.complete_execution_snapshot(generation=generation)
+
+        self.assertTrue(result.passed)
+        self.assertEqual(result.fill_count, 1)
+        self.assertEqual(result.total_shares, 1.0)
+        self.assertEqual(result.cumulative_qty, 1.0)
+        self.assertEqual(result.avg_fill_price, 185.5)
+        self.assertEqual(result.fills[0].order_id, "101")
+        self.assertEqual(result.fills[0].client_id, "7")
+        self.assertEqual(result.fills[0].perm_id, "9001")
+
+    def test_execution_snapshot_dedupes_duplicate_exec_id(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_execution_snapshot(request_id=20001, symbol="AAPL")
+
+        for _ in range(2):
+            self.assertTrue(
+                bridge.exec_details(
+                    request_id=20001,
+                    order_id=101,
+                    client_id=7,
+                    perm_id=9001,
+                    symbol="AAPL",
+                    side="BOT",
+                    shares="1",
+                    cumulative_qty="1",
+                    avg_price="185.50",
+                    exec_id="0001.01",
+                )
+            )
+        self.assertTrue(bridge.exec_details_end(request_id=20001))
+
+        result = bridge.complete_execution_snapshot(request_id=20001)
+
+        self.assertEqual(result.fill_count, 1)
+        self.assertEqual(result.total_shares, 1.0)
+
+    def test_execution_snapshot_represents_partial_fills(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_execution_snapshot(request_id=20001, symbol="AAPL")
+
+        self.assertTrue(
+            bridge.exec_details(
+                request_id=20001,
+                order_id=101,
+                client_id=7,
+                perm_id=9001,
+                symbol="AAPL",
+                side="BOT",
+                shares="1",
+                cumulative_qty="1",
+                avg_price="185.00",
+                exec_id="0001.01",
+            )
+        )
+        self.assertTrue(
+            bridge.exec_details(
+                request_id=20001,
+                order_id=101,
+                client_id=7,
+                perm_id=9001,
+                symbol="AAPL",
+                side="BOT",
+                shares="2",
+                cumulative_qty="3",
+                avg_price="186.00",
+                exec_id="0002.01",
+            )
+        )
+        self.assertTrue(bridge.exec_details_end(request_id=20001))
+
+        result = bridge.complete_execution_snapshot(request_id=20001)
+
+        self.assertEqual(result.fill_count, 2)
+        self.assertEqual(result.total_shares, 3.0)
+        self.assertEqual(result.cumulative_qty, 3.0)
+        self.assertAlmostEqual(result.avg_fill_price, 185.6666666667)
+
+    def test_execution_snapshot_timeout_closes_generation_and_ignores_late_callbacks(
+        self,
+    ) -> None:
+        bridge = IBKRCallbackBridge()
+        generation = bridge.begin_execution_snapshot(request_id=20001, symbol="AAPL")
+
+        result = bridge.timeout_execution_snapshot()
+
+        self.assertFalse(result.passed)
+        self.assertEqual(result.error, "execution_snapshot_incomplete")
+        self.assertFalse(
+            bridge.exec_details(
+                request_id=20001,
+                symbol="AAPL",
+                side="BOT",
+                shares="1",
+                exec_id="late.01",
+            )
+        )
+        self.assertFalse(bridge.exec_details_end(request_id=20001))
+        self.assertIs(bridge.complete_execution_snapshot(generation=generation), result)
+
+    def test_execution_snapshot_fences_wrong_generation(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_execution_snapshot(request_id=20001, symbol="AAPL")
+
+        self.assertFalse(
+            bridge.exec_details(
+                request_id=20002,
+                symbol="AAPL",
+                side="BOT",
+                shares="9",
+                exec_id="wrong.01",
+            )
+        )
+        self.assertFalse(bridge.exec_details_end(request_id=20002))
+        self.assertTrue(bridge.exec_details_end(request_id=20001))
+
+        result = bridge.complete_execution_snapshot(request_id=20001)
+
+        self.assertEqual(result.fill_count, 0)
+        self.assertEqual(result.total_shares, 0.0)
+
+    def test_execution_snapshot_replaces_simple_correction(self) -> None:
+        bridge = IBKRCallbackBridge()
+        bridge.begin_execution_snapshot(request_id=20001, symbol="AAPL")
+
+        self.assertTrue(
+            bridge.exec_details(
+                request_id=20001,
+                symbol="AAPL",
+                side="BOT",
+                shares="1",
+                cumulative_qty="1",
+                avg_price="185.00",
+                exec_id="0001.01",
+            )
+        )
+        self.assertTrue(
+            bridge.exec_details(
+                request_id=20001,
+                symbol="AAPL",
+                side="BOT",
+                shares="2",
+                cumulative_qty="2",
+                avg_price="184.00",
+                exec_id="0001.02",
+            )
+        )
+        self.assertTrue(bridge.exec_details_end(request_id=20001))
+
+        result = bridge.complete_execution_snapshot(request_id=20001)
+
+        self.assertEqual(result.fill_count, 1)
+        self.assertEqual(result.total_shares, 2.0)
+        self.assertEqual(result.fills[0].exec_id, "0001.02")
 
     def test_account_summary_strict_req_id_routing(self) -> None:
         bridge = IBKRCallbackBridge()

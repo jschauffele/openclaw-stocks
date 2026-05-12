@@ -55,6 +55,8 @@ class IBKRWrapperCompatibilityTests(unittest.TestCase):
             "openOrder",
             "openOrderEnd",
             "orderStatus",
+            "execDetails",
+            "execDetailsEnd",
             "connect_ready",
             "connect_error",
         ]:
@@ -109,6 +111,36 @@ class IBKRWrapperCompatibilityTests(unittest.TestCase):
 
         self.assertEqual(result.open_buy_order_qty, 2)
         self.assertEqual(result.open_buy_order_count, 1)
+
+    def test_native_execution_callbacks_route_only_with_active_snapshot(self) -> None:
+        bridge = IBKRCallbackBridge()
+        wrapper = IBKRWrapperBridge(bridge)
+        contract = SimpleNamespace(symbol="AAPL")
+        execution = SimpleNamespace(
+            orderId=50,
+            clientId=7,
+            permId=1001,
+            side="BOT",
+            shares="1",
+            cumQty="1",
+            avgPrice="185.50",
+            price="185.50",
+            time="20260512 10:00:00",
+            execId="0001.01",
+        )
+
+        self.assertFalse(wrapper.execDetails(20001, contract, execution))
+        self.assertFalse(wrapper.execDetailsEnd(20001))
+        generation = bridge.begin_execution_snapshot(request_id=20001, symbol="AAPL")
+
+        self.assertTrue(wrapper.execDetails(20001, contract, execution))
+        self.assertTrue(wrapper.execDetailsEnd(20001))
+
+        result = bridge.complete_execution_snapshot(generation=generation)
+
+        self.assertEqual(result.fill_count, 1)
+        self.assertEqual(result.total_shares, 1.0)
+        self.assertEqual(result.fills[0].perm_id, "1001")
 
     def test_wrapper_integrity_is_preserved_after_fake_client_construction(self) -> None:
         bridge = IBKRCallbackBridge()

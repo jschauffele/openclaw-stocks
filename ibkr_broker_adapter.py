@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 from broker_interface import (
     BrokerAccountState,
     BrokerCapabilities,
+    BrokerExecutionSnapshotState,
     BrokerLifecycleResult,
     BrokerOpenOrderState,
     BrokerOrderResult,
@@ -49,6 +51,7 @@ class IBKRBrokerAdapter:
         position_account: str = "",
         position_model_code: str = "",
         position_request_id_start: int = 10001,
+        execution_request_id_start: int = 20001,
         order_id_start: int | None = None,
     ) -> None:
         self.client = client
@@ -75,6 +78,7 @@ class IBKRBrokerAdapter:
         self.position_account = position_account
         self.position_model_code = position_model_code
         self._next_position_request_id = position_request_id_start
+        self._next_execution_request_id = execution_request_id_start
         self._order_id_lock = threading.RLock()
         self._next_order_id = order_id_start
         self._active_order_id: int | None = None
@@ -231,7 +235,7 @@ class IBKRBrokerAdapter:
                 request_id,
                 timeout=timeout,
             ):
-                self.request_coordinator.timeout_request(request_id)
+                self.bridge.timeout_position_snapshot()
                 raise TimeoutError(
                     f"IBKR position request timed out: reqId={request_id}"
                 )
@@ -273,6 +277,47 @@ class IBKRBrokerAdapter:
         if result is None:
             raise RuntimeError(
                 "IBKR open-order request produced no result: "
+                f"generation={generation}"
+            )
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    def get_execution_snapshot(
+        self,
+        *,
+        symbol: str | None = None,
+        side: str | None = None,
+        since: str | None = None,
+        timeout_seconds: float | None = None,
+    ) -> BrokerExecutionSnapshotState:
+        client = self._require_execution_client()
+        timeout = self._normalize_timeout(timeout_seconds)
+        request_id = self._allocate_execution_request_id()
+        generation = self.bridge.begin_execution_snapshot(
+            request_id=request_id,
+            symbol=symbol,
+        )
+        execution_filter = self._build_execution_filter(symbol=symbol, side=side, since=since)
+
+        try:
+            client.reqExecutions(request_id, execution_filter)
+        except Exception:
+            self.bridge.timeout_execution_snapshot()
+            raise
+        if not self.request_coordinator.wait_for_completion(
+            generation,
+            timeout=timeout,
+        ):
+            result = self.bridge.timeout_execution_snapshot()
+            raise TimeoutError(
+                "IBKR execution request timed out: "
+                f"generation={generation}, error={result.error}"
+            )
+        result = self.request_coordinator.result(generation)
+        if result is None:
+            raise RuntimeError(
+                "IBKR execution request produced no result: "
                 f"generation={generation}"
             )
         if isinstance(result, Exception):
@@ -376,6 +421,14 @@ class IBKRBrokerAdapter:
             raise NotImplementedError(_SKELETON_MESSAGE)
         return client
 
+    def _require_execution_client(self):
+        client = self.client
+        if client is None and self.coordinator is not None:
+            client = getattr(self.coordinator, "client", None)
+        if getattr(client, "reqExecutions", None) is None:
+            raise NotImplementedError(_SKELETON_MESSAGE)
+        return client
+
     def _require_order_client(self):
         client = self.client
         if client is None and self.coordinator is not None:
@@ -407,6 +460,32 @@ class IBKRBrokerAdapter:
         request_id = self._next_position_request_id
         self._next_position_request_id += 1
         return request_id
+
+    def _allocate_execution_request_id(self) -> int:
+        request_id = self._next_execution_request_id
+        self._next_execution_request_id += 1
+        return request_id
+
+    def _build_execution_filter(
+        self,
+        *,
+        symbol: str | None,
+        side: str | None,
+        since: str | None,
+    ):
+        execution_filter_class = getattr(self.native_api, "execution_filter", None)
+        execution_filter = (
+            execution_filter_class()
+            if execution_filter_class is not None
+            else SimpleNamespace()
+        )
+        if symbol is not None:
+            execution_filter.symbol = symbol
+        if side is not None:
+            execution_filter.side = side
+        if since is not None:
+            execution_filter.time = since
+        return execution_filter
 
     def advance_order_id_floor(self, next_valid_id: object) -> None:
         next_order_id = int(next_valid_id)
