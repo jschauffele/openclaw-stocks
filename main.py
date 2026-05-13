@@ -602,6 +602,54 @@ def main():
         logging.info("========== OpenClaw run finished ==========")
         return
 
+    if order_result.order_status == "reconciliation_required":
+        log_observation(result="manual_review_required")
+        log_event("order", "submission", "uncertain", {
+            "symbol": OPENCLAW_SYMBOL,
+            "qty": OPENCLAW_QTY,
+            "side": side,
+            "order_id": order_result.order_id,
+            "order_status": order_result.order_status,
+            "submit_state": "submit_uncertain_reconciliation_required",
+            "manual_review_required": True,
+        })
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="manual_review_required",
+            reason="broker_reconciliation_required",
+            trigger_source=trigger_source,
+            side=side,
+            **report_config,
+            buying_power=buying_power,
+            estimated_cost=risk_result["estimated_cost"],
+            order_status=order_result.order_status,
+            submit_state="submit_uncertain_reconciliation_required",
+            reconciliation_status=None,
+            manual_review_required=True,
+            terminal_for_run=True,
+            reconciliation_ambiguous=True,
+            filled_qty=None,
+            working_qty=None,
+            existing_position_qty=reconciliation_result["existing_qty"],
+            open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
+            projected_position_qty=reconciliation_result["projected_qty"],
+            notes=[
+                "Broker submit acknowledgement timed out; manual reconciliation required",
+                f"Strategy reason={action_proposal['reason']}",
+                f"signal={action_proposal['signal']}",
+                f"decision={action_proposal['decision']}",
+            ],
+        )
+        log_event(
+            "system",
+            "completion",
+            "manual_review_required",
+            {"reason": "broker_reconciliation_required"},
+        )
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
     log_event("order", "submission", "paper_submitted", {
         "symbol": OPENCLAW_SYMBOL,
         "qty": OPENCLAW_QTY,
