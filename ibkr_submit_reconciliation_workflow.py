@@ -42,7 +42,6 @@ class IBKRSubmitReconciliationWorkflow:
         try:
             execution_snapshot = broker.get_execution_snapshot(
                 symbol=intent.symbol,
-                side=_execution_side(intent.side),
                 since=intent.submitted_at,
                 timeout_seconds=timeout_seconds,
             )

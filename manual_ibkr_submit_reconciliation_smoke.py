@@ -31,6 +31,7 @@ NON_FATAL_CONNECT_STATUS_CODES = frozenset({2104, 2106, 2158})
 RUN_THREAD_READY_TIMEOUT = 2.0
 SMOKE_SAFETY_READ_TIMEOUT = 2.0
 SMOKE_MIN_MARKET_ORDER_TIMEOUT = 5.0
+SMOKE_DISCONNECT_TIMEOUT = 5.0
 SMOKE_LOCAL_DIR = Path(__file__).resolve().parent / ".local"
 SMOKE_LOCK_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke.lock"
 SMOKE_LAST_STATE_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke_last_state.json"
@@ -622,6 +623,7 @@ def run_localhost_submit_reconciliation_smoke(
     disconnect_joined = False
     disconnect_passed = False
     safety_timeout = max(timeout, SMOKE_SAFETY_READ_TIMEOUT)
+    disconnect_timeout = max(timeout, SMOKE_DISCONNECT_TIMEOUT)
 
     try:
         coordinator.connect(
@@ -769,7 +771,7 @@ def run_localhost_submit_reconciliation_smoke(
             print(f"callback_event={event}")
         disconnect_error = None
         try:
-            disconnect_joined = coordinator.disconnect(timeout=timeout)
+            disconnect_joined = coordinator.disconnect(timeout=disconnect_timeout)
             disconnect_result = coordinator.disconnect_result()
             disconnect_passed = bool(
                 disconnect_joined
@@ -793,6 +795,8 @@ def run_localhost_submit_reconciliation_smoke(
                 {
                     "symbol": symbol,
                     "qty": qty,
+                    "submit_timeout": timeout,
+                    "disconnect_timeout": disconnect_timeout,
                     "order_type": smoke_order_type,
                     "limit_price": limit_price,
                     "submit_attempted": submit_attempted,

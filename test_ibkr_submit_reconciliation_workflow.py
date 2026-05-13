@@ -161,7 +161,7 @@ class IBKRSubmitReconciliationWorkflowTests(unittest.TestCase):
         self.assertEqual(len(broker.execution_calls), 1)
         self.assertEqual(len(broker.open_order_calls), 1)
         self.assertEqual(len(broker.position_calls), 1)
-        self.assertEqual(broker.execution_calls[0]["side"], "BOT")
+        self.assertNotIn("side", broker.execution_calls[0])
         self.assertEqual(broker.execution_calls[0]["since"], "20260512 10:00:00")
 
     def test_filled_result(self) -> None:

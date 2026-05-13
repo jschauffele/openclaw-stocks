@@ -1245,6 +1245,30 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
             )
         )
 
+    def test_execution_snapshot_omits_side_filter_when_side_is_none(self) -> None:
+        client = FakeExecutionClient()
+        adapter = IBKRBrokerAdapter(
+            client=client,
+            execution_request_id_start=23001,
+        )
+
+        def complete(request_id) -> None:
+            adapter.bridge.exec_details_end(request_id=request_id)
+
+        client.on_request = complete
+
+        result = adapter.get_execution_snapshot(
+            symbol="AAPL",
+            since="20260512 09:30:00",
+            timeout_seconds=0.25,
+        )
+
+        self.assertTrue(result.passed)
+        execution_filter = client.req_executions_calls[0]["execution_filter"]
+        self.assertEqual(execution_filter.symbol, "AAPL")
+        self.assertFalse(hasattr(execution_filter, "side"))
+        self.assertEqual(execution_filter.time, "20260512 09:30:00")
+
     def test_position_wrong_and_missing_req_id_callbacks_are_ignored(self) -> None:
         client = FakePositionClient()
         adapter = IBKRBrokerAdapter(client=client, position_request_id_start=8301)

@@ -21,6 +21,7 @@ from manual_ibkr_submit_reconciliation_smoke import (
     RecordingReconciliationBridge,
     SmokeRunLock,
     SmokeSafetyRefusal,
+    SMOKE_DISCONNECT_TIMEOUT,
     _refuse_if_last_run_requires_cleanup,
     classify_smoke_broker_state,
     query_smoke_broker_state,
@@ -304,6 +305,26 @@ class SmokeSafetyControlTests(unittest.TestCase):
             with self.assertRaisesRegex(SmokeSafetyRefusal, "final_broker_state"):
                 _refuse_if_last_run_requires_cleanup(state_path)
 
+    def test_short_submit_timeout_uses_disconnect_timeout_floor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            result, adapter, _native_api, coordinator = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                timeout=0.25,
+                preflight_only=True,
+                include_coordinator=True,
+            )
+
+            self.assertEqual(result.state, "clean")
+            self.assertFalse(adapter.submit_market_order_called)
+            self.assertEqual(coordinator.disconnect_timeouts, [SMOKE_DISCONNECT_TIMEOUT])
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["submit_timeout"], 0.25)
+            self.assertEqual(state["disconnect_timeout"], SMOKE_DISCONNECT_TIMEOUT)
+
 
 class FakeSafetyAdapter:
     def __init__(
@@ -421,6 +442,8 @@ class FakeNativeClient:
 
 
 class FakeCoordinator:
+    instances: list["FakeCoordinator"] = []
+
     def __init__(self, *, enabled: bool) -> None:
         self.enabled = enabled
         self.client = None
@@ -428,6 +451,8 @@ class FakeCoordinator:
         self.connect_state = "connected"
         self.shutdown_state = "complete"
         self.thread_owner = FakeThreadOwner()
+        self.disconnect_timeouts: list[float] = []
+        self.instances.append(self)
 
     def connect(self, *, host: str, port: int, client_id: int, timeout: float) -> None:
         return None
@@ -450,6 +475,7 @@ class FakeCoordinator:
         )
 
     def disconnect(self, *, timeout: float) -> bool:
+        self.disconnect_timeouts.append(timeout)
         self.connect_state = "disconnected"
         return True
 
@@ -498,10 +524,12 @@ def run_fake_smoke(
     preflight_only: bool = False,
     order_type: str = "market",
     limit_price: float | None = None,
+    include_coordinator: bool = False,
 ):
     FakeIBKRBrokerAdapter.instances = []
     FakeIBKRBrokerAdapter.open_order_snapshots = list(open_order_snapshots)
     FakeIBKRBrokerAdapter.position_snapshots = list(position_snapshots)
+    FakeCoordinator.instances = []
     native_api = FakeNativeApi()
     with (
         patch(
@@ -528,7 +556,10 @@ def run_fake_smoke(
                 order_type=order_type,
                 limit_price=limit_price,
             )
-    return result, FakeIBKRBrokerAdapter.instances[-1], native_api
+    adapter = FakeIBKRBrokerAdapter.instances[-1]
+    if include_coordinator:
+        return result, adapter, native_api, FakeCoordinator.instances[-1]
+    return result, adapter, native_api
 
 
 def open_orders(qty: int = 0, count: int = 0) -> BrokerOpenOrderState:
