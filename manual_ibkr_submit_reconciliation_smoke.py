@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import json
 from math import isfinite
+import os
+from pathlib import Path
 from time import monotonic
 import time
 
@@ -25,6 +28,57 @@ LOCALHOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 PAPER_PORTS = frozenset({7497, 4002})
 NON_FATAL_CONNECT_STATUS_CODES = frozenset({2104, 2106, 2158})
 RUN_THREAD_READY_TIMEOUT = 2.0
+SMOKE_SAFETY_READ_TIMEOUT = 2.0
+SMOKE_LOCAL_DIR = Path(__file__).resolve().parent / ".local"
+SMOKE_LOCK_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke.lock"
+SMOKE_LAST_STATE_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke_last_state.json"
+UNSAFE_RECONCILIATION_STATUSES = frozenset(
+    {"unresolved", "partially_filled_unresolved"}
+)
+
+
+class SmokeSafetyRefusal(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True)
+class SmokeBrokerState:
+    open_order_snapshot: object
+    position_snapshot: object
+    state: str
+    reason: str
+
+
+class SmokeRunLock:
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.acquired = False
+
+    def acquire(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "pid": os.getpid(),
+            "created_at_monotonic": monotonic(),
+            "purpose": "ibkr_localhost_smoke_single_flight",
+        }
+        try:
+            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as exc:
+            raise SmokeSafetyRefusal(
+                f"IBKR smoke already in flight: lock_path={self.path}"
+            ) from exc
+        with os.fdopen(fd, "w", encoding="utf-8") as lock_file:
+            json.dump(payload, lock_file, sort_keys=True)
+        self.acquired = True
+
+    def release(self) -> None:
+        if not self.acquired:
+            return
+        try:
+            self.path.unlink()
+        except FileNotFoundError:
+            pass
+        self.acquired = False
 
 
 @dataclass
@@ -502,8 +556,12 @@ def run_localhost_submit_reconciliation_smoke(
     timeout: float = DEFAULT_TIMEOUT,
     symbol: str = DEFAULT_SYMBOL,
     qty: int = DEFAULT_QTY,
+    lock_path: Path | str = SMOKE_LOCK_PATH,
+    last_state_path: Path | str = SMOKE_LAST_STATE_PATH,
 ):
     _validate_smoke_inputs(host=host, port=port, timeout=timeout, qty=qty)
+    lock = SmokeRunLock(Path(lock_path))
+    _refuse_if_last_run_requires_cleanup(Path(last_state_path))
 
     native_api = load_ibkr_native_api()
     recorder = ReconciliationSmokeRecorder()
@@ -538,6 +596,7 @@ def run_localhost_submit_reconciliation_smoke(
         request_coordinator=request_coordinator,
         coordinator=coordinator,
     )
+    lock.acquire()
 
     print(
         "IBKR manual localhost submit-reconciliation smoke "
@@ -546,6 +605,14 @@ def run_localhost_submit_reconciliation_smoke(
     order_result = None
     allocated_order_id = None
     workflow_result = None
+    connection_result = None
+    pre_submit_state = None
+    final_broker_state = "not_submitted"
+    final_broker_state_reason = "submit_not_attempted"
+    submit_attempted = False
+    disconnect_joined = False
+    disconnect_passed = False
+    safety_timeout = max(timeout, SMOKE_SAFETY_READ_TIMEOUT)
 
     try:
         coordinator.connect(
@@ -578,8 +645,23 @@ def run_localhost_submit_reconciliation_smoke(
             print("submit_reconciliation_skipped=run_thread_not_ready")
             return None
 
+        pre_submit_state = query_smoke_broker_state(
+            adapter,
+            symbol=symbol,
+            timeout=safety_timeout,
+        )
+        print(f"pre_submit_open_order_snapshot={pre_submit_state.open_order_snapshot}")
+        print(f"pre_submit_position_snapshot={pre_submit_state.position_snapshot}")
+        print(f"pre_submit_broker_state={pre_submit_state.state}")
+        if pre_submit_state.state != "clean":
+            print(f"submit_reconciliation_refused={pre_submit_state.reason}")
+            final_broker_state = pre_submit_state.state
+            final_broker_state_reason = pre_submit_state.reason
+            return None
+
         order = adapter.build_market_order(symbol, qty)
         try:
+            submit_attempted = True
             order_result = adapter.submit_market_order(
                 order,
                 timeout_seconds=timeout,
@@ -633,15 +715,70 @@ def run_localhost_submit_reconciliation_smoke(
         print(f"reason={workflow_result.reason}")
         return workflow_result
     finally:
+        if submit_attempted:
+            try:
+                final_state = query_smoke_broker_state(
+                    adapter,
+                    symbol=symbol,
+                    timeout=safety_timeout,
+                )
+                final_broker_state = final_state.state
+                final_broker_state_reason = final_state.reason
+                print(f"final_open_order_snapshot={final_state.open_order_snapshot}")
+                print(f"final_position_snapshot={final_state.position_snapshot}")
+                print(f"final_broker_state={final_broker_state}")
+            except Exception as exc:
+                final_broker_state = "unknown"
+                final_broker_state_reason = str(exc) or type(exc).__name__
+                print(f"final_broker_state={final_broker_state}")
+                print(f"final_broker_state_error={final_broker_state_reason}")
         print(f"callback_count={len(recorder.events)}")
         for event in recorder.events:
             print(f"callback_event={event}")
-        joined = coordinator.disconnect(timeout=timeout)
-        print(f"disconnect_joined={joined}")
-        print(f"disconnect_result={coordinator.disconnect_result()}")
+        disconnect_error = None
+        try:
+            disconnect_joined = coordinator.disconnect(timeout=timeout)
+            disconnect_result = coordinator.disconnect_result()
+            disconnect_passed = bool(
+                disconnect_joined
+                and disconnect_result is not None
+                and getattr(disconnect_result, "passed", False)
+            )
+        except Exception as exc:
+            disconnect_result = None
+            disconnect_passed = False
+            disconnect_error = str(exc) or type(exc).__name__
+        print(f"disconnect_joined={disconnect_joined}")
+        print(f"disconnect_result={disconnect_result}")
+        if disconnect_error is not None:
+            print(f"disconnect_error={disconnect_error}")
         print(f"connect_state={coordinator.connect_state}")
         print(f"shutdown_state={coordinator.shutdown_state}")
         print(f"thread_state={coordinator.thread_owner.thread_state}")
+        try:
+            write_smoke_last_state(
+                Path(last_state_path),
+                {
+                    "symbol": symbol,
+                    "qty": qty,
+                    "submit_attempted": submit_attempted,
+                    "order_id": getattr(order_result, "order_id", None),
+                    "order_status": getattr(order_result, "order_status", None),
+                    "reconciliation_status": getattr(
+                        workflow_result, "reconciliation_status", None
+                    ),
+                    "manual_review_required": bool(
+                        getattr(workflow_result, "manual_review_required", False)
+                    ),
+                    "final_broker_state": final_broker_state,
+                    "final_broker_state_reason": final_broker_state_reason,
+                    "disconnect_joined": disconnect_joined,
+                    "disconnect_passed": disconnect_passed,
+                    "disconnect_error": disconnect_error,
+                },
+            )
+        finally:
+            lock.release()
 
 
 def wait_for_run_thread_ready(
@@ -674,6 +811,146 @@ def _validate_smoke_inputs(
         raise ValueError("IBKR reconciliation smoke requires a finite positive timeout")
     if int(qty) == 0:
         raise ValueError("IBKR reconciliation smoke qty must be non-zero")
+
+
+def query_smoke_broker_state(
+    adapter: IBKRBrokerAdapter,
+    *,
+    symbol: str,
+    timeout: float,
+) -> SmokeBrokerState:
+    open_order_snapshot = adapter.get_open_buy_order_qty(
+        symbol,
+        timeout_seconds=timeout,
+    )
+    position_snapshot = adapter.get_existing_position(
+        symbol,
+        timeout_seconds=timeout,
+    )
+    return classify_smoke_broker_state(
+        open_order_snapshot=open_order_snapshot,
+        position_snapshot=position_snapshot,
+    )
+
+
+def classify_smoke_broker_state(
+    *,
+    open_order_snapshot: object,
+    position_snapshot: object,
+) -> SmokeBrokerState:
+    if not getattr(open_order_snapshot, "passed", False):
+        return SmokeBrokerState(
+            open_order_snapshot=open_order_snapshot,
+            position_snapshot=position_snapshot,
+            state="unknown",
+            reason="open_order_snapshot_failed",
+        )
+    open_qty = getattr(open_order_snapshot, "open_buy_order_qty", None)
+    open_count = getattr(open_order_snapshot, "open_buy_order_count", None)
+    if _positive_number(open_qty) or _positive_number(open_count):
+        return SmokeBrokerState(
+            open_order_snapshot=open_order_snapshot,
+            position_snapshot=position_snapshot,
+            state="open_orders",
+            reason="open_orders_exist",
+        )
+    if getattr(position_snapshot, "found", None) is None:
+        return SmokeBrokerState(
+            open_order_snapshot=open_order_snapshot,
+            position_snapshot=position_snapshot,
+            state="unknown",
+            reason="position_snapshot_unknown",
+        )
+    if getattr(position_snapshot, "error", None):
+        return SmokeBrokerState(
+            open_order_snapshot=open_order_snapshot,
+            position_snapshot=position_snapshot,
+            state="unknown",
+            reason="position_snapshot_failed",
+        )
+    if _non_flat_position(position_snapshot):
+        return SmokeBrokerState(
+            open_order_snapshot=open_order_snapshot,
+            position_snapshot=position_snapshot,
+            state="non_flat_position",
+            reason="position_is_non_flat",
+        )
+    return SmokeBrokerState(
+        open_order_snapshot=open_order_snapshot,
+        position_snapshot=position_snapshot,
+        state="clean",
+        reason="no_open_orders_or_position",
+    )
+
+
+def write_smoke_last_state(path: Path, state: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(state, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _refuse_if_last_run_requires_cleanup(path: Path) -> None:
+    state = _read_smoke_last_state(path)
+    if state is None:
+        return
+    reason = _last_run_cleanup_reason(state)
+    if reason is None:
+        return
+    raise SmokeSafetyRefusal(
+        "Previous IBKR smoke state requires cleanup before another run: "
+        f"{reason}; state_path={path}"
+    )
+
+
+def _read_smoke_last_state(path: Path) -> dict[str, object] | None:
+    try:
+        raw_state = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+    try:
+        state = json.loads(raw_state)
+    except json.JSONDecodeError as exc:
+        raise SmokeSafetyRefusal(
+            f"Previous IBKR smoke state is unreadable: state_path={path}"
+        ) from exc
+    if not isinstance(state, dict):
+        raise SmokeSafetyRefusal(
+            f"Previous IBKR smoke state is invalid: state_path={path}"
+        )
+    return state
+
+
+def _last_run_cleanup_reason(state: dict[str, object]) -> str | None:
+    if state.get("manual_review_required") is True:
+        return "manual_review_required"
+    reconciliation_status = state.get("reconciliation_status")
+    if reconciliation_status in UNSAFE_RECONCILIATION_STATUSES:
+        return f"reconciliation_status={reconciliation_status}"
+    if state.get("disconnect_joined") is False or state.get("disconnect_passed") is False:
+        return "disconnect_failed"
+    if state.get("submit_attempted") is True and state.get("final_broker_state") == "unknown":
+        return "unknown_final_broker_state"
+    return None
+
+
+def _positive_number(value: object) -> bool:
+    try:
+        return float(value) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _non_flat_position(position_snapshot: object) -> bool:
+    if not getattr(position_snapshot, "found", False):
+        return False
+    qty = getattr(position_snapshot, "qty", None)
+    raw_qty = getattr(position_snapshot, "raw_qty", None)
+    try:
+        return float(qty if qty is not None else raw_qty) != 0.0
+    except (TypeError, ValueError):
+        return True
 
 
 def _is_negative_position(pos) -> bool:
