@@ -10,6 +10,8 @@ from unittest.mock import patch
 
 from broker_interface import (
     BrokerLifecycleResult,
+    BrokerSubmitReconciliationResult,
+    BrokerReconciliationResult,
     BrokerOpenOrderState,
     BrokerOrderResult,
     BrokerPositionState,
@@ -325,6 +327,29 @@ class SmokeSafetyControlTests(unittest.TestCase):
             self.assertEqual(state["submit_timeout"], 0.25)
             self.assertEqual(state["disconnect_timeout"], SMOKE_DISCONNECT_TIMEOUT)
 
+    def test_reconciliation_intent_submitted_at_is_populated_and_persisted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            result, _adapter, _native_api, workflow = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders(), open_orders()],
+                position_snapshots=[flat_position(), flat_position()],
+                order_status="reconciliation_required",
+                order_type="limit",
+                limit_price=100.25,
+                submitted_at="20260512 10:01:02",
+                include_workflow=True,
+            )
+
+            self.assertEqual(result.reconciliation_status, "accepted_unfilled")
+            intent = workflow.calls[0]["intent"]
+            self.assertEqual(intent.submitted_at, "20260512 10:01:02")
+            self.assertRegex(intent.submitted_at, r"^\d{8} \d{2}:\d{2}:\d{2}$")
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["submitted_at"], "20260512 10:01:02")
+            self.assertRegex(state["submitted_at"], r"^\d{8} \d{2}:\d{2}:\d{2}$")
+
 
 class FakeSafetyAdapter:
     def __init__(
@@ -359,6 +384,7 @@ class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
     instances: list["FakeIBKRBrokerAdapter"] = []
     open_order_snapshots: list[BrokerOpenOrderState] = []
     position_snapshots: list[BrokerPositionState] = []
+    order_status = "submitted"
 
     def __init__(self, **_kwargs) -> None:
         if not self.open_order_snapshots or not self.position_snapshots:
@@ -402,7 +428,7 @@ class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
         return BrokerOrderResult(
             broker_name="ibkr",
             order_id="123",
-            order_status="submitted",
+            order_status=self.order_status,
             broker_status="PreSubmitted",
             is_terminal=False,
         )
@@ -495,6 +521,60 @@ class FakeThreadOwner:
     thread_state = "running"
 
 
+class FakeReconciliationWorkflow:
+    instances: list["FakeReconciliationWorkflow"] = []
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+        self.instances.append(self)
+
+    def reconcile_if_required(
+        self,
+        *,
+        broker,
+        submit_result,
+        intent,
+        timeout_seconds: float | None = None,
+    ) -> BrokerSubmitReconciliationResult:
+        self.calls.append(
+            {
+                "broker": broker,
+                "submit_result": submit_result,
+                "intent": intent,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        reconciliation = BrokerReconciliationResult(
+            broker_name="ibkr",
+            status="accepted_unfilled",
+            order_id=intent.order_id,
+            perm_id=intent.perm_id,
+            symbol=intent.symbol,
+            side=intent.side,
+            intended_qty=intent.qty,
+            filled_qty=0.0,
+            working_qty=1.0,
+            avg_fill_price=None,
+            matched_exec_ids=(),
+            reason="open_order_snapshot_shows_working_order",
+        )
+        return BrokerSubmitReconciliationResult(
+            broker_name="ibkr",
+            submit_state="submit_uncertain_reconciliation_required",
+            reconciliation_status="accepted_unfilled",
+            terminal_for_run=True,
+            manual_review_required=False,
+            order_id=intent.order_id,
+            perm_id=intent.perm_id,
+            filled_qty=0.0,
+            working_qty=1.0,
+            reason="open_order_snapshot_shows_working_order",
+            ambiguous=False,
+            submit_result=submit_result,
+            reconciliation_result=reconciliation,
+        )
+
+
 def run_fake_preflight_only(
     *,
     lock_path: Path,
@@ -524,12 +604,17 @@ def run_fake_smoke(
     preflight_only: bool = False,
     order_type: str = "market",
     limit_price: float | None = None,
+    order_status: str = "submitted",
+    submitted_at: str = "20260512 10:01:02",
     include_coordinator: bool = False,
+    include_workflow: bool = False,
 ):
     FakeIBKRBrokerAdapter.instances = []
     FakeIBKRBrokerAdapter.open_order_snapshots = list(open_order_snapshots)
     FakeIBKRBrokerAdapter.position_snapshots = list(position_snapshots)
+    FakeIBKRBrokerAdapter.order_status = order_status
     FakeCoordinator.instances = []
+    FakeReconciliationWorkflow.instances = []
     native_api = FakeNativeApi()
     with (
         patch(
@@ -544,6 +629,14 @@ def run_fake_smoke(
             "manual_ibkr_submit_reconciliation_smoke.IBKRBrokerAdapter",
             FakeIBKRBrokerAdapter,
         ),
+        patch(
+            "manual_ibkr_submit_reconciliation_smoke.IBKRSubmitReconciliationWorkflow",
+            FakeReconciliationWorkflow,
+        ),
+        patch(
+            "manual_ibkr_submit_reconciliation_smoke._ibkr_execution_filter_time_now",
+            return_value=submitted_at,
+        ),
     ):
         with redirect_stdout(io.StringIO()):
             result = run_localhost_submit_reconciliation_smoke(
@@ -557,6 +650,13 @@ def run_fake_smoke(
                 limit_price=limit_price,
             )
     adapter = FakeIBKRBrokerAdapter.instances[-1]
+    workflow = (
+        FakeReconciliationWorkflow.instances[-1]
+        if FakeReconciliationWorkflow.instances
+        else None
+    )
+    if include_workflow:
+        return result, adapter, native_api, workflow
     if include_coordinator:
         return result, adapter, native_api, FakeCoordinator.instances[-1]
     return result, adapter, native_api

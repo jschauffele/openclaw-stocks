@@ -617,6 +617,7 @@ def run_localhost_submit_reconciliation_smoke(
     workflow_result = None
     connection_result = None
     pre_submit_state = None
+    submitted_at = None
     final_broker_state = "not_submitted"
     final_broker_state_reason = "submit_not_attempted"
     submit_attempted = False
@@ -696,6 +697,8 @@ def run_localhost_submit_reconciliation_smoke(
             return None
         try:
             submit_attempted = True
+            submitted_at = _ibkr_execution_filter_time_now()
+            print(f"submitted_at={submitted_at}")
             order_result = adapter.submit_market_order(
                 order,
                 timeout_seconds=timeout,
@@ -728,7 +731,7 @@ def run_localhost_submit_reconciliation_smoke(
             symbol=symbol,
             side="buy" if qty > 0 else "sell",
             qty=abs(float(qty)),
-            submitted_at=None,
+            submitted_at=submitted_at,
         )
         workflow_result = IBKRSubmitReconciliationWorkflow().reconcile_if_required(
             broker=adapter,
@@ -799,6 +802,7 @@ def run_localhost_submit_reconciliation_smoke(
                     "disconnect_timeout": disconnect_timeout,
                     "order_type": smoke_order_type,
                     "limit_price": limit_price,
+                    "submitted_at": submitted_at,
                     "submit_attempted": submit_attempted,
                     "order_id": getattr(order_result, "order_id", None),
                     "order_status": getattr(order_result, "order_status", None),
@@ -832,6 +836,10 @@ def wait_for_run_thread_ready(
             return False
         time.sleep(0.01)
     return coordinator.thread_owner.thread_state == "running"
+
+
+def _ibkr_execution_filter_time_now() -> str:
+    return time.strftime("%Y%m%d %H:%M:%S")
 
 
 def _validate_smoke_inputs(

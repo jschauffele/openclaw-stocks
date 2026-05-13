@@ -181,6 +181,25 @@ class IBKRBrokerReconcilerTests(unittest.TestCase):
         self.assertTrue(result.ambiguous)
         self.assertEqual(result.reason, "ambiguous_execution_evidence")
 
+    def test_historical_unmatched_execution_evidence_remains_unresolved(self) -> None:
+        result = self.reconciler.reconcile(
+            intent=intent(order_id="current-order", client_id="7", perm_id=None),
+            execution_snapshot=executions(
+                fill(
+                    exec_id="historical-exec",
+                    order_id="old-order",
+                    client_id="7",
+                    perm_id=None,
+                    time="20260512 09:30:00",
+                ),
+            ),
+            open_order_snapshot=open_orders(0),
+        )
+
+        self.assertEqual(result.status, "unresolved")
+        self.assertTrue(result.ambiguous)
+        self.assertEqual(result.reason, "ambiguous_execution_evidence")
+
 
 if __name__ == "__main__":
     unittest.main()
