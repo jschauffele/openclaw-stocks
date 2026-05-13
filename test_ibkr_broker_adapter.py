@@ -136,6 +136,21 @@ class FakeOrderClient:
         return True
 
 
+class FakeNativeContract:
+    pass
+
+
+class FakeNativeOrder:
+    def __init__(self) -> None:
+        self.eTradeOnly = True
+        self.firmQuoteOnly = True
+
+
+class FakeNativeApi:
+    contract = FakeNativeContract
+    order = FakeNativeOrder
+
+
 class FakeCoordinator:
     def __init__(
         self,
@@ -216,6 +231,23 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
             with self.subTest(method=method_name):
                 with self.assertRaisesRegex(NotImplementedError, expected_message):
                     getattr(adapter, method_name)(*args)
+
+    def test_build_market_order_clears_unsupported_legacy_order_flags(self) -> None:
+        adapter = IBKRBrokerAdapter(native_api=FakeNativeApi)
+
+        result = adapter.build_market_order("AAPL", 1)
+
+        self.assertEqual(result.symbol, "AAPL")
+        self.assertEqual(result.qty, 1)
+        self.assertEqual(result.contract.symbol, "AAPL")
+        self.assertEqual(result.contract.secType, "STK")
+        self.assertEqual(result.contract.exchange, "SMART")
+        self.assertEqual(result.contract.currency, "USD")
+        self.assertEqual(result.order.action, "BUY")
+        self.assertEqual(result.order.orderType, "MKT")
+        self.assertEqual(result.order.totalQuantity, 1)
+        self.assertIs(result.order.eTradeOnly, False)
+        self.assertIs(result.order.firmQuoteOnly, False)
 
     def test_lifecycle_methods_require_injected_coordinator_except_health_check(
         self,
