@@ -340,6 +340,8 @@ class IBKRBrokerAdapter:
         order.action = "BUY" if int(qty) > 0 else "SELL"
         order.orderType = "MKT"
         order.totalQuantity = abs(int(qty))
+        if hasattr(order, "tif"):
+            order.tif = "DAY"
         if hasattr(order, "eTradeOnly"):
             order.eTradeOnly = False
         if hasattr(order, "firmQuoteOnly"):

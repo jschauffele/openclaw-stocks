@@ -142,6 +142,7 @@ class FakeNativeContract:
 
 class FakeNativeOrder:
     def __init__(self) -> None:
+        self.tif = ""
         self.eTradeOnly = True
         self.firmQuoteOnly = True
 
@@ -246,6 +247,7 @@ class IBKRBrokerAdapterTests(unittest.TestCase):
         self.assertEqual(result.order.action, "BUY")
         self.assertEqual(result.order.orderType, "MKT")
         self.assertEqual(result.order.totalQuantity, 1)
+        self.assertEqual(result.order.tif, "DAY")
         self.assertIs(result.order.eTradeOnly, False)
         self.assertIs(result.order.firmQuoteOnly, False)
 
