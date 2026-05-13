@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass, field
 import json
 from math import isfinite
@@ -558,6 +559,7 @@ def run_localhost_submit_reconciliation_smoke(
     qty: int = DEFAULT_QTY,
     lock_path: Path | str = SMOKE_LOCK_PATH,
     last_state_path: Path | str = SMOKE_LAST_STATE_PATH,
+    preflight_only: bool = False,
 ):
     _validate_smoke_inputs(host=host, port=port, timeout=timeout, qty=qty)
     lock = SmokeRunLock(Path(lock_path))
@@ -658,6 +660,11 @@ def run_localhost_submit_reconciliation_smoke(
             final_broker_state = pre_submit_state.state
             final_broker_state_reason = pre_submit_state.reason
             return None
+        if preflight_only:
+            print("submit_reconciliation_preflight_only=True")
+            final_broker_state = pre_submit_state.state
+            final_broker_state_reason = pre_submit_state.reason
+            return pre_submit_state
 
         order = adapter.build_market_order(symbol, qty)
         try:
@@ -977,5 +984,32 @@ def _latest_place_order_id(recorder: ReconciliationSmokeRecorder):
     return place_events[-1].get("order_id")
 
 
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run the localhost IBKR submit-reconciliation smoke harness."
+    )
+    parser.add_argument("--host", default=DEFAULT_HOST)
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--client-id", type=int, default=DEFAULT_CLIENT_ID)
+    parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
+    parser.add_argument("--symbol", default=DEFAULT_SYMBOL)
+    parser.add_argument("--qty", type=int, default=DEFAULT_QTY)
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Connect and verify smoke safety gates without placing an order.",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    run_localhost_submit_reconciliation_smoke()
+    args = _parse_args()
+    run_localhost_submit_reconciliation_smoke(
+        host=args.host,
+        port=args.port,
+        client_id=args.client_id,
+        timeout=args.timeout,
+        symbol=args.symbol,
+        qty=args.qty,
+        preflight_only=args.preflight_only,
+    )
