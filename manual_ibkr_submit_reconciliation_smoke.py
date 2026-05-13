@@ -10,7 +10,7 @@ from time import monotonic
 import time
 
 from broker_interface import BrokerSubmitIntent
-from ibkr_broker_adapter import IBKRBrokerAdapter
+from ibkr_broker_adapter import IBKRBrokerAdapter, IBKRMarketOrder
 from ibkr_callback_bridge import IBKRCallbackBridge
 from ibkr_native_imports import load_ibkr_native_api
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
@@ -30,6 +30,7 @@ PAPER_PORTS = frozenset({7497, 4002})
 NON_FATAL_CONNECT_STATUS_CODES = frozenset({2104, 2106, 2158})
 RUN_THREAD_READY_TIMEOUT = 2.0
 SMOKE_SAFETY_READ_TIMEOUT = 2.0
+SMOKE_MIN_MARKET_ORDER_TIMEOUT = 5.0
 SMOKE_LOCAL_DIR = Path(__file__).resolve().parent / ".local"
 SMOKE_LOCK_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke.lock"
 SMOKE_LAST_STATE_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke_last_state.json"
@@ -560,8 +561,11 @@ def run_localhost_submit_reconciliation_smoke(
     lock_path: Path | str = SMOKE_LOCK_PATH,
     last_state_path: Path | str = SMOKE_LAST_STATE_PATH,
     preflight_only: bool = False,
+    order_type: str = "market",
+    limit_price: float | None = None,
 ):
     _validate_smoke_inputs(host=host, port=port, timeout=timeout, qty=qty)
+    smoke_order_type = _normalize_smoke_order_type(order_type)
     lock = SmokeRunLock(Path(lock_path))
     _refuse_if_last_run_requires_cleanup(Path(last_state_path))
 
@@ -604,6 +608,9 @@ def run_localhost_submit_reconciliation_smoke(
         "IBKR manual localhost submit-reconciliation smoke "
         f"host={host} port={port} client_id={client_id} symbol={symbol} qty={qty}"
     )
+    print(f"smoke_order_type={smoke_order_type}")
+    if smoke_order_type == "limit":
+        print(f"limit_price={limit_price}")
     order_result = None
     allocated_order_id = None
     workflow_result = None
@@ -666,7 +673,25 @@ def run_localhost_submit_reconciliation_smoke(
             final_broker_state_reason = pre_submit_state.reason
             return pre_submit_state
 
-        order = adapter.build_market_order(symbol, qty)
+        order = build_smoke_order(
+            adapter=adapter,
+            native_api=native_api,
+            symbol=symbol,
+            qty=qty,
+            order_type=smoke_order_type,
+            timeout=timeout,
+            limit_price=limit_price,
+        )
+        if order is None:
+            final_broker_state = "not_submitted"
+            final_broker_state_reason = _smoke_order_refusal_reason(
+                order_type=smoke_order_type,
+                qty=qty,
+                timeout=timeout,
+                limit_price=limit_price,
+            )
+            print(f"submit_reconciliation_refused={final_broker_state_reason}")
+            return None
         try:
             submit_attempted = True
             order_result = adapter.submit_market_order(
@@ -768,6 +793,8 @@ def run_localhost_submit_reconciliation_smoke(
                 {
                     "symbol": symbol,
                     "qty": qty,
+                    "order_type": smoke_order_type,
+                    "limit_price": limit_price,
                     "submit_attempted": submit_attempted,
                     "order_id": getattr(order_result, "order_id", None),
                     "order_status": getattr(order_result, "order_status", None),
@@ -818,6 +845,98 @@ def _validate_smoke_inputs(
         raise ValueError("IBKR reconciliation smoke requires a finite positive timeout")
     if int(qty) == 0:
         raise ValueError("IBKR reconciliation smoke qty must be non-zero")
+
+
+def build_smoke_order(
+    *,
+    adapter: IBKRBrokerAdapter,
+    native_api,
+    symbol: str,
+    qty: int,
+    order_type: str,
+    timeout: float,
+    limit_price: float | None,
+):
+    refusal_reason = _smoke_order_refusal_reason(
+        order_type=order_type,
+        qty=qty,
+        timeout=timeout,
+        limit_price=limit_price,
+    )
+    if refusal_reason is not None:
+        return None
+    if order_type == "market":
+        return adapter.build_market_order(symbol, qty)
+    return build_smoke_limit_order(
+        native_api=native_api,
+        symbol=symbol,
+        qty=qty,
+        limit_price=float(limit_price),
+    )
+
+
+def build_smoke_limit_order(
+    *,
+    native_api,
+    symbol: str,
+    qty: int,
+    limit_price: float,
+) -> IBKRMarketOrder:
+    contract = native_api.contract()
+    contract.symbol = symbol
+    contract.secType = "STK"
+    contract.exchange = "SMART"
+    contract.currency = "USD"
+
+    order = native_api.order()
+    order.action = "BUY"
+    order.orderType = "LMT"
+    order.totalQuantity = abs(int(qty))
+    order.lmtPrice = float(limit_price)
+    if hasattr(order, "tif"):
+        order.tif = "DAY"
+    if hasattr(order, "eTradeOnly"):
+        order.eTradeOnly = False
+    if hasattr(order, "firmQuoteOnly"):
+        order.firmQuoteOnly = False
+
+    return IBKRMarketOrder(
+        symbol=symbol,
+        qty=int(qty),
+        contract=contract,
+        order=order,
+    )
+
+
+def _smoke_order_refusal_reason(
+    *,
+    order_type: str,
+    qty: int,
+    timeout: float,
+    limit_price: float | None,
+) -> str | None:
+    if order_type == "market":
+        if timeout < SMOKE_MIN_MARKET_ORDER_TIMEOUT:
+            return "market_order_timeout_too_short"
+        return None
+    if limit_price is None:
+        return "limit_price_required"
+    try:
+        normalized_limit = float(limit_price)
+    except (TypeError, ValueError):
+        return "limit_price_required"
+    if normalized_limit <= 0:
+        return "limit_price_must_be_positive"
+    if int(qty) <= 0:
+        return "limit_smoke_requires_buy_qty"
+    return None
+
+
+def _normalize_smoke_order_type(order_type: str) -> str:
+    normalized = str(order_type).lower()
+    if normalized not in {"market", "limit"}:
+        raise ValueError("IBKR smoke order_type must be 'market' or 'limit'")
+    return normalized
 
 
 def query_smoke_broker_state(
@@ -937,6 +1056,9 @@ def _last_run_cleanup_reason(state: dict[str, object]) -> str | None:
         return f"reconciliation_status={reconciliation_status}"
     if state.get("disconnect_joined") is False or state.get("disconnect_passed") is False:
         return "disconnect_failed"
+    final_broker_state = state.get("final_broker_state")
+    if final_broker_state in {"open_orders", "non_flat_position"}:
+        return f"final_broker_state={final_broker_state}"
     if state.get("submit_attempted") is True and state.get("final_broker_state") == "unknown":
         return "unknown_final_broker_state"
     return None
@@ -994,6 +1116,8 @@ def _parse_args():
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--symbol", default=DEFAULT_SYMBOL)
     parser.add_argument("--qty", type=int, default=DEFAULT_QTY)
+    parser.add_argument("--order-type", choices=("market", "limit"), default="market")
+    parser.add_argument("--limit-price", type=float, default=None)
     parser.add_argument(
         "--preflight-only",
         action="store_true",
@@ -1012,4 +1136,6 @@ if __name__ == "__main__":
         symbol=args.symbol,
         qty=args.qty,
         preflight_only=args.preflight_only,
+        order_type=args.order_type,
+        limit_price=args.limit_price,
     )

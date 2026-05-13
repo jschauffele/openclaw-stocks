@@ -11,6 +11,7 @@ from unittest.mock import patch
 from broker_interface import (
     BrokerLifecycleResult,
     BrokerOpenOrderState,
+    BrokerOrderResult,
     BrokerPositionState,
 )
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
@@ -89,6 +90,11 @@ class SmokeSafetyControlTests(unittest.TestCase):
             {"reconciliation_status": "unresolved"},
             {"reconciliation_status": "partially_filled_unresolved"},
             {"disconnect_joined": False, "disconnect_passed": False},
+            {
+                "final_broker_state": "open_orders",
+                "disconnect_joined": True,
+                "disconnect_passed": True,
+            },
             {
                 "submit_attempted": True,
                 "final_broker_state": "unknown",
@@ -178,6 +184,126 @@ class SmokeSafetyControlTests(unittest.TestCase):
             self.assertFalse(adapter.build_market_order_called)
             self.assertFalse(adapter.submit_market_order_called)
 
+    def test_limit_mode_without_limit_price_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                order_type="limit",
+                limit_price=None,
+            )
+
+            self.assertIsNone(result)
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+
+    def test_limit_mode_with_non_positive_limit_price_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                order_type="limit",
+                limit_price=0.0,
+            )
+
+            self.assertIsNone(result)
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+
+    def test_limit_mode_with_negative_qty_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                order_type="limit",
+                limit_price=100.0,
+                qty=-1,
+            )
+
+            self.assertIsNone(result)
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+
+    def test_market_mode_with_short_timeout_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                order_type="market",
+                timeout=0.25,
+            )
+
+            self.assertIsNone(result)
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+
+    def test_clean_limit_mode_builds_limit_order_without_market_builder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders(), open_orders()],
+                position_snapshots=[flat_position(), flat_position()],
+                order_type="limit",
+                limit_price=100.25,
+            )
+
+            self.assertEqual(result.order_status, "submitted")
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertTrue(adapter.submit_market_order_called)
+            self.assertEqual(native_api.order_count, 1)
+            submitted_order = adapter.submitted_order
+            self.assertEqual(submitted_order.order.orderType, "LMT")
+            self.assertEqual(submitted_order.order.lmtPrice, 100.25)
+            self.assertEqual(submitted_order.order.totalQuantity, 1)
+            self.assertEqual(submitted_order.order.action, "BUY")
+            self.assertEqual(submitted_order.order.tif, "DAY")
+            self.assertFalse(submitted_order.order.eTradeOnly)
+            self.assertFalse(submitted_order.order.firmQuoteOnly)
+
+    def test_unsafe_broker_state_refuses_before_limit_order_construction(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders(qty=1, count=1)],
+                position_snapshots=[flat_position()],
+                order_type="limit",
+                limit_price=100.25,
+            )
+
+            self.assertIsNone(result)
+            self.assertEqual(native_api.order_count, 0)
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+
+    def test_final_open_order_state_persists_and_blocks_next_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+
+            result, _adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders(), open_orders(qty=1, count=1)],
+                position_snapshots=[flat_position(), flat_position()],
+                order_type="limit",
+                limit_price=100.25,
+            )
+
+            self.assertEqual(result.order_status, "submitted")
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["final_broker_state"], "open_orders")
+            with self.assertRaisesRegex(SmokeSafetyRefusal, "final_broker_state"):
+                _refuse_if_last_run_requires_cleanup(state_path)
+
 
 class FakeSafetyAdapter:
     def __init__(
@@ -210,35 +336,84 @@ class FakeSafetyAdapter:
 
 class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
     instances: list["FakeIBKRBrokerAdapter"] = []
-    open_order_snapshot: BrokerOpenOrderState | None = None
-    position_snapshot: BrokerPositionState | None = None
+    open_order_snapshots: list[BrokerOpenOrderState] = []
+    position_snapshots: list[BrokerPositionState] = []
 
     def __init__(self, **_kwargs) -> None:
-        if self.open_order_snapshot is None or self.position_snapshot is None:
+        if not self.open_order_snapshots or not self.position_snapshots:
             raise AssertionError("fake broker snapshots were not configured")
         super().__init__(
-            open_order_snapshot=self.open_order_snapshot,
-            position_snapshot=self.position_snapshot,
+            open_order_snapshot=self.open_order_snapshots[0],
+            position_snapshot=self.position_snapshots[0],
         )
         self.build_market_order_called = False
         self.submit_market_order_called = False
+        self.submitted_order = None
         self.instances.append(self)
+
+    def get_open_buy_order_qty(
+        self,
+        symbol: str,
+        timeout_seconds: float | None = None,
+    ) -> BrokerOpenOrderState:
+        self.open_order_calls.append((symbol, timeout_seconds))
+        if len(self.open_order_snapshots) > 1:
+            return self.open_order_snapshots.pop(0)
+        return self.open_order_snapshots[0]
+
+    def get_existing_position(
+        self,
+        symbol: str,
+        timeout_seconds: float | None = None,
+    ) -> BrokerPositionState:
+        self.position_calls.append((symbol, timeout_seconds))
+        if len(self.position_snapshots) > 1:
+            return self.position_snapshots.pop(0)
+        return self.position_snapshots[0]
 
     def build_market_order(self, symbol: str, qty: int):
         self.build_market_order_called = True
-        raise AssertionError("preflight-only must not build an order")
+        return object()
 
     def submit_market_order(self, order, timeout_seconds: float | None = None):
         self.submit_market_order_called = True
-        raise AssertionError("preflight-only must not submit an order")
+        self.submitted_order = order
+        return BrokerOrderResult(
+            broker_name="ibkr",
+            order_id="123",
+            order_status="submitted",
+            broker_status="PreSubmitted",
+            is_terminal=False,
+        )
 
 
 class FakeNativeApi:
+    def __init__(self) -> None:
+        self.order_count = 0
+
     class e_wrapper:
         pass
 
     def e_client(self, wrapper):
         return FakeNativeClient()
+
+    def contract(self):
+        return FakeNativeContract()
+
+    def order(self):
+        self.order_count += 1
+        return FakeNativeOrder()
+
+
+class FakeNativeContract:
+    pass
+
+
+class FakeNativeOrder:
+    def __init__(self) -> None:
+        self.tif = None
+        self.eTradeOnly = None
+        self.firmQuoteOnly = None
 
 
 class FakeNativeClient:
@@ -301,13 +476,37 @@ def run_fake_preflight_only(
     open_order_snapshot: BrokerOpenOrderState,
     position_snapshot: BrokerPositionState,
 ):
+    result, adapter, _native_api = run_fake_smoke(
+        lock_path=lock_path,
+        state_path=state_path,
+        open_order_snapshots=[open_order_snapshot],
+        position_snapshots=[position_snapshot],
+        timeout=0.25,
+        preflight_only=True,
+    )
+    return result, adapter
+
+
+def run_fake_smoke(
+    *,
+    lock_path: Path,
+    state_path: Path,
+    open_order_snapshots: list[BrokerOpenOrderState],
+    position_snapshots: list[BrokerPositionState],
+    timeout: float = 5.0,
+    qty: int = 1,
+    preflight_only: bool = False,
+    order_type: str = "market",
+    limit_price: float | None = None,
+):
     FakeIBKRBrokerAdapter.instances = []
-    FakeIBKRBrokerAdapter.open_order_snapshot = open_order_snapshot
-    FakeIBKRBrokerAdapter.position_snapshot = position_snapshot
+    FakeIBKRBrokerAdapter.open_order_snapshots = list(open_order_snapshots)
+    FakeIBKRBrokerAdapter.position_snapshots = list(position_snapshots)
+    native_api = FakeNativeApi()
     with (
         patch(
             "manual_ibkr_submit_reconciliation_smoke.load_ibkr_native_api",
-            return_value=FakeNativeApi(),
+            return_value=native_api,
         ),
         patch(
             "manual_ibkr_submit_reconciliation_smoke.IBKRRuntimeArbitrationCoordinator",
@@ -320,14 +519,16 @@ def run_fake_preflight_only(
     ):
         with redirect_stdout(io.StringIO()):
             result = run_localhost_submit_reconciliation_smoke(
-                timeout=0.25,
+                timeout=timeout,
                 symbol="AAPL",
-                qty=1,
+                qty=qty,
                 lock_path=lock_path,
                 last_state_path=state_path,
-                preflight_only=True,
+                preflight_only=preflight_only,
+                order_type=order_type,
+                limit_price=limit_price,
             )
-    return result, FakeIBKRBrokerAdapter.instances[-1]
+    return result, FakeIBKRBrokerAdapter.instances[-1], native_api
 
 
 def open_orders(qty: int = 0, count: int = 0) -> BrokerOpenOrderState:
