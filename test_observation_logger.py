@@ -82,6 +82,45 @@ class ObservationLoggerTests(unittest.TestCase):
             "2026-04-27T14:35:00+00:00",
         )
 
+    def test_reconciliation_fields_are_included_when_supplied(self) -> None:
+        row = build_observation_row(
+            run_id="run_1",
+            action_proposal=ACTION_PROPOSAL,
+            result="reconciled",
+            submit_state="submit_uncertain_reconciliation_required",
+            reconciliation_status="accepted_unfilled",
+            manual_review_required=False,
+            terminal_for_run=True,
+            filled_qty=0.0,
+            working_qty=1.0,
+            timestamp_utc="2026-04-27T00:00:00+00:00",
+        )
+
+        self.assertEqual(
+            row["submit_state"],
+            "submit_uncertain_reconciliation_required",
+        )
+        self.assertEqual(row["reconciliation_status"], "accepted_unfilled")
+        self.assertFalse(row["manual_review_required"])
+        self.assertTrue(row["terminal_for_run"])
+        self.assertEqual(row["filled_qty"], 0.0)
+        self.assertEqual(row["working_qty"], 1.0)
+
+    def test_reconciliation_fields_are_omitted_when_not_supplied(self) -> None:
+        row = build_observation_row(
+            run_id="run_1",
+            action_proposal=ACTION_PROPOSAL,
+            result="success",
+            timestamp_utc="2026-04-27T00:00:00+00:00",
+        )
+
+        self.assertNotIn("submit_state", row)
+        self.assertNotIn("reconciliation_status", row)
+        self.assertNotIn("manual_review_required", row)
+        self.assertNotIn("terminal_for_run", row)
+        self.assertNotIn("filled_qty", row)
+        self.assertNotIn("working_qty", row)
+
     def test_append_behavior_preserves_prior_observations(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             log_file = Path(temp_dir) / "observations" / "observation_log.jsonl"

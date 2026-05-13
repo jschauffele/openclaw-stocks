@@ -20,9 +20,15 @@ def build_observation_row(
     signal_timeframe: str | None = None,
     signal_limit: int | None = None,
     latest_candle_timestamp: str | None = None,
+    submit_state: str | None = None,
+    reconciliation_status: str | None = None,
+    manual_review_required: bool | None = None,
+    terminal_for_run: bool | None = None,
+    filled_qty: float | None = None,
+    working_qty: float | None = None,
     timestamp_utc: str | None = None,
 ) -> dict:
-    return {
+    row = {
         "timestamp_utc": timestamp_utc or utc_now_iso(),
         "run_id": run_id,
         "symbol": action_proposal["symbol"],
@@ -41,6 +47,22 @@ def build_observation_row(
         "signal_limit": signal_limit,
         "latest_candle_timestamp": latest_candle_timestamp,
     }
+    optional_fields = {
+        "submit_state": submit_state,
+        "reconciliation_status": reconciliation_status,
+        "manual_review_required": manual_review_required,
+        "terminal_for_run": terminal_for_run,
+        "filled_qty": filled_qty,
+        "working_qty": working_qty,
+    }
+    row.update(
+        {
+            field: value
+            for field, value in optional_fields.items()
+            if value is not None
+        }
+    )
+    return row
 
 
 def append_observation(
@@ -51,6 +73,12 @@ def append_observation(
     signal_timeframe: str | None = None,
     signal_limit: int | None = None,
     latest_candle_timestamp: str | None = None,
+    submit_state: str | None = None,
+    reconciliation_status: str | None = None,
+    manual_review_required: bool | None = None,
+    terminal_for_run: bool | None = None,
+    filled_qty: float | None = None,
+    working_qty: float | None = None,
     log_file: str | Path = OBSERVATION_LOG_FILE,
 ) -> None:
     row = build_observation_row(
@@ -60,6 +88,12 @@ def append_observation(
         signal_timeframe=signal_timeframe,
         signal_limit=signal_limit,
         latest_candle_timestamp=latest_candle_timestamp,
+        submit_state=submit_state,
+        reconciliation_status=reconciliation_status,
+        manual_review_required=manual_review_required,
+        terminal_for_run=terminal_for_run,
+        filled_qty=filled_qty,
+        working_qty=working_qty,
     )
     path = Path(log_file)
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -2,9 +2,11 @@ from event_logger import initialize_event_logger, generate_run_id, log_event
 import logging
 
 from alpaca_data_provider import AlpacaMarketDataProvider
+from broker_interface import BrokerSubmitIntent
 from broker_factory import create_broker_adapter
 import config
 from decision_engine import build_action_proposal
+from ibkr_submit_reconciliation_workflow import IBKRSubmitReconciliationWorkflow
 from market_session_service import get_market_session_status
 from market_data import get_historical_bars
 from observation_logger import append_observation
@@ -347,7 +349,7 @@ def main():
         build_strategy_signal_event_payload(action_proposal),
     )
 
-    def log_observation(result=None) -> None:
+    def log_observation(result=None, **observation_fields) -> None:
         try:
             append_observation(
                 run_id=run_id,
@@ -356,6 +358,7 @@ def main():
                 signal_timeframe=signal_timeframe,
                 signal_limit=signal_limit,
                 latest_candle_timestamp=latest_candle_timestamp,
+                **observation_fields,
             )
         except Exception:
             logging.exception("Failed to append observation log row")
@@ -603,39 +606,79 @@ def main():
         return
 
     if order_result.order_status == "reconciliation_required":
-        log_observation(result="manual_review_required")
+        submit_intent = BrokerSubmitIntent(
+            broker_name="ibkr",
+            order_id=order_result.order_id,
+            client_id=None,
+            perm_id=None,
+            symbol=OPENCLAW_SYMBOL,
+            side=side,
+            qty=OPENCLAW_QTY,
+            submitted_at=None,
+        )
+        workflow_result = IBKRSubmitReconciliationWorkflow().reconcile_if_required(
+            broker=broker_state,
+            submit_result=order_result,
+            intent=submit_intent,
+        )
+        report_result = (
+            "manual_review_required"
+            if workflow_result.manual_review_required
+            else "reconciled"
+        )
+        log_observation(
+            result=report_result,
+            submit_state=workflow_result.submit_state,
+            reconciliation_status=workflow_result.reconciliation_status,
+            manual_review_required=workflow_result.manual_review_required,
+            terminal_for_run=workflow_result.terminal_for_run,
+            filled_qty=workflow_result.filled_qty,
+            working_qty=workflow_result.working_qty,
+        )
         log_event("order", "submission", "uncertain", {
             "symbol": OPENCLAW_SYMBOL,
             "qty": OPENCLAW_QTY,
             "side": side,
             "order_id": order_result.order_id,
             "order_status": order_result.order_status,
-            "submit_state": "submit_uncertain_reconciliation_required",
-            "manual_review_required": True,
+            "submit_state": workflow_result.submit_state,
+            "manual_review_required": workflow_result.manual_review_required,
+        })
+        log_event("order", "reconciliation", workflow_result.reconciliation_status or "not_available", {
+            "symbol": OPENCLAW_SYMBOL,
+            "qty": OPENCLAW_QTY,
+            "side": side,
+            "order_id": workflow_result.order_id,
+            "reconciliation_status": workflow_result.reconciliation_status,
+            "manual_review_required": workflow_result.manual_review_required,
+            "filled_qty": workflow_result.filled_qty,
+            "working_qty": workflow_result.working_qty,
+            "reason": workflow_result.reason,
+            "ambiguous": workflow_result.ambiguous,
         })
         persist_report(
             run_id=run_id,
             mode=mode,
-            result="manual_review_required",
-            reason="broker_reconciliation_required",
+            result=report_result,
+            reason=workflow_result.reason,
             trigger_source=trigger_source,
             side=side,
             **report_config,
             buying_power=buying_power,
             estimated_cost=risk_result["estimated_cost"],
             order_status=order_result.order_status,
-            submit_state="submit_uncertain_reconciliation_required",
-            reconciliation_status=None,
-            manual_review_required=True,
-            terminal_for_run=True,
-            reconciliation_ambiguous=True,
-            filled_qty=None,
-            working_qty=None,
+            submit_state=workflow_result.submit_state,
+            reconciliation_status=workflow_result.reconciliation_status,
+            manual_review_required=workflow_result.manual_review_required,
+            terminal_for_run=workflow_result.terminal_for_run,
+            reconciliation_ambiguous=workflow_result.ambiguous,
+            filled_qty=workflow_result.filled_qty,
+            working_qty=workflow_result.working_qty,
             existing_position_qty=reconciliation_result["existing_qty"],
             open_buy_order_qty=reconciliation_result["open_buy_order_qty"],
             projected_position_qty=reconciliation_result["projected_qty"],
             notes=[
-                "Broker submit acknowledgement timed out; manual reconciliation required",
+                "Broker submit acknowledgement timed out; reconciliation workflow completed",
                 f"Strategy reason={action_proposal['reason']}",
                 f"signal={action_proposal['signal']}",
                 f"decision={action_proposal['decision']}",
@@ -644,8 +687,8 @@ def main():
         log_event(
             "system",
             "completion",
-            "manual_review_required",
-            {"reason": "broker_reconciliation_required"},
+            report_result,
+            {"reason": workflow_result.reason},
         )
         logging.info("========== OpenClaw run finished ==========")
         return

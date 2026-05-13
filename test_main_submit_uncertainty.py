@@ -8,7 +8,11 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from broker_interface import BrokerAccountState, BrokerOrderResult
+from broker_interface import (
+    BrokerAccountState,
+    BrokerOrderResult,
+    BrokerSubmitReconciliationResult,
+)
 
 
 def install_alpaca_import_stubs() -> None:
@@ -92,7 +96,42 @@ class FakeBroker:
 
     def get_execution_snapshot(self, **_kwargs):
         self.execution_snapshot_calls += 1
-        raise AssertionError("runtime guard must not invoke reconciliation workflow")
+        raise AssertionError("main should invoke workflow, not snapshots directly")
+
+
+class FakeSubmitReconciliationWorkflow:
+    calls = []
+    result = None
+
+    def __init__(self) -> None:
+        pass
+
+    def reconcile_if_required(self, *, broker, submit_result, intent):
+        self.__class__.calls.append(
+            {
+                "broker": broker,
+                "submit_result": submit_result,
+                "intent": intent,
+            }
+        )
+        return self.__class__.result
+
+
+def workflow_result(status: str, *, manual_review_required: bool) -> BrokerSubmitReconciliationResult:
+    filled_qty = 1.0 if status in ("filled", "partially_filled_unresolved") else 0.0
+    return BrokerSubmitReconciliationResult(
+        broker_name="ibkr",
+        submit_state="submit_uncertain_reconciliation_required",
+        reconciliation_status=status,
+        terminal_for_run=True,
+        manual_review_required=manual_review_required,
+        order_id="101",
+        perm_id=None,
+        filled_qty=filled_qty,
+        working_qty=2.0 if status == "accepted_unfilled" else None,
+        reason=f"{status}_reason",
+        ambiguous=manual_review_required,
+    )
 
 
 def bars_result():
@@ -123,8 +162,22 @@ def action_proposal():
 
 
 class MainSubmitUncertaintyTests(unittest.TestCase):
-    def run_main_with_order_status(self, order_status: str):
+    def setUp(self) -> None:
+        FakeSubmitReconciliationWorkflow.calls = []
+        FakeSubmitReconciliationWorkflow.result = workflow_result(
+            "unresolved",
+            manual_review_required=True,
+        )
+
+    def run_main_with_order_status(
+        self,
+        order_status: str,
+        *,
+        workflow_result_override=None,
+    ):
         broker = FakeBroker(order_status)
+        if workflow_result_override is not None:
+            FakeSubmitReconciliationWorkflow.result = workflow_result_override
         reports = []
         events = []
         observations = []
@@ -179,6 +232,10 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("main.validate_signal_result", return_value=object()),
             patch("main.build_action_proposal", return_value=action_proposal()),
             patch(
+                "main.IBKRSubmitReconciliationWorkflow",
+                FakeSubmitReconciliationWorkflow,
+            ),
+            patch(
                 "main.risk_check",
                 return_value={"passed": True, "estimated_cost": 100.0},
             ),
@@ -224,11 +281,51 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             "write_state_calls": write_state_calls,
         }
 
-    def test_reconciliation_required_does_not_produce_success(self) -> None:
+    def assert_reconciliation_observation(
+        self,
+        result,
+        *,
+        row_result: str,
+        reconciliation_status: str,
+        manual_review_required: bool,
+        filled_qty: float,
+        working_qty,
+    ) -> None:
+        observation = result["observations"][-1]
+        self.assertEqual(observation["result"], row_result)
+        self.assertEqual(
+            observation["submit_state"],
+            "submit_uncertain_reconciliation_required",
+        )
+        self.assertEqual(
+            observation["reconciliation_status"],
+            reconciliation_status,
+        )
+        self.assertEqual(
+            observation["manual_review_required"],
+            manual_review_required,
+        )
+        self.assertTrue(observation["terminal_for_run"])
+        self.assertEqual(observation["filled_qty"], filled_qty)
+        self.assertEqual(observation["working_qty"], working_qty)
+
+    def test_reconciliation_required_invokes_workflow_once_with_submit_intent(self) -> None:
         result = self.run_main_with_order_status("reconciliation_required")
 
         self.assertEqual(result["broker"].submit_calls, 1)
         self.assertEqual(result["broker"].execution_snapshot_calls, 0)
+        self.assertEqual(len(FakeSubmitReconciliationWorkflow.calls), 1)
+        call = FakeSubmitReconciliationWorkflow.calls[0]
+        self.assertIs(call["broker"], result["broker"])
+        self.assertEqual(call["submit_result"].order_status, "reconciliation_required")
+        self.assertEqual(call["intent"].broker_name, "ibkr")
+        self.assertEqual(call["intent"].order_id, "101")
+        self.assertIsNone(call["intent"].client_id)
+        self.assertIsNone(call["intent"].perm_id)
+        self.assertEqual(call["intent"].symbol, "AAPL")
+        self.assertEqual(call["intent"].side, "buy")
+        self.assertEqual(call["intent"].qty, 1)
+        self.assertIsNone(call["intent"].submitted_at)
         self.assertEqual(result["write_state_calls"], [])
         self.assertFalse(
             any(event["status"] == "paper_submitted" for event in result["events"])
@@ -239,26 +336,115 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
 
         report = result["reports"][-1]
         self.assertEqual(report["result"], "manual_review_required")
-        self.assertEqual(report["reason"], "broker_reconciliation_required")
+        self.assertEqual(report["reason"], "unresolved_reason")
         self.assertEqual(
             report["submit_state"],
             "submit_uncertain_reconciliation_required",
         )
-        self.assertIsNone(report["reconciliation_status"])
+        self.assertEqual(report["reconciliation_status"], "unresolved")
         self.assertTrue(report["manual_review_required"])
         self.assertTrue(report["terminal_for_run"])
         self.assertTrue(report["reconciliation_ambiguous"])
-        self.assertIsNone(report["filled_qty"])
+        self.assertEqual(report["filled_qty"], 0.0)
         self.assertIsNone(report["working_qty"])
         self.assertEqual(
             result["observations"][-1]["result"],
             "manual_review_required",
+        )
+        self.assert_reconciliation_observation(
+            result,
+            row_result="manual_review_required",
+            reconciliation_status="unresolved",
+            manual_review_required=True,
+            filled_qty=0.0,
+            working_qty=None,
+        )
+
+    def test_partially_filled_unresolved_maps_to_manual_review_required(self) -> None:
+        result = self.run_main_with_order_status(
+            "reconciliation_required",
+            workflow_result_override=workflow_result(
+                "partially_filled_unresolved",
+                manual_review_required=True,
+            ),
+        )
+
+        report = result["reports"][-1]
+
+        self.assertEqual(report["result"], "manual_review_required")
+        self.assertEqual(report["reconciliation_status"], "partially_filled_unresolved")
+        self.assertTrue(report["manual_review_required"])
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertFalse(
+            any(event["status"] == "paper_submitted" for event in result["events"])
+        )
+        self.assert_reconciliation_observation(
+            result,
+            row_result="manual_review_required",
+            reconciliation_status="partially_filled_unresolved",
+            manual_review_required=True,
+            filled_qty=1.0,
+            working_qty=None,
+        )
+
+    def test_accepted_unfilled_maps_to_reconciled_without_paper_submitted(self) -> None:
+        result = self.run_main_with_order_status(
+            "reconciliation_required",
+            workflow_result_override=workflow_result(
+                "accepted_unfilled",
+                manual_review_required=False,
+            ),
+        )
+
+        report = result["reports"][-1]
+
+        self.assertEqual(report["result"], "reconciled")
+        self.assertEqual(report["reconciliation_status"], "accepted_unfilled")
+        self.assertFalse(report["manual_review_required"])
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertFalse(
+            any(event["status"] == "paper_submitted" for event in result["events"])
+        )
+        self.assert_reconciliation_observation(
+            result,
+            row_result="reconciled",
+            reconciliation_status="accepted_unfilled",
+            manual_review_required=False,
+            filled_qty=0.0,
+            working_qty=2.0,
+        )
+
+    def test_filled_maps_to_reconciled_without_ordinary_success_path(self) -> None:
+        result = self.run_main_with_order_status(
+            "reconciliation_required",
+            workflow_result_override=workflow_result(
+                "filled",
+                manual_review_required=False,
+            ),
+        )
+
+        report = result["reports"][-1]
+
+        self.assertEqual(report["result"], "reconciled")
+        self.assertEqual(report["reconciliation_status"], "filled")
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertFalse(
+            any(event["status"] == "paper_submitted" for event in result["events"])
+        )
+        self.assert_reconciliation_observation(
+            result,
+            row_result="reconciled",
+            reconciliation_status="filled",
+            manual_review_required=False,
+            filled_qty=1.0,
+            working_qty=None,
         )
 
     def test_paper_submitted_path_still_works_for_ordinary_submitted_order(self) -> None:
         result = self.run_main_with_order_status("submitted")
 
         self.assertEqual(result["broker"].submit_calls, 1)
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
         self.assertEqual(len(result["write_state_calls"]), 1)
         self.assertTrue(
             any(event["status"] == "paper_submitted" for event in result["events"])
@@ -268,7 +454,21 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertEqual(report["result"], "success")
         self.assertEqual(report["reason"], "paper_order_submitted")
         self.assertEqual(report["order_status"], "submitted")
-        self.assertEqual(result["observations"][-1]["result"], "success")
+        observation = result["observations"][-1]
+        self.assertEqual(observation["result"], "success")
+        self.assertNotIn("submit_state", observation)
+        self.assertNotIn("reconciliation_status", observation)
+        self.assertNotIn("manual_review_required", observation)
+        self.assertNotIn("terminal_for_run", observation)
+        self.assertNotIn("filled_qty", observation)
+        self.assertNotIn("working_qty", observation)
+
+    def test_no_retry_resubmit_or_safe_to_retry_exists(self) -> None:
+        self.assertFalse(hasattr(FakeSubmitReconciliationWorkflow, "retry"))
+        self.assertFalse(hasattr(FakeSubmitReconciliationWorkflow, "resubmit"))
+        self.assertFalse(
+            hasattr(FakeSubmitReconciliationWorkflow.result, "safe_to_retry")
+        )
 
 
 if __name__ == "__main__":
