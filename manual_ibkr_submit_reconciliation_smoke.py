@@ -80,12 +80,10 @@ class RecordingReconciliationBridge(IBKRCallbackBridge):
         *,
         request_id: object,
         symbol: str | None = None,
-        generation: int | None = None,
     ) -> int:
         generation_result = super().begin_execution_snapshot(
             request_id=request_id,
             symbol=symbol,
-            generation=generation,
         )
         self.recorder.record(
             "begin_execution_snapshot",
