@@ -60,7 +60,7 @@ def intent(**overrides) -> BrokerSubmitIntent:
         "symbol": "AAPL",
         "side": "BUY",
         "qty": 3.0,
-        "submitted_at": "20260512 10:00:00",
+        "submitted_at": "20260512-10:00:00",
     }
     fields.update(overrides)
     return BrokerSubmitIntent(**fields)
@@ -162,7 +162,7 @@ class IBKRSubmitReconciliationWorkflowTests(unittest.TestCase):
         self.assertEqual(len(broker.open_order_calls), 1)
         self.assertEqual(len(broker.position_calls), 1)
         self.assertNotIn("side", broker.execution_calls[0])
-        self.assertEqual(broker.execution_calls[0]["since"], "20260512 10:00:00")
+        self.assertEqual(broker.execution_calls[0]["since"], "20260512-10:00:00")
 
     def test_filled_result(self) -> None:
         broker = FakeBroker(execution_snapshot=executions(fill()))

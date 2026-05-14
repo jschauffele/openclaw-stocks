@@ -877,7 +877,7 @@ def wait_for_run_thread_ready(
 
 
 def _ibkr_execution_filter_time_now() -> str:
-    return time.strftime("%Y%m%d %H:%M:%S")
+    return time.strftime("%Y%m%d-%H:%M:%S", time.gmtime())
 
 
 def _validate_smoke_inputs(

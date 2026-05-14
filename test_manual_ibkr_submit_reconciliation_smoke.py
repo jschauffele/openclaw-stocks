@@ -25,6 +25,7 @@ from manual_ibkr_submit_reconciliation_smoke import (
     SmokeRunLock,
     SmokeSafetyRefusal,
     SMOKE_DISCONNECT_TIMEOUT,
+    _ibkr_execution_filter_time_now,
     _refuse_if_last_run_requires_cleanup,
     classify_smoke_broker_state,
     query_smoke_broker_state,
@@ -57,6 +58,12 @@ class RecordingReconciliationBridgeTests(unittest.TestCase):
 
 
 class SmokeSafetyControlTests(unittest.TestCase):
+    def test_ibkr_execution_filter_time_now_uses_utc_timezone_format(self) -> None:
+        self.assertRegex(
+            _ibkr_execution_filter_time_now(),
+            r"^\d{8}-\d{2}:\d{2}:\d{2}$",
+        )
+
     def test_refuse_when_open_orders_exist(self) -> None:
         state = classify_smoke_broker_state(
             open_order_snapshot=open_orders(qty=1, count=1),
@@ -339,24 +346,24 @@ class SmokeSafetyControlTests(unittest.TestCase):
                 order_status="reconciliation_required",
                 order_type="limit",
                 limit_price=100.25,
-                submitted_at="20260512 10:01:02",
+                submitted_at="20260512-10:01:02",
                 include_workflow=True,
             )
 
             self.assertEqual(result.reconciliation_status, "accepted_unfilled")
             intent = workflow.calls[0]["intent"]
-            self.assertEqual(intent.submitted_at, "20260512 10:01:02")
-            self.assertRegex(intent.submitted_at, r"^\d{8} \d{2}:\d{2}:\d{2}$")
+            self.assertEqual(intent.submitted_at, "20260512-10:01:02")
+            self.assertRegex(intent.submitted_at, r"^\d{8}-\d{2}:\d{2}:\d{2}$")
             state = json.loads(state_path.read_text(encoding="utf-8"))
-            self.assertEqual(state["submitted_at"], "20260512 10:01:02")
-            self.assertRegex(state["submitted_at"], r"^\d{8} \d{2}:\d{2}:\d{2}$")
+            self.assertEqual(state["submitted_at"], "20260512-10:01:02")
+            self.assertRegex(state["submitted_at"], r"^\d{8}-\d{2}:\d{2}:\d{2}$")
 
     def test_report_only_queries_state_without_submit_and_preserves_last_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
             unsafe_state = {
                 "manual_review_required": True,
-                "submitted_at": "20260512 10:01:02",
+                "submitted_at": "20260512-10:01:02",
             }
             write_smoke_last_state(state_path, unsafe_state)
 
@@ -376,7 +383,7 @@ class SmokeSafetyControlTests(unittest.TestCase):
             self.assertEqual(adapter.position_calls, [("AAPL", 5.0)])
             self.assertEqual(
                 adapter.execution_calls,
-                [("AAPL", "20260512 10:01:02", 5.0)],
+                [("AAPL", "20260512-10:01:02", 5.0)],
             )
             self.assertFalse(adapter.build_market_order_called)
             self.assertFalse(adapter.submit_market_order_called)
@@ -396,7 +403,7 @@ class SmokeSafetyControlTests(unittest.TestCase):
                 position_snapshots=[flat_position(), flat_position()],
                 order_type="limit",
                 limit_price=100.25,
-                submitted_at="20260512 10:01:02",
+                submitted_at="20260512-10:01:02",
             )
 
             self.assertEqual(
@@ -412,7 +419,7 @@ class SmokeSafetyControlTests(unittest.TestCase):
                 open_order_snapshots=[open_orders(), open_orders()],
                 position_snapshots=[flat_position(), flat_position()],
                 order_type="market",
-                submitted_at="20260512 10:01:02",
+                submitted_at="20260512-10:01:02",
             )
 
             self.assertEqual(
@@ -703,7 +710,7 @@ def run_fake_smoke(
     order_type: str = "market",
     limit_price: float | None = None,
     order_status: str = "submitted",
-    submitted_at: str = "20260512 10:01:02",
+    submitted_at: str = "20260512-10:01:02",
     include_coordinator: bool = False,
     include_workflow: bool = False,
 ):
