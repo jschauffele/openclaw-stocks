@@ -192,6 +192,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         events = []
         observations = []
         write_state_calls = []
+        runtime_provider_calls = []
         runtime_visibility_calls = []
 
         def persist_report(**kwargs):
@@ -242,6 +243,12 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("main.generate_signal_from_closes", return_value=object()),
             patch("main.validate_signal_result", return_value=object()),
             patch("main.build_action_proposal", return_value=action_proposal()),
+            patch(
+                "main.build_runtime_visibility_providers",
+                side_effect=lambda config_module: (
+                    runtime_provider_calls.append(config_module) or []
+                ),
+            ),
             patch(
                 "main.build_runtime_visibility_summary",
                 side_effect=lambda providers: (
@@ -297,6 +304,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             "events": events,
             "observations": observations,
             "write_state_calls": write_state_calls,
+            "runtime_provider_calls": runtime_provider_calls,
             "runtime_visibility_calls": runtime_visibility_calls,
         }
 
@@ -349,6 +357,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
     def test_reconciliation_required_invokes_workflow_once_with_submit_intent(self) -> None:
         result = self.run_main_with_order_status("reconciliation_required")
 
+        self.assertEqual(result["runtime_provider_calls"], [main.config])
         self.assertEqual(result["runtime_visibility_calls"], [[]])
         self.assertEqual(result["broker"].submit_calls, 1)
         self.assertEqual(result["broker"].execution_snapshot_calls, 0)
@@ -482,6 +491,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
     def test_paper_submitted_path_still_works_for_ordinary_submitted_order(self) -> None:
         result = self.run_main_with_order_status("submitted")
 
+        self.assertEqual(result["runtime_provider_calls"], [main.config])
         self.assertEqual(result["runtime_visibility_calls"], [[]])
         self.assertEqual(result["broker"].submit_calls, 1)
         self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
@@ -510,6 +520,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             openclaw_enabled=False,
         )
 
+        self.assertEqual(result["runtime_provider_calls"], [main.config])
         self.assertEqual(result["runtime_visibility_calls"], [[]])
         self.assertEqual(result["broker"].submit_calls, 0)
         self.assertEqual(len(result["reports"]), 1)
@@ -526,6 +537,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             openclaw_dry_run=True,
         )
 
+        self.assertEqual(result["runtime_provider_calls"], [main.config])
         self.assertEqual(result["runtime_visibility_calls"], [[]])
         self.assertEqual(result["broker"].submit_calls, 0)
         self.assertEqual(len(result["write_state_calls"]), 1)

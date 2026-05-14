@@ -12,6 +12,7 @@ from market_data import get_historical_bars
 from observation_logger import append_observation
 from risk_engine import validate_config, risk_check, reconcile_position
 from runtime_visibility_orchestrator import build_runtime_visibility_summary
+from runtime_visibility_provider_composer import build_runtime_visibility_providers
 from signal_validator import validate_signal_result
 from strategy_engine import generate_signal_from_closes
 from utils import setup_logging, utc_now_iso
@@ -131,7 +132,10 @@ def main():
     signal_limit = env_int("OPENCLAW_SIGNAL_LIMIT", 5)
     report_config["signal_timeframe"] = signal_timeframe
     report_config["signal_limit"] = signal_limit
-    runtime_visibility_summary = build_runtime_visibility_summary([])
+    runtime_visibility_providers = build_runtime_visibility_providers(config)
+    runtime_visibility_summary = build_runtime_visibility_summary(
+        runtime_visibility_providers
+    )
     report_config["orchestration"] = {
         "runtime_visibility": runtime_visibility_summary,
     }
