@@ -11,6 +11,7 @@ from market_session_service import get_market_session_status
 from market_data import get_historical_bars
 from observation_logger import append_observation
 from risk_engine import validate_config, risk_check, reconcile_position
+from runtime_visibility_orchestrator import build_runtime_visibility_summary
 from signal_validator import validate_signal_result
 from strategy_engine import generate_signal_from_closes
 from utils import setup_logging, utc_now_iso
@@ -130,6 +131,10 @@ def main():
     signal_limit = env_int("OPENCLAW_SIGNAL_LIMIT", 5)
     report_config["signal_timeframe"] = signal_timeframe
     report_config["signal_limit"] = signal_limit
+    runtime_visibility_summary = build_runtime_visibility_summary([])
+    report_config["orchestration"] = {
+        "runtime_visibility": runtime_visibility_summary,
+    }
 
     logging.info("========== OpenClaw run started ==========")
     logging.info(f"run_id={run_id}")

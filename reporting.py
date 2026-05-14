@@ -33,6 +33,7 @@ def build_run_report(
     existing_position_qty=None,
     open_buy_order_qty=None,
     projected_position_qty=None,
+    orchestration=None,
 ) -> dict:
     return {
         "run_id": run_id,
@@ -65,6 +66,7 @@ def build_run_report(
         "existing_position_qty": existing_position_qty,
         "open_buy_order_qty": open_buy_order_qty,
         "projected_position_qty": projected_position_qty,
+        "orchestration": orchestration,
         "notes": notes or [],
     }
 
@@ -101,6 +103,7 @@ def persist_report(
     existing_position_qty=None,
     open_buy_order_qty=None,
     projected_position_qty=None,
+    orchestration=None,
 ) -> None:
     report = build_run_report(
         run_id=run_id,
@@ -133,5 +136,6 @@ def persist_report(
         existing_position_qty=existing_position_qty,
         open_buy_order_qty=open_buy_order_qty,
         projected_position_qty=projected_position_qty,
+        orchestration=orchestration,
     )
     write_run_report(report, run_report_file)

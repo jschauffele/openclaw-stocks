@@ -244,6 +244,38 @@ class ObservabilityPayloadsTest(unittest.TestCase):
         self.assertIsNone(report["filled_qty"])
         self.assertIsNone(report["working_qty"])
 
+    def test_orchestration_runtime_visibility_survives_report_payload(self) -> None:
+        runtime_visibility_summary = {
+            "runtime_visibility_reports": [],
+            "runtime_visibility_blocking": False,
+            "runtime_visibility_reason": "runtime_visibility_clear",
+        }
+        orchestration = {
+            "runtime_visibility": runtime_visibility_summary,
+        }
+
+        report = build_run_report(
+            run_id="run_test",
+            mode="dry_run",
+            result="success",
+            reason="dry_run_completed",
+            trigger_source="test",
+            side="buy",
+            symbol="AAPL",
+            qty=1,
+            openclaw_enabled=True,
+            duplicate_cooldown_seconds=600,
+            max_position_size=5,
+            allowed_symbols=["AAPL"],
+            alpaca_base_url="https://paper-api.alpaca.markets",
+            orchestration=orchestration,
+        )
+
+        self.assertEqual(
+            report["orchestration"]["runtime_visibility"],
+            orchestration["runtime_visibility"],
+        )
+
     def test_systemd_timer_rejects_daily_signal_timeframe(self) -> None:
         with self.assertRaisesRegex(
             ValueError,

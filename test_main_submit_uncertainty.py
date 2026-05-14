@@ -161,6 +161,14 @@ def action_proposal():
     }
 
 
+def runtime_visibility_summary():
+    return {
+        "runtime_visibility_reports": [],
+        "runtime_visibility_blocking": False,
+        "runtime_visibility_reason": "runtime_visibility_clear",
+    }
+
+
 class MainSubmitUncertaintyTests(unittest.TestCase):
     def setUp(self) -> None:
         FakeSubmitReconciliationWorkflow.calls = []
@@ -173,6 +181,8 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self,
         order_status: str,
         *,
+        openclaw_enabled: bool = True,
+        openclaw_dry_run: bool = False,
         workflow_result_override=None,
     ):
         broker = FakeBroker(order_status)
@@ -182,6 +192,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         events = []
         observations = []
         write_state_calls = []
+        runtime_visibility_calls = []
 
         def persist_report(**kwargs):
             reports.append(kwargs)
@@ -203,8 +214,8 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("config.STATE_FILE", "/tmp/openclaw-state.json", create=True),
             patch("config.RUN_REPORT_FILE", "/tmp/openclaw-report.json", create=True),
             patch("config.LEGACY_LAST_ORDER_FILE", "/tmp/openclaw-last-order.txt", create=True),
-            patch("config.OPENCLAW_ENABLED", True, create=True),
-            patch("config.OPENCLAW_DRY_RUN", False, create=True),
+            patch("config.OPENCLAW_ENABLED", openclaw_enabled, create=True),
+            patch("config.OPENCLAW_DRY_RUN", openclaw_dry_run, create=True),
             patch("config.OPENCLAW_SYMBOL", "AAPL", create=True),
             patch("config.OPENCLAW_QTY", 1, create=True),
             patch("config.OPENCLAW_MAX_POSITION_SIZE", 5, create=True),
@@ -231,6 +242,13 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("main.generate_signal_from_closes", return_value=object()),
             patch("main.validate_signal_result", return_value=object()),
             patch("main.build_action_proposal", return_value=action_proposal()),
+            patch(
+                "main.build_runtime_visibility_summary",
+                side_effect=lambda providers: (
+                    runtime_visibility_calls.append(providers)
+                    or runtime_visibility_summary()
+                ),
+            ),
             patch(
                 "main.IBKRSubmitReconciliationWorkflow",
                 FakeSubmitReconciliationWorkflow,
@@ -279,7 +297,26 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             "events": events,
             "observations": observations,
             "write_state_calls": write_state_calls,
+            "runtime_visibility_calls": runtime_visibility_calls,
         }
+
+    def assert_default_runtime_visibility_summary(self, report) -> None:
+        self.assertEqual(
+            report["orchestration"]["runtime_visibility"],
+            runtime_visibility_summary(),
+        )
+        self.assertEqual(
+            report["orchestration"]["runtime_visibility"]["runtime_visibility_reports"],
+            [],
+        )
+        self.assertIs(
+            report["orchestration"]["runtime_visibility"]["runtime_visibility_blocking"],
+            False,
+        )
+        self.assertEqual(
+            report["orchestration"]["runtime_visibility"]["runtime_visibility_reason"],
+            "runtime_visibility_clear",
+        )
 
     def assert_reconciliation_observation(
         self,
@@ -312,6 +349,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
     def test_reconciliation_required_invokes_workflow_once_with_submit_intent(self) -> None:
         result = self.run_main_with_order_status("reconciliation_required")
 
+        self.assertEqual(result["runtime_visibility_calls"], [[]])
         self.assertEqual(result["broker"].submit_calls, 1)
         self.assertEqual(result["broker"].execution_snapshot_calls, 0)
         self.assertEqual(len(FakeSubmitReconciliationWorkflow.calls), 1)
@@ -335,6 +373,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         )
 
         report = result["reports"][-1]
+        self.assert_default_runtime_visibility_summary(report)
         self.assertEqual(report["result"], "manual_review_required")
         self.assertEqual(report["reason"], "unresolved_reason")
         self.assertEqual(
@@ -443,6 +482,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
     def test_paper_submitted_path_still_works_for_ordinary_submitted_order(self) -> None:
         result = self.run_main_with_order_status("submitted")
 
+        self.assertEqual(result["runtime_visibility_calls"], [[]])
         self.assertEqual(result["broker"].submit_calls, 1)
         self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
         self.assertEqual(len(result["write_state_calls"]), 1)
@@ -450,6 +490,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             any(event["status"] == "paper_submitted" for event in result["events"])
         )
         report = result["reports"][-1]
+        self.assert_default_runtime_visibility_summary(report)
 
         self.assertEqual(report["result"], "success")
         self.assertEqual(report["reason"], "paper_order_submitted")
@@ -462,6 +503,36 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertNotIn("terminal_for_run", observation)
         self.assertNotIn("filled_qty", observation)
         self.assertNotIn("working_qty", observation)
+
+    def test_killswitch_early_return_report_includes_runtime_visibility_summary(self) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_enabled=False,
+        )
+
+        self.assertEqual(result["runtime_visibility_calls"], [[]])
+        self.assertEqual(result["broker"].submit_calls, 0)
+        self.assertEqual(len(result["reports"]), 1)
+        report = result["reports"][0]
+        self.assertEqual(report["result"], "blocked")
+        self.assertEqual(report["reason"], "killswitch_disabled")
+        self.assert_default_runtime_visibility_summary(report)
+
+    def test_dry_run_success_report_includes_runtime_visibility_summary_without_submit(
+        self,
+    ) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_dry_run=True,
+        )
+
+        self.assertEqual(result["runtime_visibility_calls"], [[]])
+        self.assertEqual(result["broker"].submit_calls, 0)
+        self.assertEqual(len(result["write_state_calls"]), 1)
+        report = result["reports"][-1]
+        self.assertEqual(report["result"], "success")
+        self.assertEqual(report["reason"], "dry_run_completed")
+        self.assert_default_runtime_visibility_summary(report)
 
     def test_no_retry_resubmit_or_safe_to_retry_exists(self) -> None:
         self.assertFalse(hasattr(FakeSubmitReconciliationWorkflow, "retry"))
