@@ -9,12 +9,13 @@ import unittest
 from unittest.mock import patch
 
 from broker_interface import (
+    BrokerExecutionSnapshotState,
     BrokerLifecycleResult,
-    BrokerSubmitReconciliationResult,
-    BrokerReconciliationResult,
     BrokerOpenOrderState,
     BrokerOrderResult,
     BrokerPositionState,
+    BrokerReconciliationResult,
+    BrokerSubmitReconciliationResult,
 )
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
 from ibkr_request_coordinator import IBKRRequestCoordinator
@@ -350,6 +351,75 @@ class SmokeSafetyControlTests(unittest.TestCase):
             self.assertEqual(state["submitted_at"], "20260512 10:01:02")
             self.assertRegex(state["submitted_at"], r"^\d{8} \d{2}:\d{2}:\d{2}$")
 
+    def test_report_only_queries_state_without_submit_and_preserves_last_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            unsafe_state = {
+                "manual_review_required": True,
+                "submitted_at": "20260512 10:01:02",
+            }
+            write_smoke_last_state(state_path, unsafe_state)
+
+            result, adapter, _native_api, coordinator = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                report_only=True,
+                include_coordinator=True,
+            )
+
+            self.assertEqual(result["last_run_state"], unsafe_state)
+            self.assertEqual(result["broker_state"].state, "clean")
+            self.assertEqual(result["execution_snapshot"].reason, "executions_loaded")
+            self.assertEqual(adapter.open_order_calls, [("AAPL", 5.0)])
+            self.assertEqual(adapter.position_calls, [("AAPL", 5.0)])
+            self.assertEqual(
+                adapter.execution_calls,
+                [("AAPL", "20260512 10:01:02", 5.0)],
+            )
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+            self.assertEqual(coordinator.disconnect_timeouts, [SMOKE_DISCONNECT_TIMEOUT])
+            self.assertEqual(
+                json.loads(state_path.read_text(encoding="utf-8")),
+                unsafe_state,
+            )
+            self.assertFalse((Path(tmpdir) / "ibkr_smoke.lock").exists())
+
+    def test_limit_order_builder_sets_smoke_order_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders(), open_orders()],
+                position_snapshots=[flat_position(), flat_position()],
+                order_type="limit",
+                limit_price=100.25,
+                submitted_at="20260512 10:01:02",
+            )
+
+            self.assertEqual(
+                adapter.submitted_order.order.orderRef,
+                "OPENCLAW_SMOKE_LIMIT_20260512100102",
+            )
+
+    def test_market_order_path_sets_smoke_order_ref_when_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders(), open_orders()],
+                position_snapshots=[flat_position(), flat_position()],
+                order_type="market",
+                submitted_at="20260512 10:01:02",
+            )
+
+            self.assertEqual(
+                adapter.submitted_order.order.orderRef,
+                "OPENCLAW_SMOKE_MARKET_20260512100102",
+            )
+
 
 class FakeSafetyAdapter:
     def __init__(
@@ -362,6 +432,7 @@ class FakeSafetyAdapter:
         self.position_snapshot = position_snapshot
         self.open_order_calls: list[tuple[str, float | None]] = []
         self.position_calls: list[tuple[str, float | None]] = []
+        self.execution_calls: list[tuple[str | None, str | None, float | None]] = []
 
     def get_open_buy_order_qty(
         self,
@@ -378,6 +449,26 @@ class FakeSafetyAdapter:
     ) -> BrokerPositionState:
         self.position_calls.append((symbol, timeout_seconds))
         return self.position_snapshot
+
+    def get_execution_snapshot(
+        self,
+        *,
+        symbol: str | None = None,
+        since: str | None = None,
+        timeout_seconds: float | None = None,
+        **_kwargs,
+    ) -> BrokerExecutionSnapshotState:
+        self.execution_calls.append((symbol, since, timeout_seconds))
+        return BrokerExecutionSnapshotState(
+            broker_name="ibkr",
+            passed=True,
+            fills=(),
+            fill_count=0,
+            total_shares=0.0,
+            cumulative_qty=None,
+            avg_fill_price=None,
+            reason="executions_loaded",
+        )
 
 
 class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
@@ -420,7 +511,7 @@ class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
 
     def build_market_order(self, symbol: str, qty: int):
         self.build_market_order_called = True
-        return object()
+        return FakeMarketOrderPayload()
 
     def submit_market_order(self, order, timeout_seconds: float | None = None):
         self.submit_market_order_called = True
@@ -461,6 +552,12 @@ class FakeNativeOrder:
         self.tif = None
         self.eTradeOnly = None
         self.firmQuoteOnly = None
+        self.orderRef = None
+
+
+class FakeMarketOrderPayload:
+    def __init__(self) -> None:
+        self.order = FakeNativeOrder()
 
 
 class FakeNativeClient:
@@ -602,6 +699,7 @@ def run_fake_smoke(
     timeout: float = 5.0,
     qty: int = 1,
     preflight_only: bool = False,
+    report_only: bool = False,
     order_type: str = "market",
     limit_price: float | None = None,
     order_status: str = "submitted",
@@ -646,6 +744,7 @@ def run_fake_smoke(
                 lock_path=lock_path,
                 last_state_path=state_path,
                 preflight_only=preflight_only,
+                report_only=report_only,
                 order_type=order_type,
                 limit_price=limit_price,
             )

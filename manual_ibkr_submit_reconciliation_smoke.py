@@ -32,6 +32,7 @@ RUN_THREAD_READY_TIMEOUT = 2.0
 SMOKE_SAFETY_READ_TIMEOUT = 2.0
 SMOKE_MIN_MARKET_ORDER_TIMEOUT = 5.0
 SMOKE_DISCONNECT_TIMEOUT = 5.0
+SMOKE_ORDER_REF_PREFIX = "OPENCLAW_SMOKE"
 SMOKE_LOCAL_DIR = Path(__file__).resolve().parent / ".local"
 SMOKE_LOCK_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke.lock"
 SMOKE_LAST_STATE_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke_last_state.json"
@@ -562,13 +563,17 @@ def run_localhost_submit_reconciliation_smoke(
     lock_path: Path | str = SMOKE_LOCK_PATH,
     last_state_path: Path | str = SMOKE_LAST_STATE_PATH,
     preflight_only: bool = False,
+    report_only: bool = False,
     order_type: str = "market",
     limit_price: float | None = None,
 ):
     _validate_smoke_inputs(host=host, port=port, timeout=timeout, qty=qty)
     smoke_order_type = _normalize_smoke_order_type(order_type)
     lock = SmokeRunLock(Path(lock_path))
-    _refuse_if_last_run_requires_cleanup(Path(last_state_path))
+    last_run_state = _read_smoke_last_state(Path(last_state_path))
+    print(f"last_run_state={last_run_state}")
+    if not report_only:
+        _refuse_if_last_run_requires_cleanup(Path(last_state_path))
 
     native_api = load_ibkr_native_api()
     recorder = ReconciliationSmokeRecorder()
@@ -617,7 +622,9 @@ def run_localhost_submit_reconciliation_smoke(
     workflow_result = None
     connection_result = None
     pre_submit_state = None
+    report_execution_snapshot = None
     submitted_at = None
+    order_ref = None
     final_broker_state = "not_submitted"
     final_broker_state_reason = "submit_not_attempted"
     submit_attempted = False
@@ -665,6 +672,29 @@ def run_localhost_submit_reconciliation_smoke(
         print(f"pre_submit_open_order_snapshot={pre_submit_state.open_order_snapshot}")
         print(f"pre_submit_position_snapshot={pre_submit_state.position_snapshot}")
         print(f"pre_submit_broker_state={pre_submit_state.state}")
+        if report_only:
+            report_submitted_at = _last_run_submitted_at(last_run_state)
+            if report_submitted_at is not None:
+                try:
+                    report_execution_snapshot = adapter.get_execution_snapshot(
+                        symbol=symbol,
+                        since=report_submitted_at,
+                        timeout_seconds=safety_timeout,
+                    )
+                    print(f"report_execution_snapshot={report_execution_snapshot}")
+                except Exception as exc:
+                    print(
+                        "report_execution_snapshot_error="
+                        f"{str(exc) or type(exc).__name__}"
+                    )
+            print("submit_reconciliation_report_only=True")
+            final_broker_state = pre_submit_state.state
+            final_broker_state_reason = pre_submit_state.reason
+            return {
+                "last_run_state": last_run_state,
+                "broker_state": pre_submit_state,
+                "execution_snapshot": report_execution_snapshot,
+            }
         if pre_submit_state.state != "clean":
             print(f"submit_reconciliation_refused={pre_submit_state.reason}")
             final_broker_state = pre_submit_state.state
@@ -676,6 +706,11 @@ def run_localhost_submit_reconciliation_smoke(
             final_broker_state_reason = pre_submit_state.reason
             return pre_submit_state
 
+        order_ref = build_smoke_order_ref(
+            order_type=smoke_order_type,
+            timestamp=_ibkr_execution_filter_time_now(),
+        )
+        print(f"order_ref={order_ref}")
         order = build_smoke_order(
             adapter=adapter,
             native_api=native_api,
@@ -684,6 +719,7 @@ def run_localhost_submit_reconciliation_smoke(
             order_type=smoke_order_type,
             timeout=timeout,
             limit_price=limit_price,
+            order_ref=order_ref,
         )
         if order is None:
             final_broker_state = "not_submitted"
@@ -793,32 +829,34 @@ def run_localhost_submit_reconciliation_smoke(
         print(f"shutdown_state={coordinator.shutdown_state}")
         print(f"thread_state={coordinator.thread_owner.thread_state}")
         try:
-            write_smoke_last_state(
-                Path(last_state_path),
-                {
-                    "symbol": symbol,
-                    "qty": qty,
-                    "submit_timeout": timeout,
-                    "disconnect_timeout": disconnect_timeout,
-                    "order_type": smoke_order_type,
-                    "limit_price": limit_price,
-                    "submitted_at": submitted_at,
-                    "submit_attempted": submit_attempted,
-                    "order_id": getattr(order_result, "order_id", None),
-                    "order_status": getattr(order_result, "order_status", None),
-                    "reconciliation_status": getattr(
-                        workflow_result, "reconciliation_status", None
-                    ),
-                    "manual_review_required": bool(
-                        getattr(workflow_result, "manual_review_required", False)
-                    ),
-                    "final_broker_state": final_broker_state,
-                    "final_broker_state_reason": final_broker_state_reason,
-                    "disconnect_joined": disconnect_joined,
-                    "disconnect_passed": disconnect_passed,
-                    "disconnect_error": disconnect_error,
-                },
-            )
+            if not report_only:
+                write_smoke_last_state(
+                    Path(last_state_path),
+                    {
+                        "symbol": symbol,
+                        "qty": qty,
+                        "submit_timeout": timeout,
+                        "disconnect_timeout": disconnect_timeout,
+                        "order_type": smoke_order_type,
+                        "limit_price": limit_price,
+                        "order_ref": order_ref,
+                        "submitted_at": submitted_at,
+                        "submit_attempted": submit_attempted,
+                        "order_id": getattr(order_result, "order_id", None),
+                        "order_status": getattr(order_result, "order_status", None),
+                        "reconciliation_status": getattr(
+                            workflow_result, "reconciliation_status", None
+                        ),
+                        "manual_review_required": bool(
+                            getattr(workflow_result, "manual_review_required", False)
+                        ),
+                        "final_broker_state": final_broker_state,
+                        "final_broker_state_reason": final_broker_state_reason,
+                        "disconnect_joined": disconnect_joined,
+                        "disconnect_passed": disconnect_passed,
+                        "disconnect_error": disconnect_error,
+                    },
+                )
         finally:
             lock.release()
 
@@ -868,6 +906,7 @@ def build_smoke_order(
     order_type: str,
     timeout: float,
     limit_price: float | None,
+    order_ref: str,
 ):
     refusal_reason = _smoke_order_refusal_reason(
         order_type=order_type,
@@ -878,12 +917,13 @@ def build_smoke_order(
     if refusal_reason is not None:
         return None
     if order_type == "market":
-        return adapter.build_market_order(symbol, qty)
+        return apply_smoke_order_ref(adapter.build_market_order(symbol, qty), order_ref)
     return build_smoke_limit_order(
         native_api=native_api,
         symbol=symbol,
         qty=qty,
         limit_price=float(limit_price),
+        order_ref=order_ref,
     )
 
 
@@ -893,6 +933,7 @@ def build_smoke_limit_order(
     symbol: str,
     qty: int,
     limit_price: float,
+    order_ref: str,
 ) -> IBKRMarketOrder:
     contract = native_api.contract()
     contract.symbol = symbol
@@ -911,6 +952,8 @@ def build_smoke_limit_order(
         order.eTradeOnly = False
     if hasattr(order, "firmQuoteOnly"):
         order.firmQuoteOnly = False
+    if hasattr(order, "orderRef"):
+        order.orderRef = order_ref
 
     return IBKRMarketOrder(
         symbol=symbol,
@@ -918,6 +961,18 @@ def build_smoke_limit_order(
         contract=contract,
         order=order,
     )
+
+
+def apply_smoke_order_ref(order_payload, order_ref: str):
+    native_order = getattr(order_payload, "order", None)
+    if native_order is not None and hasattr(native_order, "orderRef"):
+        native_order.orderRef = order_ref
+    return order_payload
+
+
+def build_smoke_order_ref(*, order_type: str, timestamp: str) -> str:
+    compact_timestamp = "".join(ch for ch in timestamp if ch.isdigit())
+    return f"{SMOKE_ORDER_REF_PREFIX}_{order_type.upper()}_{compact_timestamp}"
 
 
 def _smoke_order_refusal_reason(
@@ -1060,6 +1115,15 @@ def _read_smoke_last_state(path: Path) -> dict[str, object] | None:
     return state
 
 
+def _last_run_submitted_at(state: dict[str, object] | None) -> str | None:
+    if not isinstance(state, dict):
+        return None
+    submitted_at = state.get("submitted_at")
+    if submitted_at is None:
+        return None
+    return str(submitted_at)
+
+
 def _last_run_cleanup_reason(state: dict[str, object]) -> str | None:
     if state.get("manual_review_required") is True:
         return "manual_review_required"
@@ -1135,6 +1199,11 @@ def _parse_args():
         action="store_true",
         help="Connect and verify smoke safety gates without placing an order.",
     )
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="Read smoke broker and last-run state without placing an order.",
+    )
     return parser.parse_args()
 
 
@@ -1148,6 +1217,7 @@ if __name__ == "__main__":
         symbol=args.symbol,
         qty=args.qty,
         preflight_only=args.preflight_only,
+        report_only=args.report_only,
         order_type=args.order_type,
         limit_price=args.limit_price,
     )
