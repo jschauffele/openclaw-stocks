@@ -183,6 +183,10 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         *,
         openclaw_enabled: bool = True,
         openclaw_dry_run: bool = False,
+        runtime_visibility_enabled: bool = False,
+        runtime_visibility_providers: str = "",
+        runtime_visibility_fake_broker_state: str = "clean",
+        patch_runtime_visibility: bool = True,
         workflow_result_override=None,
     ):
         broker = FakeBroker(order_status)
@@ -222,6 +226,21 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("config.OPENCLAW_MAX_POSITION_SIZE", 5, create=True),
             patch("config.OPENCLAW_DUPLICATE_COOLDOWN_SECONDS", 600, create=True),
             patch("config.OPENCLAW_BROKER", "alpaca", create=True),
+            patch(
+                "config.OPENCLAW_RUNTIME_VISIBILITY_ENABLED",
+                runtime_visibility_enabled,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS",
+                runtime_visibility_providers,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_RUNTIME_VISIBILITY_FAKE_BROKER_STATE",
+                runtime_visibility_fake_broker_state,
+                create=True,
+            ),
             patch("config.ALPACA_API_KEY", "key", create=True),
             patch("config.ALPACA_SECRET_KEY", "secret", create=True),
             patch("config.ALPACA_BASE_URL", "https://paper-api.alpaca.markets", create=True),
@@ -243,19 +262,6 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("main.generate_signal_from_closes", return_value=object()),
             patch("main.validate_signal_result", return_value=object()),
             patch("main.build_action_proposal", return_value=action_proposal()),
-            patch(
-                "main.build_runtime_visibility_providers",
-                side_effect=lambda config_module: (
-                    runtime_provider_calls.append(config_module) or []
-                ),
-            ),
-            patch(
-                "main.build_runtime_visibility_summary",
-                side_effect=lambda providers: (
-                    runtime_visibility_calls.append(providers)
-                    or runtime_visibility_summary()
-                ),
-            ),
             patch(
                 "main.IBKRSubmitReconciliationWorkflow",
                 FakeSubmitReconciliationWorkflow,
@@ -293,6 +299,24 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
                 side_effect=lambda **kwargs: observations.append(kwargs),
             ),
         ]
+        if patch_runtime_visibility:
+            patchers.extend(
+                [
+                    patch(
+                        "main.build_runtime_visibility_providers",
+                        side_effect=lambda config_module: (
+                            runtime_provider_calls.append(config_module) or []
+                        ),
+                    ),
+                    patch(
+                        "main.build_runtime_visibility_summary",
+                        side_effect=lambda providers: (
+                            runtime_visibility_calls.append(providers)
+                            or runtime_visibility_summary()
+                        ),
+                    ),
+                ]
+            )
         with ExitStack() as stack:
             for patcher in patchers:
                 stack.enter_context(patcher)
@@ -545,6 +569,39 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertEqual(report["result"], "success")
         self.assertEqual(report["reason"], "dry_run_completed")
         self.assert_default_runtime_visibility_summary(report)
+
+    def test_fake_provider_report_is_observed_only_and_does_not_change_trading_behavior(
+        self,
+    ) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            runtime_visibility_enabled=True,
+            runtime_visibility_providers="fake",
+            runtime_visibility_fake_broker_state="open_orders",
+            patch_runtime_visibility=False,
+        )
+
+        self.assertEqual(result["runtime_provider_calls"], [])
+        self.assertEqual(result["runtime_visibility_calls"], [])
+        self.assertEqual(result["broker"].submit_calls, 1)
+        self.assertEqual(len(result["write_state_calls"]), 1)
+        report = result["reports"][-1]
+        runtime_visibility = report["orchestration"]["runtime_visibility"]
+        self.assertEqual(runtime_visibility["runtime_visibility_blocking"], True)
+        self.assertEqual(
+            runtime_visibility["runtime_visibility_reason"],
+            "fake:broker_state_open_orders",
+        )
+        self.assertEqual(
+            runtime_visibility["runtime_visibility_reports"][0]["provider_name"],
+            "fake",
+        )
+        self.assertEqual(
+            runtime_visibility["runtime_visibility_reports"][0]["broker_state"],
+            "open_orders",
+        )
+        self.assertEqual(report["result"], "success")
+        self.assertEqual(report["reason"], "paper_order_submitted")
 
     def test_no_retry_resubmit_or_safe_to_retry_exists(self) -> None:
         self.assertFalse(hasattr(FakeSubmitReconciliationWorkflow, "retry"))
