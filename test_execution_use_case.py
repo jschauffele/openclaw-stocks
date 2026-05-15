@@ -109,6 +109,88 @@ def workflow_result(
     )
 
 
+def minimal_report_fields(outcome: ExecutionOutcome) -> dict:
+    return {
+        "result": outcome.result,
+        "reason": outcome.reason,
+        "mode": outcome.mode,
+        "broker_name": outcome.broker_name,
+        "order_status": outcome.order_status,
+        "submit_state": outcome.submit_state,
+        "reconciliation_status": outcome.reconciliation_status,
+        "manual_review_required": outcome.manual_review_required,
+        "terminal_for_run": outcome.terminal_for_run,
+        "reconciliation_ambiguous": outcome.reconciliation_ambiguous,
+        "filled_qty": outcome.filled_qty,
+        "working_qty": outcome.working_qty,
+        "notes": outcome.notes,
+    }
+
+
+def observation_fields(outcome: ExecutionOutcome) -> dict:
+    observation = {"result": outcome.result}
+    optional_fields = [
+        "submit_state",
+        "reconciliation_status",
+        "manual_review_required",
+        "terminal_for_run",
+        "filled_qty",
+        "working_qty",
+    ]
+    for field_name in optional_fields:
+        field_value = getattr(outcome, field_name)
+        if field_value is not None:
+            observation[field_name] = field_value
+    return observation
+
+
+def paper_submitted_event_payload(
+    request_value: ExecutionRequest,
+    outcome: ExecutionOutcome,
+) -> dict:
+    return {
+        "symbol": request_value.symbol,
+        "qty": request_value.qty,
+        "side": request_value.side,
+        "order_id": outcome.raw_submit_result.order_id,
+        "mode": outcome.mode,
+    }
+
+
+def reconciliation_uncertain_event_payload(
+    request_value: ExecutionRequest,
+    outcome: ExecutionOutcome,
+) -> dict:
+    return {
+        "symbol": request_value.symbol,
+        "qty": request_value.qty,
+        "side": request_value.side,
+        "order_id": outcome.raw_submit_result.order_id,
+        "order_status": outcome.order_status,
+        "submit_state": outcome.submit_state,
+        "manual_review_required": outcome.manual_review_required,
+    }
+
+
+def reconciliation_event_payload(
+    request_value: ExecutionRequest,
+    outcome: ExecutionOutcome,
+) -> dict:
+    raw_reconciliation = outcome.raw_reconciliation_result
+    return {
+        "symbol": request_value.symbol,
+        "qty": request_value.qty,
+        "side": request_value.side,
+        "order_id": raw_reconciliation.order_id,
+        "reconciliation_status": outcome.reconciliation_status,
+        "manual_review_required": outcome.manual_review_required,
+        "filled_qty": outcome.filled_qty,
+        "working_qty": outcome.working_qty,
+        "reason": outcome.reason,
+        "ambiguous": outcome.reconciliation_ambiguous,
+    }
+
+
 class ExecutionUseCaseTests(unittest.TestCase):
     def setUp(self) -> None:
         for module_name in IBKR_MODULES:
@@ -269,6 +351,158 @@ class ExecutionUseCaseTests(unittest.TestCase):
         self.assertEqual(outcome.terminal_for_run, True)
         self.assertEqual(outcome.reconciliation_ambiguous, True)
         self.assertIs(outcome.raw_submit_result, submit_result)
+
+    def test_dry_run_outcome_supports_minimal_report_fields(self) -> None:
+        outcome = execute_prevalidated_market_order(
+            request(mode="dry_run"),
+            FakeBroker(),
+        )
+
+        report = minimal_report_fields(outcome)
+
+        self.assertEqual(report["result"], "success")
+        self.assertEqual(report["reason"], "dry_run_completed")
+        self.assertEqual(report["mode"], "dry_run")
+        self.assertEqual(report["broker_name"], "fake")
+        self.assertIsNone(report["order_status"])
+        self.assertIsNone(report["submit_state"])
+        self.assertIsNone(report["reconciliation_status"])
+        self.assertIsNone(report["manual_review_required"])
+        self.assertIsNone(report["terminal_for_run"])
+        self.assertEqual(
+            report["notes"],
+            ["Strategy reason=test_submit", "signal=buy", "decision=buy"],
+        )
+
+    def test_paper_submit_outcome_supports_current_submission_event_fields(self) -> None:
+        request_value = request(qty=3, side="sell", symbol="MSFT")
+        outcome = execute_prevalidated_market_order(
+            request_value,
+            FakeBroker(submit_result=order_result("submitted")),
+        )
+
+        event_payload = paper_submitted_event_payload(request_value, outcome)
+
+        self.assertEqual(
+            event_payload,
+            {
+                "symbol": "MSFT",
+                "qty": 3,
+                "side": "sell",
+                "order_id": "101",
+                "mode": "paper_submit",
+            },
+        )
+
+    def test_manual_review_reconciliation_outcome_supports_report_and_observation_fields(self) -> None:
+        workflow_value = workflow_result("unresolved", manual_review_required=True)
+        outcome = execute_prevalidated_market_order(
+            request(),
+            FakeBroker(submit_result=order_result("reconciliation_required")),
+            reconciliation_workflow=FakeReconciliationWorkflow(workflow_value),
+        )
+
+        report = minimal_report_fields(outcome)
+        observation = observation_fields(outcome)
+
+        self.assertEqual(report["result"], "manual_review_required")
+        self.assertEqual(report["reason"], "unresolved_reason")
+        self.assertEqual(report["order_status"], "reconciliation_required")
+        self.assertEqual(report["submit_state"], "submit_uncertain_reconciliation_required")
+        self.assertEqual(report["reconciliation_status"], "unresolved")
+        self.assertTrue(report["manual_review_required"])
+        self.assertTrue(report["terminal_for_run"])
+        self.assertTrue(report["reconciliation_ambiguous"])
+        self.assertEqual(report["filled_qty"], 0.0)
+        self.assertIsNone(report["working_qty"])
+        self.assertEqual(
+            observation,
+            {
+                "result": "manual_review_required",
+                "submit_state": "submit_uncertain_reconciliation_required",
+                "reconciliation_status": "unresolved",
+                "manual_review_required": True,
+                "terminal_for_run": True,
+                "filled_qty": 0.0,
+            },
+        )
+
+    def test_clean_reconciled_outcome_supports_report_and_observation_fields(self) -> None:
+        workflow_value = workflow_result("filled", manual_review_required=False)
+        outcome = execute_prevalidated_market_order(
+            request(),
+            FakeBroker(submit_result=order_result("reconciliation_required")),
+            reconciliation_workflow=FakeReconciliationWorkflow(workflow_value),
+        )
+
+        report = minimal_report_fields(outcome)
+        observation = observation_fields(outcome)
+
+        self.assertEqual(report["result"], "reconciled")
+        self.assertEqual(report["reason"], "filled_reason")
+        self.assertEqual(report["order_status"], "reconciliation_required")
+        self.assertEqual(report["submit_state"], "submit_uncertain_reconciliation_required")
+        self.assertEqual(report["reconciliation_status"], "filled")
+        self.assertFalse(report["manual_review_required"])
+        self.assertTrue(report["terminal_for_run"])
+        self.assertFalse(report["reconciliation_ambiguous"])
+        self.assertEqual(report["filled_qty"], 1.0)
+        self.assertIsNone(report["working_qty"])
+        self.assertEqual(
+            observation,
+            {
+                "result": "reconciled",
+                "submit_state": "submit_uncertain_reconciliation_required",
+                "reconciliation_status": "filled",
+                "manual_review_required": False,
+                "terminal_for_run": True,
+                "filled_qty": 1.0,
+            },
+        )
+
+    def test_reconciliation_event_payload_can_be_built_from_outcome_and_raw_result(self) -> None:
+        request_value = request(qty=5, side="buy", symbol="TSLA")
+        workflow_value = workflow_result(
+            "partially_filled_unresolved",
+            manual_review_required=True,
+        )
+        outcome = execute_prevalidated_market_order(
+            request_value,
+            FakeBroker(submit_result=order_result("reconciliation_required")),
+            reconciliation_workflow=FakeReconciliationWorkflow(workflow_value),
+        )
+
+        uncertain_payload = reconciliation_uncertain_event_payload(request_value, outcome)
+        reconciliation_payload = reconciliation_event_payload(request_value, outcome)
+
+        self.assertEqual(
+            uncertain_payload,
+            {
+                "symbol": "TSLA",
+                "qty": 5,
+                "side": "buy",
+                "order_id": "101",
+                "order_status": "reconciliation_required",
+                "submit_state": "submit_uncertain_reconciliation_required",
+                "manual_review_required": True,
+            },
+        )
+        self.assertEqual(
+            reconciliation_payload,
+            {
+                "symbol": "TSLA",
+                "qty": 5,
+                "side": "buy",
+                "order_id": "101",
+                "reconciliation_status": "partially_filled_unresolved",
+                "manual_review_required": True,
+                "filled_qty": 1.0,
+                "working_qty": None,
+                "reason": "partially_filled_unresolved_reason",
+                "ambiguous": True,
+            },
+        )
+        self.assertIs(outcome.raw_reconciliation_result, workflow_value)
 
     def test_no_ibkr_imports(self) -> None:
         execute_prevalidated_market_order(
