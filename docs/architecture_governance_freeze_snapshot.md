@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Canonical head: `f03922a Docs: define presenter mapper boundary`
+Canonical head: `791bcbe Docs: capture architecture governance freeze snapshot`
 
 This snapshot records the current frozen architectural state. It is a
 governance note only. It does not approve runtime wiring, execution behavior,
