@@ -79,6 +79,28 @@ def build_strategy_hold_report_notes(action_proposal: dict) -> list[str]:
     ]
 
 
+def build_market_input_event_payload(bars_result) -> dict:
+    return {
+        "symbol": bars_result.symbol,
+        "timeframe": bars_result.timeframe,
+        "source": bars_result.source,
+        "adjustment": bars_result.adjustment_type,
+        "adjusted": bars_result.is_adjusted,
+        "warnings": list(bars_result.warnings),
+        "candles": [
+            {
+                "timestamp": candle.timestamp.isoformat(),
+                "open": candle.open,
+                "high": candle.high,
+                "low": candle.low,
+                "close": candle.close,
+                "volume": candle.volume,
+            }
+            for candle in bars_result.candles
+        ],
+    }
+
+
 def main():
     config.load_config()
 
@@ -285,6 +307,12 @@ def main():
                 required_closes=3,
             )
         latest_candle_timestamp = bars_result.candles[-1].timestamp.isoformat()
+        log_event(
+            "data",
+            "market_input_captured",
+            "ok",
+            build_market_input_event_payload(bars_result),
+        )
         raw_signal_result = generate_signal_from_closes(closes)
         signal_result = validate_signal_result(raw_signal_result)
         action_proposal = build_action_proposal(

@@ -5,6 +5,7 @@ import sys
 import tempfile
 import types
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -59,10 +60,12 @@ def install_alpaca_import_stubs() -> None:
 
 
 from decision_engine import build_action_proposal
+from data_models import Candle, HistoricalBarsResult
 from event_logger import initialize_event_logger, log_event
 
 install_alpaca_import_stubs()
 from main import (
+    build_market_input_event_payload,
     build_strategy_hold_report_notes,
     build_strategy_signal_event_payload,
     validate_data_config,
@@ -119,6 +122,138 @@ class ObservabilityPayloadsTest(unittest.TestCase):
         self.assertEqual(event["stage"], "strategy_evaluated")
         self.assertIn("percent_change", event["payload"])
         self.assertIn("three_close_percent_change", event["payload"])
+
+    def test_market_input_event_payload_contains_full_candle_list(self) -> None:
+        bars_result = HistoricalBarsResult(
+            symbol="aapl",
+            timeframe="5Min",
+            source="alpaca",
+            adjustment_type="raw",
+            is_adjusted=False,
+            candles=(
+                Candle(
+                    symbol="aapl",
+                    timestamp=datetime(2026, 5, 15, 14, 30, tzinfo=timezone.utc),
+                    open=100.0,
+                    high=101.0,
+                    low=99.5,
+                    close=100.5,
+                    volume=1234,
+                ),
+                Candle(
+                    symbol="aapl",
+                    timestamp=datetime(2026, 5, 15, 14, 35, tzinfo=timezone.utc),
+                    open=100.5,
+                    high=102.0,
+                    low=100.0,
+                    close=101.5,
+                    volume=2345,
+                ),
+            ),
+            warnings=("partial_bar",),
+        )
+
+        payload = build_market_input_event_payload(bars_result)
+
+        self.assertEqual(
+            payload,
+            {
+                "symbol": "AAPL",
+                "timeframe": "5Min",
+                "source": "alpaca",
+                "adjustment": "raw",
+                "adjusted": False,
+                "warnings": ["partial_bar"],
+                "candles": [
+                    {
+                        "timestamp": "2026-05-15T14:30:00+00:00",
+                        "open": 100.0,
+                        "high": 101.0,
+                        "low": 99.5,
+                        "close": 100.5,
+                        "volume": 1234.0,
+                    },
+                    {
+                        "timestamp": "2026-05-15T14:35:00+00:00",
+                        "open": 100.5,
+                        "high": 102.0,
+                        "low": 100.0,
+                        "close": 101.5,
+                        "volume": 2345.0,
+                    },
+                ],
+            },
+        )
+
+    def test_market_input_event_is_appendable_before_strategy_event(self) -> None:
+        action_proposal = self._action_proposal()
+        bars_result = HistoricalBarsResult(
+            symbol="aapl",
+            timeframe="5Min",
+            source="alpaca",
+            adjustment_type="raw",
+            is_adjusted=False,
+            candles=(
+                Candle(
+                    symbol="aapl",
+                    timestamp=datetime(2026, 5, 15, 14, 30, tzinfo=timezone.utc),
+                    open=100.0,
+                    high=101.0,
+                    low=99.5,
+                    close=100.5,
+                    volume=1234,
+                ),
+                Candle(
+                    symbol="aapl",
+                    timestamp=datetime(2026, 5, 15, 14, 35, tzinfo=timezone.utc),
+                    open=100.5,
+                    high=102.0,
+                    low=100.0,
+                    close=101.5,
+                    volume=2345,
+                ),
+                Candle(
+                    symbol="aapl",
+                    timestamp=datetime(2026, 5, 15, 14, 40, tzinfo=timezone.utc),
+                    open=101.5,
+                    high=103.0,
+                    low=101.0,
+                    close=102.5,
+                    volume=3456,
+                ),
+            ),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_id = "run_test_market_input_event"
+            initialize_event_logger(run_id, base_dir=temp_dir)
+            log_event(
+                "data",
+                "market_input_captured",
+                "ok",
+                build_market_input_event_payload(bars_result),
+            )
+            log_event(
+                "strategy",
+                "strategy_evaluated",
+                "ok",
+                build_strategy_signal_event_payload(action_proposal),
+            )
+
+            event_path = Path(temp_dir) / f"{run_id}.jsonl"
+            events = [
+                json.loads(line)
+                for line in event_path.read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertEqual(events[0]["event_id"], "evt_0001")
+        self.assertEqual(events[0]["event_type"], "data")
+        self.assertEqual(events[0]["stage"], "market_input_captured")
+        self.assertEqual(events[0]["status"], "ok")
+        self.assertEqual(len(events[0]["payload"]["candles"]), 3)
+        self.assertEqual(events[1]["event_id"], "evt_0002")
+        self.assertEqual(events[1]["event_type"], "strategy")
+        self.assertEqual(events[1]["stage"], "strategy_evaluated")
 
     def test_sell_signal_survives_report_and_strategy_event_payload(self) -> None:
         signal_result = validate_signal_result(
