@@ -157,6 +157,51 @@ Decision-relevant payload facts:
 - whether the data was sufficient for strategy evaluation
 - any blocking reason caused by insufficient data
 
+### market_input_captured
+
+Canonical event:
+- `data / market_input_captured / ok`
+
+When it occurs:
+- after successful market data fetch
+- before `strategy_evaluated`
+
+Why it exists:
+- records replay-grade market input evidence
+- preserves the full market input used for strategy evaluation
+- makes later strategy reconstruction possible without depending only on
+  derived price metrics
+
+Decision-relevant payload facts:
+- `symbol`
+- `timeframe`
+- `source`
+- `adjustment`
+- `adjusted`
+- `warnings`
+- `candles[]`
+- `candles[].timestamp`
+- `candles[].open`
+- `candles[].high`
+- `candles[].low`
+- `candles[].close`
+- `candles[].volume`
+
+Authority boundary:
+- observational only
+- non-authoritative
+- does not change strategy inputs
+- does not grant strategy authority
+- does not grant risk authority
+- does not grant reconciliation authority
+- does not grant execution authority
+
+Deferred items:
+- not a replay engine
+- not a replay package
+- not evaluation infrastructure
+- not adaptive behavior
+
 ### strategy_evaluated
 
 When it occurs:
