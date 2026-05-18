@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from ibkr_broker_adapter import IBKRBrokerAdapter
+from broker_factory import create_broker_adapter
 from ibkr_callback_bridge import IBKRCallbackBridge
 from ibkr_native_imports import IBKRNativeAPI
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
@@ -16,6 +18,8 @@ from ibkr_timeout_injector import IBKRTimeoutInjector
 
 
 class FakeEClient:
+    side_effect_calls: list[str] = []
+
     def __init__(self, wrapper) -> None:
         self.wrapper = wrapper
         self.connect_calls = []
@@ -33,6 +37,21 @@ class FakeEClient:
 
     def isConnected(self) -> bool:
         return False
+
+    def reqAccountSummary(self, *args, **kwargs) -> None:
+        self.side_effect_calls.append("reqAccountSummary")
+
+    def reqPositionsMulti(self, *args, **kwargs) -> None:
+        self.side_effect_calls.append("reqPositionsMulti")
+
+    def reqAllOpenOrders(self, *args, **kwargs) -> None:
+        self.side_effect_calls.append("reqAllOpenOrders")
+
+    def reqExecutions(self, *args, **kwargs) -> None:
+        self.side_effect_calls.append("reqExecutions")
+
+    def placeOrder(self, *args, **kwargs) -> None:
+        self.side_effect_calls.append("placeOrder")
 
 
 class FakeEWrapper:
@@ -62,6 +81,27 @@ def fake_native_api() -> IBKRNativeAPI:
 
 
 class IBKRRuntimeAssemblyTests(unittest.TestCase):
+    def setUp(self) -> None:
+        FakeEClient.side_effect_calls = []
+
+    def test_broker_factory_still_rejects_ibkr_runtime_selection(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "Unsupported OPENCLAW_BROKER='ibkr'; supported brokers: alpaca",
+        ):
+            create_broker_adapter(
+                "ibkr",
+                alpaca_api_key="key",
+                alpaca_secret_key="secret",
+            )
+
+    def test_main_does_not_import_or_use_ibkr_runtime_assembly(self) -> None:
+        main_source = Path(__file__).with_name("main.py").read_text(encoding="utf-8")
+
+        self.assertNotIn("ibkr_runtime_assembly", main_source)
+        self.assertNotIn("assemble_ibkr_runtime", main_source)
+        self.assertNotIn("IBKRRuntimeAssembly", main_source)
+
     def test_disabled_default_assembles_without_loading_native_api(self) -> None:
         def fail_loader() -> IBKRNativeAPI:
             raise AssertionError("disabled assembly must not load native IBKR API")
@@ -74,6 +114,17 @@ class IBKRRuntimeAssemblyTests(unittest.TestCase):
         self.assertIsNone(assembly.runtime_coordinator)
         self.assertIsInstance(assembly.adapter, IBKRBrokerAdapter)
         self.assertIsNone(assembly.adapter.client)
+        self.assertIsNone(assembly.adapter.coordinator)
+
+    def test_disabled_default_has_no_native_runtime_authority(self) -> None:
+        assembly = assemble_ibkr_runtime()
+
+        self.assertFalse(assembly.config.enabled)
+        self.assertIsNone(assembly.native_api)
+        self.assertIsNone(assembly.native_bundle)
+        self.assertIsNone(assembly.runtime_coordinator)
+        self.assertIsNone(assembly.adapter.client)
+        self.assertIsNone(assembly.adapter.native_api)
         self.assertIsNone(assembly.adapter.coordinator)
 
     def test_disabled_default_wires_shared_non_runtime_components(self) -> None:
@@ -120,6 +171,7 @@ class IBKRRuntimeAssemblyTests(unittest.TestCase):
         self.assertEqual(assembly.native_bundle.client.connect_calls, [])
         self.assertEqual(assembly.native_bundle.client.run_calls, 0)
         self.assertEqual(assembly.native_bundle.client.disconnect_calls, 0)
+        self.assertEqual(FakeEClient.side_effect_calls, [])
 
     def test_enabled_loader_is_called_once_when_native_api_not_injected(self) -> None:
         calls = []
