@@ -44,6 +44,21 @@ future use should start with manual smoke harness migration. Production routing
 through `broker_factory.py` remains later-only and requires explicit
 architecture review.
 
+### Smoke Harness Migration Status
+
+`manual_ibkr_localhost_connect_smoke.py` is the first and only smoke harness
+currently migrated to the detached runtime assembly seam.
+
+`manual_ibkr_read_only_runtime_visibility_smoke.py` remains intentionally
+unmigrated because it belongs to the runtime visibility control plane.
+
+`manual_ibkr_submit_reconciliation_smoke.py` remains intentionally unmigrated
+pending separate safety review. Any future submit/reconciliation migration is
+higher risk and must be isolated.
+
+Production routing remains disabled. `broker_factory.py` and `main.py` remain
+unchanged. This note does not approve any additional smoke harness migration.
+
 ## Activation Requirements
 
 IBKR execution activation requires its own:
