@@ -74,3 +74,72 @@ IBKR execution activation requires its own:
 Paper-only isolated execution validation must occur before any broader production integration or strategy-driven IBKR execution path.
 
 Read-only IBKR visibility evidence is not execution readiness approval.
+
+## Controlled Paper Activation Readiness Checklist
+
+This checklist defines the gates required before any IBKR paper runtime routing
+is enabled through `broker_factory.py` or `main.py`. Completing the checklist
+does not approve activation by itself. Activation still requires explicit
+architecture approval.
+
+- IBKR config namespace requirements
+  - define IBKR-specific host, port, client ID, timeout, disconnect timeout,
+    account, model code, order ID, and mode settings
+  - keep IBKR configuration separate from Alpaca configuration
+  - document paper-only defaults and forbidden live-routing values
+- disabled-by-default activation gate
+  - require an explicit IBKR enablement flag
+  - default all IBKR runtime routing to disabled
+  - fail closed when required IBKR config is missing or invalid
+- fake-native test requirements
+  - cover adapter construction without TWS or broker calls
+  - cover lifecycle connect, timeout, callback, disconnect, and stale callback
+    behavior
+  - cover order build, submit acknowledgement, submit timeout, rejection, and
+    reconciliation-required outcomes
+  - cover authority boundaries proving `main.py` and `broker_factory.py`
+    remain unchanged until explicitly approved
+- manual localhost connect-smoke evidence
+  - prove localhost paper connection only
+  - record `nextValidId` readiness
+  - record deterministic timeout behavior
+  - record disconnect and runtime-thread shutdown evidence
+- manual paper submit/reconciliation evidence
+  - prove paper-only order submission path under operator control
+  - record pre-submit broker-state checks
+  - record order ID, submit result, timeout path, and final broker state
+  - record execution, open-order, and position snapshot evidence when submit
+    acknowledgement is uncertain
+- submit uncertainty and reconciliation behavior requirements
+  - define terminal statuses and manual-review statuses
+  - preserve no-retry, no-resubmit, no-remediation behavior unless separately
+    approved
+  - fail closed on unresolved or partially resolved reconciliation
+  - prevent future execution after unsafe last-run state until operator review
+- rollback/operator controls
+  - define how to disable IBKR routing immediately
+  - define operator preflight commands and smoke commands
+  - define cleanup requirements for open orders, non-flat positions, and
+    unresolved reconciliation
+  - define rollback to the current Alpaca-only broker factory path
+- logging, reporting, and observability requirements
+  - emit clear lifecycle, submit, reconciliation, and completion events
+  - preserve append-only observability intent
+  - include IBKR runtime mode, broker name, order ID, reconciliation status,
+    manual-review flag, and final broker-state evidence in reports
+  - avoid treating runtime visibility as execution authorization
+- `broker_factory.py` review gate
+  - review any addition of `ibkr` to supported broker selection separately
+  - require disabled-by-default behavior and fake-native coverage before merge
+  - preserve explicit unsupported-broker failure when IBKR is not enabled
+- `main.py` orchestration review gate
+  - review any IBKR production orchestration branch separately
+  - preserve existing strategy, risk, duplicate, reconciliation, event,
+    report, observation, and state-write sequencing
+  - avoid moving execution authority into broker adapters or visibility
+    providers
+- architecture approval requirement
+  - require explicit approval before enabling IBKR routing
+  - require paper-only activation before any broader production or live-routing
+    consideration
+  - document rollback posture and operator ownership before activation
