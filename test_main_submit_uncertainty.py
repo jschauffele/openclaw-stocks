@@ -138,10 +138,36 @@ def bars_result():
     timestamp = datetime(2026, 5, 12, tzinfo=timezone.utc)
     return SimpleNamespace(
         candles=[
-            SimpleNamespace(close=100.0, timestamp=timestamp),
-            SimpleNamespace(close=100.25, timestamp=timestamp),
-            SimpleNamespace(close=100.60, timestamp=timestamp),
+            SimpleNamespace(
+                timestamp=timestamp,
+                open=99.50,
+                high=100.25,
+                low=99.25,
+                close=100.0,
+                volume=1000,
+            ),
+            SimpleNamespace(
+                timestamp=timestamp,
+                open=100.0,
+                high=100.50,
+                low=99.75,
+                close=100.25,
+                volume=1100,
+            ),
+            SimpleNamespace(
+                timestamp=timestamp,
+                open=100.25,
+                high=100.75,
+                low=100.0,
+                close=100.60,
+                volume=1200,
+            ),
         ],
+        symbol="AAPL",
+        timeframe="5Min",
+        source="alpaca",
+        adjustment_type="raw",
+        is_adjusted=False,
         warnings=[],
     )
 
@@ -537,6 +563,33 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertNotIn("terminal_for_run", observation)
         self.assertNotIn("filled_qty", observation)
         self.assertNotIn("working_qty", observation)
+
+    def test_market_input_is_logged_after_successful_fetch_before_strategy(self) -> None:
+        result = self.run_main_with_order_status("submitted")
+
+        ordered_events = [
+            (event["event_type"], event["stage"], event["status"])
+            for event in result["events"]
+            if (
+                event["event_type"],
+                event["stage"],
+                event["status"],
+            )
+            in {
+                ("data", "fetch", "ok"),
+                ("data", "market_input_captured", "ok"),
+                ("strategy", "strategy_evaluated", "ok"),
+            }
+        ]
+
+        self.assertEqual(
+            ordered_events,
+            [
+                ("data", "fetch", "ok"),
+                ("data", "market_input_captured", "ok"),
+                ("strategy", "strategy_evaluated", "ok"),
+            ],
+        )
 
     def test_killswitch_early_return_report_includes_runtime_visibility_summary(self) -> None:
         result = self.run_main_with_order_status(

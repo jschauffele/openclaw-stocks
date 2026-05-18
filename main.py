@@ -307,12 +307,7 @@ def main():
                 required_closes=3,
             )
         latest_candle_timestamp = bars_result.candles[-1].timestamp.isoformat()
-        log_event(
-            "data",
-            "market_input_captured",
-            "ok",
-            build_market_input_event_payload(bars_result),
-        )
+        market_input_payload = build_market_input_event_payload(bars_result)
         raw_signal_result = generate_signal_from_closes(closes)
         signal_result = validate_signal_result(raw_signal_result)
         action_proposal = build_action_proposal(
@@ -371,6 +366,12 @@ def main():
             "symbol": OPENCLAW_SYMBOL,
             "candles": len(bars_result.candles),
         },
+    )
+    log_event(
+        "data",
+        "market_input_captured",
+        "ok",
+        market_input_payload,
     )
     logging.info(
         "Strategy pipeline completed: "
