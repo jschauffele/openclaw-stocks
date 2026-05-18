@@ -59,6 +59,48 @@ higher risk and must be isolated.
 Production routing remains disabled. `broker_factory.py` and `main.py` remain
 unchanged. This note does not approve any additional smoke harness migration.
 
+### Submit/Reconciliation Smoke Migration Plan
+
+Any future migration of `manual_ibkr_submit_reconciliation_smoke.py` onto
+`assemble_ibkr_runtime(...)` must be construction-only. The migration must not
+move submit policy, reconciliation policy, safety checks, evidence recording,
+or operator-control behavior into `ibkr_runtime_assembly.py`.
+
+The following construction pieces may use `ibkr_runtime_assembly.py`:
+
+- native API loading
+- registry and request coordinator construction
+- runtime coordinator construction
+- adapter construction
+- native wrapper and client bundle construction through injection hooks
+
+The following behavior must remain bespoke and manual in the smoke harness:
+
+- `RecordingReconciliationBridge`
+- `RecordingReconciliationClient`
+- `SubmitReconciliationSmokeWrapper`
+- `ReconciliationSmokeRecorder`
+- lock file single-flight behavior
+- last-run unsafe-state refusal
+- pre-submit broker-state checks
+- submit attempt timing and persistence
+- final broker-state query
+- reconciliation workflow invocation
+- no-retry, no-resubmit, and no-remediation policy
+
+Required tests before any migration:
+
+- recorder callback evidence is preserved
+- recording client evidence is preserved
+- unsafe last-run refusal is preserved
+- lock behavior is preserved
+- final-state write is preserved
+- no production routing is enabled
+
+This plan does not approve production routing. It also does not approve the
+submit/reconciliation smoke migration by itself; any migration must be reviewed
+as an isolated manual-harness change.
+
 ## Activation Requirements
 
 IBKR execution activation requires its own:
