@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -17,11 +18,13 @@ from broker_interface import (
     BrokerReconciliationResult,
     BrokerSubmitReconciliationResult,
 )
+from broker_factory import SUPPORTED_BROKERS
 from ibkr_pending_request_registry import IBKRPendingRequestRegistry
 from ibkr_request_coordinator import IBKRRequestCoordinator
 from manual_ibkr_submit_reconciliation_smoke import (
     ReconciliationSmokeRecorder,
     RecordingReconciliationBridge,
+    RecordingReconciliationClient,
     SmokeRunLock,
     SmokeSafetyRefusal,
     SMOKE_DISCONNECT_TIMEOUT,
@@ -56,8 +59,131 @@ class RecordingReconciliationBridgeTests(unittest.TestCase):
         self.assertEqual(recorder.events[0]["symbol"], "AAPL")
         self.assertEqual(recorder.events[0]["generation"], 123)
 
+    def test_callback_evidence_is_preserved_for_submit_and_snapshots(self) -> None:
+        registry = IBKRPendingRequestRegistry()
+        coordinator = IBKRRequestCoordinator(registry=registry)
+        recorder = ReconciliationSmokeRecorder()
+        bridge = RecordingReconciliationBridge(
+            registry,
+            request_coordinator=coordinator,
+            recorder=recorder,
+        )
+
+        bridge.begin_order_submission(order_id=101)
+        bridge.order_status(order_id=101, status="Submitted")
+        bridge.begin_open_orders_snapshot(symbol="AAPL")
+        bridge.open_order(
+            order_id=201,
+            symbol="AAPL",
+            side="BUY",
+            qty=1,
+            status="Submitted",
+        )
+        bridge.open_order_end()
+        bridge.begin_position_snapshot(request_id=301, symbol="AAPL")
+        bridge.position_multi(request_id=301, symbol="AAPL", qty=0)
+        bridge.position_multi_end(request_id=301)
+        bridge.begin_execution_snapshot(request_id=401, symbol="AAPL")
+        bridge.exec_details(
+            request_id=401,
+            order_id=101,
+            symbol="AAPL",
+            side="BOT",
+            shares=1,
+            exec_id="exec-1",
+        )
+        bridge.exec_details_end(request_id=401)
+
+        event_types = [event["event_type"] for event in recorder.events]
+        self.assertEqual(
+            event_types,
+            [
+                "begin_order_submission",
+                "orderStatus",
+                "begin_open_orders_snapshot",
+                "openOrder",
+                "openOrderEnd",
+                "begin_position_snapshot",
+                "positionMulti",
+                "positionMultiEnd",
+                "begin_execution_snapshot",
+                "execDetails",
+                "execDetailsEnd",
+            ],
+        )
+        self.assertEqual(recorder.events[0]["order_id"], 101)
+        self.assertTrue(recorder.events[0]["pending"])
+        self.assertEqual(
+            recorder.events[1]["route_method"],
+            "order_status_submit_lifecycle",
+        )
+        self.assertEqual(recorder.events[3]["symbol"], "AAPL")
+        self.assertTrue(recorder.events[3]["routed"])
+        self.assertEqual(recorder.events[6]["qty"], 0)
+        self.assertTrue(recorder.events[7]["routed"])
+        self.assertEqual(recorder.events[9]["exec_id"], "exec-1")
+        self.assertTrue(recorder.events[10]["routed"])
+
+
+class RecordingReconciliationClientTests(unittest.TestCase):
+    def test_request_and_place_order_evidence_is_preserved(self) -> None:
+        registry = IBKRPendingRequestRegistry()
+        coordinator = IBKRRequestCoordinator(registry=registry)
+        recorder = ReconciliationSmokeRecorder()
+        native_client = FakeRecordingNativeClient()
+        client = RecordingReconciliationClient(
+            client=native_client,
+            request_coordinator=coordinator,
+            recorder=recorder,
+        )
+
+        coordinator.register_request(101, FakeAggregator("pending-order"))
+        client.placeOrder(
+            101,
+            SimpleNamespace(symbol="AAPL"),
+            SimpleNamespace(action="BUY", totalQuantity=1, orderType="LMT"),
+        )
+        client.reqExecutions(
+            401,
+            SimpleNamespace(symbol="AAPL", side="BOT", time="20260512-10:01:02"),
+        )
+        client.reqAllOpenOrders()
+        client.reqPositionsMulti(301, "", "")
+        client.cancelPositionsMulti(301)
+
+        self.assertEqual(
+            [event["event_type"] for event in recorder.events],
+            [
+                "placeOrder",
+                "reqExecutions",
+                "reqAllOpenOrders",
+                "reqPositionsMulti",
+                "cancelPositionsMulti",
+            ],
+        )
+        self.assertEqual(recorder.events[0]["order_id"], 101)
+        self.assertEqual(recorder.events[0]["symbol"], "AAPL")
+        self.assertEqual(recorder.events[0]["order_type"], "LMT")
+        self.assertTrue(recorder.events[0]["pending_before_place_order"])
+        self.assertEqual(recorder.events[1]["time"], "20260512-10:01:02")
+        self.assertEqual(recorder.events[3]["request_id"], 301)
+        self.assertEqual(native_client.calls, [
+            "placeOrder",
+            "reqExecutions",
+            "reqAllOpenOrders",
+            "reqPositionsMulti",
+            "cancelPositionsMulti",
+        ])
+
 
 class SmokeSafetyControlTests(unittest.TestCase):
+    def test_no_production_routing_is_enabled(self) -> None:
+        main_source = Path(__file__).with_name("main.py").read_text(encoding="utf-8")
+
+        self.assertNotIn("ibkr", SUPPORTED_BROKERS)
+        self.assertNotIn("manual_ibkr_submit_reconciliation_smoke", main_source)
+        self.assertNotIn("run_localhost_submit_reconciliation_smoke", main_source)
+
     def test_ibkr_execution_filter_time_now_uses_utc_timezone_format(self) -> None:
         self.assertRegex(
             _ibkr_execution_filter_time_now(),
@@ -311,7 +437,12 @@ class SmokeSafetyControlTests(unittest.TestCase):
 
             self.assertEqual(result.order_status, "submitted")
             state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertTrue(state["submit_attempted"])
+            self.assertEqual(state["order_status"], "submitted")
             self.assertEqual(state["final_broker_state"], "open_orders")
+            self.assertEqual(state["final_broker_state_reason"], "open_orders_exist")
+            self.assertTrue(state["disconnect_joined"])
+            self.assertTrue(state["disconnect_passed"])
             with self.assertRaisesRegex(SmokeSafetyRefusal, "final_broker_state"):
                 _refuse_if_last_run_requires_cleanup(state_path)
 
@@ -476,6 +607,34 @@ class FakeSafetyAdapter:
             avg_fill_price=None,
             reason="executions_loaded",
         )
+
+
+class FakeAggregator:
+    def __init__(self, result) -> None:
+        self._result = result
+
+    def result(self):
+        return self._result
+
+
+class FakeRecordingNativeClient:
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def placeOrder(self, order_id, contract, order) -> None:
+        self.calls.append("placeOrder")
+
+    def reqExecutions(self, request_id, execution_filter) -> None:
+        self.calls.append("reqExecutions")
+
+    def reqAllOpenOrders(self) -> None:
+        self.calls.append("reqAllOpenOrders")
+
+    def reqPositionsMulti(self, request_id, account, model_code) -> None:
+        self.calls.append("reqPositionsMulti")
+
+    def cancelPositionsMulti(self, request_id) -> None:
+        self.calls.append("cancelPositionsMulti")
 
 
 class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
