@@ -24,6 +24,26 @@ Observability providers must never:
 
 `broker_factory.py` remains execution-isolated until a separate explicit future architecture review approves any IBKR execution integration.
 
+## Detached Runtime Assembly Seam
+
+`ibkr_runtime_assembly.py` is a detached construction seam for IBKR
+infrastructure components. It exists to compose the IBKR adapter, callback
+bridge, request coordinator, timeout injector, native lifecycle bundle, and
+runtime coordinator in a reviewable way without granting production execution
+authority.
+
+The seam is disabled by default and fake-native testable. In disabled mode, it
+must not require TWS, make broker calls, or load `ibapi`.
+
+The seam does not enable `OPENCLAW_BROKER=ibkr`, does not change
+`broker_factory.py` authority, does not grant `main.py` runtime authority, and
+does not alter production orchestration.
+
+Assembly guardrails remain restricted to localhost and paper ports. Near-term
+future use should start with manual smoke harness migration. Production routing
+through `broker_factory.py` remains later-only and requires explicit
+architecture review.
+
 ## Activation Requirements
 
 IBKR execution activation requires its own:
