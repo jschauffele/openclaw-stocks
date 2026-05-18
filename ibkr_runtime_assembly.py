@@ -22,6 +22,11 @@ PAPER_PORTS = frozenset({7497, 4002})
 
 
 NativeApiLoader = Callable[[], IBKRNativeAPI]
+RuntimeCoordinatorFactory = Callable[..., IBKRRuntimeArbitrationCoordinator]
+NativeBundleBuilder = Callable[
+    [IBKRNativeAPI, IBKRCallbackBridge, IBKRRuntimeArbitrationCoordinator],
+    IBKRNativeClientBundle,
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +68,10 @@ def assemble_ibkr_runtime(
     *,
     native_api: IBKRNativeAPI | None = None,
     native_api_loader: NativeApiLoader = load_ibkr_native_api,
+    runtime_coordinator_factory: RuntimeCoordinatorFactory = (
+        IBKRRuntimeArbitrationCoordinator
+    ),
+    native_bundle_builder: NativeBundleBuilder | None = None,
 ) -> IBKRRuntimeAssembly:
     assembly_config = config or IBKRRuntimeAssemblyConfig()
     _validate_config(assembly_config)
@@ -83,18 +92,21 @@ def assemble_ibkr_runtime(
     if assembly_config.enabled:
         if resolved_native_api is None:
             resolved_native_api = native_api_loader()
-        native_bundle = build_ibkr_native_client_bundle(
-            native_api=resolved_native_api,
-            bridge=bridge,
-        )
-        client = native_bundle.client
-        runtime_coordinator = IBKRRuntimeArbitrationCoordinator(
-            client=client,
+        runtime_coordinator = runtime_coordinator_factory(
+            client=None,
             enabled=True,
             registry=registry,
             bridge=bridge,
             timeout_injector=timeout_injector,
         )
+        bundle_builder = native_bundle_builder or _build_default_native_bundle
+        native_bundle = bundle_builder(
+            resolved_native_api,
+            bridge,
+            runtime_coordinator,
+        )
+        client = native_bundle.client
+        runtime_coordinator.client = client
 
     adapter = IBKRBrokerAdapter(
         client=client,
@@ -143,3 +155,14 @@ def _validate_config(config: IBKRRuntimeAssemblyConfig) -> None:
         or config.connect_timeout_seconds <= 0
     ):
         raise ValueError("IBKR runtime assembly requires a finite positive timeout")
+
+
+def _build_default_native_bundle(
+    native_api: IBKRNativeAPI,
+    bridge: IBKRCallbackBridge,
+    runtime_coordinator: IBKRRuntimeArbitrationCoordinator,
+) -> IBKRNativeClientBundle:
+    return build_ibkr_native_client_bundle(
+        native_api=native_api,
+        bridge=bridge,
+    )

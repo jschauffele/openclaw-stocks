@@ -131,18 +131,21 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         self.assertEqual(coordinator.connect_state, "disconnected")
 
     def test_wrapper_ignores_nonfatal_farm_status_before_readiness(self) -> None:
-        coordinator = FakeCoordinator(enabled=True)
-        coordinator.result = None
-        wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
+        for code in [2104, 2106, 2158]:
+            with self.subTest(code=code):
+                coordinator = FakeCoordinator(enabled=True)
+                coordinator.result = None
+                wrapper = smoke.CoordinatorReadinessWrapper(coordinator)
 
-        self.assertFalse(
-            wrapper.error(-1, 2104, "Market data farm connection is OK:usfarm")
-        )
-        self.assertTrue(wrapper.nextValidId(101))
+                self.assertFalse(wrapper.error(-1, code, "nonfatal status"))
+                self.assertTrue(wrapper.nextValidId(101))
 
-        self.assertEqual(coordinator.error_calls, [])
-        self.assertEqual(coordinator.callback_calls, [{"message": "next_valid_id"}])
-        self.assertEqual(coordinator.connect_state, "connected")
+                self.assertEqual(coordinator.error_calls, [])
+                self.assertEqual(
+                    coordinator.callback_calls,
+                    [{"message": "next_valid_id"}],
+                )
+                self.assertEqual(coordinator.connect_state, "connected")
 
     def test_wrapper_connect_ack_is_non_terminal(self) -> None:
         coordinator = FakeCoordinator(enabled=True)
@@ -190,19 +193,19 @@ class ManualIBKRLocalhostConnectSmokeTests(unittest.TestCase):
         self.assertEqual(coordinator.callback_calls, [{"message": "next_valid_id"}])
 
     def test_native_wrapper_ignores_nonfatal_status_code(self) -> None:
-        coordinator = FakeCoordinator(enabled=True)
-        coordinator.result = None
-        bundle = smoke.build_manual_smoke_bundle(
-            native_api_loader=fake_native_api_loader,
-            coordinator_factory=lambda enabled: coordinator,
-        )
+        for code in [2104, 2106, 2158]:
+            with self.subTest(code=code):
+                coordinator = FakeCoordinator(enabled=True)
+                coordinator.result = None
+                bundle = smoke.build_manual_smoke_bundle(
+                    native_api_loader=fake_native_api_loader,
+                    coordinator_factory=lambda enabled: coordinator,
+                )
 
-        self.assertFalse(
-            bundle.wrapper.error(-1, 2106, "HMDS data farm connection is OK:ushmds")
-        )
+                self.assertFalse(bundle.wrapper.error(-1, code, "nonfatal status"))
 
-        self.assertEqual(coordinator.error_calls, [])
-        self.assertIsNone(coordinator.connect_result())
+                self.assertEqual(coordinator.error_calls, [])
+                self.assertIsNone(coordinator.connect_result())
 
     def test_native_wrapper_routes_fatal_error_to_coordinator(self) -> None:
         coordinator = FakeCoordinator(enabled=True)

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ibkr_native_imports import load_ibkr_native_api
+from ibkr_native_lifecycle import IBKRNativeClientBundle
+from ibkr_runtime_assembly import IBKRRuntimeAssemblyConfig, assemble_ibkr_runtime
 from ibkr_runtime_coordinator import IBKRRuntimeArbitrationCoordinator
 
 
@@ -62,12 +64,27 @@ def build_manual_smoke_bundle(
     native_api_loader=load_ibkr_native_api,
     coordinator_factory=IBKRRuntimeArbitrationCoordinator,
 ) -> ManualIBKRConnectSmokeBundle:
-    native_api = native_api_loader()
-    coordinator = coordinator_factory(enabled=True)
-    wrapper_class = build_native_readiness_wrapper_class(native_api.e_wrapper)
-    wrapper = wrapper_class(coordinator)
-    client = native_api.e_client(wrapper)
-    coordinator.client = client
+    def runtime_coordinator_factory(**kwargs):
+        return coordinator_factory(enabled=kwargs["enabled"])
+
+    def native_bundle_builder(native_api, bridge, runtime_coordinator):
+        wrapper_class = build_native_readiness_wrapper_class(native_api.e_wrapper)
+        wrapper = wrapper_class(runtime_coordinator)
+        client = native_api.e_client(wrapper)
+        return IBKRNativeClientBundle(
+            wrapper=wrapper,
+            client=client,
+        )
+
+    assembly = assemble_ibkr_runtime(
+        IBKRRuntimeAssemblyConfig(enabled=True),
+        native_api_loader=native_api_loader,
+        runtime_coordinator_factory=runtime_coordinator_factory,
+        native_bundle_builder=native_bundle_builder,
+    )
+    coordinator = assembly.runtime_coordinator
+    wrapper = assembly.native_bundle.wrapper
+    client = assembly.native_bundle.client
     return ManualIBKRConnectSmokeBundle(
         coordinator=coordinator,
         wrapper=wrapper,
