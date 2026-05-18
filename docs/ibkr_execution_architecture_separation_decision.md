@@ -101,6 +101,48 @@ This plan does not approve production routing. It also does not approve the
 submit/reconciliation smoke migration by itself; any migration must be reviewed
 as an isolated manual-harness change.
 
+### Submit/Reconciliation Construction-Equivalence Test Plan
+
+Before any future submit/reconciliation smoke migration to
+`assemble_ibkr_runtime(...)`, the current fake-native test suite must establish
+a pre-migration baseline for the manual construction path. The baseline must
+capture recorder callback evidence, recording client request and place-order
+evidence, wrapper callback routing, lock behavior, unsafe last-run refusal,
+final broker-state persistence, disconnect evidence persistence, reconciliation
+workflow invocation ordering, and production-routing absence.
+
+Post-migration tests must prove construction equivalence without granting new
+runtime authority. The migrated harness must still preserve:
+
+- recorder callback evidence for order submission, open-order snapshots,
+  position snapshots, and execution snapshots
+- recording client evidence for `placeOrder`, `reqExecutions`,
+  `reqAllOpenOrders`, `reqPositionsMulti`, and `cancelPositionsMulti`
+- wrapper callback routing through the submit/reconciliation smoke wrapper,
+  including nonfatal IBKR status handling
+- lock file single-flight behavior before any submit path can proceed
+- unsafe last-run refusal before connect, order construction, or submit
+- final broker-state persistence after any attempted submit
+- disconnect joined/passed/error evidence persistence in the last-run state
+- reconciliation workflow invocation only after a submit result reports
+  `reconciliation_required`
+- no production routing through `broker_factory.py` or `main.py`
+- no authority expansion beyond construction reuse inside the manual smoke
+  harness
+
+The post-migration assertions must compare the same fake-native scenarios used
+by the pre-migration baseline. They must prove that using the assembly seam only
+changes component construction, not submit policy, reconciliation policy,
+operator controls, recorder evidence, or final-state safety behavior.
+
+Rollback is required if any equivalence assertion breaks, if the migration
+requires changing `broker_factory.py` or `main.py`, if fake-native tests require
+TWS or broker calls, if recorder evidence becomes less specific, if unsafe
+last-run or lock behavior weakens, or if reconciliation workflow ordering
+changes. A rollback returns the submit/reconciliation smoke to bespoke manual
+construction and keeps `assemble_ibkr_runtime(...)` limited to lower-authority
+manual harnesses.
+
 ## Activation Requirements
 
 IBKR execution activation requires its own:
