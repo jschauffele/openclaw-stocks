@@ -582,3 +582,35 @@ The following remain prohibited by this plan:
 - making broker calls
 - requiring TWS
 - changing strategy, risk, execution, or reconciliation logic
+
+## IBKR Activation Sequencing Summary
+
+This sequencing summary ties the existing IBKR activation gates into a strict
+ordered path before any future `broker_factory.py` or `main.py` implementation
+work. It does not approve activation.
+
+The required sequence is:
+
+1. Keep `OPENCLAW_BROKER=ibkr` unsupported and keep `main.py` closed.
+2. Preserve inert IBKR runtime config defaults and fail-closed validation.
+3. Preserve config-to-assembly mapping with no native load or runtime
+   authority.
+4. Preserve disabled assembly behavior and fake-native construction coverage.
+5. Preserve manual localhost connect-smoke evidence.
+6. Preserve submit/reconciliation smoke evidence and construction-equivalence
+   baseline.
+7. Complete `broker_factory.py` activation review before any
+   `SUPPORTED_BROKERS` change.
+8. Add broker factory support only if explicitly approved, disabled by default,
+   fake-native tested, and construction-only.
+9. Complete `main.py` orchestration review after broker factory approval.
+10. Add main orchestration only if explicitly approved, paper-only,
+    rollback-aware, append-only observable, and no retry, resubmit, or
+    remediation behavior is introduced.
+11. Require manual paper evidence and rollback/operator approval before broader
+    runtime use.
+
+`broker_factory.py` remains closed. `main.py` remains closed.
+`OPENCLAW_BROKER=ibkr` remains unsupported. No production routing is approved.
+No broker calls or TWS are required by this sequence. No strategy, risk,
+execution, or reconciliation behavior changes are approved by this sequence.
