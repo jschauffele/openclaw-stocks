@@ -712,3 +712,123 @@ The following remain explicitly prohibited by this contract:
 - adding live routing
 - activating submit or reconciliation
 - changing strategy, risk, execution, or reconciliation behavior
+
+## IBKR Non-Executing Dry-Run Result And Report Contract
+
+This contract defines the future result and reporting model for a fake-native
+IBKR dry-run path before any fake-native dry-run test or `main.py`
+orchestration implementation is approved. It does not approve `main.py`
+implementation.
+
+The approved future non-executing result model is:
+
+- `result`: `blocked`
+- `reason`: `ibkr_runtime_lifecycle_not_approved`
+
+The result is `blocked`, not `dry_run` or `success`, because the future test is
+allowed to prove construction and reporting evidence only. It must not imply
+that IBKR lifecycle, connect, submit, reconciliation, or execution authority has
+been approved.
+
+Fake-native dry-run is construction and reporting evidence only. It must not
+connect, run the native loop, submit an order, invoke reconciliation, retry,
+resubmit, cancel, flatten, remediate, or change strategy, risk, execution, or
+reconciliation behavior. The Alpaca path must remain unchanged.
+
+### Required `ibkr_runtime` Report Section
+
+The future report must include an `ibkr_runtime` section or equivalent
+dedicated evidence section with these fields:
+
+- `broker_name`
+- `runtime_enabled`
+- `assembly_enabled`
+- `runtime_mode`
+- `host`
+- `port`
+- `client_id`
+- `fake_native`
+- `lifecycle_approved`
+- `connect_approved`
+- `submit_approved`
+- `reconciliation_approved`
+- `connect_attempted`
+- `run_loop_started`
+- `submit_attempted`
+- `reconciliation_attempted`
+- `result`
+- `reason`
+- `rollback_required`
+- `rollback_reason`
+
+For this non-executing gate, the expected values are:
+
+- `broker_name`: `ibkr`
+- `runtime_enabled`: `true`
+- `assembly_enabled`: `true`
+- `runtime_mode`: `paper_localhost`
+- `fake_native`: `true`
+- `lifecycle_approved`: `false`
+- `connect_approved`: `false`
+- `submit_approved`: `false`
+- `reconciliation_approved`: `false`
+- `connect_attempted`: `false`
+- `run_loop_started`: `false`
+- `submit_attempted`: `false`
+- `reconciliation_attempted`: `false`
+- `result`: `blocked`
+- `reason`: `ibkr_runtime_lifecycle_not_approved`
+
+The following fields must remain absent while no lifecycle, connect, or submit
+authority exists:
+
+- `connect_result`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result`
+- `shutdown_state`
+- `order_id`
+- `order_status`
+- `submit_state`
+- `submitted_at`
+- `reconciliation_status`
+- `manual_review_required`
+- `terminal_for_run`
+- `reconciliation_ambiguous`
+- `filled_qty`
+- `working_qty`
+- `final_broker_state`
+- `final_broker_state_reason`
+- open-order snapshot summary
+- position snapshot summary
+- execution snapshot summary
+
+Fields deferred until lifecycle approval:
+
+- `connect_result`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result`
+- `shutdown_state`
+
+Fields deferred until submit/reconciliation approval:
+
+- `order_id`
+- `order_status`
+- `submit_state`
+- `submitted_at`
+- `reconciliation_status`
+- `manual_review_required`
+- `terminal_for_run`
+- `reconciliation_ambiguous`
+- `filled_qty`
+- `working_qty`
+- `final_broker_state`
+- `final_broker_state_reason`
+- open-order snapshot summary
+- position snapshot summary
+- execution snapshot summary
