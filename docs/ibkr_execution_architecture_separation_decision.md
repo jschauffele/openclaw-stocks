@@ -439,3 +439,58 @@ review:
 - changing `main.py`
 - enabling `OPENCLAW_BROKER=ibkr`
 - requiring broker calls or TWS for contract validation
+
+## Broker Factory IBKR Activation Review Plan
+
+`broker_factory.py` remains closed now. `main.py` remains closed now. This
+plan defines the criteria required before IBKR can ever be added to broker
+selection, but it does not approve that change.
+
+Adding `ibkr` to `SUPPORTED_BROKERS` requires explicit architecture approval.
+Until that approval exists, `OPENCLAW_BROKER=ibkr` must continue to fail closed
+with the explicit unsupported-broker error.
+
+Any future IBKR broker factory support must be disabled by default. A future
+enabled path must require `OPENCLAW_IBKR_RUNTIME_ENABLED=true`, valid
+paper-localhost config, and the existing config-to-assembly mapping. Invalid,
+missing, live, non-localhost, or non-paper config must reject before factory
+construction can return an IBKR adapter.
+
+Future broker factory construction must remain construction-only. It must not
+connect, submit, run the native runtime loop, load live broker state, call
+broker APIs, create orders, retry, resubmit, cancel, flatten, or remediate. It
+must be fake-native testable without TWS or broker calls.
+
+Alpaca behavior must remain unchanged. The existing Alpaca factory path,
+supported-broker behavior, and adapter construction semantics must remain
+stable while any future IBKR path is reviewed.
+
+Rollback must restore Alpaca-only routing and the explicit unsupported-broker
+failure for `OPENCLAW_BROKER=ibkr`. Rollback must not depend on partial runtime
+state or operator memory.
+
+### Required Future Broker Factory Tests
+
+Before any broker factory activation work is approved, tests must prove:
+
+- Alpaca factory behavior is unchanged
+- disabled IBKR still rejects
+- invalid IBKR config rejects
+- enabled fake-native IBKR factory construction does not connect, run, submit,
+  or call broker APIs
+- factory construction makes no broker calls
+- factory construction requires no TWS
+- `main.py` is not imported and gains no orchestration authority
+- rollback restores explicit unsupported-broker failure for IBKR
+
+### Broker Factory No-Go Boundaries
+
+The following remain prohibited by this plan:
+
+- changing `broker_factory.py` now
+- changing `main.py` now
+- enabling `OPENCLAW_BROKER=ibkr` now
+- adding production routing
+- making broker calls
+- requiring TWS
+- changing strategy, risk, execution, or reconciliation behavior
