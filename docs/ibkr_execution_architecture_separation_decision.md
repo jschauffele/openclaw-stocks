@@ -494,3 +494,91 @@ The following remain prohibited by this plan:
 - making broker calls
 - requiring TWS
 - changing strategy, risk, execution, or reconciliation behavior
+
+## Main IBKR Orchestration Review Plan
+
+`main.py` remains closed now. `broker_factory.py` remains closed now. No IBKR
+orchestration is approved by this plan.
+
+`main.py` is the production orchestration authority. It owns the ordered
+runtime flow for configuration loading, broker construction, market-session
+checks, data fetch, strategy evaluation, risk checks, duplicate protection,
+pre-submit reconciliation, order construction, submit handling, uncertain-submit
+reconciliation, event logging, report persistence, observation logging, state
+writes, and terminal completion.
+
+Any future IBKR branch in `main.py` requires explicit architecture approval.
+The review must happen after the broker factory activation gate is separately
+approved, because `main.py` must not become the first place where IBKR broker
+selection is enabled.
+
+### Required Future Main Review Areas
+
+Before any IBKR orchestration work is approved, the review must define:
+
+- where IBKR lifecycle and connect happen in the run sequence
+- where IBKR runtime config validation happens
+- where broker factory selection happens
+- where market-session checks remain separate from broker lifecycle state
+- where submit uncertainty and reconciliation handling occur
+- where manual-review terminal states are written
+- where append-only event logging occurs
+- where `last_run_report.json` IBKR fields are populated
+- where rollback-required states are set
+- where state writes are allowed
+- where state writes are prohibited
+
+IBKR lifecycle and connect must not occur before configuration has passed
+fail-closed validation and broker selection has passed the approved
+`broker_factory.py` gate. Market-session checks must remain market-session
+checks only; they must not become IBKR lifecycle authorization.
+
+Submit/reconciliation uncertainty must preserve the current separation between
+submit acknowledgement, reconciliation workflow evidence, manual-review
+classification, report persistence, observation logging, state writes, and
+completion events. Manual-review terminal states must be explicit and must
+prevent hidden retry or resubmit behavior.
+
+### Main Flow Preservation Requirements
+
+Any future IBKR orchestration branch must preserve:
+
+- existing strategy evaluation flow
+- risk checks
+- duplicate protection
+- reconciliation sequencing
+- append-only event ordering
+- report persistence
+- observation logging
+- no-retry, no-resubmit, and no-remediation posture
+- Alpaca regression path
+
+The Alpaca path must remain behaviorally unchanged. Any IBKR branch must not
+move shared strategy, risk, duplicate, reconciliation, reporting, observation,
+or completion behavior unless a separate architecture review approves that
+change.
+
+### Required Future Main Tests
+
+Before any `main.py` IBKR orchestration work is approved, tests must prove:
+
+- Alpaca main path is unchanged
+- disabled IBKR path does not run
+- enabled fake-native IBKR path does not submit unless explicitly in approved
+  paper mode
+- unresolved reconciliation produces manual-review or blocking state
+- completion event appears exactly once
+- report contains IBKR runtime evidence fields
+- rollback-required state is recorded when unsafe state occurs
+
+### Main No-Go Boundaries
+
+The following remain prohibited by this plan:
+
+- changing `main.py` now
+- changing `broker_factory.py` now
+- enabling `OPENCLAW_BROKER=ibkr` now
+- adding production routing
+- making broker calls
+- requiring TWS
+- changing strategy, risk, execution, or reconciliation logic
