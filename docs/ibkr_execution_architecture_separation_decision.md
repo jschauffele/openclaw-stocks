@@ -834,3 +834,78 @@ Fields deferred until submit/reconciliation approval:
 - open-order snapshot summary
 - position snapshot summary
 - execution snapshot summary
+
+## IBKR Lifecycle/Connect Evidence Test Contract
+
+This contract defines the first future lifecycle/connect evidence gate before
+any `main.py` lifecycle/connect implementation is approved. It does not approve
+`main.py` changes, broker calls, TWS usage, production routing, live routing,
+submit authority, or reconciliation authority.
+
+The future test should be named:
+
+`test_ibkr_main_path_fake_native_lifecycle_connect_records_evidence_without_submit`
+
+The test must prove that lifecycle/connect evidence can be recorded with
+fake-native components only, without real broker calls and without converting
+IBKR runtime reporting into submit or reconciliation authority. The result must
+remain `blocked` unless a later execution approval gate exists. The Alpaca path
+must remain unchanged.
+
+The following fields may first appear only in this lifecycle/connect evidence
+gate:
+
+- `connect_result`
+- `connect_result.passed`
+- `connect_result.reason`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result`
+- `disconnect_result.passed`
+- `disconnect_result.reason`
+- `shutdown_state`
+
+The future test must require:
+
+- fake-native components only
+- no real IBKR or TWS connection
+- no broker calls
+- no TWS requirement
+- no submit
+- no reconciliation
+- no `order_id`
+- no `order_status`
+- no `submit_state`
+- no `filled_qty`
+- no `working_qty`
+- no `final_broker_state`
+- no retry, resubmit, cancel, flatten, or remediation behavior
+- append-only lifecycle/connect evidence
+- `result` remains `blocked` unless later execution approval exists
+- Alpaca path remains unchanged
+
+The contract separates these authorities:
+
+- config intent: may report requested IBKR runtime config and paper-localhost
+  intent without construction or connection evidence
+- assembly construction: may be claimed only when the assembly is actually
+  constructed, and remains separate from lifecycle/connect authority
+- lifecycle/connect evidence: may record fake-native connect/run/disconnect
+  evidence only after this gate is separately approved and implemented
+- submit/reconciliation authority: remains prohibited until a separate approval
+  gate defines order submission, uncertainty handling, final broker-state
+  evidence, manual-review states, rollback behavior, and no-remediation policy
+
+The following remain explicitly prohibited by this contract:
+
+- implementing `main.py` IBKR lifecycle/connect orchestration now
+- changing `broker_factory.py`
+- making real IBKR or TWS connections
+- making broker calls
+- requiring TWS
+- adding production routing
+- adding live routing
+- activating submit or reconciliation
+- changing strategy, risk, execution, or reconciliation behavior
