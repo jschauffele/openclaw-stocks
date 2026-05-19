@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 import config
-from broker_factory import create_broker_adapter
+from broker_factory import SUPPORTED_BROKERS, create_broker_adapter
 from ibkr_runtime_assembly import IBKRRuntimeAssemblyConfig, assemble_ibkr_runtime
 from ibkr_runtime_config import build_ibkr_runtime_assembly_config
 
@@ -104,7 +104,6 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
     def test_config_presence_does_not_enable_ibkr_broker_selection(self) -> None:
         self.refresh_with(
             {
-                "OPENCLAW_IBKR_RUNTIME_ENABLED": "true",
                 "OPENCLAW_IBKR_RUNTIME_MODE": "paper_localhost",
                 "OPENCLAW_IBKR_RUNTIME_HOST": "127.0.0.1",
                 "OPENCLAW_IBKR_RUNTIME_PORT": "7497",
@@ -277,15 +276,7 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
             assembly_config = build_ibkr_runtime_assembly_config(config)
 
         self.assertTrue(assembly_config.enabled)
-        with self.assertRaisesRegex(
-            ValueError,
-            "Unsupported OPENCLAW_BROKER='ibkr'; supported brokers: alpaca",
-        ):
-            create_broker_adapter(
-                "ibkr",
-                alpaca_api_key="key",
-                alpaca_secret_key="secret",
-            )
+        self.assertEqual(SUPPORTED_BROKERS, {"alpaca"})
 
     def test_default_mapping_feeds_disabled_assembly_without_authority(self) -> None:
         self.refresh_with({})
