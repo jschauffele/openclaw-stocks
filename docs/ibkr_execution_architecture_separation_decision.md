@@ -336,3 +336,106 @@ Before rollback approval, evidence must show the rollback trigger, last known
 broker state, open-order state, position state, reconciliation state,
 disconnect state, runtime coordinator state, operator decision, and the exact
 configuration or code boundary that returned routing to Alpaca-only behavior.
+
+## IBKR Paper Runtime Observability And Reporting Contract
+
+This contract defines future IBKR paper runtime evidence requirements before
+any `broker_factory.py` or `main.py` activation work. It is append-only
+evidence only. It is observational only. It does not authorize execution, route
+orders, retry, resubmit, cancel, flatten, remediate, or override `main.py`
+control flow. Read-only visibility is not execution approval.
+
+This contract does not approve `broker_factory.py` changes, does not approve
+`main.py` changes, does not enable `OPENCLAW_BROKER=ibkr`, does not approve
+production routing, does not require broker calls, and does not require TWS.
+
+### Future IBKR Event Evidence Fields
+
+Future IBKR paper runtime events must preserve the stable run-event envelope
+and record IBKR evidence in payload fields. Required future event evidence
+includes:
+
+- `broker_name`
+- `runtime_mode`
+- `host`
+- `port`
+- `client_id`
+- `runtime_enabled`
+- `assembly_enabled`
+- `connect_result.passed`
+- `connect_result.reason`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result.passed`
+- `disconnect_result.reason`
+- `shutdown_state`
+- `order_id`
+- `order_status`
+- `submit_state`
+- `submitted_at`
+- `reconciliation_status`
+- `manual_review_required`
+- `terminal_for_run`
+- `reconciliation_ambiguous`
+- `filled_qty`
+- `working_qty`
+- `final_broker_state`
+- `final_broker_state_reason`
+- open-order snapshot summary
+- position snapshot summary
+- execution snapshot summary
+- callback and request evidence counts or references
+
+Events must be appended in the order the runtime observes these facts. Later
+events may add evidence or corrections, but earlier events must not be
+rewritten. Event evidence must never become a permit, block, retry,
+remediation, routing, or orchestration decision by itself.
+
+### Future IBKR Report Fields
+
+Future run reports must include an `ibkr_runtime` object or equivalent
+dedicated section when IBKR paper runtime evidence is relevant. Required future
+report evidence includes:
+
+- broker name
+- runtime mode
+- paper/local host
+- paper port
+- client ID
+- enabled or disabled state
+- lifecycle and connect result
+- readiness source
+- submit result
+- order ID
+- submit uncertainty state
+- reconciliation result or status
+- manual-review flag
+- final broker state and reason
+- disconnect and shutdown result
+- evidence references
+- rollback-required flag
+- rollback reason
+
+Report fields are derived summaries of event and broker-visible evidence. They
+must not replace append-only event records, must not grant execution authority,
+and must not be used to bypass `broker_factory.py` or `main.py` review gates.
+
+### Observational Boundary
+
+The IBKR observability contract may describe runtime, lifecycle, submit,
+reconciliation, final-state, disconnect, and rollback evidence. It must remain
+separate from execution authorization.
+
+The following remain prohibited unless separately approved by architecture
+review:
+
+- using observability fields to enable IBKR routing
+- using report fields to permit or deny execution
+- using read-only visibility as execution approval
+- retrying, resubmitting, canceling, flattening, or remediating from evidence
+- changing `broker_factory.py`
+- changing `main.py`
+- enabling `OPENCLAW_BROKER=ibkr`
+- requiring broker calls or TWS for contract validation
