@@ -34,6 +34,7 @@ def build_run_report(
     open_buy_order_qty=None,
     projected_position_qty=None,
     orchestration=None,
+    ibkr_runtime=None,
 ) -> dict:
     return {
         "run_id": run_id,
@@ -67,6 +68,7 @@ def build_run_report(
         "open_buy_order_qty": open_buy_order_qty,
         "projected_position_qty": projected_position_qty,
         "orchestration": orchestration,
+        "ibkr_runtime": ibkr_runtime,
         "notes": notes or [],
     }
 
@@ -104,6 +106,7 @@ def persist_report(
     open_buy_order_qty=None,
     projected_position_qty=None,
     orchestration=None,
+    ibkr_runtime=None,
 ) -> None:
     report = build_run_report(
         run_id=run_id,
@@ -137,5 +140,6 @@ def persist_report(
         open_buy_order_qty=open_buy_order_qty,
         projected_position_qty=projected_position_qty,
         orchestration=orchestration,
+        ibkr_runtime=ibkr_runtime,
     )
     write_run_report(report, run_report_file)

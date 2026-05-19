@@ -144,7 +144,33 @@ def main():
         side = "buy"
         mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
         trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
-        reason = "ibkr_runtime_orchestration_disabled"
+        ibkr_runtime = None
+        if config.OPENCLAW_IBKR_RUNTIME_ENABLED:
+            reason = "ibkr_runtime_lifecycle_not_approved"
+            ibkr_runtime = {
+                "broker_name": "ibkr",
+                "runtime_enabled": True,
+                "assembly_enabled": False,
+                "runtime_mode": config.OPENCLAW_IBKR_RUNTIME_MODE,
+                "host": config.OPENCLAW_IBKR_RUNTIME_HOST,
+                "port": config.OPENCLAW_IBKR_RUNTIME_PORT,
+                "client_id": config.OPENCLAW_IBKR_RUNTIME_CLIENT_ID,
+                "fake_native": False,
+                "lifecycle_approved": False,
+                "connect_approved": False,
+                "submit_approved": False,
+                "reconciliation_approved": False,
+                "connect_attempted": False,
+                "run_loop_started": False,
+                "submit_attempted": False,
+                "reconciliation_attempted": False,
+                "result": "blocked",
+                "reason": "ibkr_runtime_lifecycle_not_approved",
+                "rollback_required": False,
+                "rollback_reason": None,
+            }
+        else:
+            reason = "ibkr_runtime_orchestration_disabled"
         persist_report(
             run_id=run_id,
             mode=mode,
@@ -153,11 +179,15 @@ def main():
             trigger_source=trigger_source,
             side=side,
             **report_config,
+            ibkr_runtime=ibkr_runtime,
             notes=[
                 "IBKR runtime orchestration is not approved for main.py",
             ],
         )
-        log_event("system", "completion", "blocked", {"reason": reason})
+        completion_payload = {"reason": reason}
+        if ibkr_runtime is not None:
+            completion_payload["ibkr_runtime"] = ibkr_runtime
+        log_event("system", "completion", "blocked", completion_payload)
         logging.info("========== OpenClaw run finished ==========")
         return
 

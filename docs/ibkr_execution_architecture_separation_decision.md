@@ -675,7 +675,8 @@ The test must prove:
 
 - IBKR path is explicitly enabled only by approved config
 - runtime mode is paper and local only
-- fake-native construction is used
+- fake-native construction does not occur unless separately approved by a
+  construction evidence gate
 - no live broker calls occur
 - no TWS is required
 - no connect, run, or submit occurs unless separately approved by a later
@@ -692,8 +693,8 @@ The test must prove:
 
 The test contract must clearly separate these authorities:
 
-- fake-native construction: may prove config, factory, and assembly wiring
-  without broker calls
+- fake-native construction: remains separate from this pre-lifecycle reporting
+  gate and must not be claimed unless it actually occurs
 - lifecycle and connect evidence: remains a separate later gate before any
   connect or runtime loop behavior
 - dry-run reporting: may record observational IBKR runtime evidence without
@@ -715,8 +716,8 @@ The following remain explicitly prohibited by this contract:
 
 ## IBKR Non-Executing Dry-Run Result And Report Contract
 
-This contract defines the future result and reporting model for a fake-native
-IBKR dry-run path before any fake-native dry-run test or `main.py`
+This contract defines the future result and reporting model for a non-executing
+IBKR dry-run path before any fake-native construction test or `main.py`
 orchestration implementation is approved. It does not approve `main.py`
 implementation.
 
@@ -726,14 +727,15 @@ The approved future non-executing result model is:
 - `reason`: `ibkr_runtime_lifecycle_not_approved`
 
 The result is `blocked`, not `dry_run` or `success`, because the future test is
-allowed to prove construction and reporting evidence only. It must not imply
+allowed to prove config intent and reporting evidence only. It must not imply
 that IBKR lifecycle, connect, submit, reconciliation, or execution authority has
 been approved.
 
-Fake-native dry-run is construction and reporting evidence only. It must not
-connect, run the native loop, submit an order, invoke reconciliation, retry,
-resubmit, cancel, flatten, remediate, or change strategy, risk, execution, or
-reconciliation behavior. The Alpaca path must remain unchanged.
+Non-executing dry-run is config-intent and reporting evidence only. It must not
+construct the IBKR assembly, claim fake-native construction, connect, run the
+native loop, submit an order, invoke reconciliation, retry, resubmit, cancel,
+flatten, remediate, or change strategy, risk, execution, or reconciliation
+behavior. The Alpaca path must remain unchanged.
 
 ### Required `ibkr_runtime` Report Section
 
@@ -765,9 +767,9 @@ For this non-executing gate, the expected values are:
 
 - `broker_name`: `ibkr`
 - `runtime_enabled`: `true`
-- `assembly_enabled`: `true`
+- `assembly_enabled`: `false`
 - `runtime_mode`: `paper_localhost`
-- `fake_native`: `true`
+- `fake_native`: `false`
 - `lifecycle_approved`: `false`
 - `connect_approved`: `false`
 - `submit_approved`: `false`

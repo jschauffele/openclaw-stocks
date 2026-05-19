@@ -211,6 +211,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         openclaw_enabled: bool = True,
         openclaw_dry_run: bool = False,
         openclaw_broker: str = "alpaca",
+        ibkr_runtime_enabled: bool = False,
         runtime_visibility_enabled: bool = False,
         runtime_visibility_providers: str = "",
         runtime_visibility_fake_broker_state: str = "clean",
@@ -296,7 +297,11 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("config.OPENCLAW_MAX_POSITION_SIZE", 5, create=True),
             patch("config.OPENCLAW_DUPLICATE_COOLDOWN_SECONDS", 600, create=True),
             patch("config.OPENCLAW_BROKER", openclaw_broker, create=True),
-            patch("config.OPENCLAW_IBKR_RUNTIME_ENABLED", True, create=True),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_ENABLED",
+                ibkr_runtime_enabled,
+                create=True,
+            ),
             patch("config.OPENCLAW_IBKR_RUNTIME_MODE", "paper_localhost", create=True),
             patch("config.OPENCLAW_IBKR_RUNTIME_HOST", "127.0.0.1", create=True),
             patch("config.OPENCLAW_IBKR_RUNTIME_PORT", 7497, create=True),
@@ -447,9 +452,10 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertNotIn("ibkr_runtime_assembly", main_source)
         self.assertNotIn("build_ibkr_runtime_assembly_config", main_source)
         self.assertNotIn("assemble_ibkr_runtime", main_source)
-        self.assertNotIn("OPENCLAW_IBKR_RUNTIME_ENABLED", main_source)
+        self.assertIn("OPENCLAW_IBKR_RUNTIME_ENABLED", main_source)
         self.assertIn("OPENCLAW_BROKER == \"ibkr\"", main_source)
         self.assertIn("ibkr_runtime_orchestration_disabled", main_source)
+        self.assertIn("ibkr_runtime_lifecycle_not_approved", main_source)
         self.assertIn("create_broker_adapter(", main_source)
 
     def test_ibkr_main_path_blocks_before_orchestration_when_not_approved(
@@ -477,6 +483,141 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         report = result["reports"][0]
         self.assertEqual(report["result"], "blocked")
         self.assertEqual(report["reason"], "ibkr_runtime_orchestration_disabled")
+        self.assertIsNone(report["ibkr_runtime"])
+        self.assertNotIn("order_status", report)
+        self.assertNotIn("submit_state", report)
+        self.assertNotIn("reconciliation_status", report)
+        self.assertNotIn("manual_review_required", report)
+        self.assertNotIn("filled_qty", report)
+        self.assertNotIn("working_qty", report)
+
+        self.assertFalse(
+            any(
+                event["event_type"] == "data" and event["stage"] == "fetch"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(event["stage"] == "strategy_evaluated" for event in result["events"])
+        )
+        self.assertFalse(
+            any(event["stage"] == "risk_check" for event in result["events"])
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "submission"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "reconciliation"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "position" and event["stage"] == "reconcile"
+                for event in result["events"]
+            )
+        )
+
+        self.assertEqual(result["broker"].submit_calls, 0)
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertEqual(result["observations"], [])
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        self.assertEqual(result["validate_config_calls"], [])
+        self.assertEqual(result["market_data_calls"], [])
+        self.assertEqual(result["generate_signal_calls"], [])
+        self.assertEqual(result["validate_signal_calls"], [])
+        self.assertEqual(result["build_action_proposal_calls"], [])
+        self.assertEqual(result["risk_check_calls"], [])
+        self.assertEqual(result["reconcile_position_calls"], [])
+
+    def test_ibkr_main_path_enabled_fake_native_dry_run_stays_non_executing(
+        self,
+    ) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_broker="ibkr",
+            ibkr_runtime_enabled=True,
+        )
+
+        completion_events = [
+            event
+            for event in result["events"]
+            if event["event_type"] == "system" and event["stage"] == "completion"
+        ]
+
+        self.assertEqual(len(completion_events), 1)
+        self.assertEqual(completion_events[0]["status"], "blocked")
+        self.assertEqual(
+            completion_events[0]["payload"]["reason"],
+            "ibkr_runtime_lifecycle_not_approved",
+        )
+
+        self.assertEqual(len(result["reports"]), 1)
+        report = result["reports"][0]
+        self.assertEqual(report["result"], "blocked")
+        self.assertEqual(report["reason"], "ibkr_runtime_lifecycle_not_approved")
+
+        ibkr_runtime = report["ibkr_runtime"]
+        expected_ibkr_runtime = {
+            "broker_name": "ibkr",
+            "runtime_enabled": True,
+            "assembly_enabled": False,
+            "runtime_mode": "paper_localhost",
+            "host": "127.0.0.1",
+            "port": 7497,
+            "client_id": 9107,
+            "fake_native": False,
+            "lifecycle_approved": False,
+            "connect_approved": False,
+            "submit_approved": False,
+            "reconciliation_approved": False,
+            "connect_attempted": False,
+            "run_loop_started": False,
+            "submit_attempted": False,
+            "reconciliation_attempted": False,
+            "result": "blocked",
+            "reason": "ibkr_runtime_lifecycle_not_approved",
+            "rollback_required": False,
+            "rollback_reason": None,
+        }
+        self.assertEqual(ibkr_runtime, expected_ibkr_runtime)
+        self.assertEqual(
+            completion_events[0]["payload"]["ibkr_runtime"],
+            expected_ibkr_runtime,
+        )
+
+        absent_fields = {
+            "connect_result",
+            "connection_completion_source",
+            "next_valid_id",
+            "run_thread_state",
+            "disconnect_joined",
+            "disconnect_result",
+            "shutdown_state",
+            "order_id",
+            "order_status",
+            "submit_state",
+            "submitted_at",
+            "reconciliation_status",
+            "manual_review_required",
+            "terminal_for_run",
+            "reconciliation_ambiguous",
+            "filled_qty",
+            "working_qty",
+            "final_broker_state",
+            "final_broker_state_reason",
+            "open_order_snapshot_summary",
+            "position_snapshot_summary",
+            "execution_snapshot_summary",
+        }
+        for field in absent_fields:
+            with self.subTest(field=field):
+                self.assertNotIn(field, ibkr_runtime)
+
         self.assertNotIn("order_status", report)
         self.assertNotIn("submit_state", report)
         self.assertNotIn("reconciliation_status", report)
