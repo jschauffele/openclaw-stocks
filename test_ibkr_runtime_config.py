@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import config
 from broker_factory import create_broker_adapter
-from ibkr_runtime_assembly import IBKRRuntimeAssemblyConfig
+from ibkr_runtime_assembly import IBKRRuntimeAssemblyConfig, assemble_ibkr_runtime
 from ibkr_runtime_config import build_ibkr_runtime_assembly_config
 
 
@@ -286,6 +286,44 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
                 alpaca_api_key="key",
                 alpaca_secret_key="secret",
             )
+
+    def test_default_mapping_feeds_disabled_assembly_without_authority(self) -> None:
+        self.refresh_with({})
+
+        def fail_loader():
+            raise AssertionError("disabled assembly must not load native IBKR API")
+
+        assembly_config = build_ibkr_runtime_assembly_config(config)
+        assembly = assemble_ibkr_runtime(
+            assembly_config,
+            native_api_loader=fail_loader,
+        )
+
+        self.assertIsInstance(assembly_config, IBKRRuntimeAssemblyConfig)
+        self.assertFalse(assembly_config.enabled)
+        self.assertFalse(assembly.enabled)
+        self.assertIsNone(assembly.native_api)
+        self.assertIsNone(assembly.native_bundle)
+        self.assertIsNone(assembly.runtime_coordinator)
+        self.assertIsNone(assembly.adapter.client)
+        self.assertIsNone(assembly.adapter.native_api)
+        self.assertIsNone(assembly.adapter.coordinator)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Unsupported OPENCLAW_BROKER='ibkr'; supported brokers: alpaca",
+        ):
+            create_broker_adapter(
+                "ibkr",
+                alpaca_api_key="key",
+                alpaca_secret_key="secret",
+            )
+
+        main_source = Path(__file__).with_name("main.py").read_text(encoding="utf-8")
+        self.assertNotIn("ibkr_runtime_config", main_source)
+        self.assertNotIn("ibkr_runtime_assembly", main_source)
+        self.assertNotIn("build_ibkr_runtime_assembly_config", main_source)
+        self.assertNotIn("assemble_ibkr_runtime", main_source)
 
     def test_mapping_module_stays_detached_from_runtime_authority(self) -> None:
         source = Path(__file__).with_name("ibkr_runtime_config.py").read_text(
