@@ -614,3 +614,48 @@ The required sequence is:
 `OPENCLAW_BROKER=ibkr` remains unsupported. No production routing is approved.
 No broker calls or TWS are required by this sequence. No strategy, risk,
 execution, or reconciliation behavior changes are approved by this sequence.
+
+## First Main IBKR Fake-Native Orchestration Test Contract
+
+Before any future `main.py` IBKR implementation work, the first main-path test
+contract must prove that IBKR cannot move from factory construction into
+runtime orchestration without an explicit future approval gate. This contract
+does not approve `main.py` implementation.
+
+The first future test should be named:
+
+`test_ibkr_main_path_blocks_before_orchestration_when_not_approved`
+
+The test must prove:
+
+- `main.py` does not import `ibkr_runtime_config` directly
+- `main.py` does not import `ibkr_runtime_assembly` directly
+- `main.py` uses `create_broker_adapter` as broker selection authority
+- `OPENCLAW_BROKER=ibkr` cannot proceed into market data, strategy, risk,
+  reconciliation, or submit unless a future explicit orchestration approval
+  gate exists
+- fake-native IBKR construction does not become execution
+- completion event appears exactly once
+- result is blocked or error, not success
+- reason is explicit, such as `ibkr_runtime_orchestration_disabled`
+- no order submission event exists
+- no reconciliation event exists
+- no retry, resubmit, cancel, flatten, or remediation behavior occurs
+- Alpaca path behavior remains unchanged
+
+Later tests, not approved by this contract, should separately cover:
+
+- enabled fake-native dry-run IBKR path
+- IBKR lifecycle and connect evidence
+- IBKR `ibkr_runtime` report section
+- IBKR rollback-required state
+- unresolved reconciliation manual-review state
+
+The following remain explicitly prohibited by this contract:
+
+- implementing `main.py` IBKR orchestration now
+- making broker calls
+- requiring TWS
+- adding production routing
+- adding live routing
+- changing strategy, risk, execution, or reconciliation behavior
