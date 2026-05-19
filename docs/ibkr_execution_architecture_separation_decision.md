@@ -659,3 +659,56 @@ The following remain explicitly prohibited by this contract:
 - adding production routing
 - adding live routing
 - changing strategy, risk, execution, or reconciliation behavior
+
+## Enabled Fake-Native IBKR Dry-Run Path Test Contract
+
+This later-not-now contract defines the next main-path test boundary before any
+future `main.py` IBKR orchestration implementation. It does not approve
+`main.py` implementation, broker routing, lifecycle connection, submit,
+reconciliation activation, or production routing.
+
+The future test should be named:
+
+`test_ibkr_main_path_enabled_fake_native_dry_run_stays_non_executing`
+
+The test must prove:
+
+- IBKR path is explicitly enabled only by approved config
+- runtime mode is paper and local only
+- fake-native construction is used
+- no live broker calls occur
+- no TWS is required
+- no connect, run, or submit occurs unless separately approved by a later
+  lifecycle gate
+- no order is submitted
+- no retry, resubmit, cancel, flatten, or remediation behavior occurs
+- append-only events capture IBKR runtime evidence
+- the run report includes an `ibkr_runtime` section or equivalent evidence
+  section
+- result remains blocked, dry-run, or otherwise non-executing unless later
+  execution approval exists
+- rollback-required state is recorded if unsafe state occurs
+- Alpaca path remains unchanged
+
+The test contract must clearly separate these authorities:
+
+- fake-native construction: may prove config, factory, and assembly wiring
+  without broker calls
+- lifecycle and connect evidence: remains a separate later gate before any
+  connect or runtime loop behavior
+- dry-run reporting: may record observational IBKR runtime evidence without
+  execution authority
+- actual submit and reconciliation authority: remains prohibited until a
+  separate approval gate defines submit, uncertainty, manual-review, rollback,
+  and no-remediation behavior
+
+The following remain explicitly prohibited by this contract:
+
+- implementing `main.py` IBKR orchestration now
+- changing `broker_factory.py`
+- making broker calls
+- requiring TWS
+- adding production routing
+- adding live routing
+- activating submit or reconciliation
+- changing strategy, risk, execution, or reconciliation behavior
