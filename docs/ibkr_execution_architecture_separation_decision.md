@@ -909,3 +909,63 @@ The following remain explicitly prohibited by this contract:
 - adding live routing
 - activating submit or reconciliation
 - changing strategy, risk, execution, or reconciliation behavior
+
+## IBKR Post-Lifecycle/Connect Blocked Result Contract
+
+This contract defines the blocked result after fake-native lifecycle/connect
+evidence exists while submit and reconciliation remain unapproved. It does not
+approve `main.py` implementation, broker calls, TWS usage, production routing,
+live routing, submit authority, or reconciliation authority.
+
+The approved post-lifecycle/connect non-executing result model is:
+
+- `result`: `blocked`
+- `reason`: `ibkr_runtime_submit_not_approved`
+
+`ibkr_runtime_lifecycle_not_approved` is used before lifecycle/connect evidence
+is approved. `ibkr_runtime_submit_not_approved` is used after lifecycle/connect
+evidence exists but submit and reconciliation remain prohibited.
+
+Lifecycle/connect evidence does not grant submit authority. It does not grant
+reconciliation authority. It does not authorize market data, strategy, risk,
+order submission, state writes, observations, retry, resubmit, cancel, flatten,
+or remediation behavior.
+
+The post-lifecycle/connect report and event evidence may include:
+
+- `connect_result`
+- `connect_result.passed`
+- `connect_result.reason`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result`
+- `disconnect_result.passed`
+- `disconnect_result.reason`
+- `shutdown_state`
+
+The following fields must remain absent until a separate submit/reconciliation
+approval gate exists:
+
+- `order_id`
+- `order_status`
+- `submit_state`
+- `submitted_at`
+- `reconciliation_status`
+- `manual_review_required`
+- `filled_qty`
+- `working_qty`
+- `final_broker_state`
+
+The following remain explicitly prohibited by this contract:
+
+- implementing `main.py` IBKR lifecycle/connect orchestration now
+- changing `broker_factory.py`
+- making real IBKR or TWS connections
+- making broker calls
+- requiring TWS
+- adding production routing
+- adding live routing
+- activating submit or reconciliation
+- changing strategy, risk, execution, or reconciliation behavior
