@@ -227,3 +227,112 @@ architecture approval.
   - require paper-only activation before any broader production or live-routing
     consideration
   - document rollback posture and operator ownership before activation
+
+## IBKR Paper Activation Rollback And Operator Controls Plan
+
+This plan defines the required safety posture before any future IBKR paper
+runtime activation work touches `broker_factory.py` or `main.py`. It does not
+approve broker routing. It does not approve `main.py` orchestration.
+`broker_factory.py` remains closed, and `main.py` remains closed.
+
+### Rollback Controls
+
+IBKR paper runtime activation must be disabled by explicit configuration, not
+by code removal or partial runtime state. The default state must remain
+disabled, and any missing, invalid, live, non-localhost, or non-paper config
+must fail closed before native API loading, broker connection, order
+construction, or submit.
+
+Rollback must return the production path to Alpaca-only broker routing. During
+rollback, `OPENCLAW_BROKER=ibkr` must be unsupported unless a separately
+approved activation gate is open. If IBKR routing has been enabled in a future
+approved change, rollback must restore the explicit unsupported-broker failure
+for IBKR and preserve the existing Alpaca path.
+
+Rollback is required after any unsafe state, including unresolved
+reconciliation, partially filled unresolved reconciliation, broker-state
+ambiguity, unexpected open orders, non-flat positions, disconnect uncertainty,
+runtime coordinator uncertainty, connect instability, repeated lifecycle
+timeouts, stale callback state, or evidence loss. Rollback after reconciliation
+uncertainty must preserve the no-retry, no-resubmit, and no-remediation policy
+until an operator records the broker state and approves the next action.
+
+Rollback after lifecycle or connect instability must happen before another
+paper execution attempt. A failed connect, timed-out readiness callback, runtime
+thread startup failure, runtime thread exception, disconnect join timeout, or
+missing disconnect result must block future IBKR runtime execution until the
+operator captures evidence and revalidates the localhost paper environment.
+
+### Operator Controls
+
+Before activation approval, the operator must complete a documented preflight.
+The preflight must verify the active branch and commit, confirm
+`broker_factory.py` and `main.py` are in the approved state, confirm
+`OPENCLAW_IBKR_RUNTIME_ENABLED` is explicitly set for the intended paper test
+only, and confirm `OPENCLAW_BROKER=ibkr` is still unsupported unless the
+specific activation review has approved that gate.
+
+The operator must verify localhost and paper-only constraints before any paper
+execution: host must be `127.0.0.1`, `localhost`, or `::1`; port must be a paper
+port; mode must be `paper_localhost`; account and model-code values must match
+the intended paper account; client ID must be unique for the run; and all
+connect, disconnect, and submit timeouts must be finite positive values.
+
+The operator must verify clean broker state before submit. Clean state requires
+no ambiguous open orders, no unexpected working orders for the symbol, no
+non-flat position that conflicts with the planned test, no unsafe last-run
+state, no unresolved reconciliation state, and no stale runtime state from a
+previous run.
+
+The operator must verify reconciliation state before and after any paper submit.
+If submit acknowledgement becomes uncertain, the reconciliation workflow must
+record execution, open-order, and position evidence. Manual review is required
+for unresolved or partially filled unresolved outcomes. No retry, resubmit,
+cancel, flatten, or remediation behavior is approved by this plan.
+
+The operator must verify shutdown and disconnect evidence after every run.
+Expected evidence includes disconnect joined, disconnect result passed,
+connected state cleared, shutdown state complete, runtime thread stopped, and
+no stale runtime coordinator authority remaining after the run.
+
+The operator must complete post-run verification before any next IBKR run. The
+post-run check must record final broker state, final reconciliation state,
+manual-review status, open orders, positions, execution evidence, disconnect
+evidence, and whether rollback is required before another attempt.
+
+### Unsafe-State Blockers
+
+Any of the following states must block IBKR paper runtime activation or further
+paper execution until operator review is complete:
+
+- stale runtime state from a prior run
+- unresolved or partially filled unresolved reconciliation state
+- open-order ambiguity or unexpected working orders
+- non-flat position ambiguity
+- disconnect uncertainty or missing disconnect result
+- runtime coordinator uncertainty or runtime thread instability
+- duplicate runtime authority, duplicate client ID ownership, or overlapping
+  manual smoke/runtime execution
+- missing callback, request, submit, reconciliation, or final-state evidence
+- any config drift away from disabled-by-default, localhost, paper-only
+  operation
+
+### Observability And Operator Evidence Expectations
+
+Before activation approval, evidence must exist for config validation,
+config-to-assembly mapping, disabled assembly behavior, fake-native lifecycle
+behavior, manual localhost connect smoke, manual paper submit/reconciliation
+smoke, broker factory rejection while disabled, and `main.py` authority
+absence.
+
+During paper execution, runtime evidence must capture runtime mode, broker
+name, host, port, client ID, connect result, readiness source, order ID,
+submit status, reconciliation status, manual-review flag, final broker state,
+disconnect result, runtime thread state, and all relevant callback/request
+evidence. Observability must remain append-only and must not authorize
+execution.
+
+Before rollback approval, evidence must show the rollback trigger, last known
+broker state, open-order state, position state, reconciliation state,
+disconnect state, runtime coordinator state, operator decision, and the exact
+configuration or code boundary that returned routing to Alpaca-only behavior.
