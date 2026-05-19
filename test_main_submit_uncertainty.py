@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 from datetime import datetime, timezone
+from pathlib import Path
 import sys
 import types
 from types import SimpleNamespace
@@ -375,6 +376,19 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             report["orchestration"]["runtime_visibility"]["runtime_visibility_reason"],
             "runtime_visibility_clear",
         )
+
+    def test_main_does_not_import_or_enable_ibkr_runtime_authority(self) -> None:
+        main_source = Path(__file__).with_name("main.py").read_text(encoding="utf-8")
+
+        self.assertNotIn("ibkr_runtime_config", main_source)
+        self.assertNotIn("ibkr_runtime_assembly", main_source)
+        self.assertNotIn("build_ibkr_runtime_assembly_config", main_source)
+        self.assertNotIn("assemble_ibkr_runtime", main_source)
+        self.assertNotIn("OPENCLAW_IBKR_RUNTIME_ENABLED", main_source)
+        self.assertNotIn('OPENCLAW_BROKER = "ibkr"', main_source)
+        self.assertNotIn("OPENCLAW_BROKER == \"ibkr\"", main_source)
+        self.assertNotIn("OPENCLAW_BROKER == 'ibkr'", main_source)
+        self.assertIn("create_broker_adapter(", main_source)
 
     def assert_reconciliation_observation(
         self,
