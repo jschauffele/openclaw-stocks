@@ -137,6 +137,30 @@ def main():
     }
 
     setup_logging(LOG_FILE)
+    if OPENCLAW_BROKER == "ibkr":
+        run_id = generate_run_id()
+        initialize_event_logger(run_id)
+        log_event("system", "startup", "ok", {"message": "run_started"})
+        side = "buy"
+        mode = "dry_run" if OPENCLAW_DRY_RUN else "paper_submit"
+        trigger_source = env_str("OPENCLAW_TRIGGER_SOURCE", "manual_or_systemd")
+        reason = "ibkr_runtime_orchestration_disabled"
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="blocked",
+            reason=reason,
+            trigger_source=trigger_source,
+            side=side,
+            **report_config,
+            notes=[
+                "IBKR runtime orchestration is not approved for main.py",
+            ],
+        )
+        log_event("system", "completion", "blocked", {"reason": reason})
+        logging.info("========== OpenClaw run finished ==========")
+        return
+
     broker_state = create_broker_adapter(
         OPENCLAW_BROKER,
         alpaca_api_key=ALPACA_API_KEY,

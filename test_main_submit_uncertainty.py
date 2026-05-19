@@ -210,6 +210,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         *,
         openclaw_enabled: bool = True,
         openclaw_dry_run: bool = False,
+        openclaw_broker: str = "alpaca",
         runtime_visibility_enabled: bool = False,
         runtime_visibility_providers: str = "",
         runtime_visibility_fake_broker_state: str = "clean",
@@ -225,6 +226,13 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         write_state_calls = []
         runtime_provider_calls = []
         runtime_visibility_calls = []
+        validate_config_calls = []
+        market_data_calls = []
+        generate_signal_calls = []
+        validate_signal_calls = []
+        build_action_proposal_calls = []
+        risk_check_calls = []
+        reconcile_position_calls = []
 
         def persist_report(**kwargs):
             reports.append(kwargs)
@@ -239,6 +247,41 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
                 }
             )
 
+        def validate_config_call(**kwargs):
+            validate_config_calls.append(kwargs)
+            return True
+
+        def get_historical_bars_call(*args, **kwargs):
+            market_data_calls.append((args, kwargs))
+            return bars_result()
+
+        def generate_signal_call(*args, **kwargs):
+            generate_signal_calls.append((args, kwargs))
+            return object()
+
+        def validate_signal_call(*args, **kwargs):
+            validate_signal_calls.append((args, kwargs))
+            return object()
+
+        def build_action_proposal_call(*args, **kwargs):
+            build_action_proposal_calls.append((args, kwargs))
+            return action_proposal()
+
+        def risk_check_call(*args, **kwargs):
+            risk_check_calls.append((args, kwargs))
+            return {"passed": True, "estimated_cost": 100.0}
+
+        def reconcile_position_call(*args, **kwargs):
+            reconcile_position_calls.append((args, kwargs))
+            return {
+                "passed": True,
+                "reason": "broker_reconciliation_passed",
+                "message": "broker_reconciliation_passed",
+                "existing_qty": 0,
+                "open_buy_order_qty": 0,
+                "projected_qty": 1,
+            }
+
         patchers = [
             patch("config.load_config"),
             patch("config.BASE_DIR", "/tmp/openclaw-test", create=True),
@@ -252,7 +295,30 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("config.OPENCLAW_QTY", 1, create=True),
             patch("config.OPENCLAW_MAX_POSITION_SIZE", 5, create=True),
             patch("config.OPENCLAW_DUPLICATE_COOLDOWN_SECONDS", 600, create=True),
-            patch("config.OPENCLAW_BROKER", "alpaca", create=True),
+            patch("config.OPENCLAW_BROKER", openclaw_broker, create=True),
+            patch("config.OPENCLAW_IBKR_RUNTIME_ENABLED", True, create=True),
+            patch("config.OPENCLAW_IBKR_RUNTIME_MODE", "paper_localhost", create=True),
+            patch("config.OPENCLAW_IBKR_RUNTIME_HOST", "127.0.0.1", create=True),
+            patch("config.OPENCLAW_IBKR_RUNTIME_PORT", 7497, create=True),
+            patch("config.OPENCLAW_IBKR_RUNTIME_CLIENT_ID", 9107, create=True),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_CONNECT_TIMEOUT_SECONDS",
+                5.0,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_DISCONNECT_TIMEOUT_SECONDS",
+                2.0,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_SUBMIT_TIMEOUT_SECONDS",
+                5.0,
+                create=True,
+            ),
+            patch("config.OPENCLAW_IBKR_RUNTIME_ACCOUNT", "", create=True),
+            patch("config.OPENCLAW_IBKR_RUNTIME_MODEL_CODE", "", create=True),
+            patch("config.OPENCLAW_IBKR_RUNTIME_ORDER_ID_START", None, create=True),
             patch(
                 "config.OPENCLAW_RUNTIME_VISIBILITY_ENABLED",
                 runtime_visibility_enabled,
@@ -279,35 +345,25 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("main.generate_run_id", return_value="run-test"),
             patch("main.initialize_event_logger"),
             patch("main.log_event", side_effect=log_event),
-            patch("main.validate_config", return_value=True),
+            patch("main.validate_config", side_effect=validate_config_call),
             patch(
                 "main.get_market_session_status",
                 return_value={"is_open": True, "reason": "market_open"},
             ),
             patch("main.AlpacaMarketDataProvider", return_value=object()),
-            patch("main.get_historical_bars", return_value=bars_result()),
-            patch("main.generate_signal_from_closes", return_value=object()),
-            patch("main.validate_signal_result", return_value=object()),
-            patch("main.build_action_proposal", return_value=action_proposal()),
+            patch("main.get_historical_bars", side_effect=get_historical_bars_call),
+            patch("main.generate_signal_from_closes", side_effect=generate_signal_call),
+            patch("main.validate_signal_result", side_effect=validate_signal_call),
+            patch(
+                "main.build_action_proposal",
+                side_effect=build_action_proposal_call,
+            ),
             patch(
                 "main.IBKRSubmitReconciliationWorkflow",
                 FakeSubmitReconciliationWorkflow,
             ),
-            patch(
-                "main.risk_check",
-                return_value={"passed": True, "estimated_cost": 100.0},
-            ),
-            patch(
-                "main.reconcile_position",
-                return_value={
-                    "passed": True,
-                    "reason": "broker_reconciliation_passed",
-                    "message": "broker_reconciliation_passed",
-                    "existing_qty": 0,
-                    "open_buy_order_qty": 0,
-                    "projected_qty": 1,
-                },
-            ),
+            patch("main.risk_check", side_effect=risk_check_call),
+            patch("main.reconcile_position", side_effect=reconcile_position_call),
             patch(
                 "state_manager.duplicate_check",
                 return_value={
@@ -357,6 +413,13 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             "write_state_calls": write_state_calls,
             "runtime_provider_calls": runtime_provider_calls,
             "runtime_visibility_calls": runtime_visibility_calls,
+            "validate_config_calls": validate_config_calls,
+            "market_data_calls": market_data_calls,
+            "generate_signal_calls": generate_signal_calls,
+            "validate_signal_calls": validate_signal_calls,
+            "build_action_proposal_calls": build_action_proposal_calls,
+            "risk_check_calls": risk_check_calls,
+            "reconcile_position_calls": reconcile_position_calls,
         }
 
     def assert_default_runtime_visibility_summary(self, report) -> None:
@@ -385,10 +448,84 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertNotIn("build_ibkr_runtime_assembly_config", main_source)
         self.assertNotIn("assemble_ibkr_runtime", main_source)
         self.assertNotIn("OPENCLAW_IBKR_RUNTIME_ENABLED", main_source)
-        self.assertNotIn('OPENCLAW_BROKER = "ibkr"', main_source)
-        self.assertNotIn("OPENCLAW_BROKER == \"ibkr\"", main_source)
-        self.assertNotIn("OPENCLAW_BROKER == 'ibkr'", main_source)
+        self.assertIn("OPENCLAW_BROKER == \"ibkr\"", main_source)
+        self.assertIn("ibkr_runtime_orchestration_disabled", main_source)
         self.assertIn("create_broker_adapter(", main_source)
+
+    def test_ibkr_main_path_blocks_before_orchestration_when_not_approved(
+        self,
+    ) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_broker="ibkr",
+        )
+
+        completion_events = [
+            event
+            for event in result["events"]
+            if event["event_type"] == "system" and event["stage"] == "completion"
+        ]
+
+        self.assertEqual(len(completion_events), 1)
+        self.assertEqual(completion_events[0]["status"], "blocked")
+        self.assertEqual(
+            completion_events[0]["payload"]["reason"],
+            "ibkr_runtime_orchestration_disabled",
+        )
+
+        self.assertEqual(len(result["reports"]), 1)
+        report = result["reports"][0]
+        self.assertEqual(report["result"], "blocked")
+        self.assertEqual(report["reason"], "ibkr_runtime_orchestration_disabled")
+        self.assertNotIn("order_status", report)
+        self.assertNotIn("submit_state", report)
+        self.assertNotIn("reconciliation_status", report)
+        self.assertNotIn("manual_review_required", report)
+        self.assertNotIn("filled_qty", report)
+        self.assertNotIn("working_qty", report)
+
+        self.assertFalse(
+            any(
+                event["event_type"] == "data" and event["stage"] == "fetch"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(event["stage"] == "strategy_evaluated" for event in result["events"])
+        )
+        self.assertFalse(
+            any(event["stage"] == "risk_check" for event in result["events"])
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "submission"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "reconciliation"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "position" and event["stage"] == "reconcile"
+                for event in result["events"]
+            )
+        )
+
+        self.assertEqual(result["broker"].submit_calls, 0)
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertEqual(result["observations"], [])
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        self.assertEqual(result["validate_config_calls"], [])
+        self.assertEqual(result["market_data_calls"], [])
+        self.assertEqual(result["generate_signal_calls"], [])
+        self.assertEqual(result["validate_signal_calls"], [])
+        self.assertEqual(result["build_action_proposal_calls"], [])
+        self.assertEqual(result["risk_check_calls"], [])
+        self.assertEqual(result["reconcile_position_calls"], [])
 
     def assert_reconciliation_observation(
         self,
