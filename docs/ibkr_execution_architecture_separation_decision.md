@@ -932,6 +932,44 @@ fake-native lifecycle evidence exists and only under a separately approved
 activation gate. It remains a blocked state and does not authorize submit or
 reconciliation behavior.
 
+## Main Fake-Native Lifecycle Consumption Plan
+
+The local manual fake-native lifecycle evidence smoke has passed. It proved
+operator-visible fake-native connect readiness and disconnect evidence outside
+`main.py`, with no runtime loop, broker calls, submit, reconciliation, market
+data, strategy, risk, state writes, observations, real IBKR, or TWS.
+
+That evidence remains manual-harness/test-patched only. Normal runtime config
+must not activate fake-native lifecycle/connect evidence. Deployed `main.py`
+must continue to block with `ibkr_runtime_lifecycle_not_approved` whenever no
+explicitly injected fake-native lifecycle evidence exists.
+
+`main.py` may consume fake-native lifecycle/connect evidence only through a
+separately approved explicit injection/test gate. Any future `main.py` path
+must remain fail-closed unless that injection gate is present. The
+`ibkr_runtime_submit_not_approved` reason is valid only after actual
+fake-native lifecycle evidence exists, and it remains a blocked non-submitting
+result.
+
+Future tests for any `main.py` consumption path must prove:
+
+- a patched `main.py` test injects fake-native lifecycle evidence explicitly
+- no normal environment or config path enables fake-native evidence
+- no broker calls occur
+- no TWS is required
+- no real IBKR connection occurs
+- no submit occurs
+- no reconciliation occurs
+- no market data path runs
+- no strategy or risk path runs
+- no state writes occur
+- no observations are written
+- the Alpaca path remains unchanged
+
+This plan does not approve `main.py` changes, `broker_factory.py` changes,
+`config.py` changes, runtime config activation, real IBKR/TWS, broker calls,
+submit/reconciliation activation, production routing, or VPS actions.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
