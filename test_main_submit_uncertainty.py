@@ -806,6 +806,228 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertEqual(result["risk_check_calls"], [])
         self.assertEqual(result["reconcile_position_calls"], [])
 
+    def test_ibkr_lifecycle_provider_not_installed_by_runtime_config(self) -> None:
+        self.assertIsNone(main.IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER)
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_broker="ibkr",
+            ibkr_runtime_enabled=True,
+        )
+
+        self.assert_ibkr_lifecycle_provider_blocked_result(
+            result,
+            "ibkr_runtime_lifecycle_not_approved",
+        )
+
+    def test_ibkr_lifecycle_provider_success_uses_injected_fake_native_evidence(
+        self,
+    ) -> None:
+        lifecycle_fields = self.fake_native_lifecycle_provider_fields()
+        provider_calls = []
+
+        def provider(config_module):
+            provider_calls.append(config_module)
+            return lifecycle_fields
+
+        with patch("main.IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER", provider, create=True):
+            result = self.run_main_with_order_status(
+                "submitted",
+                openclaw_broker="ibkr",
+                ibkr_runtime_enabled=True,
+            )
+
+        self.assertEqual(provider_calls, [main.config])
+        self.assert_ibkr_lifecycle_provider_blocked_result(
+            result,
+            "ibkr_runtime_submit_not_approved",
+            expected_lifecycle_fields=lifecycle_fields,
+        )
+
+    def test_ibkr_lifecycle_provider_malformed_output_fails_closed(self) -> None:
+        lifecycle_fields = self.fake_native_lifecycle_provider_fields()
+        malformed_outputs = {
+            "none": None,
+            "non_dict": "not-a-dict",
+            "missing_connect_result": {
+                key: value
+                for key, value in lifecycle_fields.items()
+                if key != "connect_result"
+            },
+            "connect_result_non_dict": {
+                **lifecycle_fields,
+                "connect_result": "not-a-result-dict",
+            },
+            "connect_result_missing_passed": {
+                **lifecycle_fields,
+                "connect_result": {"reason": "connect_ready"},
+            },
+            "connect_result_passed_wrong_type": {
+                **lifecycle_fields,
+                "connect_result": {
+                    "passed": "true",
+                    "reason": "connect_ready",
+                },
+            },
+            "connect_result_missing_reason": {
+                **lifecycle_fields,
+                "connect_result": {"passed": True},
+            },
+            "connect_result_reason_wrong_type": {
+                **lifecycle_fields,
+                "connect_result": {
+                    "passed": True,
+                    "reason": 200,
+                },
+            },
+            "missing_disconnect_result": {
+                key: value
+                for key, value in lifecycle_fields.items()
+                if key != "disconnect_result"
+            },
+            "disconnect_result_non_dict": {
+                **lifecycle_fields,
+                "disconnect_result": "not-a-result-dict",
+            },
+            "disconnect_result_missing_passed": {
+                **lifecycle_fields,
+                "disconnect_result": {"reason": "ibkr_client_disconnected"},
+            },
+            "disconnect_result_passed_wrong_type": {
+                **lifecycle_fields,
+                "disconnect_result": {
+                    "passed": "true",
+                    "reason": "ibkr_client_disconnected",
+                },
+            },
+            "disconnect_result_missing_reason": {
+                **lifecycle_fields,
+                "disconnect_result": {"passed": True},
+            },
+            "disconnect_result_reason_wrong_type": {
+                **lifecycle_fields,
+                "disconnect_result": {
+                    "passed": True,
+                    "reason": 200,
+                },
+            },
+            "connection_completion_source_wrong_type": {
+                **lifecycle_fields,
+                "connection_completion_source": 200,
+            },
+            "run_thread_state_wrong_type": {
+                **lifecycle_fields,
+                "run_thread_state": 200,
+            },
+            "shutdown_state_wrong_type": {
+                **lifecycle_fields,
+                "shutdown_state": 200,
+            },
+            "next_valid_id_wrong_type": {
+                **lifecycle_fields,
+                "next_valid_id": "601",
+            },
+            "next_valid_id_bool": {
+                **lifecycle_fields,
+                "next_valid_id": True,
+            },
+        }
+
+        for case_name, provider_output in malformed_outputs.items():
+            with self.subTest(case_name=case_name):
+                provider_calls = []
+
+                def provider(config_module, output=provider_output):
+                    provider_calls.append(config_module)
+                    return output
+
+                with patch(
+                    "main.IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER",
+                    provider,
+                    create=True,
+                ):
+                    result = self.run_main_with_order_status(
+                        "submitted",
+                        openclaw_broker="ibkr",
+                        ibkr_runtime_enabled=True,
+                    )
+
+                self.assertEqual(provider_calls, [main.config])
+                self.assert_ibkr_lifecycle_provider_blocked_result(
+                    result,
+                    "ibkr_runtime_lifecycle_not_approved",
+                )
+
+        provider_calls = []
+
+        def raising_provider(config_module):
+            provider_calls.append(config_module)
+            raise ValueError("provider failed")
+
+        with patch(
+            "main.IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER",
+            raising_provider,
+            create=True,
+        ):
+            result = self.run_main_with_order_status(
+                "submitted",
+                openclaw_broker="ibkr",
+                ibkr_runtime_enabled=True,
+            )
+
+        self.assertEqual(provider_calls, [main.config])
+        self.assert_ibkr_lifecycle_provider_blocked_result(
+            result,
+            "ibkr_runtime_lifecycle_not_approved",
+        )
+
+    def test_ibkr_lifecycle_provider_rejects_submit_reconciliation_fields(
+        self,
+    ) -> None:
+        prohibited_fields = {
+            "order_id": "101",
+            "order_status": "submitted",
+            "submit_state": "submitted",
+            "submitted_at": "2026-05-20T00:00:00Z",
+            "reconciliation_status": "unresolved",
+            "manual_review_required": True,
+            "terminal_for_run": True,
+            "reconciliation_ambiguous": True,
+            "filled_qty": 1.0,
+            "working_qty": 1.0,
+            "final_broker_state": "ambiguous",
+            "final_broker_state_reason": "ambiguous_state",
+            "open_order_snapshot_summary": {"count": 1},
+            "position_snapshot_summary": {"count": 1},
+            "execution_snapshot_summary": {"count": 1},
+        }
+
+        for field, value in prohibited_fields.items():
+            with self.subTest(field=field):
+                lifecycle_fields = self.fake_native_lifecycle_provider_fields()
+                provider_calls = []
+
+                def provider(config_module):
+                    provider_calls.append(config_module)
+                    return {**lifecycle_fields, field: value}
+
+                with patch(
+                    "main.IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER",
+                    provider,
+                    create=True,
+                ):
+                    result = self.run_main_with_order_status(
+                        "submitted",
+                        openclaw_broker="ibkr",
+                        ibkr_runtime_enabled=True,
+                    )
+
+                self.assertEqual(provider_calls, [main.config])
+                self.assert_ibkr_lifecycle_provider_blocked_result(
+                    result,
+                    "ibkr_runtime_lifecycle_not_approved",
+                )
+                self.assertNotIn(field, result["reports"][0]["ibkr_runtime"])
+
     def assert_reconciliation_observation(
         self,
         result,
@@ -833,6 +1055,142 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertTrue(observation["terminal_for_run"])
         self.assertEqual(observation["filled_qty"], filled_qty)
         self.assertEqual(observation["working_qty"], working_qty)
+
+    def fake_native_lifecycle_provider_fields(self) -> dict:
+        from manual_ibkr_fake_native_lifecycle_evidence_smoke import (
+            run_fake_native_lifecycle_evidence_smoke,
+        )
+
+        smoke_report = run_fake_native_lifecycle_evidence_smoke(next_valid_id=601)
+        lifecycle_field_names = {
+            "assembly_enabled",
+            "fake_native",
+            "connect_attempted",
+            "run_loop_started",
+            "connect_result",
+            "connection_completion_source",
+            "next_valid_id",
+            "run_thread_state",
+            "disconnect_joined",
+            "disconnect_result",
+            "shutdown_state",
+        }
+        return {
+            field: smoke_report[field]
+            for field in lifecycle_field_names
+        }
+
+    def assert_ibkr_lifecycle_provider_blocked_result(
+        self,
+        result,
+        expected_reason: str,
+        *,
+        expected_lifecycle_fields: dict | None = None,
+    ) -> None:
+        completion_events = [
+            event
+            for event in result["events"]
+            if event["event_type"] == "system" and event["stage"] == "completion"
+        ]
+
+        self.assertEqual(len(completion_events), 1)
+        self.assertEqual(completion_events[0]["status"], "blocked")
+        self.assertEqual(completion_events[0]["payload"]["reason"], expected_reason)
+
+        self.assertEqual(len(result["reports"]), 1)
+        report = result["reports"][0]
+        self.assertEqual(report["result"], "blocked")
+        self.assertEqual(report["reason"], expected_reason)
+
+        ibkr_runtime = report["ibkr_runtime"]
+        self.assertEqual(ibkr_runtime["result"], "blocked")
+        self.assertEqual(ibkr_runtime["reason"], expected_reason)
+        self.assertEqual(ibkr_runtime["submit_approved"], False)
+        self.assertEqual(ibkr_runtime["reconciliation_approved"], False)
+        self.assertEqual(ibkr_runtime["submit_attempted"], False)
+        self.assertEqual(ibkr_runtime["reconciliation_attempted"], False)
+
+        if expected_lifecycle_fields is None:
+            lifecycle_fields = {
+                "connect_result",
+                "connection_completion_source",
+                "next_valid_id",
+                "run_thread_state",
+                "disconnect_joined",
+                "disconnect_result",
+                "shutdown_state",
+            }
+            for field in lifecycle_fields:
+                with self.subTest(field=field):
+                    self.assertNotIn(field, ibkr_runtime)
+        else:
+            for field, expected_value in expected_lifecycle_fields.items():
+                with self.subTest(field=field):
+                    self.assertEqual(ibkr_runtime[field], expected_value)
+
+        prohibited_fields = {
+            "order_id",
+            "order_status",
+            "submit_state",
+            "submitted_at",
+            "reconciliation_status",
+            "manual_review_required",
+            "terminal_for_run",
+            "reconciliation_ambiguous",
+            "filled_qty",
+            "working_qty",
+            "final_broker_state",
+            "final_broker_state_reason",
+            "open_order_snapshot_summary",
+            "position_snapshot_summary",
+            "execution_snapshot_summary",
+        }
+        for field in prohibited_fields:
+            with self.subTest(field=field):
+                self.assertNotIn(field, ibkr_runtime)
+                self.assertNotIn(field, report)
+
+        self.assertFalse(
+            any(
+                event["event_type"] == "data" and event["stage"] == "fetch"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(event["stage"] == "strategy_evaluated" for event in result["events"])
+        )
+        self.assertFalse(
+            any(event["stage"] == "risk_check" for event in result["events"])
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "submission"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "reconciliation"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "position" and event["stage"] == "reconcile"
+                for event in result["events"]
+            )
+        )
+
+        self.assertEqual(result["broker"].submit_calls, 0)
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertEqual(result["observations"], [])
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        self.assertEqual(result["market_data_calls"], [])
+        self.assertEqual(result["generate_signal_calls"], [])
+        self.assertEqual(result["validate_signal_calls"], [])
+        self.assertEqual(result["build_action_proposal_calls"], [])
+        self.assertEqual(result["risk_check_calls"], [])
+        self.assertEqual(result["reconcile_position_calls"], [])
 
     def test_reconciliation_required_invokes_workflow_once_with_submit_intent(self) -> None:
         result = self.run_main_with_order_status("reconciliation_required")

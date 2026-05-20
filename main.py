@@ -22,6 +22,45 @@ from strategy_engine import generate_signal_from_closes
 from utils import setup_logging, utc_now_iso
 
 
+IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER = None
+
+IBKR_LIFECYCLE_PROVIDER_REQUIRED_FIELDS = frozenset(
+    {
+        "assembly_enabled",
+        "fake_native",
+        "connect_attempted",
+        "run_loop_started",
+        "connect_result",
+        "connection_completion_source",
+        "next_valid_id",
+        "run_thread_state",
+        "disconnect_joined",
+        "disconnect_result",
+        "shutdown_state",
+    }
+)
+
+IBKR_LIFECYCLE_PROVIDER_PROHIBITED_FIELDS = frozenset(
+    {
+        "order_id",
+        "order_status",
+        "submit_state",
+        "submitted_at",
+        "reconciliation_status",
+        "manual_review_required",
+        "terminal_for_run",
+        "reconciliation_ambiguous",
+        "filled_qty",
+        "working_qty",
+        "final_broker_state",
+        "final_broker_state_reason",
+        "open_order_snapshot_summary",
+        "position_snapshot_summary",
+        "execution_snapshot_summary",
+    }
+)
+
+
 class InsufficientMarketDataError(Exception):
     def __init__(self, available_closes: int, required_closes: int):
         super().__init__(
@@ -30,6 +69,70 @@ class InsufficientMarketDataError(Exception):
         )
         self.available_closes = available_closes
         self.required_closes = required_closes
+
+
+def get_injected_ibkr_lifecycle_fields(config_module) -> dict | None:
+    provider = IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER
+    if provider is None:
+        return None
+
+    try:
+        provider_output = provider(config_module)
+    except Exception:
+        return None
+
+    if not is_valid_ibkr_lifecycle_provider_output(provider_output):
+        return None
+
+    return {
+        field: provider_output[field]
+        for field in IBKR_LIFECYCLE_PROVIDER_REQUIRED_FIELDS
+    }
+
+
+def is_valid_ibkr_lifecycle_provider_output(provider_output) -> bool:
+    if not isinstance(provider_output, dict):
+        return False
+    if not IBKR_LIFECYCLE_PROVIDER_REQUIRED_FIELDS.issubset(provider_output):
+        return False
+    if IBKR_LIFECYCLE_PROVIDER_PROHIBITED_FIELDS.intersection(provider_output):
+        return False
+    if not is_valid_lifecycle_result_payload(provider_output["connect_result"]):
+        return False
+    if not is_valid_lifecycle_result_payload(provider_output["disconnect_result"]):
+        return False
+    if not isinstance(provider_output["assembly_enabled"], bool):
+        return False
+    if not isinstance(provider_output["fake_native"], bool):
+        return False
+    if not isinstance(provider_output["connect_attempted"], bool):
+        return False
+    if not isinstance(provider_output["run_loop_started"], bool):
+        return False
+    if not isinstance(provider_output["disconnect_joined"], bool):
+        return False
+    if not isinstance(provider_output["connection_completion_source"], str):
+        return False
+    if not isinstance(provider_output["run_thread_state"], str):
+        return False
+    if not isinstance(provider_output["shutdown_state"], str):
+        return False
+    next_valid_id = provider_output["next_valid_id"]
+    if next_valid_id is not None and (
+        not isinstance(next_valid_id, int) or isinstance(next_valid_id, bool)
+    ):
+        return False
+    return True
+
+
+def is_valid_lifecycle_result_payload(payload) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    if not isinstance(payload.get("passed"), bool):
+        return False
+    if not isinstance(payload.get("reason"), str):
+        return False
+    return True
 
 
 def validate_data_config(
@@ -151,14 +254,15 @@ def main():
         ibkr_runtime = None
         if config.OPENCLAW_IBKR_RUNTIME_ENABLED:
             reason = "ibkr_runtime_lifecycle_not_approved"
-            lifecycle_fields = None
-            try:
-                lifecycle_fields = build_fake_native_lifecycle_connect_report_fields(
-                    config,
-                    fake_native_api=None,
-                )
-            except ValueError:
-                lifecycle_fields = None
+            lifecycle_fields = get_injected_ibkr_lifecycle_fields(config)
+            if lifecycle_fields is None:
+                try:
+                    lifecycle_fields = build_fake_native_lifecycle_connect_report_fields(
+                        config,
+                        fake_native_api=None,
+                    )
+                except ValueError:
+                    lifecycle_fields = None
             if lifecycle_fields is not None:
                 reason = "ibkr_runtime_submit_not_approved"
             ibkr_runtime = {
