@@ -1060,6 +1060,62 @@ This design does not approve `main.py` changes, `broker_factory.py` changes,
 fake-native evidence, real IBKR/TWS, broker calls, submit/reconciliation,
 production routing, or VPS actions.
 
+## Future Fake-Native Lifecycle Provider Injection Design
+
+A runtime-accessible fake-native lifecycle provider should exist only if a
+future architecture review explicitly approves `main.py` consuming
+fake-native lifecycle/connect evidence outside the current patched-test path.
+Until then, the provider does not exist as a runtime capability.
+
+If approved later, the safest design is an explicit injected provider object or
+callable, not an environment variable and not a normal config flag. The
+provider would be supplied only by a test harness or separately approved
+operator harness. Its sole responsibility would be to return already produced
+fake-native lifecycle/connect evidence fields. It must not load native IBKR
+dependencies, create real IBKR clients, connect to TWS, submit orders, request
+broker state, invoke reconciliation, or run market/strategy/risk/state or
+observation paths.
+
+Normal config remains blocked because `OPENCLAW_IBKR_RUNTIME_ENABLED=true`
+only declares runtime intent. It is not evidence that fake-native connect,
+readiness, or disconnect occurred. It must not cause `main.py` to construct
+fake-native components, synthesize lifecycle evidence, or change the result
+from `ibkr_runtime_lifecycle_not_approved` to
+`ibkr_runtime_submit_not_approved`.
+
+The preferred provider boundary is:
+
+- default provider: absent
+- no provider present: fail closed with `ibkr_runtime_lifecycle_not_approved`
+- explicit test/operator provider present: may return fake-native lifecycle
+  evidence
+- provider output accepted only if it contains the approved lifecycle/connect
+  fields and no submit/reconciliation fields
+- provider failure, missing fields, or unexpected submit/reconciliation fields:
+  fail closed with `ibkr_runtime_lifecycle_not_approved`
+
+Required tests before any implementation:
+
+- default runtime config has no provider and remains
+  `ibkr_runtime_lifecycle_not_approved`
+- `OPENCLAW_IBKR_RUNTIME_ENABLED=true` does not install or activate a provider
+- injected fake-native provider output produces
+  `ibkr_runtime_submit_not_approved`
+- provider output comes from the existing fake-native lifecycle helper or
+  manual smoke evidence path
+- malformed provider output fails closed
+- provider output containing submit/reconciliation fields fails closed
+- no market data, strategy, risk, submit, reconciliation, state writes, or
+  observations occur
+- no real IBKR, TWS, broker calls, retry, resubmit, cancel, flatten, or
+  remediation occurs
+- Alpaca path remains unchanged
+
+This provider design does not approve implementation. It does not approve
+`main.py` changes, `broker_factory.py` changes, `config.py` changes, runtime
+activation, normal config activation of fake-native evidence, real IBKR/TWS,
+broker calls, submit/reconciliation, production routing, or VPS actions.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
