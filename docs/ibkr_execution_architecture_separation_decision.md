@@ -970,6 +970,96 @@ This plan does not approve `main.py` changes, `broker_factory.py` changes,
 `config.py` changes, runtime config activation, real IBKR/TWS, broker calls,
 submit/reconciliation activation, production routing, or VPS actions.
 
+## Controlled Main Fake-Native Lifecycle Consumption Approval Design
+
+Before any future `main.py` code may consume fake-native IBKR
+lifecycle/connect evidence, the consumption path must be approved as an
+explicit injection/test gate. The injected evidence may be supplied only by a
+test-owned or operator-approved fake-native provider that returns already
+constructed lifecycle/connect evidence fields. `main.py` must not construct
+real native IBKR dependencies, load `ibapi`, connect to TWS, or infer evidence
+from normal runtime configuration.
+
+Normal config must remain blocked because `OPENCLAW_IBKR_RUNTIME_ENABLED`
+expresses runtime intent only. It does not prove that fake-native lifecycle
+operations occurred, and it must not by itself create construction, connect,
+disconnect, readiness, submit, reconciliation, or broker-call evidence. If no
+explicit injected fake-native lifecycle evidence is present, `main.py` must
+remain fail-closed with:
+
+- `result`: `blocked`
+- `reason`: `ibkr_runtime_lifecycle_not_approved`
+
+An approved injected fake-native lifecycle evidence path may produce:
+
+- `result`: `blocked`
+- `reason`: `ibkr_runtime_submit_not_approved`
+
+That reason is valid only after actual fake-native lifecycle/connect evidence
+exists. It does not approve submit, reconciliation, production routing, real
+IBKR/TWS connectivity, broker calls, market data, strategy, risk, state writes,
+observations, retry, resubmit, cancel, flatten, or remediation behavior.
+
+Allowed report evidence fields after approved injection are limited to:
+
+- `assembly_enabled`
+- `fake_native`
+- `connect_attempted`
+- `run_loop_started`
+- `connect_result`
+- `connect_result.passed`
+- `connect_result.reason`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result`
+- `disconnect_result.passed`
+- `disconnect_result.reason`
+- `shutdown_state`
+
+The following submit/reconciliation fields must remain absent:
+
+- `order_id`
+- `order_status`
+- `submit_state`
+- `submitted_at`
+- `reconciliation_status`
+- `manual_review_required`
+- `terminal_for_run`
+- `reconciliation_ambiguous`
+- `filled_qty`
+- `working_qty`
+- `final_broker_state`
+- `final_broker_state_reason`
+- open-order snapshot summary
+- position snapshot summary
+- execution snapshot summary
+
+Future approval tests must prove:
+
+- no-injection runtime config remains `ibkr_runtime_lifecycle_not_approved`
+- `OPENCLAW_IBKR_RUNTIME_ENABLED=true` does not activate fake-native evidence
+  by itself
+- injected fake-native lifecycle evidence explicitly produces
+  `ibkr_runtime_submit_not_approved`
+- no market data, strategy, risk, submit, reconciliation, state writes, or
+  observations occur
+- no real IBKR connection, TWS dependency, broker call, retry, resubmit,
+  cancel, flatten, or remediation occurs
+- the Alpaca path remains unchanged
+
+If fake-native lifecycle evidence becomes reachable through normal runtime
+configuration or environment variables without an explicit approved injection
+gate, the change must be rolled back to the fail-closed
+`ibkr_runtime_lifecycle_not_approved` behavior before any further IBKR runtime
+work continues.
+
+This design does not approve `main.py` changes, `broker_factory.py` changes,
+`config.py` changes, runtime activation, normal config activation of
+fake-native evidence, real IBKR/TWS, broker calls, submit/reconciliation,
+production routing, or VPS actions.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
