@@ -1116,6 +1116,65 @@ This provider design does not approve implementation. It does not approve
 activation, normal config activation of fake-native evidence, real IBKR/TWS,
 broker calls, submit/reconciliation, production routing, or VPS actions.
 
+## Future Fake-Native Lifecycle Provider Acceptance-Test Contract
+
+Before any future provider implementation may touch `main.py`, the acceptance
+tests must be written and must fail against the unimplemented provider
+boundary. The tests define the approval boundary; they do not approve runtime
+activation.
+
+Required future tests:
+
+- no provider default remains blocked with
+  `ibkr_runtime_lifecycle_not_approved`
+- `OPENCLAW_IBKR_RUNTIME_ENABLED=true` does not install or activate a provider
+- normal config or environment variables cannot reach
+  `ibkr_runtime_submit_not_approved`
+- injected test-owned provider can return lifecycle/connect evidence from the
+  fake-native smoke/helper path
+- injected provider success remains blocked with
+  `ibkr_runtime_submit_not_approved`
+- malformed provider output fails closed for:
+  - `None`
+  - non-dict output
+  - missing required lifecycle fields
+  - wrong field types
+  - provider exception
+- provider output containing submit/reconciliation fields fails closed
+- no trading paths run in success or rejection cases:
+  - no data/fetch event
+  - no strategy evaluation
+  - no risk check
+  - no submit
+  - no reconciliation
+  - no order-state write
+  - no observation write
+- Alpaca path remains unchanged
+
+Provider output must fail closed if it includes any submit/reconciliation
+field, including:
+
+- `order_id`
+- `order_status`
+- `submit_state`
+- `submitted_at`
+- `reconciliation_status`
+- `manual_review_required`
+- `terminal_for_run`
+- `reconciliation_ambiguous`
+- `filled_qty`
+- `working_qty`
+- `final_broker_state`
+- `final_broker_state_reason`
+- open-order snapshot summary
+- position snapshot summary
+- execution snapshot summary
+
+This acceptance-test contract does not approve code changes, `main.py`
+changes, `broker_factory.py` changes, `config.py` changes, runtime activation,
+normal config/environment provider activation, real IBKR/TWS, broker calls,
+submit/reconciliation, production routing, or VPS actions.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
