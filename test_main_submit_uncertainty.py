@@ -679,25 +679,31 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
     def test_ibkr_main_path_fake_native_lifecycle_connect_records_evidence_without_submit(
         self,
     ) -> None:
-        lifecycle_fields = {
-            "assembly_enabled": True,
-            "fake_native": True,
-            "connect_attempted": True,
-            "run_loop_started": False,
-            "connect_result": {
-                "passed": True,
-                "reason": "connect_ready",
-            },
-            "connection_completion_source": "next_valid_id",
-            "next_valid_id": 601,
-            "run_thread_state": "not_started",
-            "disconnect_joined": False,
-            "disconnect_result": {
-                "passed": True,
-                "reason": "ibkr_client_disconnected",
-            },
-            "shutdown_state": "no_runtime_thread_started",
+        from manual_ibkr_fake_native_lifecycle_evidence_smoke import (
+            run_fake_native_lifecycle_evidence_smoke,
+        )
+
+        smoke_report = run_fake_native_lifecycle_evidence_smoke(next_valid_id=601)
+        lifecycle_field_names = {
+            "assembly_enabled",
+            "fake_native",
+            "connect_attempted",
+            "run_loop_started",
+            "connect_result",
+            "connection_completion_source",
+            "next_valid_id",
+            "run_thread_state",
+            "disconnect_joined",
+            "disconnect_result",
+            "shutdown_state",
         }
+        lifecycle_fields = {
+            field: smoke_report[field]
+            for field in lifecycle_field_names
+        }
+        self.assertEqual(smoke_report["fake_side_effect_calls"], [])
+        self.assertEqual(smoke_report["fake_run_calls"], 0)
+        self.assertEqual(smoke_report["fake_disconnect_calls"], 1)
 
         with patch(
             "main.build_fake_native_lifecycle_connect_report_fields",
