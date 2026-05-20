@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from ibkr_fake_native_lifecycle_boundary import (
     build_fake_native_lifecycle_connect_report_fields,
+    build_fake_native_lifecycle_connect_report_fields_from_config,
 )
 from ibkr_native_imports import IBKRNativeAPI
 from ibkr_runtime_assembly import IBKRRuntimeAssemblyConfig
@@ -134,6 +135,35 @@ class IBKRFakeNativeLifecycleBoundaryTests(unittest.TestCase):
 
         self.assertEqual(fields["next_valid_id"], 711)
         self.assertEqual(fields["connection_completion_source"], "next_valid_id")
+
+    def test_config_module_boundary_maps_to_fake_native_report_fields(self):
+        config_module = type(
+            "FakeConfig",
+            (),
+            {
+                "OPENCLAW_IBKR_RUNTIME_ENABLED": True,
+                "OPENCLAW_IBKR_RUNTIME_MODE": "paper_localhost",
+                "OPENCLAW_IBKR_RUNTIME_HOST": "127.0.0.1",
+                "OPENCLAW_IBKR_RUNTIME_PORT": 7497,
+                "OPENCLAW_IBKR_RUNTIME_CLIENT_ID": 9188,
+                "OPENCLAW_IBKR_RUNTIME_ACCOUNT": "",
+                "OPENCLAW_IBKR_RUNTIME_MODEL_CODE": "",
+                "OPENCLAW_IBKR_RUNTIME_ORDER_ID_START": 901,
+                "OPENCLAW_IBKR_RUNTIME_CONNECT_TIMEOUT_SECONDS": 5.0,
+            },
+        )
+
+        fields = build_fake_native_lifecycle_connect_report_fields_from_config(
+            config_module,
+            fake_native_api=fake_native_api(),
+        )
+
+        self.assertEqual(fields["next_valid_id"], 901)
+        self.assertEqual(fields["connect_result"]["reason"], "connect_ready")
+        self.assertEqual(
+            fields["disconnect_result"]["reason"],
+            "ibkr_client_disconnected",
+        )
 
     def test_disabled_config_rejects_before_fake_lifecycle_evidence(self):
         with self.assertRaisesRegex(ValueError, "requires enabled fake-native assembly"):

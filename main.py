@@ -6,6 +6,10 @@ from broker_interface import BrokerSubmitIntent
 from broker_factory import create_broker_adapter
 import config
 from decision_engine import build_action_proposal
+from ibkr_fake_native_lifecycle_boundary import (
+    build_fake_native_lifecycle_connect_report_fields_from_config
+    as build_fake_native_lifecycle_connect_report_fields,
+)
 from ibkr_submit_reconciliation_workflow import IBKRSubmitReconciliationWorkflow
 from market_session_service import get_market_session_status
 from market_data import get_historical_bars
@@ -147,6 +151,16 @@ def main():
         ibkr_runtime = None
         if config.OPENCLAW_IBKR_RUNTIME_ENABLED:
             reason = "ibkr_runtime_lifecycle_not_approved"
+            lifecycle_fields = None
+            try:
+                lifecycle_fields = build_fake_native_lifecycle_connect_report_fields(
+                    config,
+                    fake_native_api=None,
+                )
+            except ValueError:
+                lifecycle_fields = None
+            if lifecycle_fields is not None:
+                reason = "ibkr_runtime_submit_not_approved"
             ibkr_runtime = {
                 "broker_name": "ibkr",
                 "runtime_enabled": True,
@@ -169,6 +183,10 @@ def main():
                 "rollback_required": False,
                 "rollback_reason": None,
             }
+            if lifecycle_fields is not None:
+                ibkr_runtime.update(lifecycle_fields)
+                ibkr_runtime["result"] = "blocked"
+                ibkr_runtime["reason"] = reason
         else:
             reason = "ibkr_runtime_orchestration_disabled"
         persist_report(

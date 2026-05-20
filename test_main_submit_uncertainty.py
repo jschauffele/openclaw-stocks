@@ -668,6 +668,130 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertEqual(result["risk_check_calls"], [])
         self.assertEqual(result["reconcile_position_calls"], [])
 
+    def test_ibkr_main_path_fake_native_lifecycle_connect_records_evidence_without_submit(
+        self,
+    ) -> None:
+        lifecycle_fields = {
+            "assembly_enabled": True,
+            "fake_native": True,
+            "connect_attempted": True,
+            "run_loop_started": False,
+            "connect_result": {
+                "passed": True,
+                "reason": "connect_ready",
+            },
+            "connection_completion_source": "next_valid_id",
+            "next_valid_id": 601,
+            "run_thread_state": "not_started",
+            "disconnect_joined": False,
+            "disconnect_result": {
+                "passed": True,
+                "reason": "ibkr_client_disconnected",
+            },
+            "shutdown_state": "no_runtime_thread_started",
+        }
+
+        with patch(
+            "main.build_fake_native_lifecycle_connect_report_fields",
+            return_value=lifecycle_fields,
+            create=True,
+        ) as build_lifecycle_fields:
+            result = self.run_main_with_order_status(
+                "submitted",
+                openclaw_broker="ibkr",
+                ibkr_runtime_enabled=True,
+            )
+
+        completion_events = [
+            event
+            for event in result["events"]
+            if event["event_type"] == "system" and event["stage"] == "completion"
+        ]
+
+        self.assertEqual(len(completion_events), 1)
+        self.assertEqual(completion_events[0]["status"], "blocked")
+        self.assertEqual(
+            completion_events[0]["payload"]["reason"],
+            "ibkr_runtime_submit_not_approved",
+        )
+        build_lifecycle_fields.assert_called_once()
+
+        self.assertEqual(len(result["reports"]), 1)
+        report = result["reports"][0]
+        self.assertEqual(report["result"], "blocked")
+        self.assertEqual(report["reason"], "ibkr_runtime_submit_not_approved")
+
+        ibkr_runtime = report["ibkr_runtime"]
+        self.assertEqual(ibkr_runtime["result"], "blocked")
+        self.assertEqual(ibkr_runtime["reason"], "ibkr_runtime_submit_not_approved")
+        self.assertEqual(ibkr_runtime["submit_approved"], False)
+        self.assertEqual(ibkr_runtime["reconciliation_approved"], False)
+        self.assertEqual(ibkr_runtime["submit_attempted"], False)
+        self.assertEqual(ibkr_runtime["reconciliation_attempted"], False)
+        for field, expected_value in lifecycle_fields.items():
+            with self.subTest(field=field):
+                self.assertEqual(ibkr_runtime[field], expected_value)
+        self.assertEqual(
+            completion_events[0]["payload"]["ibkr_runtime"],
+            ibkr_runtime,
+        )
+
+        absent_fields = {
+            "order_id",
+            "order_status",
+            "submit_state",
+            "submitted_at",
+            "reconciliation_status",
+            "manual_review_required",
+            "filled_qty",
+            "working_qty",
+            "final_broker_state",
+            "open_order_snapshot_summary",
+            "position_snapshot_summary",
+            "execution_snapshot_summary",
+        }
+        for field in absent_fields:
+            with self.subTest(field=field):
+                self.assertNotIn(field, ibkr_runtime)
+                self.assertNotIn(field, report)
+
+        self.assertFalse(
+            any(
+                event["event_type"] == "data" and event["stage"] == "fetch"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(event["stage"] == "strategy_evaluated" for event in result["events"])
+        )
+        self.assertFalse(
+            any(event["stage"] == "risk_check" for event in result["events"])
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "submission"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "reconciliation"
+                for event in result["events"]
+            )
+        )
+
+        self.assertEqual(result["broker"].submit_calls, 0)
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertEqual(result["observations"], [])
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        self.assertEqual(result["validate_config_calls"], [])
+        self.assertEqual(result["market_data_calls"], [])
+        self.assertEqual(result["generate_signal_calls"], [])
+        self.assertEqual(result["validate_signal_calls"], [])
+        self.assertEqual(result["build_action_proposal_calls"], [])
+        self.assertEqual(result["risk_check_calls"], [])
+        self.assertEqual(result["reconcile_position_calls"], [])
+
     def assert_reconciliation_observation(
         self,
         result,
