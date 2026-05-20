@@ -910,6 +910,28 @@ The following remain explicitly prohibited by this contract:
 - activating submit or reconciliation
 - changing strategy, risk, execution, or reconciliation behavior
 
+## Fake-Native Lifecycle Activation Boundary
+
+Fake-native lifecycle/connect evidence activation is currently
+test-patched/manual-harness-only. It is not a normal runtime configuration
+feature and is not approved for deployed runtime activation.
+
+Deployed `main.py` must remain fail-closed at
+`ibkr_runtime_lifecycle_not_approved` unless a separately approved
+fake-native injection path supplies actual fake-native lifecycle evidence.
+Current runtime configuration must not activate fake-native lifecycle evidence
+through normal deployed execution.
+
+Fake-native lifecycle evidence is not production-runtime activation. It is not
+real IBKR or TWS activation. It does not approve broker calls, market data,
+strategy, risk, order submission, state writes, observations, retry, resubmit,
+cancel, flatten, remediation, submit authority, or reconciliation authority.
+
+The `ibkr_runtime_submit_not_approved` result is allowed only after actual
+fake-native lifecycle evidence exists and only under a separately approved
+activation gate. It remains a blocked state and does not authorize submit or
+reconciliation behavior.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
