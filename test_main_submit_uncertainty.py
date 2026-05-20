@@ -537,11 +537,17 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
     def test_ibkr_main_path_enabled_fake_native_dry_run_stays_non_executing(
         self,
     ) -> None:
-        result = self.run_main_with_order_status(
-            "submitted",
-            openclaw_broker="ibkr",
-            ibkr_runtime_enabled=True,
-        )
+        with patch(
+            "main.build_fake_native_lifecycle_connect_report_fields",
+            side_effect=ValueError(
+                "fake-native lifecycle evidence requires injected native API"
+            ),
+        ) as build_lifecycle_fields:
+            result = self.run_main_with_order_status(
+                "submitted",
+                openclaw_broker="ibkr",
+                ibkr_runtime_enabled=True,
+            )
 
         completion_events = [
             event
@@ -555,6 +561,8 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             completion_events[0]["payload"]["reason"],
             "ibkr_runtime_lifecycle_not_approved",
         )
+        build_lifecycle_fields.assert_called_once()
+        self.assertIsNone(build_lifecycle_fields.call_args.kwargs["fake_native_api"])
 
         self.assertEqual(len(result["reports"]), 1)
         report = result["reports"][0]
