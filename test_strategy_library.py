@@ -135,3 +135,163 @@ def test_strategy_definition_requires_dependency_free_tuple_metadata() -> None:
 
     assert definition.execution_authority is False
     assert definition.broker_compatibility == ()
+
+
+def test_blank_strategy_id_is_rejected() -> None:
+    with pytest.raises(ValueError, match="strategy_id must be non-empty"):
+        StrategyDefinition(
+            strategy_id=" ",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+        )
+
+
+def test_blank_version_is_rejected() -> None:
+    with pytest.raises(ValueError, match="version must be non-empty"):
+        StrategyDefinition(
+            strategy_id="example",
+            version=" ",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+        )
+
+
+def test_blank_name_is_rejected() -> None:
+    with pytest.raises(ValueError, match="name must be non-empty"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name=" ",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+        )
+
+
+def test_blank_family_is_rejected() -> None:
+    with pytest.raises(ValueError, match="family must be non-empty"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family=" ",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+        )
+
+
+def test_non_bool_execution_authority_is_rejected() -> None:
+    with pytest.raises(ValueError, match="execution_authority must be a bool"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+            execution_authority="false",  # type: ignore[arg-type]
+        )
+
+
+def test_duplicate_required_inputs_are_rejected() -> None:
+    with pytest.raises(ValueError, match="required_inputs contains duplicate value"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes", "closes"),
+            output_schema=("signal",),
+        )
+
+
+def test_duplicate_output_schema_fields_are_rejected() -> None:
+    with pytest.raises(ValueError, match="output_schema contains duplicate value"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal", "signal"),
+        )
+
+
+def test_duplicate_observability_fields_are_rejected() -> None:
+    with pytest.raises(
+        ValueError,
+        match="observability_fields contains duplicate value",
+    ):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+            observability_fields=("signal", "signal"),
+        )
+
+
+def test_unknown_validation_status_is_rejected() -> None:
+    with pytest.raises(ValueError, match="Unsupported validation_status"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+            validation_status="runtime_approved",
+        )
+
+
+def test_non_empty_broker_compatibility_is_rejected() -> None:
+    with pytest.raises(ValueError, match="broker_compatibility must remain empty"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+            broker_compatibility=("alpaca",),
+        )
+
+
+def test_lookup_normalizes_leading_and_trailing_whitespace() -> None:
+    assert get_strategy_definition(" close_momentum_v1 ").strategy_id == (
+        "close_momentum_v1"
+    )
+
+
+def test_lookup_remains_case_sensitive() -> None:
+    with pytest.raises(KeyError):
+        get_strategy_definition("CLOSE_MOMENTUM_V1")
+
+
+def test_repeated_list_and_get_calls_are_deterministic_and_read_only() -> None:
+    first_catalog = list_strategy_definitions()
+    second_catalog = list_strategy_definitions()
+    first_definition = get_strategy_definition("close_momentum_v1")
+    second_definition = get_strategy_definition("close_momentum_v1")
+
+    assert first_catalog == second_catalog
+    assert first_catalog is not second_catalog
+    assert first_definition == second_definition
+    assert first_definition is not second_definition
