@@ -418,6 +418,64 @@ observations occurred. `main.py` was not executed. No VPS action occurred.
 This evidence does not approve `--preflight-only`. It does not approve submit
 or reconciliation. It does not approve runtime activation or live routing.
 
+### Submit/Reconciliation Preflight-Only Pass Evidence
+
+The local paper IBKR preflight-only broker-state check was run with:
+
+```bash
+venv/bin/python manual_ibkr_submit_reconciliation_smoke.py --host 127.0.0.1 --port 7497 --client-id 9116 --preflight-only
+```
+
+The result was `PREFLIGHT_ONLY_PASS` with exit status 0. `git status --short`
+showed only the pre-existing untracked `.local/` and `.venv-ibkr312/`
+directories.
+
+Evidence from the run:
+
+- `last_run_state=None`
+- `connection_result.passed=True`
+- `connection_result.reason=connect_ready`
+- `connection_result.message=next_valid_id`
+- `next_valid_id=9`
+- `pre_submit_open_order_snapshot.passed=True`
+- `pre_submit_open_order_snapshot.open_buy_order_qty=0`
+- `pre_submit_open_order_snapshot.open_buy_order_count=0`
+- `pre_submit_open_order_snapshot.reason=open_buy_orders_loaded`
+- `pre_submit_position_snapshot.passed=True`
+- `pre_submit_position_snapshot.found=False`
+- `pre_submit_position_snapshot.qty=0`
+- `pre_submit_position_snapshot.reason=no_position`
+- `pre_submit_broker_state=clean`
+- `submit_reconciliation_preflight_only=True`
+- expected broker-state reads occurred: `reqAllOpenOrders`,
+  `reqPositionsMulti`, and `cancelPositionsMulti`
+- `disconnect_result.passed=True`
+- `disconnect_result.reason=disconnect_complete`
+- `connect_state=disconnected`
+- `shutdown_state=complete`
+- `thread_state=stopped`
+
+The manual harness state file `.local/ibkr_smoke_last_state.json` was written
+as expected for preflight-only with:
+
+- `submit_attempted=false`
+- `order_id=null`
+- `order_status=null`
+- `reconciliation_status=null`
+- `manual_review_required=false`
+- `final_broker_state=clean`
+- `final_broker_state_reason=no_open_orders_or_position`
+- `disconnect_joined=true`
+- `disconnect_passed=true`
+
+No submit occurred. No `placeOrder` occurred. No reconciliation workflow was
+activated. No market data, strategy, risk, production state writes, or
+observations occurred. `main.py` was not executed. No VPS action occurred.
+
+This evidence does not approve actual submit. It does not approve
+reconciliation activation. It does not approve runtime activation or live
+routing.
+
 ## Controlled Paper Activation Readiness Checklist
 
 This checklist defines the gates required before any IBKR paper runtime routing
