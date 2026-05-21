@@ -179,10 +179,40 @@ class RecordingReconciliationClientTests(unittest.TestCase):
 class SmokeSafetyControlTests(unittest.TestCase):
     def test_no_production_routing_is_enabled(self) -> None:
         main_source = Path(__file__).with_name("main.py").read_text(encoding="utf-8")
+        broker_factory_source = Path(__file__).with_name("broker_factory.py").read_text(
+            encoding="utf-8"
+        )
 
         self.assertNotIn("ibkr", SUPPORTED_BROKERS)
         self.assertNotIn("manual_ibkr_submit_reconciliation_smoke", main_source)
         self.assertNotIn("run_localhost_submit_reconciliation_smoke", main_source)
+        self.assertIn('SUPPORTED_BROKERS = {"alpaca"}', broker_factory_source)
+
+    def test_submit_reconciliation_smoke_does_not_import_production_paths(self) -> None:
+        source = Path(__file__).with_name(
+            "manual_ibkr_submit_reconciliation_smoke.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("import main", source)
+        self.assertNotIn("from main", source)
+        self.assertNotIn("broker_factory", source)
+        self.assertNotIn("market_data", source)
+        self.assertNotIn("strategy_engine", source)
+        self.assertNotIn("risk_engine", source)
+        self.assertNotIn("observation_logger", source)
+        self.assertNotIn("state_manager", source)
+
+    def test_manual_harness_has_no_order_remediation_controls(self) -> None:
+        source = Path(__file__).with_name(
+            "manual_ibkr_submit_reconciliation_smoke.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("cancelOrder", source)
+        self.assertNotIn("globalCancel", source)
+        self.assertNotIn("flatten", source.lower())
+        self.assertNotIn("resubmit", source.lower())
+        self.assertNotIn("retry_submit", source.lower())
+        self.assertNotIn("remediate", source.lower())
 
     def test_ibkr_execution_filter_time_now_uses_utc_timezone_format(self) -> None:
         self.assertRegex(
@@ -524,6 +554,89 @@ class SmokeSafetyControlTests(unittest.TestCase):
                 unsafe_state,
             )
             self.assertFalse((Path(tmpdir) / "ibkr_smoke.lock").exists())
+
+    def test_report_only_does_not_imply_submit_or_reconciliation_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            previous_state = {
+                "submitted_at": "20260512-10:01:02",
+                "manual_review_required": False,
+            }
+            write_smoke_last_state(state_path, previous_state)
+
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                report_only=True,
+            )
+
+            self.assertEqual(result["broker_state"].state, "clean")
+            self.assertEqual(result["execution_snapshot"].reason, "executions_loaded")
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+            self.assertEqual(
+                json.loads(state_path.read_text(encoding="utf-8")),
+                previous_state,
+            )
+            self.assertEqual(FakeReconciliationWorkflow.instances, [])
+
+    def test_preflight_only_state_write_remains_manual_harness_scoped(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                timeout=0.25,
+                preflight_only=True,
+            )
+
+            self.assertEqual(result.state, "clean")
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertFalse(state["submit_attempted"])
+            self.assertIsNone(state["order_id"])
+            self.assertIsNone(state["order_status"])
+            self.assertIsNone(state["reconciliation_status"])
+            self.assertFalse(state["manual_review_required"])
+            self.assertEqual(state["final_broker_state"], "clean")
+            self.assertEqual(FakeReconciliationWorkflow.instances, [])
+
+    def test_submit_reconciliation_evidence_stays_manual_harness_scoped(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+
+            result, adapter, native_api, workflow = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders(), open_orders()],
+                position_snapshots=[flat_position(), flat_position()],
+                order_status="reconciliation_required",
+                order_type="limit",
+                limit_price=100.25,
+                include_workflow=True,
+            )
+
+            self.assertEqual(
+                result.submit_state,
+                "submit_uncertain_reconciliation_required",
+            )
+            self.assertEqual(result.reconciliation_status, "accepted_unfilled")
+            self.assertTrue(adapter.submit_market_order_called)
+            self.assertEqual(native_api.order_count, 1)
+            self.assertEqual(len(workflow.calls), 1)
+            self.assertIs(workflow.calls[0]["broker"], adapter)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertTrue(state["submit_attempted"])
+            self.assertEqual(state["order_id"], "123")
+            self.assertEqual(state["order_status"], "reconciliation_required")
+            self.assertEqual(state["reconciliation_status"], "accepted_unfilled")
+            self.assertFalse(state["manual_review_required"])
 
     def test_limit_order_builder_sets_smoke_order_ref(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
