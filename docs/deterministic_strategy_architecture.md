@@ -59,12 +59,54 @@ The router does not run strategies, generate signals, size risk, submit orders, 
 
 `test_strategy_router.py` validates deterministic router behavior under Python 3.12, including catalog-order selection, eligibility filtering, result evidence invariants, import isolation, and absence of signal, action, order, broker, execution, risk, runtime, state, observation, or reporting fields.
 
+## Strategy Integration Planning
+
+The planned integration seam is a future pure orchestration/use-case-style module:
+
+- Proposed module: `strategy_integration.py`
+- Proposed tests: `test_strategy_integration.py`
+- Purpose: connect `strategy_library`, `regime_classifier`, and `strategy_router` without runtime integration.
+
+The proposed input model should contain dependency-free values only:
+
+- `closes` tuple
+- optional `lookback`
+- optional `min_trend_percent`
+- optional `volatility_percent`
+
+The proposed processing steps are deterministic and metadata-only:
+
+1. Build the default strategy catalog.
+2. Classify the regime from closes and thresholds.
+3. Route eligible strategy metadata from the regime result.
+
+The proposed output model should be a frozen metadata-only integration result with:
+
+- `regime_id`
+- `selected_strategy_id`
+- routing reason
+- `eligible_strategy_ids`
+- `rejected_strategy_ids`
+- no execution fields
+
+Explicit integration boundaries:
+
+- No signal generation.
+- No strategy execution.
+- No broker behavior.
+- No runtime, config, risk, state, observation, or reporting behavior.
+- No `main.py` integration.
+- No order, action, submit, cancel, flatten, or remediation fields.
+- No `strategy_engine.py` integration.
+- No `signal_validator.py` integration.
+
+The future integration code gate requires separate approval. Signal-engine scaffold remains deferred. Runtime wiring remains deferred.
+
 Current boundaries:
 
 - No runtime wiring exists yet.
 - No `main.py` integration exists yet.
 - No broker, runtime, execution, risk, state, observation, or reporting dependency is approved for strategy metadata.
-- Integration planning may follow this docs evidence.
 - Integration code remains unapproved.
 - Signal-engine scaffold remains deferred.
 
