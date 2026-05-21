@@ -476,6 +476,119 @@ This evidence does not approve actual submit. It does not approve
 reconciliation activation. It does not approve runtime activation or live
 routing.
 
+## Controlled Submit/Reconciliation Approval Runbook
+
+This runbook defines the approval boundary for any future controlled paper
+submit/reconciliation smoke using `manual_ibkr_submit_reconciliation_smoke.py`.
+It does not approve running submit now.
+
+Current prerequisite evidence:
+
+- `--report-only` passed and evidence is documented.
+- `--preflight-only` passed and evidence is documented.
+- Broker state was clean.
+- `.local/ibkr_smoke_last_state.json` records `submit_attempted=false`, no
+  order fields, no reconciliation status, and `final_broker_state=clean`.
+
+Approval status:
+
+- this runbook does not approve running submit yet
+- this runbook does not approve runtime activation
+- this runbook does not approve `main.py`, `broker_factory.py`, or `config.py`
+  changes
+- this runbook does not approve live routing
+
+Required future operator preflight before `placeOrder`:
+
+- local-only execution
+- paper TWS or paper IB Gateway only
+- localhost paper port only
+- no live routing
+- exact current commit verified
+- clean tracked worktree
+- API socket already confirmed ready
+- paper account and mode manually confirmed
+- client ID approved and unique
+- clean broker state immediately before submit
+- `.local` last-run state reviewed and safe
+
+Required future command fields:
+
+- exact command must be approved before run
+- exact symbol
+- exact quantity
+- exact order type
+- exact limit price if limit order
+- exact client ID
+- exact timeout settings if relevant
+
+Allowed future `placeOrder` scope:
+
+- one manual harness order only
+- paper only
+- no retry
+- no resubmit
+- no cancel
+- no flatten
+- no remediation
+
+Expected future submit evidence:
+
+- `submitted_at`
+- `order_id`
+- `order_status`
+- `order_ref`
+- `submit_attempted=true`
+- submit result classification
+- callback evidence
+- final broker-state evidence
+- `.local/ibkr_smoke_last_state.json` persistence
+
+Reconciliation rules:
+
+- reconciliation workflow may run only if submit result requires
+  reconciliation
+- reconciliation must remain manual-harness scoped
+- unresolved or ambiguous reconciliation requires manual review
+- no automatic retry or remediation
+- no continuation after unsafe state
+
+Stop conditions:
+
+- live account or live session ambiguity
+- non-localhost endpoint
+- non-paper port
+- open-order ambiguity
+- unexpected non-flat position
+- stale unsafe last-run state
+- `placeOrder` ambiguity
+- submit timeout
+- missing order ID
+- ambiguous order status
+- unresolved reconciliation
+- disconnect uncertainty
+- any production runtime path touched
+
+Explicit no-go:
+
+- no actual submit now
+- no `placeOrder` now
+- no reconciliation activation now
+- no runtime activation
+- no VPS action
+- no `main.py` changes
+- no `broker_factory.py` changes
+- no `config.py` changes
+- no market data
+- no strategy or risk paths
+- no production state writes
+- no observations
+- no live routing
+
+If a future controlled submit/reconciliation smoke is approved, that approval
+must name the exact command and values, explicitly authorize the single
+paper-only `placeOrder`, and restate the stop conditions before execution.
+
 ## Controlled Paper Activation Readiness Checklist
 
 This checklist defines the gates required before any IBKR paper runtime routing
