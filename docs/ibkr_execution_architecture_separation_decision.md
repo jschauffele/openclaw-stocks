@@ -1253,6 +1253,70 @@ This plan does not approve code changes, tests, `main.py` changes,
 actions, real IBKR/TWS, broker calls, submit/reconciliation, or production
 routing.
 
+## Future Manual Injected-Provider Validation Runbook
+
+This runbook defines the manual/operator-controlled sequence for a future
+injected fake-native IBKR provider validation. It does not approve running the
+validation, code changes, runtime activation, or production routing. Future
+injected-provider validation requires separate approval before execution.
+
+Allowed future operator steps:
+
+1. Confirm the no-provider baseline:
+   - `result`: `blocked`
+   - `reason`: `ibkr_runtime_lifecycle_not_approved`
+   - no lifecycle evidence fields are produced through normal configuration or
+     environment variables
+2. Generate fake-native lifecycle evidence using only the approved manual
+   smoke/helper path.
+3. Inject that evidence through an explicit patched provider boundary in a
+   controlled validation harness.
+4. Confirm injected-provider behavior:
+   - `result`: `blocked`
+   - `reason`: `ibkr_runtime_submit_not_approved`
+5. Confirm no trading paths ran.
+
+The following remain prohibited for this runbook:
+
+- normal configuration or environment provider activation
+- `OPENCLAW_IBKR_RUNTIME_ENABLED=true` installing or selecting a provider
+- real IBKR or TWS
+- broker calls
+- submit or reconciliation
+- market data, strategy, or risk paths
+- state writes or observations
+- `main.py`, `broker_factory.py`, or `config.py` changes
+
+Expected injected-provider evidence fields:
+
+- `assembly_enabled`
+- `fake_native`
+- `connect_attempted`
+- `run_loop_started`
+- `connect_result.passed`
+- `connect_result.reason`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result.passed`
+- `disconnect_result.reason`
+- `shutdown_state`
+
+Rollback and stop conditions:
+
+- injected evidence is reachable through normal configuration or environment
+  variables
+- the no-provider path returns `ibkr_runtime_submit_not_approved`
+- any submit or reconciliation field appears
+- any broker or TWS call is required
+- any market data, strategy, risk, state write, or observation path runs
+
+If any stop condition occurs, the validation must be considered failed. The
+expected rollback is to restore the no-provider
+`ibkr_runtime_lifecycle_not_approved` behavior before further IBKR runtime work
+continues.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
