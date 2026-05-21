@@ -1175,6 +1175,84 @@ changes, `broker_factory.py` changes, `config.py` changes, runtime activation,
 normal config/environment provider activation, real IBKR/TWS, broker calls,
 submit/reconciliation, production routing, or VPS actions.
 
+## Future Manual Injected-Provider Validation Plan
+
+This plan defines a future manual/operator-controlled validation gate for the
+fake-native lifecycle provider boundary. It does not approve runtime activation
+or normal runtime access to fake-native lifecycle evidence.
+
+Validation must be manual/operator-controlled only. It must use an explicit
+patched or injected provider that supplies fake-native lifecycle/connect
+evidence already produced by the approved helper or manual smoke path. Normal
+configuration and environment variables must remain blocked. In particular,
+`OPENCLAW_IBKR_RUNTIME_ENABLED=true` must not install, select, or activate a
+provider.
+
+The no-provider deployed/runtime behavior must remain:
+
+- `result`: `blocked`
+- `reason`: `ibkr_runtime_lifecycle_not_approved`
+
+The injected-provider validation behavior may be:
+
+- `result`: `blocked`
+- `reason`: `ibkr_runtime_submit_not_approved`
+
+Injected-provider validation must not require real IBKR, TWS, broker calls, a
+native runtime loop, submit, reconciliation, market data, strategy evaluation,
+risk checks, order-state writes, observations, retry, resubmit, cancel,
+flatten, or remediation.
+
+Injected-provider evidence must include the approved lifecycle/connect fields:
+
+- `assembly_enabled`
+- `fake_native`
+- `connect_attempted`
+- `run_loop_started`
+- `connect_result`
+- `connect_result.passed`
+- `connect_result.reason`
+- `connection_completion_source`
+- `next_valid_id`
+- `run_thread_state`
+- `disconnect_joined`
+- `disconnect_result`
+- `disconnect_result.passed`
+- `disconnect_result.reason`
+- `shutdown_state`
+
+Injected-provider evidence must not include submit or reconciliation fields,
+including:
+
+- `order_id`
+- `order_status`
+- `submit_state`
+- `submitted_at`
+- `reconciliation_status`
+- `manual_review_required`
+- `terminal_for_run`
+- `reconciliation_ambiguous`
+- `filled_qty`
+- `working_qty`
+- `final_broker_state`
+- `final_broker_state_reason`
+- open-order snapshot summary
+- position snapshot summary
+- execution snapshot summary
+
+Rollback rule: if injected fake-native lifecycle evidence becomes reachable
+through normal configuration, environment variables, default runtime execution,
+or any path other than an explicitly approved patched/manual validation
+provider, the gate must be considered failed. The expected rollback is to
+remove or disable the provider access path and restore the no-provider
+`ibkr_runtime_lifecycle_not_approved` behavior before any further IBKR runtime
+work proceeds.
+
+This plan does not approve code changes, tests, `main.py` changes,
+`broker_factory.py` changes, `config.py` changes, runtime activation, VPS
+actions, real IBKR/TWS, broker calls, submit/reconciliation, or production
+routing.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
