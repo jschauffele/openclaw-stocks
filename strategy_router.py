@@ -40,6 +40,21 @@ class StrategyRoutingResult:
             raise ValueError("regime_id must be non-empty")
         if not self.reason.strip():
             raise ValueError("reason must be non-empty")
+        _validate_strategy_id_tuple("eligible_strategy_ids", self.eligible_strategy_ids)
+        _validate_strategy_id_tuple("rejected_strategy_ids", self.rejected_strategy_ids)
+        overlap = set(self.eligible_strategy_ids).intersection(self.rejected_strategy_ids)
+        if overlap:
+            overlap_list = ", ".join(sorted(overlap))
+            raise ValueError(f"strategy ID appears in both eligible and rejected: {overlap_list}")
+        if self.selected_strategy_id is not None:
+            if not self.eligible_strategy_ids:
+                raise ValueError(
+                    "selected_strategy_id requires non-empty eligible_strategy_ids"
+                )
+            if self.selected_strategy_id not in self.eligible_strategy_ids:
+                raise ValueError(
+                    "selected_strategy_id must be present in eligible_strategy_ids"
+                )
 
 
 def route_strategy(input_model: StrategyRoutingInput) -> StrategyRoutingResult:
@@ -82,3 +97,17 @@ def _strategy_is_eligible(strategy: StrategyDefinition, regime_id: str) -> bool:
     if strategy.allowed_regimes and regime_id not in strategy.allowed_regimes:
         return False
     return True
+
+
+def _validate_strategy_id_tuple(field_name: str, strategy_ids: tuple[str, ...]) -> None:
+    if not isinstance(strategy_ids, tuple):
+        raise ValueError(f"{field_name} must be a tuple")
+    seen_strategy_ids: set[str] = set()
+    for strategy_id in strategy_ids:
+        if not isinstance(strategy_id, str):
+            raise ValueError(f"{field_name} must contain strings")
+        if not strategy_id.strip():
+            raise ValueError(f"{field_name} must contain non-empty strings")
+        if strategy_id in seen_strategy_ids:
+            raise ValueError(f"{field_name} contains duplicate strategy_id: {strategy_id}")
+        seen_strategy_ids.add(strategy_id)

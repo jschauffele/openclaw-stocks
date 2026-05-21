@@ -114,7 +114,37 @@ def test_rejects_execution_authority_metadata() -> None:
     assert result.rejected_strategy_ids == ("runtime_enabled",)
 
 
+def test_mutated_execution_authority_metadata_remains_rejected() -> None:
+    strategy = strategy_definition("runtime_enabled")
+    object.__setattr__(strategy, "execution_authority", True)
+
+    result = route_strategy(
+        StrategyRoutingInput(
+            strategy_catalog=(strategy,),
+            regime_result=regime_result("sideways"),
+        )
+    )
+
+    assert result.selected_strategy_id is None
+    assert result.rejected_strategy_ids == ("runtime_enabled",)
+
+
 def test_rejects_broker_compatibility_metadata() -> None:
+    strategy = strategy_definition("broker_enabled")
+    object.__setattr__(strategy, "broker_compatibility", ("paper",))
+
+    result = route_strategy(
+        StrategyRoutingInput(
+            strategy_catalog=(strategy,),
+            regime_result=regime_result("sideways"),
+        )
+    )
+
+    assert result.selected_strategy_id is None
+    assert result.rejected_strategy_ids == ("broker_enabled",)
+
+
+def test_mutated_broker_compatibility_metadata_remains_rejected() -> None:
     strategy = strategy_definition("broker_enabled")
     object.__setattr__(strategy, "broker_compatibility", ("paper",))
 
@@ -173,6 +203,17 @@ def test_empty_allowed_regimes_are_regime_agnostic_metadata() -> None:
 
     assert result.selected_strategy_id == "agnostic"
     assert result.eligible_strategy_ids == ("agnostic",)
+
+
+def test_route_strategy_result_regime_id_matches_input_regime_result() -> None:
+    result = route_strategy(
+        StrategyRoutingInput(
+            strategy_catalog=(strategy_definition("agnostic"),),
+            regime_result=regime_result("volatile"),
+        )
+    )
+
+    assert result.regime_id == "volatile"
 
 
 def test_input_and_result_dataclasses_are_frozen() -> None:
@@ -289,6 +330,142 @@ def test_routing_result_rejects_blank_selected_strategy_id() -> None:
     with pytest.raises(ValueError, match="selected_strategy_id must be non-empty"):
         StrategyRoutingResult(
             selected_strategy_id=" ",
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_routing_result_rejects_non_tuple_evidence_ids() -> None:
+    with pytest.raises(ValueError, match="eligible_strategy_ids must be a tuple"):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=["a"],  # type: ignore[arg-type]
+            rejected_strategy_ids=(),
+        )
+
+    with pytest.raises(ValueError, match="rejected_strategy_ids must be a tuple"):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=["a"],  # type: ignore[arg-type]
+        )
+
+
+def test_routing_result_rejects_non_string_evidence_ids() -> None:
+    with pytest.raises(ValueError, match="eligible_strategy_ids must contain strings"):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=("a", 1),  # type: ignore[arg-type]
+            rejected_strategy_ids=(),
+        )
+
+    with pytest.raises(ValueError, match="rejected_strategy_ids must contain strings"):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("a", 1),  # type: ignore[arg-type]
+        )
+
+
+def test_routing_result_rejects_blank_evidence_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="eligible_strategy_ids must contain non-empty strings",
+    ):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=(" ",),
+            rejected_strategy_ids=(),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="rejected_strategy_ids must contain non-empty strings",
+    ):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(" ",),
+        )
+
+
+def test_routing_result_rejects_duplicate_eligible_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="eligible_strategy_ids contains duplicate strategy_id",
+    ):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=("a", "a"),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_routing_result_rejects_duplicate_rejected_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="rejected_strategy_ids contains duplicate strategy_id",
+    ):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("a", "a"),
+        )
+
+
+def test_routing_result_rejects_overlap_between_eligible_and_rejected_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="strategy ID appears in both eligible and rejected",
+    ):
+        StrategyRoutingResult(
+            selected_strategy_id=None,
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=("a",),
+            rejected_strategy_ids=("a",),
+        )
+
+
+def test_routing_result_rejects_selected_strategy_not_in_eligible_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="selected_strategy_id must be present in eligible_strategy_ids",
+    ):
+        StrategyRoutingResult(
+            selected_strategy_id="missing",
+            regime_id="sideways",
+            reason="example",
+            eligible_strategy_ids=("a",),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_routing_result_rejects_selected_strategy_when_eligible_ids_empty() -> None:
+    with pytest.raises(
+        ValueError,
+        match="selected_strategy_id requires non-empty eligible_strategy_ids",
+    ):
+        StrategyRoutingResult(
+            selected_strategy_id="missing",
             regime_id="sideways",
             reason="example",
             eligible_strategy_ids=(),
