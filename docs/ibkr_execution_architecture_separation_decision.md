@@ -1317,6 +1317,23 @@ expected rollback is to restore the no-provider
 `ibkr_runtime_lifecycle_not_approved` behavior before further IBKR runtime work
 continues.
 
+### Local Manual Injected-Provider Validation Evidence
+
+The local patched-provider validation was run through the test harness. It
+printed `manual injected-provider validation passed` and exited with status 0.
+`git status --short` remained clean except for the pre-existing untracked
+`.local/` and `.venv-ibkr312/` directories.
+
+The baseline no-provider path remained blocked at
+`ibkr_runtime_lifecycle_not_approved`. The injected provider path remained
+blocked at `ibkr_runtime_submit_not_approved`. No submit or reconciliation
+occurred. No market data, strategy, risk, state writes, observations, broker
+calls, or real IBKR/TWS activity occurred.
+
+This evidence does not approve runtime activation. It does not approve normal
+configuration or environment provider activation. It does not approve VPS
+execution.
+
 ## IBKR Post-Lifecycle/Connect Blocked Result Contract
 
 This contract defines the blocked result after fake-native lifecycle/connect
