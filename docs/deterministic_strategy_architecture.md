@@ -10,12 +10,15 @@ The deterministic strategy architecture foundation is established through comple
 - `a0c81f6 Strategy: harden strategy library metadata validation`
 - `6772e68 Strategy: add deterministic regime classifier scaffold`
 - `c10d477 Strategy: harden regime classifier validation`
+- `c6d32a3 Strategy: add deterministic strategy router scaffold`
+- `2abbc7e Strategy: harden strategy router validation`
 
 Python 3.12 validation evidence:
 
 - `.venv-312/bin/python --version` reported `Python 3.12.13`
 - `.venv-312/bin/python -m pytest test_strategy_library.py` reported `23 passed`
 - `.venv-312/bin/python -m pytest test_regime_classifier.py` reported `36 passed`
+- `.venv-312/bin/python -m pytest test_strategy_router.py` reported `31 passed`
 
 `strategy_library.py` is a pure inner-policy metadata module. It follows the Clean Architecture Chapter 20 and Chapter 22 boundary: business rules and entities remain pure, dependencies point inward, and inner policy does not depend on outer mechanisms.
 
@@ -44,16 +47,27 @@ The regime classifier does not route strategies, generate signals, size risk, su
 
 `test_regime_classifier.py` validates deterministic regime classification under Python 3.12, including frozen dataclasses, allowed regime IDs, validation hardening, invalid input behavior, import isolation, and absence of execution, broker, order, routing, or strategy-selection fields.
 
+## Strategy Router Evidence
+
+`strategy_router.py` is a pure deterministic inner-policy module. It consumes `StrategyDefinition` and `RegimeClassificationResult` only, and it selects eligible strategy metadata only.
+
+The router preserves catalog order for deterministic selection. It filters out execution-authorized metadata, broker-compatible metadata, non-active metadata, and metadata whose `allowed_regimes` do not include the current regime. Empty `allowed_regimes` remains metadata-level regime-agnostic.
+
+The router validates routing evidence invariants, including evidence tuple shape, nonblank string strategy IDs, duplicate evidence IDs, eligible/rejected overlap, and selected-strategy consistency.
+
+The router does not run strategies, generate signals, size risk, submit orders, cancel orders, flatten positions, or perform remediation. It does not touch broker, runtime, config, state, observation, reporting, execution, risk, market data, file, environment, network, or VPS behavior.
+
+`test_strategy_router.py` validates deterministic router behavior under Python 3.12, including catalog-order selection, eligibility filtering, result evidence invariants, import isolation, and absence of signal, action, order, broker, execution, risk, runtime, state, observation, or reporting fields.
+
 Current boundaries:
 
 - No runtime wiring exists yet.
 - No `main.py` integration exists yet.
-- No strategy router exists yet.
 - No broker, runtime, execution, risk, state, observation, or reporting dependency is approved for strategy metadata.
-- Router planning may follow this docs evidence.
-- Router code remains unapproved.
+- Integration planning may follow this docs evidence.
+- Integration code remains unapproved.
 - Signal-engine scaffold remains deferred.
 
-The next planned gate after this docs evidence is `STRATEGY_ROUTER_PLANNING`. Router planning must remain read-only until a separate implementation gate is approved.
+The next planned gate after this docs evidence is `STRATEGY_INTEGRATION_PLANNING`. Integration planning must remain read-only until a separate implementation gate is approved.
 
 `.venv-312` is a local-only Python 3.12 validation environment and must remain untracked.
