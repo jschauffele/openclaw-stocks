@@ -229,6 +229,32 @@ This runbook does not approve submit or reconciliation. It does not approve
 production routing, VPS execution, or any future smoke execution without a
 separate approval checkpoint.
 
+### Localhost Connect-Smoke Pass Evidence
+
+The local paper IBKR localhost connect smoke was run with permitted local
+socket execution:
+
+```bash
+venv/bin/python manual_ibkr_localhost_connect_smoke.py
+```
+
+The result was `CONNECT_SMOKE_PASS`. The terminal lifecycle result reported
+`BrokerLifecycleResult` with `passed=True`, `reason=connect_ready`,
+`message=next_valid_id`, and `connected=True`. Shutdown evidence reported
+`disconnect_joined=True`, `connect_state=disconnected`,
+`shutdown_state=complete`, and `thread_state=stopped`. The command exited with
+status 0. `git status --short` showed only the pre-existing untracked
+`.local/` and `.venv-ibkr312/` directories.
+
+Prior connect failures should be treated as sandbox, local permission, or
+timing related. They are not evidence of an OpenClaw harness failure. The
+successful run did not run `main.py`, did not perform any VPS action, did not
+change files or environment variables, did not submit or reconcile orders, and
+did not run market data, strategy, risk, state-write, or observation paths.
+
+This evidence does not approve submit or reconciliation. It does not approve
+runtime activation. It does not approve live routing.
+
 ## Controlled Paper Activation Readiness Checklist
 
 This checklist defines the gates required before any IBKR paper runtime routing
