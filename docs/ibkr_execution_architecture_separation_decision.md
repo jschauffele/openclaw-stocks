@@ -589,6 +589,48 @@ If a future controlled submit/reconciliation smoke is approved, that approval
 must name the exact command and values, explicitly authorize the single
 paper-only `placeOrder`, and restate the stop conditions before execution.
 
+### Controlled Submit Cleanup Evidence
+
+The first controlled IBKR paper submit smoke was run exactly once with:
+
+```bash
+venv/bin/python manual_ibkr_submit_reconciliation_smoke.py --host 127.0.0.1 --port 7497 --client-id 9116 --timeout 15 --symbol AAPL --qty 1 --order-type market
+```
+
+The run created paper order ID `9` for `AAPL` buy quantity `1` as a market
+order. The result was `CONTROLLED_SUBMIT_UNCERTAIN` because order ID `9`
+remained open with broker status `PreSubmitted`. A read-only inspection
+confirmed `POST_SUBMIT_READ_ONLY_OPEN_ORDER`: order ID `9` still appeared open,
+`open_buy_order_qty=1`, `open_buy_order_count=1`, AAPL position remained `0`,
+and fills remained `0`.
+
+The repository had no cancel-only OpenClaw manual harness path. The manual
+harness and adapter did not provide a tested cleanup path for `cancelOrder`, and
+the safety baseline intentionally preserved no retry, no resubmit, no cancel,
+no flatten, and no remediation behavior. The operator therefore used the TWS
+paper UI to cancel order ID `9` manually instead of using bot code.
+
+A final report-only verification produced `POST_MANUAL_CANCEL_CLEAN`:
+
+- order ID `9` no longer appeared open
+- `open_buy_order_qty=0`
+- `open_buy_order_count=0`
+- AAPL position remained `0`
+- fills remained `0`
+- `pre_submit_broker_state=clean`
+- report-only verification exited with status 0
+
+The local manual harness state file `.local/ibkr_smoke_last_state.json` still
+contains historical stale state from the original submit run, including
+`final_broker_state=open_orders`. That file must not be treated as current
+broker truth after the manual TWS cancellation. The current broker truth is the
+final report-only verification showing no open order, no position, and no
+fills.
+
+No runtime activation occurred. `main.py` was not executed. No strategy, risk,
+market data, production state-write, or observation path ran. No VPS action
+occurred.
+
 ## Controlled Paper Activation Readiness Checklist
 
 This checklist defines the gates required before any IBKR paper runtime routing
