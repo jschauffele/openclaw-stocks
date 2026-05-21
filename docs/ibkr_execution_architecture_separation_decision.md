@@ -255,6 +255,124 @@ did not run market data, strategy, risk, state-write, or observation paths.
 This evidence does not approve submit or reconciliation. It does not approve
 runtime activation. It does not approve live routing.
 
+## Submit/Reconciliation Report-Only And Preflight-Only Approval Runbook
+
+This runbook defines the approval boundary for future manual broker-state
+`--report-only` or `--preflight-only` use of
+`manual_ibkr_submit_reconciliation_smoke.py`. It documents the future modes but
+does not approve running either mode yet.
+
+The only future modes covered by this runbook are:
+
+- `--report-only`
+- `--preflight-only`
+
+This runbook does not approve submit. It does not approve reconciliation
+activation. It does not approve `placeOrder`. It does not approve retry,
+resubmit, cancel, flatten, or remediation behavior.
+
+Operator preflight required before any separately approved run:
+
+- local execution only
+- paper TWS or paper IB Gateway only
+- API socket already confirmed ready
+- no live routing
+- correct account and paper mode manually confirmed
+- clean tracked worktree
+- current commit verified
+- no `main.py` runtime activation
+- no `broker_factory.py` or `config.py` changes
+
+For `--report-only`, a future separately approved run may read the manual
+harness last-run state and may query paper broker state. It may query execution
+snapshots only for report evidence tied to existing last-run state, such as a
+previous `submitted_at`. It must preserve the existing last-run state and must
+not write a replacement last-run state.
+
+Expected `--report-only` evidence:
+
+- last-run state loaded from the manual harness state file
+- paper broker open-order snapshot
+- paper broker position snapshot
+- optional execution snapshot only when prior last-run state provides the
+  required submitted-at evidence
+- report-only marker
+- disconnect and runtime-thread shutdown evidence
+- unchanged manual harness last-run state
+- no submit, order, or reconciliation workflow evidence
+
+`--report-only` stop conditions:
+
+- live account or live session ambiguity
+- non-localhost endpoint or non-paper port
+- stale unsafe last-run state that cannot be interpreted safely
+- open-order ambiguity
+- unexpected non-flat position
+- execution snapshot ambiguity
+- any submit or order evidence
+- any reconciliation workflow invocation
+- any production runtime path touched
+
+For `--preflight-only`, a future separately approved run may check paper broker
+open orders and positions only. It must skip submit, skip order construction
+for routing, skip `placeOrder`, and skip reconciliation workflow activation. It
+may write manual harness state under `.local` only if that state write is
+explicitly approved in the separate run approval.
+
+Expected clean `--preflight-only` state:
+
+- paper broker open-order snapshot is unambiguous
+- no open buy orders for the smoke symbol
+- paper broker position snapshot is unambiguous
+- position for the smoke symbol is flat or absent
+- submit was not attempted
+- no order ID or order status is present
+- no reconciliation status is present
+- no manual review is required
+- final broker state is `clean`
+
+Unsafe `--preflight-only` states:
+
+- any open buy order for the smoke symbol
+- any ambiguous open-order snapshot
+- any non-flat position for the smoke symbol
+- any ambiguous position snapshot
+- stale unsafe last-run state requiring operator cleanup
+- any disconnect or runtime-thread shutdown uncertainty
+
+`--preflight-only` stop conditions:
+
+- live account or live session ambiguity
+- non-localhost endpoint or non-paper port
+- open-order ambiguity
+- unexpected non-flat position
+- stale unsafe last-run state
+- execution snapshot ambiguity
+- any submit or order evidence
+- any reconciliation workflow invocation
+- any production runtime path touched
+
+The following remain forbidden for both modes:
+
+- live IBKR or live TWS
+- VPS execution
+- production routing
+- `main.py` execution
+- market data
+- strategy or risk paths
+- production state writes
+- observations
+- submit
+- reconciliation activation
+- `placeOrder`
+- retry, resubmit, cancel, flatten, or remediation behavior
+
+If any rollback or stop condition occurs, the run must be classified as failed
+or uncertain, the operator must stop immediately, and no further IBKR
+submit/reconciliation work may continue until a separate review resolves the
+evidence. This runbook does not change production authority and does not approve
+any future runtime activation.
+
 ## Controlled Paper Activation Readiness Checklist
 
 This checklist defines the gates required before any IBKR paper runtime routing
