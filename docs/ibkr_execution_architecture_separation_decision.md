@@ -159,6 +159,76 @@ Paper-only isolated execution validation must occur before any broader productio
 
 Read-only IBKR visibility evidence is not execution readiness approval.
 
+## Localhost Connect-Smoke Approval Runbook
+
+This runbook defines the approval boundary for a future local manual
+`manual_ibkr_localhost_connect_smoke.py` run. It does not approve running the
+smoke yet. The actual smoke run requires separate explicit approval.
+
+The future smoke is local-only and paper-only. It may connect only to TWS or
+IB Gateway running in paper mode on a localhost host. Approved hosts are
+`127.0.0.1`, `localhost`, and `::1`. Approved paper ports are `7497` and
+`4002`. The operator must use a unique client ID for the run so it cannot
+collide with another TWS or IB Gateway session.
+
+The expected command is:
+
+```bash
+venv/bin/python manual_ibkr_localhost_connect_smoke.py
+```
+
+Operator preflight before any separately approved run:
+
+- verify the repository branch and commit
+- verify the tracked worktree is clean
+- verify TWS or IB Gateway is manually confirmed to be in paper mode
+- verify the configured endpoint is localhost-only
+- verify the configured port is an approved paper port
+- verify no live routing is enabled
+- verify the command is only the manual localhost connect smoke
+- verify no VPS execution is involved
+
+Expected evidence from the future run:
+
+- `nextValidId` readiness
+- connect result
+- connection completion source
+- timeout behavior if TWS or IB Gateway is unavailable
+- disconnect result
+- runtime thread and disconnect-join evidence
+- nonfatal IBKR status codes handled without false failure
+- no submit or reconciliation evidence
+
+The following remain prohibited:
+
+- submit
+- reconciliation
+- market data
+- strategy or risk paths
+- state writes
+- observations
+- VPS execution
+- production routing
+- `main.py` runtime activation
+- normal runtime config activation
+- `broker_factory.py` activation
+
+Stop conditions for the future run:
+
+- live account or live routing is detected
+- host is not localhost
+- port is not an approved paper port
+- connection result is ambiguous
+- readiness times out
+- disconnect or runtime-thread shutdown is uncertain
+- any submit, reconciliation, order, or broker-state evidence appears
+- any production or runtime configuration activation is required
+
+This runbook does not approve submit or reconciliation. It does not approve
+`main.py`, `broker_factory.py`, or `config.py` changes. It does not approve
+production routing, VPS execution, or any future smoke execution without a
+separate approval checkpoint.
+
 ## Controlled Paper Activation Readiness Checklist
 
 This checklist defines the gates required before any IBKR paper runtime routing
