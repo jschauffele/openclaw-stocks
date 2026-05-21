@@ -25,12 +25,12 @@ class RegimeClassificationInput:
     volatility_percent: float = 2.0
 
     def __post_init__(self) -> None:
-        if isinstance(self.lookback, bool) or self.lookback < 2:
+        if isinstance(self.lookback, bool) or not isinstance(self.lookback, int):
+            raise ValueError("lookback must be an int")
+        if self.lookback < 2:
             raise ValueError("lookback must be >= 2")
-        if self.min_trend_percent < 0:
-            raise ValueError("min_trend_percent must be >= 0")
-        if self.volatility_percent < 0:
-            raise ValueError("volatility_percent must be >= 0")
+        _validate_threshold("min_trend_percent", self.min_trend_percent)
+        _validate_threshold("volatility_percent", self.volatility_percent)
         for close in self.closes:
             _validate_close(close)
 
@@ -52,11 +52,22 @@ class RegimeClassificationResult:
             raise ValueError(f"Unsupported regime_id: {self.regime_id}")
         if not self.reason.strip():
             raise ValueError("reason must be non-empty")
+        _validate_finite_number("latest_close", self.latest_close)
+        _validate_finite_number("oldest_close", self.oldest_close)
+        _validate_finite_number("percent_change", self.percent_change)
+        _validate_finite_number("absolute_percent_change", self.absolute_percent_change)
+        _validate_finite_number(
+            "max_one_period_move_percent",
+            self.max_one_period_move_percent,
+        )
 
 
 def classify_regime(
     input_model: RegimeClassificationInput,
 ) -> RegimeClassificationResult:
+    if not isinstance(input_model, RegimeClassificationInput):
+        raise ValueError("input_model must be RegimeClassificationInput")
+
     sample_count = len(input_model.closes)
     if sample_count < input_model.lookback:
         latest_close = float(input_model.closes[-1]) if input_model.closes else 0.0
@@ -121,3 +132,20 @@ def _validate_close(close: float) -> None:
         raise ValueError("closes must contain finite values")
     if close_value <= 0:
         raise ValueError("closes must contain positive values")
+
+
+def _validate_threshold(field_name: str, value: float) -> None:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(f"{field_name} must be numeric")
+    threshold_value = float(value)
+    if not isfinite(threshold_value):
+        raise ValueError(f"{field_name} must be finite")
+    if threshold_value < 0:
+        raise ValueError(f"{field_name} must be >= 0")
+
+
+def _validate_finite_number(field_name: str, value: float) -> None:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(f"{field_name} must be numeric")
+    if not isfinite(float(value)):
+        raise ValueError(f"{field_name} must be finite")

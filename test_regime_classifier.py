@@ -6,6 +6,7 @@ import pytest
 
 from regime_classifier import (
     RegimeClassificationInput,
+    RegimeClassificationResult,
     classify_regime,
 )
 
@@ -135,8 +136,13 @@ def test_invalid_lookback_is_rejected() -> None:
     with pytest.raises(ValueError, match="lookback must be >= 2"):
         RegimeClassificationInput(closes=(100.0, 101.0), lookback=1)
 
-    with pytest.raises(ValueError, match="lookback must be >= 2"):
+    with pytest.raises(ValueError, match="lookback must be an int"):
         RegimeClassificationInput(closes=(100.0, 101.0), lookback=True)  # type: ignore[arg-type]
+
+
+def test_non_int_lookback_is_rejected() -> None:
+    with pytest.raises(ValueError, match="lookback must be an int"):
+        RegimeClassificationInput(closes=(100.0, 101.0), lookback=2.5)  # type: ignore[arg-type]
 
 
 def test_negative_thresholds_are_rejected() -> None:
@@ -145,6 +151,37 @@ def test_negative_thresholds_are_rejected() -> None:
 
     with pytest.raises(ValueError, match="volatility_percent must be >= 0"):
         RegimeClassificationInput(closes=(100.0, 101.0), volatility_percent=-0.1)
+
+
+def test_bool_thresholds_are_rejected() -> None:
+    with pytest.raises(ValueError, match="min_trend_percent must be numeric"):
+        RegimeClassificationInput(closes=(100.0, 101.0), min_trend_percent=True)  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match="volatility_percent must be numeric"):
+        RegimeClassificationInput(closes=(100.0, 101.0), volatility_percent=False)  # type: ignore[arg-type]
+
+
+def test_non_numeric_thresholds_are_rejected() -> None:
+    with pytest.raises(ValueError, match="min_trend_percent must be numeric"):
+        RegimeClassificationInput(closes=(100.0, 101.0), min_trend_percent="1.0")  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match="volatility_percent must be numeric"):
+        RegimeClassificationInput(closes=(100.0, 101.0), volatility_percent="2.0")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("bad_threshold", (float("nan"), float("inf"), float("-inf")))
+def test_nan_and_infinite_thresholds_are_rejected(bad_threshold: float) -> None:
+    with pytest.raises(ValueError, match="min_trend_percent must be finite"):
+        RegimeClassificationInput(
+            closes=(100.0, 101.0),
+            min_trend_percent=bad_threshold,
+        )
+
+    with pytest.raises(ValueError, match="volatility_percent must be finite"):
+        RegimeClassificationInput(
+            closes=(100.0, 101.0),
+            volatility_percent=bad_threshold,
+        )
 
 
 def test_non_numeric_closes_are_rejected() -> None:
@@ -176,6 +213,90 @@ def test_repeated_calls_return_equal_results() -> None:
     )
 
     assert classify_regime(input_model) == classify_regime(input_model)
+
+
+def test_classify_regime_rejects_non_input_model() -> None:
+    with pytest.raises(ValueError, match="input_model must be RegimeClassificationInput"):
+        classify_regime({"closes": (100.0, 101.0)})  # type: ignore[arg-type]
+
+
+def test_result_rejects_unsupported_regime_ids() -> None:
+    with pytest.raises(ValueError, match="Unsupported regime_id"):
+        RegimeClassificationResult(
+            regime_id="runtime_signal",
+            reason="example",
+            lookback=5,
+            sample_count=5,
+            latest_close=101.0,
+            oldest_close=100.0,
+            percent_change=1.0,
+            absolute_percent_change=1.0,
+            max_one_period_move_percent=1.0,
+        )
+
+
+def test_result_rejects_blank_reason() -> None:
+    with pytest.raises(ValueError, match="reason must be non-empty"):
+        RegimeClassificationResult(
+            regime_id="sideways",
+            reason=" ",
+            lookback=5,
+            sample_count=5,
+            latest_close=101.0,
+            oldest_close=100.0,
+            percent_change=1.0,
+            absolute_percent_change=1.0,
+            max_one_period_move_percent=1.0,
+        )
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "latest_close",
+        "oldest_close",
+        "percent_change",
+        "absolute_percent_change",
+        "max_one_period_move_percent",
+    ),
+)
+def test_result_rejects_non_finite_numeric_outputs(field_name: str) -> None:
+    values = {
+        "regime_id": "sideways",
+        "reason": "example",
+        "lookback": 5,
+        "sample_count": 5,
+        "latest_close": 101.0,
+        "oldest_close": 100.0,
+        "percent_change": 1.0,
+        "absolute_percent_change": 1.0,
+        "max_one_period_move_percent": 1.0,
+    }
+    values[field_name] = float("nan")
+
+    with pytest.raises(ValueError, match=f"{field_name} must be finite"):
+        RegimeClassificationResult(**values)
+
+
+def test_reserved_unknown_regime_id_is_allowed_for_explicit_result_only() -> None:
+    result = RegimeClassificationResult(
+        regime_id="unknown",
+        reason="reserved_manual_classification",
+        lookback=5,
+        sample_count=0,
+        latest_close=0.0,
+        oldest_close=0.0,
+        percent_change=0.0,
+        absolute_percent_change=0.0,
+        max_one_period_move_percent=0.0,
+    )
+
+    assert result.regime_id == "unknown"
+
+
+def test_invalid_input_raises_value_error_instead_of_returning_unknown() -> None:
+    with pytest.raises(ValueError, match="closes must contain positive values"):
+        classify_regime(RegimeClassificationInput(closes=(100.0, 0.0)))
 
 
 def test_import_does_not_load_forbidden_modules() -> None:
