@@ -454,3 +454,48 @@ Explicit report-only metadata boundaries:
 - No `reporting.py` integration yet.
 
 Future `reporting.py` integration requires separate approval. Observation, JSONL, and `main.py` integration remain deferred.
+
+## Reporting Integration Planning
+
+`reporting.py` currently has an `orchestration` passthrough field in the report construction path.
+
+If separately approved, the first report-only strategy metadata may use the existing orchestration report nesting:
+
+- `orchestration.strategy_architecture`
+
+This may avoid changing `reporting.py` initially if the orchestration object is assembled before report construction.
+
+Current approval boundaries:
+
+- No `reporting.py` changes are approved yet.
+- No `main.py` changes are approved yet.
+- No persistence changes are approved yet.
+- No `observation_logger.py` changes are approved.
+- No JSONL or event changes are approved.
+- No `last_run_report.json` schema changes are approved.
+
+Future implementation must not affect:
+
+- signal generation
+- action proposal
+- risk checks
+- broker behavior
+- order behavior
+- state writes
+- execution behavior
+
+Observation and JSONL emission remain deferred. `strategy_engine.py` remains unchanged. `signal_validator.py` remains unchanged. Any code gate requires separate explicit approval.
+
+Deferred items:
+
+- `reporting.py` changes
+- `main.py` integration
+- runtime wiring
+- `observation_logger.py` changes
+- JSONL event changes
+- `last_run_report.json` changes
+- signal/action behavior
+- risk sizing
+- broker submission
+- execution behavior
+- IBKR runtime activation
