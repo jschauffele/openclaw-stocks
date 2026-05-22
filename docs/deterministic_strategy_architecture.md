@@ -285,3 +285,47 @@ Deferred items:
 - risk sizing
 - broker submission
 - IBKR runtime activation
+
+## Runtime Strategy Metadata Adapter Evidence
+
+`runtime_strategy_metadata_adapter.py` is a pure metadata adapter:
+
+- Module: `runtime_strategy_metadata_adapter.py`
+- Tests: `test_runtime_strategy_metadata_adapter.py`
+- Scaffold completed at `0542959 Strategy: add runtime strategy metadata adapter scaffold`
+
+Python 3.12 validation evidence:
+
+- `.venv-312/bin/python --version` reported `Python 3.12.13`
+- `.venv-312/bin/python -m pytest test_runtime_strategy_metadata_adapter.py` reported `18 passed`
+
+The adapter transforms `RuntimeStrategySeamResult` into `StrategyArchitectureMetadata`.
+
+Exact metadata object:
+
+- `StrategyArchitectureMetadata`
+
+Exact metadata fields:
+
+- `regime_id`
+- `selected_strategy_id`
+- `routing_reason`
+- `eligible_strategy_ids`
+- `rejected_strategy_ids`
+- `source`
+
+`source` must equal `runtime_strategy_seam`.
+
+The adapter preserves tuple evidence fields and validates metadata invariants, including non-empty metadata fields, source identity, tuple evidence shape, string strategy IDs, duplicate IDs, eligible/rejected overlap, and selected-strategy consistency.
+
+Explicit metadata adapter boundaries:
+
+- The adapter does not persist data.
+- The adapter does not write reports.
+- The adapter does not emit observations.
+- The adapter does not emit JSONL events.
+- The adapter does not modify `last_run_report.json`.
+- The adapter does not touch `main.py`.
+- The adapter does not affect signal, action, risk, broker, order, execution, state, observation, or reporting behavior.
+
+Future persistence, reporting, observation, JSONL event, `last_run_report.json`, or `main.py` integration still requires separate approval. Main runtime integration remains unapproved.
