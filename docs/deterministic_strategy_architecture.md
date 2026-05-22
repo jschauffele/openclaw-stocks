@@ -12,6 +12,8 @@ The deterministic strategy architecture foundation is established through comple
 - `c10d477 Strategy: harden regime classifier validation`
 - `c6d32a3 Strategy: add deterministic strategy router scaffold`
 - `2abbc7e Strategy: harden strategy router validation`
+- `75d60b3 Strategy: add deterministic strategy integration scaffold`
+- `9b5ee1b Strategy: harden strategy integration validation`
 
 Python 3.12 validation evidence:
 
@@ -19,6 +21,7 @@ Python 3.12 validation evidence:
 - `.venv-312/bin/python -m pytest test_strategy_library.py` reported `23 passed`
 - `.venv-312/bin/python -m pytest test_regime_classifier.py` reported `36 passed`
 - `.venv-312/bin/python -m pytest test_strategy_router.py` reported `31 passed`
+- `.venv-312/bin/python -m pytest test_strategy_integration.py` reported `24 passed`
 
 `strategy_library.py` is a pure inner-policy metadata module. It follows the Clean Architecture Chapter 20 and Chapter 22 boundary: business rules and entities remain pure, dependencies point inward, and inner policy does not depend on outer mechanisms.
 
@@ -59,28 +62,28 @@ The router does not run strategies, generate signals, size risk, submit orders, 
 
 `test_strategy_router.py` validates deterministic router behavior under Python 3.12, including catalog-order selection, eligibility filtering, result evidence invariants, import isolation, and absence of signal, action, order, broker, execution, risk, runtime, state, observation, or reporting fields.
 
-## Strategy Integration Planning
+## Strategy Integration Evidence
 
-The planned integration seam is a future pure orchestration/use-case-style module:
+`strategy_integration.py` is a pure deterministic orchestration/use-case-style module:
 
-- Proposed module: `strategy_integration.py`
-- Proposed tests: `test_strategy_integration.py`
+- Module: `strategy_integration.py`
+- Tests: `test_strategy_integration.py`
 - Purpose: connect `strategy_library`, `regime_classifier`, and `strategy_router` without runtime integration.
 
-The proposed input model should contain dependency-free values only:
+The integration input model contains dependency-free values only:
 
 - `closes` tuple
 - optional `lookback`
 - optional `min_trend_percent`
 - optional `volatility_percent`
 
-The proposed processing steps are deterministic and metadata-only:
+The integration processing steps are deterministic and metadata-only:
 
 1. Build the default strategy catalog.
 2. Classify the regime from closes and thresholds.
 3. Route eligible strategy metadata from the regime result.
 
-The proposed output model should be a frozen metadata-only integration result with:
+The integration output model is a frozen metadata-only integration result with:
 
 - `regime_id`
 - `selected_strategy_id`
@@ -100,16 +103,18 @@ Explicit integration boundaries:
 - No `strategy_engine.py` integration.
 - No `signal_validator.py` integration.
 
-The future integration code gate requires separate approval. Signal-engine scaffold remains deferred. Runtime wiring remains deferred.
+`test_strategy_integration.py` validates deterministic orchestration under Python 3.12, including default catalog construction, regime classification, metadata routing, threshold propagation, input/result invariant hardening, import isolation, no file/env/network side effects, and absence of signal, action, order, broker, execution, risk, runtime, state, observation, or reporting fields.
+
+Runtime integration planning may follow this docs evidence. Runtime integration code remains unapproved. Signal-engine scaffold remains deferred.
 
 Current boundaries:
 
 - No runtime wiring exists yet.
 - No `main.py` integration exists yet.
 - No broker, runtime, execution, risk, state, observation, or reporting dependency is approved for strategy metadata.
-- Integration code remains unapproved.
+- Runtime integration code remains unapproved.
 - Signal-engine scaffold remains deferred.
 
-The next planned gate after this docs evidence is `STRATEGY_INTEGRATION_PLANNING`. Integration planning must remain read-only until a separate implementation gate is approved.
+The next planned gate after this docs evidence is `RUNTIME_INTEGRATION_PLANNING`. Runtime planning must remain read-only until a separate implementation gate is approved.
 
 `.venv-312` is a local-only Python 3.12 validation environment and must remain untracked.
