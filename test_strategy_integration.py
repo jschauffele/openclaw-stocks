@@ -102,6 +102,11 @@ def test_input_and_result_dataclasses_are_frozen() -> None:
         result.regime_id = "sideways"  # type: ignore[misc]
 
 
+def test_input_rejects_non_tuple_closes() -> None:
+    with pytest.raises(ValueError, match="closes must be a tuple"):
+        StrategyIntegrationInput(closes=[100.0, 101.0])  # type: ignore[arg-type]
+
+
 def test_invalid_closes_propagate_value_error_from_regime_classifier() -> None:
     with pytest.raises(ValueError, match="closes must contain positive values"):
         evaluate_strategy_integration(StrategyIntegrationInput(closes=(100.0, 0.0)))
@@ -128,6 +133,162 @@ def test_invalid_thresholds_propagate_value_error_from_regime_classifier() -> No
 def test_evaluate_strategy_integration_rejects_non_input_model() -> None:
     with pytest.raises(ValueError, match="input_model must be StrategyIntegrationInput"):
         evaluate_strategy_integration({"closes": (100.0, 101.0)})  # type: ignore[arg-type]
+
+
+def test_result_rejects_blank_regime_id_and_routing_reason() -> None:
+    with pytest.raises(ValueError, match="regime_id must be non-empty"):
+        StrategyIntegrationResult(
+            regime_id=" ",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(),
+        )
+
+    with pytest.raises(ValueError, match="routing_reason must be non-empty"):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason=" ",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_result_rejects_non_tuple_evidence_ids() -> None:
+    with pytest.raises(ValueError, match="eligible_strategy_ids must be a tuple"):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=["a"],  # type: ignore[arg-type]
+            rejected_strategy_ids=(),
+        )
+
+    with pytest.raises(ValueError, match="rejected_strategy_ids must be a tuple"):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=["a"],  # type: ignore[arg-type]
+        )
+
+
+def test_result_rejects_non_string_evidence_ids() -> None:
+    with pytest.raises(ValueError, match="eligible_strategy_ids must contain strings"):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=("a", 1),  # type: ignore[arg-type]
+            rejected_strategy_ids=(),
+        )
+
+    with pytest.raises(ValueError, match="rejected_strategy_ids must contain strings"):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("a", 1),  # type: ignore[arg-type]
+        )
+
+
+def test_result_rejects_blank_evidence_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="eligible_strategy_ids must contain non-empty strings",
+    ):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=(" ",),
+            rejected_strategy_ids=(),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="rejected_strategy_ids must contain non-empty strings",
+    ):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(" ",),
+        )
+
+
+def test_result_rejects_duplicate_eligible_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="eligible_strategy_ids contains duplicate strategy_id",
+    ):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=("a", "a"),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_result_rejects_duplicate_rejected_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="rejected_strategy_ids contains duplicate strategy_id",
+    ):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("a", "a"),
+        )
+
+
+def test_result_rejects_overlap_between_eligible_and_rejected_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="strategy ID appears in both eligible and rejected",
+    ):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="example",
+            eligible_strategy_ids=("a",),
+            rejected_strategy_ids=("a",),
+        )
+
+
+def test_result_rejects_selected_strategy_not_in_eligible_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="selected_strategy_id must be present in eligible_strategy_ids",
+    ):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id="missing",
+            routing_reason="example",
+            eligible_strategy_ids=("a",),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_result_rejects_selected_strategy_when_eligible_ids_empty() -> None:
+    with pytest.raises(
+        ValueError,
+        match="selected_strategy_id requires non-empty eligible_strategy_ids",
+    ):
+        StrategyIntegrationResult(
+            regime_id="sideways",
+            selected_strategy_id="missing",
+            routing_reason="example",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(),
+        )
 
 
 def test_result_exposes_no_signal_order_broker_execution_or_runtime_fields() -> None:
