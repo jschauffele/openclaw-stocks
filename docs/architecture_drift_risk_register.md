@@ -12,40 +12,31 @@ Any brittle scaffold, temporary test, deferred boundary, or known limitation mus
 
 ## Current Risks
 
-### Temporary Source-Inspection Contract Tests
+### Source-Inspection Contract Tests
 
 Risk:
 
-- `test_main_strategy_architecture_metadata.py` uses `inspect` and source-substring assertions as temporary architecture-contract tests.
-- Source-inspection tests can pass or fail for textual reasons that do not prove runtime behavior.
-- If retained after implementation, they could create false confidence or brittle failures.
+- `test_main_strategy_architecture_metadata.py` previously used `inspect` and source-substring assertions as temporary architecture-contract tests.
 
 Current mitigation:
 
-- The test scaffold is explicitly temporary and intended to define the future integration contract before implementation exists.
-- The deterministic strategy architecture docs record that source-inspection assertions must not become permanent runtime validation.
+- The metadata integration tests were converted to behavior-based tests after implementation.
+- The behavior-based tests use monkeypatches, spies, and intercepts to verify report persistence, observation isolation, JSONL isolation, reporting pass-through behavior, metadata builder order, and no second market data fetch.
 
 Future required action:
 
-- Replace source-inspection tests with behavior-based tests after implementation exists.
-- Use monkeypatches, spies, or intercepts to verify behavior directly.
-- Required replacement coverage:
-  - intercept `persist_report()`
-  - spy `append_observation()`
-  - assert `log_event()` payloads do not include `strategy_architecture`
-  - assert `reporting.py` pass-through behavior directly
-  - assert metadata builders are called outside `reporting.py`
-  - assert no second market data fetch occurs
+- Keep report metadata integration tests behavior-based.
+- Do not reintroduce source-inspection assertions as permanent runtime validation.
 
 Owner/context:
 
 - Deterministic Strategy Architecture
-- Future report-only `strategy_architecture` metadata integration
+- Report-only `strategy_architecture` metadata integration
 
 Status:
 
-- Open
-- Accepted only as pre-implementation scaffold
+- Resolved
+- Superseded by behavior-based tests
 
 Related files:
 
@@ -54,7 +45,46 @@ Related files:
 
 Promotion/removal condition:
 
-- Remove or rewrite this risk entry after source-inspection assertions are replaced by behavior-based tests and the replacement tests pass under the approved Python 3.12 validation environment.
+- This entry may be removed after the next governance review confirms no source-inspection assertions remain for report metadata integration.
+
+### Strategy Architecture Schema Expansion Without Governance
+
+Risk:
+
+- Future `strategy_architecture` metadata expansion could add fields without a schema policy.
+- Replay, report comparison, or downstream consumers could misinterpret changed fields if expansion is not versioned or documented.
+- Tuple evidence fields may serialize to JSON arrays/lists, creating ambiguity if in-memory and persisted forms are not governed.
+
+Current mitigation:
+
+- `docs/deterministic_strategy_architecture.md` records current required and optional fields, deterministic field order, tuple/list serialization expectations, and the current `schema_version` boundary.
+- JSONL and observation eligibility remain deferred.
+
+Future required action:
+
+- Document backward compatibility policy before metadata expansion.
+- Add `schema_version` before nontrivial expansion, replay-authoritative use, JSONL or observation emission, or external consumption.
+- Keep future expansion additive unless a separate schema-version gate is approved.
+
+Owner/context:
+
+- Deterministic Strategy Architecture
+- Report-only `strategy_architecture` metadata schema
+
+Status:
+
+- Open
+- Requires review before metadata expansion
+
+Related files:
+
+- `runtime_strategy_metadata_adapter.py`
+- `runtime_strategy_report_metadata.py`
+- `docs/deterministic_strategy_architecture.md`
+
+Promotion/removal condition:
+
+- Promote or remove this risk only after a schema governance gate defines versioning, backward compatibility, serialization rules, field ordering, and JSONL/observation eligibility for the next metadata expansion.
 
 ## Phase Transition Checklist
 

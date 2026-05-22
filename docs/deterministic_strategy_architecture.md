@@ -600,3 +600,44 @@ Deferred items:
 - broker submission
 - execution behavior
 - IBKR runtime activation
+
+## Report Metadata Schema Governance Planning
+
+The current report-only `strategy_architecture` payload does not require a `schema_version` yet.
+
+`schema_version` becomes required before any of the following are approved:
+
+- nontrivial metadata expansion
+- replay-authoritative use
+- JSONL emission
+- observation emission
+- external consumption
+
+Current required fields:
+
+- `regime_id`
+- `routing_reason`
+- `eligible_strategy_ids`
+- `rejected_strategy_ids`
+- `source`
+
+Current optional fields:
+
+- `selected_strategy_id`
+
+`source` remains required and fixed to `runtime_strategy_seam`.
+
+The report-only payload must preserve this deterministic field order:
+
+1. `regime_id`
+2. `selected_strategy_id`
+3. `routing_reason`
+4. `eligible_strategy_ids`
+5. `rejected_strategy_ids`
+6. `source`
+
+In memory, `eligible_strategy_ids` and `rejected_strategy_ids` remain tuples. Persisted JSON should be treated as arrays/lists after serialization.
+
+Future metadata expansion must be additive unless a separate schema-version gate is approved. Backward compatibility policy must be documented before metadata expansion.
+
+JSONL and observation eligibility remain deferred behind separate approval gates.
