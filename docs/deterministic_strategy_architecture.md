@@ -363,3 +363,52 @@ Deferred items:
 - risk sizing
 - broker submission
 - IBKR runtime activation
+
+## Report-Only Metadata Schema Planning
+
+`strategy_architecture` remains not implemented and not persisted yet.
+
+If separately approved, the future first persistence target should be report-only. Report-only metadata should be considered before observation or JSONL emission because it is evidence-oriented and less operationally coupled.
+
+Proposed future report nesting:
+
+- `orchestration.strategy_architecture`
+
+Proposed future fields copied from `StrategyArchitectureMetadata`:
+
+- `orchestration.strategy_architecture.regime_id`
+- `orchestration.strategy_architecture.selected_strategy_id`
+- `orchestration.strategy_architecture.routing_reason`
+- `orchestration.strategy_architecture.eligible_strategy_ids`
+- `orchestration.strategy_architecture.rejected_strategy_ids`
+- `orchestration.strategy_architecture.source`
+
+`orchestration.strategy_architecture.source` must equal `runtime_strategy_seam`.
+
+Report-only metadata must not be emitted to observations. Report-only metadata must not be emitted to JSONL events. Report-only metadata must not change `last_run_report.json` until separately approved.
+
+Report-only metadata must not affect:
+
+- signal generation
+- action proposal
+- risk checks
+- broker behavior
+- order behavior
+- state writes
+- execution behavior
+
+`reporting.py` code changes require separate approval. `main.py` integration remains unapproved. `observation_logger.py` changes remain deferred. JSONL event changes remain deferred.
+
+Deferred items:
+
+- `reporting.py` changes
+- `observation_logger.py` changes
+- JSONL event changes
+- `last_run_report.json` changes
+- `main.py` integration
+- runtime wiring
+- signal/action behavior
+- risk sizing
+- broker submission
+- execution behavior
+- IBKR runtime activation
