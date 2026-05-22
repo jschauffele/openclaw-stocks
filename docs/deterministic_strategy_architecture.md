@@ -14,6 +14,8 @@ The deterministic strategy architecture foundation is established through comple
 - `2abbc7e Strategy: harden strategy router validation`
 - `75d60b3 Strategy: add deterministic strategy integration scaffold`
 - `9b5ee1b Strategy: harden strategy integration validation`
+- `641352a Strategy: add deterministic runtime strategy seam scaffold`
+- `8d6c4aa Strategy: harden runtime strategy seam validation`
 
 Python 3.12 validation evidence:
 
@@ -22,6 +24,7 @@ Python 3.12 validation evidence:
 - `.venv-312/bin/python -m pytest test_regime_classifier.py` reported `36 passed`
 - `.venv-312/bin/python -m pytest test_strategy_router.py` reported `31 passed`
 - `.venv-312/bin/python -m pytest test_strategy_integration.py` reported `24 passed`
+- `.venv-312/bin/python -m pytest test_runtime_strategy_seam.py` reported `26 passed`
 
 `strategy_library.py` is a pure inner-policy metadata module. It follows the Clean Architecture Chapter 20 and Chapter 22 boundary: business rules and entities remain pure, dependencies point inward, and inner policy does not depend on outer mechanisms.
 
@@ -106,6 +109,42 @@ Explicit integration boundaries:
 `test_strategy_integration.py` validates deterministic orchestration under Python 3.12, including default catalog construction, regime classification, metadata routing, threshold propagation, input/result invariant hardening, import isolation, no file/env/network side effects, and absence of signal, action, order, broker, execution, risk, runtime, state, observation, or reporting fields.
 
 Runtime integration planning may follow this docs evidence. Runtime integration code remains unapproved. Signal-engine scaffold remains deferred.
+
+## Runtime Strategy Seam Evidence
+
+`runtime_strategy_seam.py` is a pure metadata seam:
+
+- Module: `runtime_strategy_seam.py`
+- Tests: `test_runtime_strategy_seam.py`
+- Scaffold completed at `641352a Strategy: add deterministic runtime strategy seam scaffold`
+- Validation hardening completed at `8d6c4aa Strategy: harden runtime strategy seam validation`
+
+The seam consumes already-available closes only. It calls `evaluate_strategy_integration()` only and returns metadata-only strategy architecture evidence.
+
+The seam output contains:
+
+- `regime_id`
+- `selected_strategy_id`
+- routing reason
+- `eligible_strategy_ids`
+- `rejected_strategy_ids`
+
+`test_runtime_strategy_seam.py` validates the seam under Python 3.12 with `26 passed`. The tests cover metadata propagation, threshold propagation, frozen dataclasses, input/result invariant hardening, import isolation, repeated-call determinism, no file/env/network side effects, and absence of signal, action, order, broker, execution, risk, runtime, state, observation, or reporting fields.
+
+Explicit runtime seam boundaries:
+
+- No `main.py` integration exists.
+- No runtime wiring exists.
+- No signal generation.
+- No strategy execution.
+- No broker behavior.
+- No risk sizing.
+- No order actions.
+- No submit, cancel, flatten, or remediation.
+- No state writes.
+- No observation or reporting changes.
+
+Main runtime integration planning remains separate and unapproved.
 
 ## Runtime Integration Planning
 
