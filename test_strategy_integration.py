@@ -1,0 +1,203 @@
+from __future__ import annotations
+
+import inspect
+import sys
+
+import pytest
+
+import strategy_integration
+from strategy_integration import (
+    StrategyIntegrationInput,
+    StrategyIntegrationResult,
+    evaluate_strategy_integration,
+)
+
+
+FORBIDDEN_MODULES = (
+    "main",
+    "config",
+    "broker_factory",
+    "risk_engine",
+    "execution_engine",
+    "execution_use_case",
+    "reporting",
+    "observation_logger",
+    "state_manager",
+    "market_data",
+    "strategy_engine",
+    "signal_validator",
+)
+
+
+def test_integrates_default_catalog_regime_classifier_and_router_deterministically() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            volatility_percent=2.0,
+        )
+    )
+
+    assert result == StrategyIntegrationResult(
+        regime_id="uptrend",
+        selected_strategy_id="close_momentum_v1",
+        routing_reason="selected_first_eligible_strategy",
+        eligible_strategy_ids=("close_momentum_v1",),
+        rejected_strategy_ids=(),
+    )
+
+
+def test_returns_regime_id_from_classify_regime() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(closes=(100.0, 103.0, 104.0, 105.0, 106.0))
+    )
+
+    assert result.regime_id == "volatile"
+
+
+def test_returns_selected_strategy_id_from_route_strategy() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+    )
+
+    assert result.selected_strategy_id == "close_momentum_v1"
+    assert result.routing_reason == "selected_first_eligible_strategy"
+
+
+def test_returns_eligible_and_rejected_ids_from_route_result() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+    )
+
+    assert result.eligible_strategy_ids == ("close_momentum_v1",)
+    assert result.rejected_strategy_ids == ()
+
+
+def test_passes_thresholds_into_regime_classification_behavior() -> None:
+    sideways_result = evaluate_strategy_integration(
+        StrategyIntegrationInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            min_trend_percent=2.0,
+            volatility_percent=5.0,
+        )
+    )
+    volatile_result = evaluate_strategy_integration(
+        StrategyIntegrationInput(
+            closes=(100.0, 103.0, 104.0, 105.0, 106.0),
+            min_trend_percent=2.0,
+            volatility_percent=2.0,
+        )
+    )
+
+    assert sideways_result.regime_id == "sideways"
+    assert volatile_result.regime_id == "volatile"
+
+
+def test_input_and_result_dataclasses_are_frozen() -> None:
+    input_model = StrategyIntegrationInput(closes=(100.0, 101.0))
+    result = evaluate_strategy_integration(input_model)
+
+    with pytest.raises(AttributeError):
+        input_model.lookback = 3  # type: ignore[misc]
+    with pytest.raises(AttributeError):
+        result.regime_id = "sideways"  # type: ignore[misc]
+
+
+def test_invalid_closes_propagate_value_error_from_regime_classifier() -> None:
+    with pytest.raises(ValueError, match="closes must contain positive values"):
+        evaluate_strategy_integration(StrategyIntegrationInput(closes=(100.0, 0.0)))
+
+
+def test_invalid_thresholds_propagate_value_error_from_regime_classifier() -> None:
+    with pytest.raises(ValueError, match="min_trend_percent must be >= 0"):
+        evaluate_strategy_integration(
+            StrategyIntegrationInput(
+                closes=(100.0, 101.0),
+                min_trend_percent=-1.0,
+            )
+        )
+
+    with pytest.raises(ValueError, match="volatility_percent must be >= 0"):
+        evaluate_strategy_integration(
+            StrategyIntegrationInput(
+                closes=(100.0, 101.0),
+                volatility_percent=-1.0,
+            )
+        )
+
+
+def test_evaluate_strategy_integration_rejects_non_input_model() -> None:
+    with pytest.raises(ValueError, match="input_model must be StrategyIntegrationInput"):
+        evaluate_strategy_integration({"closes": (100.0, 101.0)})  # type: ignore[arg-type]
+
+
+def test_result_exposes_no_signal_order_broker_execution_or_runtime_fields() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+    )
+    forbidden_fields = {
+        "signal",
+        "decision",
+        "action",
+        "order",
+        "order_id",
+        "qty",
+        "side",
+        "submit",
+        "cancel",
+        "flatten",
+        "broker",
+        "execution",
+        "risk",
+        "state",
+        "observation",
+        "reporting",
+        "route_to_runtime",
+        "strategy_execution",
+    }
+
+    assert forbidden_fields.isdisjoint(result.__dataclass_fields__)
+
+
+def test_module_does_not_import_strategy_engine_or_signal_validator() -> None:
+    loaded_modules = set(sys.modules)
+
+    assert "strategy_engine" not in loaded_modules
+    assert "signal_validator" not in loaded_modules
+    assert not hasattr(strategy_integration, "generate_signal_from_closes")
+    assert not hasattr(strategy_integration, "validate_signal_result")
+
+
+def test_module_does_not_import_forbidden_outer_modules() -> None:
+    loaded_modules = set(sys.modules)
+
+    assert not loaded_modules.intersection(FORBIDDEN_MODULES)
+    assert not any(module_name.startswith("ibkr_") for module_name in loaded_modules)
+    assert not any(
+        module_name.startswith("manual_ibkr_") for module_name in loaded_modules
+    )
+
+
+def test_repeated_calls_return_equal_results() -> None:
+    input_model = StrategyIntegrationInput(
+        closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+        volatility_percent=2.0,
+    )
+
+    assert evaluate_strategy_integration(input_model) == evaluate_strategy_integration(
+        input_model
+    )
+
+
+def test_no_file_env_or_network_side_effects_are_present() -> None:
+    source = inspect.getsource(strategy_integration)
+    forbidden_fragments = (
+        "open(",
+        "os.environ",
+        "getenv",
+        "socket",
+        "requests",
+        "urllib",
+        "subprocess",
+    )
+
+    assert not any(fragment in source for fragment in forbidden_fragments)
