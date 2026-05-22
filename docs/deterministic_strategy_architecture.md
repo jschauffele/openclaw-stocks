@@ -664,3 +664,42 @@ Required future guarantees before any replay-authoritative promotion:
 `reporting.py` must remain pass-through and must not own replay validation.
 
 JSONL and observation eligibility remains separate and unapproved.
+
+## Runtime Orchestration Drift-Risk Planning
+
+`main.py` is currently the runtime sequencing authority. This is acceptable for now.
+
+Immediate refactor is not approved. Future extraction must be pressure-driven, not speculative.
+
+Current architectural strengths:
+
+- `reporting.py` remains pass-through.
+- Runtime visibility has provider/composer separation.
+- Strategy metadata is separated into seams and adapters.
+- Broker creation is behind `broker_factory.py`.
+- Reconciliation workflow is partially separated.
+- Event and observation modules are separated.
+
+Current orchestration risks:
+
+- sequencing brittleness
+- mutable shared `report_config`
+- duplicated early-exit persistence paths
+- growing coordination density
+- broker creation before dry-run isolation
+
+Future extraction triggers:
+
+- duplicated persistence behavior increases
+- ordering bugs appear
+- report/event coupling increases
+- orchestration tests become unstable
+- runtime lifecycle branching grows materially
+
+Future seam candidates:
+
+- completion/persistence coordinator
+- orchestration payload builder
+- runtime coordinator or use-case layer
+- run-context/config snapshot builder
+- event/observation boundary wrapper

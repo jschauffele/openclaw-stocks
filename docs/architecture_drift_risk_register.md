@@ -129,6 +129,61 @@ Promotion/removal condition:
 
 - Close this risk only when replay schema, replay behavior tests, persistence authority, and backward-compatible migration policy are approved.
 
+### Runtime Orchestration Complexity Accumulation
+
+Risk:
+
+- `main.py` is currently the runtime sequencing authority.
+- Sequencing responsibility includes config loading, broker adapter creation, data gates, strategy evaluation, metadata assembly, risk checks, reconciliation, reporting, eventing, and observations.
+- Coordination density can make ordering dependencies brittle as more runtime metadata and lifecycle branches are added.
+- Mutable shared `report_config` and duplicated early-exit persistence paths can increase drift risk.
+- Broker creation currently occurs before dry-run isolation can fully avoid credential-dependent construction.
+
+Current mitigation:
+
+- Immediate refactor is not approved.
+- Current sequencing in `main.py` is acceptable for now.
+- `reporting.py` remains pass-through.
+- Runtime visibility has provider/composer separation.
+- Strategy metadata is separated into seams and adapters.
+- Broker creation is behind `broker_factory.py`.
+- Reconciliation workflow is partially separated.
+- Event and observation modules are separated.
+
+Future required action:
+
+- Keep extraction pressure-driven, not speculative.
+- Consider extraction only when duplicated persistence behavior increases, ordering bugs appear, report/event coupling increases, orchestration tests become unstable, or runtime lifecycle branching grows materially.
+- Candidate future seams include completion/persistence coordinator, orchestration payload builder, runtime coordinator or use-case layer, run-context/config snapshot builder, and event/observation boundary wrapper.
+
+Owner/context:
+
+- Runtime orchestration
+- Future `main.py` drift control
+
+Status:
+
+- Open
+- Monitor before runtime expansion
+
+Related files:
+
+- `main.py`
+- `reporting.py`
+- `runtime_visibility_provider_composer.py`
+- `runtime_visibility_orchestrator.py`
+- `runtime_strategy_seam.py`
+- `runtime_strategy_metadata_adapter.py`
+- `runtime_strategy_report_metadata.py`
+- `broker_factory.py`
+- `ibkr_submit_reconciliation_workflow.py`
+- `event_logger.py`
+- `observation_logger.py`
+
+Promotion/removal condition:
+
+- Promote this risk to an implementation gate only after a concrete extraction trigger appears and a separate test-first refactor plan is approved.
+
 ## Phase Transition Checklist
 
 Before moving to a new implementation or runtime phase, check for:
