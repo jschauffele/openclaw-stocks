@@ -413,6 +413,27 @@ Deferred items:
 - execution behavior
 - IBKR runtime activation
 
+## Report Metadata Assembly Planning
+
+No new seam or adapter is needed before reporting integration planning.
+
+The existing metadata chain is sufficient for a future report-only `strategy_architecture` payload:
+
+1. `runtime_strategy_seam.py`
+2. `runtime_strategy_metadata_adapter.py`
+3. `runtime_strategy_report_metadata.py`
+
+`reporting.py` must remain render/pass-through only. Future metadata assembly must occur before `persist_report()` is called, and metadata assembly authority must not move into `reporting.py`.
+
+Current approval boundaries:
+
+- Observation and JSONL emission remain explicitly out of scope.
+- `last_run_report.json` schema change remains unapproved.
+- Runtime and `main.py` integration remain unapproved.
+- No implementation is approved by this planning note.
+
+Any future code gate must be separate, explicit, and test-first.
+
 ## Report-Only Strategy Metadata Evidence
 
 `runtime_strategy_report_metadata.py` is a pure report-shaping seam:
