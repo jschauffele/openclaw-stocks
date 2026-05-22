@@ -2,219 +2,195 @@
 
 ## Snapshot
 
-Canonical head: `791bcbe Docs: capture architecture governance freeze snapshot`
+Current HEAD: `09c4b2e Docs: define runtime orchestration drift risks`
 
-This snapshot records the current frozen architectural state. It is a
-governance note only. It does not approve runtime wiring, execution behavior,
-test behavior, or production activation beyond the boundaries already present
-at the canonical head.
+This snapshot records the post-report-metadata-governance architecture state. It is docs-only governance evidence. It does not approve new runtime wiring, broker behavior, execution behavior, observation emission, JSONL emission, or production activation.
 
-## Current Frozen Boundaries
+## Completed Governance Phases
 
-`main.py` remains the production orchestration owner.
+Completed deterministic strategy architecture and governance phases:
 
-It retains authority over:
+- Strategy Library Scaffold
+- Strategy Library Validation Hardening
+- Strategy Architecture Docs Evidence
+- Regime Classifier Scaffold
+- Regime Classifier Validation Hardening
+- Regime Classifier Docs Evidence
+- Strategy Router Scaffold
+- Strategy Router Validation Hardening
+- Strategy Router Docs Evidence
+- Strategy Integration Docs Planning
+- Strategy Integration Scaffold
+- Strategy Integration Validation Hardening
+- Strategy Integration Docs Evidence
+- Runtime Integration Boundary Planning
+- Runtime Strategy Seam Scaffold
+- Runtime Strategy Seam Validation Hardening
+- Runtime Strategy Seam Docs Evidence
+- Main Runtime Metadata Contract Planning
+- Runtime Strategy Metadata Adapter Scaffold
+- Runtime Strategy Metadata Adapter Docs Evidence
+- Reporting and Observation Metadata Planning
+- Report-Only Strategy Metadata Schema Planning
+- Report-Only Strategy Metadata Scaffold
+- Report-Only Strategy Metadata Evidence
+- Reporting Integration Boundary Planning
+- Report Metadata Assembly Boundary Planning
+- Metadata Failure Boundary Planning
+- Drift-Risk Governance
+- Report-Only Strategy Metadata Implementation
+- Report Metadata Implementation Evidence
+- Report Metadata Schema Governance
+- Replay Authority Boundary Planning
+- Runtime Orchestration Drift-Risk Planning
 
-- orchestration sequencing
-- side-effect timing
-- early returns
-- event, report, and observation persistence timing
-- state-write timing
-- completion control flow
-- strategy, risk, duplicate, and reconciliation decision placement
+## Approved `strategy_architecture` Scope
 
-Broker adapters remain mechanical plugins. They may build broker-specific
-payloads, submit when instructed, normalize broker responses, expose broker read
-snapshots, and manage native lifecycle mechanics. They must not authorize
-execution, bypass strategy or risk policy, own retry or remediation policy, or
-decide whether unresolved reconciliation permits future execution.
+Approved scope:
 
-Runtime visibility remains observability and readiness metadata only.
-`runtime_visibility_blocking` may be calculated and reported, but it is not an
-execution gate.
+- report-only `strategy_architecture` metadata assembly in `main.py`
+- assembly after already-fetched closes are available
+- assembly before report persistence
+- use of the existing metadata chain:
+  1. `build_runtime_strategy_metadata()`
+  2. `build_strategy_architecture_metadata()`
+  3. `build_orchestration_strategy_architecture_payload()`
+- report nesting under `orchestration.strategy_architecture`
+- fail-open runtime/report persistence behavior on metadata `ValueError`
+- fail-closed metadata behavior by omitting invalid or partial metadata
 
-## Current Detached Seams
+Current report-only fields:
 
-The current detached seams are:
+- `regime_id`
+- `selected_strategy_id`
+- `routing_reason`
+- `eligible_strategy_ids`
+- `rejected_strategy_ids`
+- `source`
 
-- `execution_use_case.py`, which models broker-agnostic execution request and
-  outcome behavior without production orchestration integration
-- runtime visibility providers and orchestration, which can produce reportable
-  read-only metadata without owning execution decisions
-- manual IBKR read-only runtime visibility smoke tooling, which proves
-  observability only
-- manual IBKR submit-reconciliation smoke tooling, which remains outside the
-  production `main.py` execution path
+`source` is fixed to `runtime_strategy_seam`.
 
-These seams are allowed to exist as isolated design and evidence surfaces. They
-are not approval to move production control flow into them.
+## Prohibited And Unapproved Scope
 
-## Current Approved Runtime Behavior
+The following remain unapproved:
 
-The approved runtime behavior remains the existing `main.py` flow:
+- signal generation changes
+- action proposal changes
+- strategy execution
+- risk sizing changes
+- broker behavior changes
+- order behavior changes
+- submit, cancel, flatten, retry, resubmit, or remediation behavior
+- state-write changes
+- observation emission of `strategy_architecture`
+- JSONL emission of `strategy_architecture`
+- `reporting.py` ownership of metadata assembly or validation
+- `last_run_report.json` schema expansion beyond the current report-only payload
+- runtime wiring beyond the current metadata-only report assembly
+- replay-authoritative use of `strategy_architecture`
+- external consumption of `strategy_architecture`
 
-- load configuration
-- create the supported production broker adapter through `broker_factory.py`
-- build and attach runtime visibility metadata for reporting only
-- validate configuration and market data
-- generate and validate strategy signal
-- run risk and duplicate checks
-- reconcile broker position and open-order state before submit
-- handle dry-run or paper-submit behavior
-- run submit reconciliation when broker submission becomes uncertain
-- persist events, reports, observations, and state from the current
-  orchestration branches
+## Replay Authority Status
 
-Runtime visibility metadata may appear in reports, but production strategy,
-risk, submit, cancel, flatten, remediation, reconciliation, and completion
-behavior must not branch on runtime visibility blocking state.
+Current `strategy_architecture` metadata is report-only descriptive evidence.
 
-## Current Deferred Areas
+It is not replay-authoritative and is not replay-sufficient.
 
-The following areas remain deferred:
+Replay-authoritative evolution remains deferred. A future replay-authoritative promotion requires separate approval for schema versioning, exact input snapshot or stable input reference, closes used, lookback and threshold evidence, strategy catalog identity or hash, classifier/router rule versioning, deterministic serialization, backward compatibility, migration policy, persisted JSON replay-stability tests, and a decision about whether replay authority belongs in JSONL/event sourcing rather than report-only persistence.
 
-- production integration of `execution_use_case.py`
-- IBKR execution activation through `broker_factory.py`
-- strategy-driven IBKR execution
-- runtime visibility enforcement
-- retry policy
-- remediation policy
-- cancel, flatten, or resubmit behavior
-- full presenter extraction
-- full mapper extraction
-- full terminal report builder extraction
-- any broader relocation of `main.py` terminal branches
+## JSONL And Observation Status
 
-Deferred means not approved for implementation without a separate architecture
-review.
+JSONL and observation emission remain explicitly out of scope.
 
-## Current Orchestration Ownership Posture
+Current approved status:
 
-The orchestration ownership posture is conservative. `main.py` may be pressured,
-but it remains the boundary owner for sequencing, side effects, terminal
-branches, and run completion.
+- no `strategy_architecture` JSONL event emission
+- no `strategy_architecture` observation emission
+- no observation schema change
+- no event schema change for `strategy_architecture`
+- JSONL and observation eligibility remain separate and unapproved
 
-Narrow helpers may be considered later only when they receive already-decided
-facts and return pure payloads or notes. They must not create a second
-orchestration layer or hide execution policy inside formatting code.
+## `reporting.py` Ownership Boundary
 
-## `execution_use_case.py` Status
+`reporting.py` remains pass-through report construction and persistence.
 
-`execution_use_case.py` is present as a broker-agnostic use-case skeleton and
-testable model. It accepts already-approved trade intent and maps execution
-outcomes for dry-run, paper-submit, and uncertain-submit reconciliation cases.
+Approved reporting boundary:
 
-It remains frozen and detached from runtime orchestration. It must not become
-part of production broker selection, production submit routing, or completion
-control without a separate explicit review.
+- accept the supplied `orchestration` object
+- include it in the report payload
+- call report persistence through `write_run_report()`
 
-## Runtime Visibility Status
+Not approved for `reporting.py`:
 
-Runtime visibility is observed-only.
+- metadata assembly
+- metadata validation
+- replay validation
+- observation emission
+- JSONL emission
+- strategy, risk, broker, order, or execution policy
 
-Approved behavior:
+## `main.py` Orchestration Status
 
-- read-only providers may expose broker-adjacent diagnostics
-- runtime visibility summary may be calculated
-- `runtime_visibility_blocking` and reason fields may be reported
-- manual read-only IBKR evidence may document observability readiness
+`main.py` is currently the runtime sequencing authority.
 
-Not approved:
+This is acceptable for now. Immediate refactor is not approved.
 
-- blocking trades
-- permitting trades
-- routing orders
-- changing risk or duplicate decisions
-- triggering cancel, flatten, retry, resubmit, or remediation behavior
-- becoming a dependency for execution completion
+Current `main.py` responsibilities include:
 
-## Presenter And Mapper Status
+- configuration load and runtime config fan-out
+- broker adapter creation
+- run ID and event logger initialization
+- runtime visibility summary insertion into report config
+- data config validation
+- killswitch, config, market-session, market-data, strategy, duplicate, risk, reconciliation, dry-run, submit, and completion gates
+- report-only strategy metadata assembly
+- event, observation, report, and state persistence timing
 
-Presenter and mapper pressure is classified as medium.
+Future extraction must be pressure-driven, not speculative.
 
-No presenter or mapper extraction is approved yet. Future helpers may only
-build already-decided dictionaries or notes, such as event payloads, report
-notes, or observation fields.
+## Current Drift Risks
 
-Presenter and mapper helpers must not own strategy policy, risk policy,
-duplicate policy, reconciliation policy, runtime visibility policy, broker
-calls, order construction, order submission, state writes, persistence,
-retries, remediation, cancel behavior, flatten behavior, resubmit behavior, or
-completion control flow.
+Current drift risks recorded in `docs/architecture_drift_risk_register.md`:
 
-## Reconciliation Ownership Status
+- Source-inspection contract tests: resolved and superseded by behavior-based tests.
+- Strategy Architecture Schema Expansion Without Governance: open.
+- Strategy Architecture Mistaken As Replay-Authoritative: open.
+- Runtime Orchestration Complexity Accumulation: open.
 
-Reconciliation currently has two distinct meanings that must stay separated:
+## Approved Future Seam Candidates
 
-- pre-submit broker-state reconciliation in `main.py`, which can block the
-  current order attempt based on existing position and open-order facts
-- uncertain-submit reconciliation, which evaluates broker state after a submit
-  acknowledgement becomes uncertain
+The following are recorded as future seam candidates only. They do not approve implementation:
 
-`main.py` owns production reconciliation placement, event/report persistence,
-and completion behavior. Reconciliation helpers and workflows may provide
-facts, normalized results, or isolated smoke evidence, but they do not decide
-future execution authority or own remediation policy.
+- completion/persistence coordinator
+- orchestration payload builder
+- runtime coordinator or use-case layer
+- run-context/config snapshot builder
+- event/observation boundary wrapper
 
-## `broker_factory.py` Status
+Extraction remains gated by concrete pressure such as duplicated persistence behavior, ordering bugs, report/event coupling, unstable orchestration tests, or materially larger runtime lifecycle branching.
 
-`broker_factory.py` remains execution-isolated and production-supported only for
-the currently configured Alpaca adapter path.
+## Validation Status
 
-IBKR execution must not be added to production broker selection until a
-separate architecture review approves the execution boundary, disabled-by-
-default configuration gates, fake-native tests, paper-only smoke evidence,
-submit reconciliation evidence, operator controls, and rollback posture.
+Targeted validation evidence for the current report metadata implementation:
 
-Runtime visibility provider construction must not change broker construction or
-execution routing.
+- `venv/bin/python -m pytest test_main_strategy_architecture_metadata.py -q`
+- `8 passed, 1 warning`
 
-## Pressures That Could Justify Reopening Boundaries Later
+Raw local `main.py` validation remains inconclusive without local credentials because broker construction occurs before dry-run can avoid `TradingClient` construction.
 
-The following pressures may justify a future boundary review:
+Approved validation method for the report metadata gate is the targeted pytest harness.
 
-- repeated event payload mapping duplicates the same already-decided facts
-- report or observation field construction becomes error-prone while remaining
-  pure formatting
-- terminal branches become difficult to audit because formatting obscures
-  control flow
-- fake-broker execution use-case tests expose a stable contract that can reduce
-  production risk
-- IBKR paper-only validation produces enough evidence to review a disabled
-  integration gate
-- runtime visibility produces stable false-positive and false-negative handling
-  requirements suitable for an enforcement design
-- reconciliation evidence shows a narrow reusable result model that does not
-  move policy ownership
+## Locked Governance Principles
 
-These pressures justify review only. They do not pre-approve implementation.
+Currently locked governance principles:
 
-## Changes Explicitly Not Approved
-
-The freeze does not approve:
-
-- moving production orchestration out of `main.py`
-- wiring `execution_use_case.py` into production runtime
-- adding IBKR to `broker_factory.py`
-- using runtime visibility to block, permit, or route trades
-- turning `runtime_visibility_blocking` into execution authorization
-- moving strategy, risk, duplicate, reconciliation, or runtime visibility
-  policy into presenters or mappers
-- moving persistence or state writes into presenters or mappers
-- adding retry, remediation, cancel, flatten, or resubmit behavior
-- enabling strategy-driven IBKR execution
-- treating read-only IBKR visibility evidence as execution readiness
-- treating manual smoke tooling as production activation
-
-## Canonical Commits Associated With The Freeze State
-
-- `f03922a Docs: define presenter mapper boundary`
-- `26f722d Test: cover execution outcome report event compatibility`
-- `e682cc7 Architecture: add broker-agnostic execution use-case skeleton`
-- `c44284c Docs: define broker-agnostic execution use-case model`
-- `8a309d5 Docs: define execution use-case boundaries`
-- `410fd2a Docs: separate IBKR visibility and execution architecture`
-- `ee70248 Docs: define runtime visibility architecture boundaries`
-- `1ce660a Docs: record first IBKR read-only visibility smoke evidence`
-- `a4223a7 Architecture: add manual IBKR read-only visibility smoke harness`
-- `ea7167f Architecture: add guarded IBKR read-only visibility provider scaffold`
+- Strategy metadata remains report-only descriptive evidence.
+- `strategy_architecture` metadata must not affect signal, action, risk, broker, order, state, execution, observation, or JSONL behavior.
+- Metadata failure must fail open for runtime/report persistence and fail closed for metadata itself.
+- Invalid or partial metadata must be omitted.
+- `reporting.py` remains pass-through and must not own metadata assembly, metadata validation, or replay validation.
+- JSONL and observation eligibility remain deferred behind separate gates.
+- Schema versioning is not required for the current payload, but becomes required before nontrivial expansion, replay-authoritative use, JSONL/observation emission, or external consumption.
+- Future metadata expansion must be additive unless a schema-version gate is separately approved.
+- Backward compatibility policy must be documented before metadata expansion.
+- `main.py` remains the runtime sequencing authority until a separate, test-first extraction gate is approved.
