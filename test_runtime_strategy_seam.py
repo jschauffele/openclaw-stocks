@@ -114,6 +114,167 @@ def test_rejects_non_runtime_strategy_seam_input() -> None:
         build_runtime_strategy_metadata({"closes": (100.0, 101.0)})  # type: ignore[arg-type]
 
 
+def test_input_rejects_non_tuple_closes() -> None:
+    with pytest.raises(ValueError, match="closes must be a tuple"):
+        RuntimeStrategySeamInput(closes=[100.0, 101.0])  # type: ignore[arg-type]
+
+
+def test_result_rejects_blank_regime_id() -> None:
+    with pytest.raises(ValueError, match="regime_id must be non-empty"):
+        RuntimeStrategySeamResult(
+            regime_id=" ",
+            selected_strategy_id=None,
+            routing_reason="no eligible strategy",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1",),
+        )
+
+
+def test_result_rejects_blank_routing_reason() -> None:
+    with pytest.raises(ValueError, match="routing_reason must be non-empty"):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason=" ",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1",),
+        )
+
+
+def test_result_rejects_non_tuple_eligible_strategy_ids() -> None:
+    with pytest.raises(ValueError, match="eligible_strategy_ids must be a tuple"):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no eligible strategy",
+            eligible_strategy_ids=["close_momentum_v1"],  # type: ignore[arg-type]
+            rejected_strategy_ids=(),
+        )
+
+
+def test_result_rejects_non_tuple_rejected_strategy_ids() -> None:
+    with pytest.raises(ValueError, match="rejected_strategy_ids must be a tuple"):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1",),
+            rejected_strategy_ids=["other_strategy"],  # type: ignore[arg-type]
+        )
+
+
+def test_result_rejects_non_string_ids_in_evidence_tuples() -> None:
+    with pytest.raises(ValueError, match="eligible_strategy_ids must contain strings"):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no eligible strategy",
+            eligible_strategy_ids=(123,),  # type: ignore[typeddict-item]
+            rejected_strategy_ids=(),
+        )
+    with pytest.raises(ValueError, match="rejected_strategy_ids must contain strings"):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no eligible strategy",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(123,),  # type: ignore[typeddict-item]
+        )
+
+
+def test_result_rejects_blank_ids_in_evidence_tuples() -> None:
+    with pytest.raises(
+        ValueError, match="eligible_strategy_ids must contain non-empty strings"
+    ):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no eligible strategy",
+            eligible_strategy_ids=(" ",),
+            rejected_strategy_ids=(),
+        )
+    with pytest.raises(
+        ValueError, match="rejected_strategy_ids must contain non-empty strings"
+    ):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no eligible strategy",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(" ",),
+        )
+
+
+def test_result_rejects_duplicate_eligible_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="eligible_strategy_ids contains duplicate strategy_id: close_momentum_v1",
+    ):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1", "close_momentum_v1"),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_result_rejects_duplicate_rejected_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="rejected_strategy_ids contains duplicate strategy_id: close_momentum_v1",
+    ):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no eligible strategy",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1", "close_momentum_v1"),
+        )
+
+
+def test_result_rejects_overlap_between_eligible_and_rejected_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="strategy ID appears in both eligible and rejected: close_momentum_v1",
+    ):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1",),
+            rejected_strategy_ids=("close_momentum_v1",),
+        )
+
+
+def test_result_rejects_selected_strategy_not_in_eligible_strategy_ids() -> None:
+    with pytest.raises(
+        ValueError,
+        match="selected_strategy_id must be present in eligible_strategy_ids",
+    ):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id="missing_strategy",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1",),
+            rejected_strategy_ids=(),
+        )
+
+
+def test_result_rejects_selected_strategy_when_eligible_strategy_ids_is_empty() -> None:
+    with pytest.raises(
+        ValueError,
+        match="selected_strategy_id requires non-empty eligible_strategy_ids",
+    ):
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(),
+        )
+
+
 def test_invalid_closes_propagate_value_error() -> None:
     with pytest.raises(ValueError, match="closes must contain positive values"):
         build_runtime_strategy_metadata(RuntimeStrategySeamInput(closes=(100.0, 0.0)))
