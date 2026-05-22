@@ -225,3 +225,63 @@ Deferred items:
 - risk sizing
 - broker submission
 - IBKR runtime activation
+
+## Main Runtime Metadata Contract
+
+Main runtime metadata planning is docs-only. `main.py` remains untouched, and runtime wiring remains unapproved.
+
+Future metadata-only integration must be report/evidence only. Future code must not modify signal, action, risk, broker, order, state, observation, or reporting behavior.
+
+Future code may only consume closes already fetched by the current flow. Future code may call `build_runtime_strategy_metadata()` only. If possible, future code should use a separate adapter/seam before any direct `main.py` integration.
+
+Exact future metadata object name:
+
+- `strategy_architecture`
+
+Exact future metadata fields:
+
+- `strategy_architecture.regime_id`
+- `strategy_architecture.selected_strategy_id`
+- `strategy_architecture.routing_reason`
+- `strategy_architecture.eligible_strategy_ids`
+- `strategy_architecture.rejected_strategy_ids`
+- `strategy_architecture.source`
+
+`strategy_architecture.source` must equal `runtime_strategy_seam`.
+
+Persistence status:
+
+- not yet persisted
+- not yet reported
+- not yet emitted in observations
+- not yet emitted in JSONL events
+- not yet added to `last_run_report.json`
+
+Future persistence, reporting, observation, JSONL event, or `last_run_report.json` changes require separate approval.
+
+Failure behavior:
+
+- If `build_runtime_strategy_metadata()` raises `ValueError`, future code must fail closed for metadata only.
+- Metadata failure must not alter signal generation.
+- Metadata failure must not alter action proposal.
+- Metadata failure must not alter risk checks.
+- Metadata failure must not alter broker or order behavior.
+- Metadata failure must not submit, cancel, flatten, or remediate.
+
+`strategy_engine.py` remains unchanged. `signal_validator.py` remains unchanged.
+
+Any future `main.py` code gate requires separate explicit approval.
+
+Deferred items:
+
+- `main.py` code changes
+- runtime wiring
+- reporting schema changes
+- observation schema changes
+- JSONL event changes
+- `last_run_report.json` changes
+- signal-engine scaffold
+- strategy execution
+- risk sizing
+- broker submission
+- IBKR runtime activation
