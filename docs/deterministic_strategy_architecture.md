@@ -107,6 +107,31 @@ Explicit integration boundaries:
 
 Runtime integration planning may follow this docs evidence. Runtime integration code remains unapproved. Signal-engine scaffold remains deferred.
 
+## Runtime Integration Planning
+
+Runtime integration planning is docs-only. `main.py` remains untouched.
+
+No runtime wiring is approved. No runtime code is approved.
+
+The first future runtime seam must be metadata-only and non-executing. Future code may read already-available closes only and may call `evaluate_strategy_integration()`. Future output must be metadata-only strategy architecture evidence.
+
+Explicit runtime integration boundaries:
+
+- No signal generation.
+- No strategy execution.
+- No broker behavior.
+- No risk sizing.
+- No order actions.
+- No submit, cancel, flatten, or remediation.
+- No state writes.
+- No observation or reporting changes.
+- `strategy_engine.py` remains unchanged.
+- `signal_validator.py` remains unchanged.
+- IBKR runtime activation remains deferred.
+- Broker submission remains deferred.
+
+Any future runtime integration code gate requires separate approval.
+
 Current boundaries:
 
 - No runtime wiring exists yet.
