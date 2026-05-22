@@ -434,6 +434,35 @@ Current approval boundaries:
 
 Any future code gate must be separate, explicit, and test-first.
 
+## Metadata Failure Boundary Planning
+
+Future `strategy_architecture` metadata assembly is optional and degradable.
+
+Metadata assembly failure must fail open for runtime and report persistence. A metadata assembly failure must not block report persistence.
+
+Metadata assembly failure must fail closed for metadata itself. Invalid or partial `strategy_architecture` metadata must not be persisted.
+
+On metadata assembly failure, future implementation should omit `strategy_architecture` unless a separately approved metadata error surface is designed.
+
+Metadata exceptions must remain isolated from:
+
+- signal generation
+- action proposal
+- risk checks
+- broker behavior
+- order behavior
+- state writes
+- execution behavior
+- observation behavior
+- JSONL event behavior
+- report persistence
+
+Failure handling authority must not move into `reporting.py`. `reporting.py` remains render/pass-through only.
+
+Observation and JSONL error emission remain out of scope.
+
+Any future implementation gate must be separate, explicit, and test-first.
+
 ## Report-Only Strategy Metadata Evidence
 
 `runtime_strategy_report_metadata.py` is a pure report-shaping seam:
