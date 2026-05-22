@@ -434,6 +434,23 @@ Current approval boundaries:
 
 Any future code gate must be separate, explicit, and test-first.
 
+## Report Metadata Test Scaffold Limitation
+
+`test_main_strategy_architecture_metadata.py` currently uses `inspect` and source-substring assertions as a temporary architecture-contract scaffold. This is acceptable only before implementation exists.
+
+After implementation, these tests must be converted to behavior-based tests using monkeypatches, spies, or intercepts.
+
+Required future replacements:
+
+- intercept `persist_report()`
+- spy `append_observation()`
+- assert `log_event()` payloads do not include `strategy_architecture`
+- assert `reporting.py` pass-through behavior directly
+- assert metadata builders are called outside `reporting.py`
+- assert no second market data fetch occurs
+
+Source-inspection assertions must not become permanent runtime validation.
+
 ## Metadata Failure Boundary Planning
 
 Future `strategy_architecture` metadata assembly is optional and degradable.
