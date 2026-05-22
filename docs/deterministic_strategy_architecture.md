@@ -522,6 +522,40 @@ Explicit report-only metadata boundaries:
 
 Future `reporting.py` integration requires separate approval. Observation, JSONL, and `main.py` integration remain deferred.
 
+## Report-Only Strategy Metadata Implementation Evidence
+
+Report-only `strategy_architecture` metadata implementation was completed and pushed in:
+
+- `8fda85b Main: add report-only strategy architecture metadata`
+
+Local `main` and `origin/main` were aligned at `8fda85b`.
+
+Targeted validation:
+
+- `venv/bin/python -m pytest test_main_strategy_architecture_metadata.py -q`
+- `8 passed, 1 warning`
+
+Implementation scope:
+
+- report-only `strategy_architecture` metadata assembly in `main.py`
+- assembly occurs before report persistence
+- assembly uses the existing metadata chain:
+  1. `build_runtime_strategy_metadata()`
+  2. `build_strategy_architecture_metadata()`
+  3. `build_orchestration_strategy_architecture_payload()`
+
+Preserved boundaries:
+
+- `reporting.py` remains pass-through only
+- no JSONL emission
+- no observation emission
+- no broker, risk, execution, or order behavior changes
+- no second market data fetch
+
+Raw local `main.py` validation was inconclusive because local credentials were absent and broker construction occurs before dry-run can avoid `TradingClient` creation.
+
+The approved validation method for this gate is the targeted pytest harness, not raw local `main.py`.
+
 ## Reporting Integration Planning
 
 `reporting.py` currently has an `orchestration` passthrough field in the report construction path.
