@@ -329,3 +329,37 @@ Explicit metadata adapter boundaries:
 - The adapter does not affect signal, action, risk, broker, order, execution, state, observation, or reporting behavior.
 
 Future persistence, reporting, observation, JSONL event, `last_run_report.json`, or `main.py` integration still requires separate approval. Main runtime integration remains unapproved.
+
+## Reporting And Observation Metadata Planning
+
+`strategy_architecture` remains not persisted, not reported, not emitted in observations, not emitted in JSONL events, and not added to `last_run_report.json`.
+
+Reporting schema changes require separate approval. Observation schema changes require separate approval. JSONL event changes require separate approval. `last_run_report.json` schema changes require separate approval. `main.py` integration remains unapproved.
+
+If later approved, report-only metadata should be considered before observation or JSONL emission because it is evidence-oriented and less operationally coupled. Observation and JSONL emission should remain deferred until report-only metadata is proven safe.
+
+Metadata must never affect:
+
+- signal generation
+- action proposal
+- risk checks
+- broker behavior
+- order behavior
+- state writes
+- execution behavior
+
+`strategy_engine.py` remains unchanged. `signal_validator.py` remains unchanged.
+
+Deferred items:
+
+- `main.py` code changes
+- `reporting.py` changes
+- `observation_logger.py` changes
+- JSONL event changes
+- `last_run_report.json` changes
+- runtime wiring
+- signal-engine scaffold
+- strategy execution
+- risk sizing
+- broker submission
+- IBKR runtime activation
