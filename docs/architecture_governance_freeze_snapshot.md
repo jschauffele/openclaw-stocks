@@ -2,9 +2,14 @@
 
 ## Snapshot
 
-Current HEAD: `09c4b2e Docs: define runtime orchestration drift risks`
+Snapshot architecture baseline: `e5d1415 Docs: refresh architecture governance freeze snapshot`
 
 This snapshot records the post-report-metadata-governance architecture state. It is docs-only governance evidence. It does not approve new runtime wiring, broker behavior, execution behavior, observation emission, JSONL emission, or production activation.
+
+Related governance documents:
+
+- `docs/deterministic_strategy_architecture.md` is the chronological evidence and planning log.
+- `docs/architecture_drift_risk_register.md` is the active and resolved drift-risk source.
 
 ## Completed Governance Phases
 

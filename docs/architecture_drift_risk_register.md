@@ -6,6 +6,11 @@ This register records known architecture drift risks before the project moves to
 
 The goal is to prevent temporary scaffolds, deferred boundaries, brittle tests, and known limitations from becoming permanent without explicit review.
 
+Related governance documents:
+
+- `docs/deterministic_strategy_architecture.md` is the chronological evidence and planning log.
+- `docs/architecture_governance_freeze_snapshot.md` is the compact current approved-state snapshot.
+
 ## Register Rule
 
 Any brittle scaffold, temporary test, deferred boundary, or known limitation must be recorded here before moving on to the next phase.

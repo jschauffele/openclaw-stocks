@@ -1,5 +1,14 @@
 # Deterministic Strategy Architecture
 
+## Governance Document Roles
+
+This document is the chronological evidence and planning log for deterministic strategy architecture.
+
+Related governance documents:
+
+- `docs/architecture_drift_risk_register.md` is the active and resolved drift-risk source.
+- `docs/architecture_governance_freeze_snapshot.md` is the compact current approved-state snapshot.
+
 ## Foundation Evidence
 
 Current phase: Deterministic Strategy Architecture.
@@ -133,7 +142,7 @@ The seam output contains:
 
 Explicit runtime seam boundaries:
 
-- No `main.py` integration exists.
+- At this point, no `main.py` integration existed.
 - No runtime wiring exists.
 - No signal generation.
 - No strategy execution.
@@ -148,7 +157,9 @@ Main runtime integration planning remains separate and unapproved.
 
 ## Runtime Integration Planning
 
-Runtime integration planning is docs-only. `main.py` remains untouched.
+Historical status: superseded by the later approved report-only `strategy_architecture` metadata implementation. Broader runtime wiring remains unapproved.
+
+At this planning point, runtime integration planning was docs-only and `main.py` remained untouched.
 
 No runtime wiring is approved. No runtime code is approved.
 
@@ -174,7 +185,7 @@ Any future runtime integration code gate requires separate approval.
 Current boundaries:
 
 - No runtime wiring exists yet.
-- No `main.py` integration exists yet.
+- At this point, no `main.py` integration existed yet.
 - No broker, runtime, execution, risk, state, observation, or reporting dependency is approved for strategy metadata.
 - Runtime integration code remains unapproved.
 - Signal-engine scaffold remains deferred.
@@ -185,7 +196,9 @@ The next planned gate after this docs evidence is `RUNTIME_INTEGRATION_PLANNING`
 
 ## Main Runtime Integration Planning
 
-Main runtime integration planning is docs-only. `main.py` remains untouched.
+Historical status: superseded by the approved report-only `strategy_architecture` metadata implementation recorded later in this document. The implementation uses `main.py` only for report-only metadata assembly and does not approve broader runtime wiring.
+
+At this planning point, main runtime integration planning was docs-only and `main.py` remained untouched.
 
 Runtime wiring remains unapproved. Future code may only consume closes already fetched by the current flow. Future code may call `build_runtime_strategy_metadata()` only, and output must remain metadata-only evidence.
 
@@ -228,7 +241,9 @@ Deferred items:
 
 ## Main Runtime Metadata Contract
 
-Main runtime metadata planning is docs-only. `main.py` remains untouched, and runtime wiring remains unapproved.
+Historical status: partially superseded by the approved report-only `strategy_architecture` metadata implementation recorded later in this document. The field contract remains relevant; the earlier not-yet-persisted/not-yet-reported status no longer describes the current approved state.
+
+At this planning point, main runtime metadata planning was docs-only, `main.py` remained untouched, and runtime wiring remained unapproved.
 
 Future metadata-only integration must be report/evidence only. Future code must not modify signal, action, risk, broker, order, state, observation, or reporting behavior.
 
@@ -251,11 +266,11 @@ Exact future metadata fields:
 
 Persistence status:
 
-- not yet persisted
-- not yet reported
+- superseded for report-only metadata by `8fda85b Main: add report-only strategy architecture metadata`
+- now report-persisted under `orchestration.strategy_architecture`
 - not yet emitted in observations
 - not yet emitted in JSONL events
-- not yet added to `last_run_report.json`
+- added to the normal run report payload when metadata assembly succeeds
 
 Future persistence, reporting, observation, JSONL event, or `last_run_report.json` changes require separate approval.
 
@@ -332,9 +347,11 @@ Future persistence, reporting, observation, JSONL event, `last_run_report.json`,
 
 ## Reporting And Observation Metadata Planning
 
-`strategy_architecture` remains not persisted, not reported, not emitted in observations, not emitted in JSONL events, and not added to `last_run_report.json`.
+Historical status: superseded for report-only metadata by the approved implementation recorded later in this document.
 
-Reporting schema changes require separate approval. Observation schema changes require separate approval. JSONL event changes require separate approval. `last_run_report.json` schema changes require separate approval. `main.py` integration remains unapproved.
+`strategy_architecture` is now report-only metadata when assembly succeeds. It remains not emitted in observations and not emitted in JSONL events.
+
+Reporting schema changes require separate approval. Observation schema changes require separate approval. JSONL event changes require separate approval. Additional `last_run_report.json` schema changes require separate approval. Broader `main.py` integration remains unapproved.
 
 If later approved, report-only metadata should be considered before observation or JSONL emission because it is evidence-oriented and less operationally coupled. Observation and JSONL emission should remain deferred until report-only metadata is proven safe.
 
@@ -366,7 +383,9 @@ Deferred items:
 
 ## Report-Only Metadata Schema Planning
 
-`strategy_architecture` remains not implemented and not persisted yet.
+Historical status: superseded by the approved report-only implementation recorded later in this document. The schema boundary remains relevant.
+
+`strategy_architecture` is implemented as report-only metadata under `orchestration.strategy_architecture` when assembly succeeds.
 
 If separately approved, the future first persistence target should be report-only. Report-only metadata should be considered before observation or JSONL emission because it is evidence-oriented and less operationally coupled.
 
@@ -397,7 +416,7 @@ Report-only metadata must not affect:
 - state writes
 - execution behavior
 
-`reporting.py` code changes require separate approval. `main.py` integration remains unapproved. `observation_logger.py` changes remain deferred. JSONL event changes remain deferred.
+`reporting.py` code changes require separate approval. Broader `main.py` integration remains unapproved. `observation_logger.py` changes remain deferred. JSONL event changes remain deferred.
 
 Deferred items:
 
@@ -415,6 +434,8 @@ Deferred items:
 
 ## Report Metadata Assembly Planning
 
+Historical status: superseded by the approved implementation recorded later in this document. The boundary that metadata assembly authority must not move into `reporting.py` remains current.
+
 No new seam or adapter is needed before reporting integration planning.
 
 The existing metadata chain is sufficient for a future report-only `strategy_architecture` payload:
@@ -428,19 +449,21 @@ The existing metadata chain is sufficient for a future report-only `strategy_arc
 Current approval boundaries:
 
 - Observation and JSONL emission remain explicitly out of scope.
-- `last_run_report.json` schema change remains unapproved.
-- Runtime and `main.py` integration remain unapproved.
-- No implementation is approved by this planning note.
+- additional `last_run_report.json` schema changes remain unapproved.
+- broader runtime and `main.py` integration remain unapproved.
+- the later report-only metadata implementation is the only approved implementation scope.
 
 Any future code gate must be separate, explicit, and test-first.
 
 ## Report Metadata Test Scaffold Limitation
 
-`test_main_strategy_architecture_metadata.py` currently uses `inspect` and source-substring assertions as a temporary architecture-contract scaffold. This is acceptable only before implementation exists.
+Historical status: resolved and superseded.
 
-After implementation, these tests must be converted to behavior-based tests using monkeypatches, spies, or intercepts.
+`test_main_strategy_architecture_metadata.py` previously used `inspect` and source-substring assertions as a temporary architecture-contract scaffold. That limitation was acceptable only before implementation existed.
 
-Required future replacements:
+After implementation, the tests were converted to behavior-based tests using monkeypatches, spies, and intercepts.
+
+Replacement coverage now expected to remain behavior-based:
 
 - intercept `persist_report()`
 - spy `append_observation()`
