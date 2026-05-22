@@ -412,3 +412,45 @@ Deferred items:
 - broker submission
 - execution behavior
 - IBKR runtime activation
+
+## Report-Only Strategy Metadata Evidence
+
+`runtime_strategy_report_metadata.py` is a pure report-shaping seam:
+
+- Module: `runtime_strategy_report_metadata.py`
+- Tests: `test_runtime_strategy_report_metadata.py`
+- Scaffold completed at `9304cb2 Strategy: add report-only strategy metadata scaffold`
+
+Python 3.12 validation evidence:
+
+- `.venv-312/bin/python --version` reported `Python 3.12.13`
+- `.venv-312/bin/python -m pytest test_runtime_strategy_report_metadata.py` reported `15 passed`
+
+The seam converts `StrategyArchitectureMetadata` into the future report-shaped `orchestration.strategy_architecture` payload.
+
+Exact top-level payload:
+
+- `strategy_architecture`
+
+Exact nested fields:
+
+- `regime_id`
+- `selected_strategy_id`
+- `routing_reason`
+- `eligible_strategy_ids`
+- `rejected_strategy_ids`
+- `source`
+
+`source` must equal `runtime_strategy_seam`. Tuple evidence fields are preserved.
+
+Explicit report-only metadata boundaries:
+
+- No persistence.
+- No report write.
+- No observation emission.
+- No JSONL event emission.
+- No `last_run_report.json` wiring.
+- No `main.py` wiring.
+- No `reporting.py` integration yet.
+
+Future `reporting.py` integration requires separate approval. Observation, JSONL, and `main.py` integration remain deferred.
