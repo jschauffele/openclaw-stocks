@@ -182,3 +182,46 @@ Current boundaries:
 The next planned gate after this docs evidence is `RUNTIME_INTEGRATION_PLANNING`. Runtime planning must remain read-only until a separate implementation gate is approved.
 
 `.venv-312` is a local-only Python 3.12 validation environment and must remain untracked.
+
+## Main Runtime Integration Planning
+
+Main runtime integration planning is docs-only. `main.py` remains untouched.
+
+Runtime wiring remains unapproved. Future code may only consume closes already fetched by the current flow. Future code may call `build_runtime_strategy_metadata()` only, and output must remain metadata-only evidence.
+
+Suggested future metadata surface only:
+
+- `strategy_architecture.regime_id`
+- `strategy_architecture.selected_strategy_id`
+- `strategy_architecture.routing_reason`
+- `strategy_architecture.eligible_strategy_ids`
+- `strategy_architecture.rejected_strategy_ids`
+- `strategy_architecture.source="runtime_strategy_seam"`
+
+Metadata must not affect signal, action, risk, broker, order, state, observation, or reporting behavior.
+
+Explicit main runtime integration boundaries:
+
+- No signal generation.
+- No strategy execution.
+- No broker behavior.
+- No risk sizing.
+- No order actions.
+- No submit, cancel, flatten, or remediation.
+- No state writes.
+- No observation or reporting changes are approved yet.
+- `strategy_engine.py` remains unchanged.
+- `signal_validator.py` remains unchanged.
+
+Any future `main.py` code gate requires separate explicit approval.
+
+Deferred items:
+
+- `main.py` code changes
+- runtime wiring
+- reporting/observation schema changes
+- signal-engine scaffold
+- strategy execution
+- risk sizing
+- broker submission
+- IBKR runtime activation
