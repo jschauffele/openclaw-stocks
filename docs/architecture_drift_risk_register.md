@@ -86,6 +86,49 @@ Promotion/removal condition:
 
 - Promote or remove this risk only after a schema governance gate defines versioning, backward compatibility, serialization rules, field ordering, and JSONL/observation eligibility for the next metadata expansion.
 
+### Strategy Architecture Mistaken As Replay-Authoritative
+
+Risk:
+
+- Current `strategy_architecture` metadata could be mistaken as replay-authoritative before required replay guarantees exist.
+- Report-only descriptive evidence does not currently include the full input snapshot, rule versions, schema version, catalog identity, migration policy, or persisted JSON replay-stability proof.
+- Promoting it too early could make report evidence look like deterministic reconstruction authority when it is not.
+
+Current mitigation:
+
+- `docs/deterministic_strategy_architecture.md` classifies current `strategy_architecture` metadata as report-only descriptive evidence.
+- Replay-authoritative evolution remains deferred.
+- JSONL and observation eligibility remain separate and unapproved.
+
+Future required action:
+
+- Add a schema and replay contract before any replay-authoritative promotion.
+- Define replay inputs, schema versioning, deterministic serialization, rule/catalog versioning, persistence authority, behavior tests, and migration policy.
+- Decide whether replay authority belongs in JSONL/event sourcing rather than report-only persistence.
+
+Owner/context:
+
+- Deterministic Strategy Architecture
+- Future `strategy_architecture` replay boundary
+
+Status:
+
+- Open
+- Requires approval before replay-authoritative promotion
+
+Related files:
+
+- `runtime_strategy_metadata_adapter.py`
+- `runtime_strategy_report_metadata.py`
+- `reporting.py`
+- `state_manager.py`
+- `event_logger.py`
+- `docs/deterministic_strategy_architecture.md`
+
+Promotion/removal condition:
+
+- Close this risk only when replay schema, replay behavior tests, persistence authority, and backward-compatible migration policy are approved.
+
 ## Phase Transition Checklist
 
 Before moving to a new implementation or runtime phase, check for:

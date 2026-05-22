@@ -641,3 +641,26 @@ In memory, `eligible_strategy_ids` and `rejected_strategy_ids` remain tuples. Pe
 Future metadata expansion must be additive unless a separate schema-version gate is approved. Backward compatibility policy must be documented before metadata expansion.
 
 JSONL and observation eligibility remain deferred behind separate approval gates.
+
+## Replay Authority Boundary Planning
+
+Current `strategy_architecture` metadata is report-only descriptive evidence. It is not replay-authoritative.
+
+Current `strategy_architecture` metadata is not replay-sufficient. Replay-authoritative evolution remains deferred.
+
+Required future guarantees before any replay-authoritative promotion:
+
+- `schema_version`
+- exact input snapshot or stable input reference
+- closes used for classification and routing
+- lookback and threshold evidence
+- strategy catalog identity, version, or hash
+- classifier and router rule versioning
+- deterministic serialization rules
+- backward compatibility and migration policy
+- behavior tests proving persisted JSON replay stability
+- decision whether replay authority belongs in JSONL/event sourcing rather than report-only persistence
+
+`reporting.py` must remain pass-through and must not own replay validation.
+
+JSONL and observation eligibility remains separate and unapproved.
