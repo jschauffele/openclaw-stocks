@@ -17,6 +17,11 @@ from observation_logger import append_observation
 from risk_engine import validate_config, risk_check, reconcile_position
 from runtime_visibility_orchestrator import build_runtime_visibility_summary
 from runtime_visibility_provider_composer import build_runtime_visibility_providers
+from runtime_strategy_metadata_adapter import build_strategy_architecture_metadata
+from runtime_strategy_report_metadata import (
+    build_orchestration_strategy_architecture_payload,
+)
+from runtime_strategy_seam import RuntimeStrategySeamInput, build_runtime_strategy_metadata
 from signal_validator import validate_signal_result
 from strategy_engine import generate_signal_from_closes
 from utils import setup_logging, utc_now_iso
@@ -562,6 +567,20 @@ def main():
         "ok",
         build_strategy_signal_event_payload(action_proposal),
     )
+    try:
+        runtime_strategy_metadata = build_runtime_strategy_metadata(
+            RuntimeStrategySeamInput(closes=tuple(closes))
+        )
+        strategy_architecture_metadata = build_strategy_architecture_metadata(
+            runtime_strategy_metadata
+        )
+        report_config["orchestration"].update(
+            build_orchestration_strategy_architecture_payload(
+                strategy_architecture_metadata
+            )
+        )
+    except ValueError:
+        pass
 
     def log_observation(result=None, **observation_fields) -> None:
         try:
