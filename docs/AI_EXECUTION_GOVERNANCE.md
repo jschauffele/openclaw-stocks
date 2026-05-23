@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the token-efficient, zero-drift operating standard for Codex and AI-assisted OpenClaw development.
+This document defines the token-efficient, zero-drift operating standard for Codex, Cursor, and AI-assisted OpenClaw development.
 
 Use this document as the first retrieval target for future AI work. Prefer it over broad repo scanning.
 
@@ -11,6 +11,49 @@ Use this document as the first retrieval target for future AI work. Prefer it ov
 Correctness outranks token savings.
 
 Token efficiency is required, but it must not weaken boundary discipline, validation, source-of-truth alignment, or runtime safety.
+
+## Local Execution Providers
+
+### Source Of Truth
+
+- GitHub `main` remains the source of truth.
+- VPS remains runtime, deploy, and log validation only.
+- Local AI work is never a new source of truth.
+
+### Codex And Cursor Roles
+
+- `CODEX_LOCAL` is the default local execution provider for AI-assisted work.
+- `CURSOR_LOCAL` is equivalent to `CODEX_LOCAL`, not a separate authority.
+- Cursor may be used as a temporary local execution provider when Codex limits are reached.
+- Cursor must follow the same institutional rules as `CODEX_LOCAL`.
+- Only one AI tool may operate on uncommitted work at a time.
+
+### Switching Between Codex And Cursor
+
+Before switching between Codex and Cursor, verify:
+
+```bash
+git status --short
+git log -1 --oneline
+git log origin/main -1 --oneline
+```
+
+Before returning to Codex, local `HEAD` and `origin/main` must be aligned, or the uncommitted state must be explicitly summarized.
+
+### Cursor Work Requirements
+
+Cursor gates must use:
+
+- a read-only checkpoint first
+- strict file scope
+- explicit allowed and disallowed files
+- minimal diffs
+- no repo-wide scanning unless approved
+- validation and classification required
+
+### Cursor Prohibitions
+
+Unless a separate task explicitly approves otherwise, Cursor must not perform VPS, runtime, broker, or live-trading work.
 
 ## Default Constraints
 
