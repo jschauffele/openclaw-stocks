@@ -726,3 +726,28 @@ Future seam candidates:
 - runtime coordinator or use-case layer
 - run-context/config snapshot builder
 - event/observation boundary wrapper
+
+## Report Metadata Isolated Validation Evidence
+
+Local `main` and `origin/main` were aligned at:
+
+- `de3c40b Docs: consolidate governance architecture state`
+
+Isolated seam validation:
+
+- `venv/bin/python -m pytest test_runtime_strategy_seam.py test_runtime_strategy_metadata_adapter.py test_runtime_strategy_report_metadata.py -q`
+- `59 passed`
+
+Isolated main metadata validation:
+
+- `venv/bin/python -m pytest test_main_strategy_architecture_metadata.py -q`
+- `8 passed, 1 warning`
+
+Prior combined-bundle failures were test-order and `sys.modules` contamination. The combined run imported `main` before the seam import-isolation assertions executed, so forbidden outer modules were already present in process-global module state.
+
+There is no evidence of direct forbidden imports in the seam modules from the isolated seam validation.
+
+Recommended validation order:
+
+1. Run seam tests separately.
+2. Run main metadata tests separately.
