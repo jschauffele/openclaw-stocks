@@ -63,12 +63,13 @@ Risk:
 Current mitigation:
 
 - `docs/deterministic_strategy_architecture.md` records current required and optional fields, deterministic field order, tuple/list serialization expectations, and the current `schema_version` boundary.
+- Backward-compatibility and additive-expansion policy is documented in `docs/deterministic_strategy_architecture.md` under Report Metadata Schema Governance Planning.
 - JSONL and observation eligibility remain deferred.
 
 Future required action:
 
-- Document backward compatibility policy before metadata expansion.
-- Add `schema_version` before nontrivial expansion, replay-authoritative use, JSONL or observation emission, or external consumption.
+- Add `schema_version` and implement compatibility behavior in code before the first approved metadata expansion that requires versioning.
+- Add behavior tests for any approved expansion that changes persisted report shape or consumer expectations.
 - Keep future expansion additive unless a separate schema-version gate is approved.
 
 Owner/context:
@@ -89,7 +90,7 @@ Related files:
 
 Promotion/removal condition:
 
-- Promote or remove this risk only after a schema governance gate defines versioning, backward compatibility, serialization rules, field ordering, and JSONL/observation eligibility for the next metadata expansion.
+- Close this risk only after a schema-version gate, tests, and compatibility policy are implemented for an actual expansion.
 
 ### Strategy Architecture Mistaken As Replay-Authoritative
 

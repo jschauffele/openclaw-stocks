@@ -626,11 +626,15 @@ Deferred items:
 
 ## Report Metadata Schema Governance Planning
 
+The current `strategy_architecture` payload is stable only as report-only descriptive evidence. It is not replay-authoritative, not replay-sufficient, and must not affect signal, action, risk, broker, order, state, execution, observation, or JSONL behavior.
+
 The current report-only `strategy_architecture` payload does not require a `schema_version` yet.
 
 `schema_version` becomes required before any of the following are approved:
 
 - nontrivial metadata expansion
+- field removal or rename
+- meaning changes to existing fields
 - replay-authoritative use
 - JSONL emission
 - observation emission
@@ -648,7 +652,7 @@ Current optional fields:
 
 - `selected_strategy_id`
 
-`source` remains required and fixed to `runtime_strategy_seam`.
+`source` remains required and fixed to `runtime_strategy_seam` unless a separate source-governance gate approves otherwise.
 
 The report-only payload must preserve this deterministic field order:
 
@@ -661,9 +665,41 @@ The report-only payload must preserve this deterministic field order:
 
 In memory, `eligible_strategy_ids` and `rejected_strategy_ids` remain tuples. Persisted JSON should be treated as arrays/lists after serialization.
 
-Future metadata expansion must be additive unless a separate schema-version gate is approved. Backward compatibility policy must be documented before metadata expansion.
-
 JSONL and observation eligibility remain deferred behind separate approval gates.
+
+### Backward Compatibility And Additive Expansion Policy
+
+Backward compatibility must be documented before any metadata expansion gate is approved. This section is that policy for the current report-only payload.
+
+Default expansion rule:
+
+- Future metadata expansion must be additive by default.
+- Additive expansion means new optional or required fields may be added without changing the meaning of existing fields.
+- A separate schema-version gate is required for any non-additive change.
+
+Field stability rules:
+
+- Existing fields must not be renamed or removed without a separate schema-version gate.
+- Existing field meanings must not be changed silently.
+- Consumers must treat unknown fields as ignorable unless a separate consumption gate says otherwise.
+
+Current field semantics:
+
+- `selected_strategy_id` remains nullable because no eligible strategy is a valid routing outcome.
+- `eligible_strategy_ids` and `rejected_strategy_ids` remain ordered deterministic evidence lists after JSON persistence. Order is evidence, not an unordered set.
+- `source` remains required and fixed to `runtime_strategy_seam` unless a separate source-governance gate approves otherwise.
+
+`schema_version` boundary:
+
+- `schema_version` is not required for the current payload.
+- `schema_version` becomes required before nontrivial expansion, field removal or rename, meaning changes, replay-authoritative use, JSONL or observation emission, or external consumption.
+
+Reporting boundary:
+
+- `reporting.py` remains pass-through report construction and persistence.
+- `reporting.py` must not own compatibility logic, schema validation, migration, or replay validation for `strategy_architecture`.
+
+Any future metadata expansion gate must cite this policy, define the additive change, and remain report-only unless separate runtime, JSONL, observation, or replay gates are approved.
 
 ## Replay Authority Boundary Planning
 
