@@ -703,9 +703,9 @@ Any future metadata expansion gate must cite this policy, define the additive ch
 
 ## First Schema-Version Metadata Expansion Candidate Planning
 
-This section is planning only. It does not approve code implementation, report payload expansion, JSONL emission, observation emission, replay-authoritative use, external consumption, or runtime behavior changes.
+Historical status: superseded by the approved report-only implementation recorded in the next section.
 
-Current `strategy_architecture` report-only metadata remains unchanged and remains valid without `metadata_schema_version`.
+At this planning point, `strategy_architecture` report-only metadata remained unchanged and valid without `metadata_schema_version`.
 
 First future expansion candidate:
 
@@ -736,6 +736,44 @@ Future implementation validation requirements:
 - prove observations remain unchanged
 - prove metadata failure remains fail-open for report persistence
 - prove schema version metadata does not affect trading behavior
+
+## Report-Only Metadata Schema Version Evidence
+
+Report-only `metadata_schema_version` implementation was completed and pushed in:
+
+- `32743bb Metadata: add report schema version`
+
+Current source-of-truth HEAD after implementation:
+
+- `32743bb Metadata: add report schema version`
+
+`metadata_schema_version` is now implemented as report-only descriptive metadata.
+
+Current schema-version behavior:
+
+- `metadata_schema_version` value is deterministic: `"1"`
+- `metadata_schema_version` appears first in `StrategyArchitectureMetadata`
+- `metadata_schema_version` appears first in the nested `strategy_architecture` report payload
+
+Targeted validation:
+
+- Seam bundle: `61 passed`
+- Main metadata: `8 passed, 1 warning`
+
+Warning:
+
+- `DeprecationWarning: websockets.legacy is deprecated`
+- Classification: unrelated dependency deprecation, not a report metadata regression.
+
+Preserved boundaries:
+
+- no `main.py` changes
+- no `reporting.py` changes
+- no `runtime_strategy_seam.py` changes
+- no JSONL emission
+- no observation emission
+- no broker, runtime, execution, risk, state, or order behavior changes
+- no replay-authoritative use
 
 ## Replay Authority Boundary Planning
 

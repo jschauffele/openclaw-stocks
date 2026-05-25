@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Snapshot architecture baseline / current source-of-truth HEAD: `75211a5 Docs: plan strategy metadata schema version`
+Snapshot architecture baseline / current source-of-truth HEAD: `32743bb Metadata: add report schema version`
 
 This snapshot records the post-report-metadata-governance architecture state plus current AI execution governance and strategy metadata compatibility policy. It is docs-only governance evidence. It does not approve new runtime wiring, broker behavior, execution behavior, observation emission, JSONL emission, or production activation.
 
@@ -53,6 +53,7 @@ Completed deterministic strategy architecture and governance phases:
 - Strategy Metadata Compatibility Policy (`bc539fd Docs: define strategy metadata compatibility policy`)
 - Source-Inspection Drift-Risk Closure (`4d5f4d9 Docs: close source-inspection drift risk`)
 - Strategy Metadata Schema-Version Planning (`75211a5 Docs: plan strategy metadata schema version`)
+- Report-Only Metadata Schema Version Implementation (`32743bb Metadata: add report schema version`)
 
 ## Source Of Truth And Local Execution Providers
 
@@ -90,6 +91,7 @@ Approved scope:
 
 Current report-only fields:
 
+- `metadata_schema_version`
 - `regime_id`
 - `selected_strategy_id`
 - `routing_reason`
@@ -116,15 +118,19 @@ Current policy:
 
 Strategy metadata schema-version planning exists at `75211a5 Docs: plan strategy metadata schema version`.
 
-Planned first future additive report-only expansion candidate:
+Report-only schema version implementation exists at `32743bb Metadata: add report schema version`.
+
+Implemented additive report-only field:
 
 - `metadata_schema_version`
 
-Planning status:
+Current implementation status:
 
-- `metadata_schema_version` is not implemented.
-- current report-only `strategy_architecture` payload remains valid without `metadata_schema_version`
-- this planning does not approve code changes, JSONL emission, observation emission, replay-authoritative use, external consumption, or runtime behavior changes
+- `metadata_schema_version` is deterministic and fixed to `"1"`
+- `metadata_schema_version` appears first in `StrategyArchitectureMetadata`
+- `metadata_schema_version` appears first in the nested `strategy_architecture` report payload
+- implementation did not change `main.py`, `reporting.py`, or `runtime_strategy_seam.py`
+- implementation does not approve JSONL emission, observation emission, replay-authoritative use, external consumption, or runtime behavior changes
 
 ## Prohibited And Unapproved Scope
 
