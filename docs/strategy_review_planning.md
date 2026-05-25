@@ -1,0 +1,172 @@
+# Strategy Review Planning
+
+## Purpose
+
+This document defines a docs-only planning gate for the next possible non-metadata OpenClaw strategy phase.
+
+It does not approve implementation, trading behavior changes, live trading, IBKR/runtime work, broker work, JSONL emission, observation emission, risk changes, order behavior, or reporting behavior changes.
+
+## Current State
+
+Current strategy behavior remains unchanged.
+
+Current report metadata work is complete and stopped.
+
+Strategy development requires a separate review gate before code.
+
+Any future strategy change must preserve deterministic behavior. AI may advise during planning and review, but AI must not execute trades, override deterministic rules, bypass policy, or become runtime authority.
+
+Strategy, risk, execution, broker, and runtime boundaries remain separate.
+
+No signal, action, risk, order, broker, runtime, JSONL, observation, or reporting behavior changes are approved by this document.
+
+Runtime orchestration extraction remains deferred until concrete pressure appears.
+
+Replay authority remains deferred.
+
+JSONL and observation strategy expansion remain deferred.
+
+VPS validation is not needed for this docs-only phase.
+
+## Possible Next Strategy Surfaces
+
+### Controlled Improvement Of Current 3-Close Momentum Strategy
+
+Surface type:
+
+- Strategy
+
+Status:
+
+- Safe now for docs-only review.
+- Deferred for implementation.
+
+Missing evidence/input:
+
+- Clear target behavior for improving the current close-momentum rule.
+- Historical examples or acceptance criteria showing why the current 3-close rule should change.
+- Deterministic comparison criteria that do not depend on AI discretion.
+- Explicit decision on whether the current strategy ID remains compatible or a new strategy ID is required.
+
+Required future gate before implementation:
+
+- Strategy behavior review gate defining exact deterministic rule changes, expected fixtures, backward-compatibility impact, and targeted tests.
+
+### Regime-Classifier Planning
+
+Surface type:
+
+- Strategy
+
+Status:
+
+- Safe now for docs-only review.
+- Deferred for implementation.
+
+Missing evidence/input:
+
+- Concrete regime definitions to add or adjust.
+- Threshold rationale and examples for any new or changed regime behavior.
+- Deterministic fixture set covering boundary cases.
+- Decision on whether existing regime IDs remain stable.
+
+Required future gate before implementation:
+
+- Regime classifier planning gate defining exact classification changes, allowed regime IDs, validation cases, and import/side-effect boundaries.
+
+### Deterministic Strategy-Router Planning
+
+Surface type:
+
+- Strategy
+
+Status:
+
+- Safe now for docs-only review.
+- Deferred for implementation.
+
+Missing evidence/input:
+
+- Concrete routing objective.
+- Strategy catalog changes, if any.
+- Deterministic tie-break and rejection evidence requirements.
+- Expected behavior when no strategy is eligible.
+
+Required future gate before implementation:
+
+- Strategy router planning gate defining catalog/routing changes, deterministic ordering, evidence fields, and targeted tests.
+
+### Treasury-Proxy/MSTR-Style Strategy Research Planning
+
+Surface type:
+
+- Documentation
+- Strategy research
+
+Status:
+
+- Safe now for docs-only research planning.
+- Deferred for implementation.
+
+Missing evidence/input:
+
+- Reference material defining the thesis, instruments, constraints, and time horizon.
+- Explicit decision on whether this is research-only, paper-trading-only, or a future strategy candidate.
+- Deterministic data inputs and evaluation metrics.
+- Boundary decision separating strategy research from risk sizing and broker execution.
+
+Required future gate before implementation:
+
+- Research review gate with user-provided source material, deterministic assumptions, allowed instruments, prohibited live behavior, and criteria for whether the research may become a strategy candidate.
+
+### IBKR Strategy-Readiness Boundary Planning
+
+Surface type:
+
+- Broker
+- Runtime
+- Documentation
+
+Status:
+
+- Deferred.
+
+Missing evidence/input:
+
+- Explicit approval to resume IBKR or broker-boundary work.
+- Current IBKR runtime objective.
+- Paper/live boundary decision.
+- Required local or VPS validation scope.
+
+Required future gate before implementation:
+
+- Separate broker/runtime boundary checkpoint. This must define allowed commands, forbidden live behavior, environment, validation path, and rollback/safety constraints before any IBKR work.
+
+### Paper-Trading Validation Criteria Planning
+
+Surface type:
+
+- Documentation
+- Runtime validation planning
+
+Status:
+
+- Safe now for docs-only planning.
+- Deferred for runtime execution.
+
+Missing evidence/input:
+
+- Exact paper-trading success criteria.
+- Required reports, logs, and observations to inspect.
+- Decision on whether validation is local-only or VPS runtime/log validation.
+- Explicit list of allowed commands and forbidden broker/live paths.
+
+Required future gate before implementation:
+
+- Runtime validation planning gate defining paper-trading validation criteria, allowed environment, allowed commands, artifacts to inspect, and safety boundaries.
+
+## Recommended Next Step
+
+The safest next phase is a docs-only strategy behavior review gate for controlled improvement of the current 3-close momentum strategy, if and only if concrete desired behavior or reference examples are provided.
+
+If no concrete strategy objective is available, pause strategy implementation work. Do not advance to runtime, broker, replay, JSONL, observation, or IBKR work from this document.
