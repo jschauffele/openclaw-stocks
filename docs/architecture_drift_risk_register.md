@@ -29,6 +29,7 @@ Current mitigation:
 
 - `docs/deterministic_strategy_architecture.md` records current required and optional fields, deterministic field order, tuple/list serialization expectations, and the current `schema_version` boundary.
 - Backward-compatibility and additive-expansion policy is documented in `docs/deterministic_strategy_architecture.md` under Report Metadata Schema Governance Planning.
+- The first narrow future expansion candidate, `metadata_schema_version`, is planned as report-only descriptive metadata, but it is not implemented or approved for code changes.
 - JSONL and observation eligibility remain deferred.
 
 Future required action:

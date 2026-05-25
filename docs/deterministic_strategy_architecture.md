@@ -701,6 +701,42 @@ Reporting boundary:
 
 Any future metadata expansion gate must cite this policy, define the additive change, and remain report-only unless separate runtime, JSONL, observation, or replay gates are approved.
 
+## First Schema-Version Metadata Expansion Candidate Planning
+
+This section is planning only. It does not approve code implementation, report payload expansion, JSONL emission, observation emission, replay-authoritative use, external consumption, or runtime behavior changes.
+
+Current `strategy_architecture` report-only metadata remains unchanged and remains valid without `metadata_schema_version`.
+
+First future expansion candidate:
+
+- `metadata_schema_version`
+
+Purpose:
+
+- prepare controlled future expansion
+- make future persisted report metadata easier to reason about
+- avoid silent semantic drift
+- support backward compatibility before any larger metadata expansion
+
+If separately approved in a future implementation gate, `metadata_schema_version` would be the first additive field in the report-only `strategy_architecture` payload.
+
+Candidate boundaries:
+
+- `metadata_schema_version` would be report-only descriptive metadata.
+- It must not affect signal, action, risk, broker, order, state, execution, observation, or JSONL behavior.
+- It must not make `strategy_architecture` replay-authoritative.
+- It must not approve external consumption.
+- Current report-only metadata remains valid without `metadata_schema_version` until a separate implementation gate approves otherwise.
+
+Future implementation validation requirements:
+
+- prove `metadata_schema_version` appears only in the report payload
+- prove `reporting.py` remains pass-through
+- prove JSONL remains unchanged
+- prove observations remain unchanged
+- prove metadata failure remains fail-open for report persistence
+- prove schema version metadata does not affect trading behavior
+
 ## Replay Authority Boundary Planning
 
 Current `strategy_architecture` metadata is report-only descriptive evidence. It is not replay-authoritative.
