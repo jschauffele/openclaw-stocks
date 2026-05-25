@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Snapshot architecture baseline / current source-of-truth HEAD: `d1e210c Docs: update freeze snapshot after drift-risk closure`
+Snapshot architecture baseline / current source-of-truth HEAD: `e9ea547 Docs: record finalized governance validation evidence`
 
 This snapshot records the post-report-metadata-governance architecture state plus current AI execution governance and strategy metadata compatibility policy. It is docs-only governance evidence. It does not approve new runtime wiring, broker behavior, execution behavior, observation emission, JSONL emission, or production activation.
 
