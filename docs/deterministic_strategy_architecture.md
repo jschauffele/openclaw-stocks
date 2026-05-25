@@ -787,3 +787,35 @@ Recommended validation order:
 
 1. Run seam tests separately.
 2. Run main metadata tests separately.
+
+## Finalized Governance Targeted Local Validation Evidence
+
+Validation commit:
+
+- `f1eea4d Docs: correct freeze snapshot source head`
+
+Local `main` and `origin/main` were aligned at `f1eea4d`.
+
+Isolated validation order:
+
+1. Runtime strategy seam bundle.
+2. Main strategy architecture metadata test.
+
+Runtime strategy seam bundle:
+
+- `venv/bin/python -m pytest test_runtime_strategy_seam.py test_runtime_strategy_metadata_adapter.py test_runtime_strategy_report_metadata.py -q`
+- `59 passed`
+
+Main strategy architecture metadata test:
+
+- `venv/bin/python -m pytest test_main_strategy_architecture_metadata.py -q`
+- `8 passed, 1 warning`
+
+Warning:
+
+- `DeprecationWarning: websockets.legacy is deprecated`
+- Classification: unrelated dependency deprecation, not a report metadata regression.
+
+Git status after validation showed no tracked file changes.
+
+This validation confirms the existing report-only `strategy_architecture` metadata behavior remains intact after governance consolidation.
