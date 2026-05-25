@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Snapshot architecture baseline / current source-of-truth HEAD: `32743bb Metadata: add report schema version`
+Snapshot architecture baseline / current source-of-truth HEAD: `9bb1b83 Docs: record report schema version evidence`
 
 This snapshot records the post-report-metadata-governance architecture state plus current AI execution governance and strategy metadata compatibility policy. It is docs-only governance evidence. It does not approve new runtime wiring, broker behavior, execution behavior, observation emission, JSONL emission, or production activation.
 
