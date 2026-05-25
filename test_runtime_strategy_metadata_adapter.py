@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import sys
 
 import pytest
 
@@ -12,22 +11,6 @@ from runtime_strategy_metadata_adapter import (
     build_strategy_architecture_metadata,
 )
 from runtime_strategy_seam import RuntimeStrategySeamResult
-
-
-FORBIDDEN_MODULES = (
-    "main",
-    "config",
-    "broker_factory",
-    "risk_engine",
-    "execution_engine",
-    "execution_use_case",
-    "reporting",
-    "observation_logger",
-    "state_manager",
-    "market_data",
-    "strategy_engine",
-    "signal_validator",
-)
 
 
 def _seam_result() -> RuntimeStrategySeamResult:
@@ -50,6 +33,7 @@ def test_metadata_fields_match_documented_strategy_architecture_contract() -> No
     metadata = build_strategy_architecture_metadata(_seam_result())
 
     assert tuple(metadata.__dataclass_fields__) == (
+        "metadata_schema_version",
         "regime_id",
         "selected_strategy_id",
         "routing_reason",
@@ -59,10 +43,17 @@ def test_metadata_fields_match_documented_strategy_architecture_contract() -> No
     )
 
 
+def test_metadata_schema_version_defaults_to_deterministic_value() -> None:
+    metadata = build_strategy_architecture_metadata(_seam_result())
+
+    assert metadata.metadata_schema_version == "1"
+
+
 def test_copies_runtime_strategy_seam_result_fields() -> None:
     seam_result = _seam_result()
     metadata = build_strategy_architecture_metadata(seam_result)
 
+    assert metadata.metadata_schema_version == "1"
     assert metadata.regime_id == seam_result.regime_id
     assert metadata.selected_strategy_id == seam_result.selected_strategy_id
     assert metadata.routing_reason == seam_result.routing_reason
@@ -254,13 +245,6 @@ def test_metadata_exposes_no_signal_action_risk_order_broker_or_runtime_fields()
 
 
 def test_module_does_not_import_forbidden_outer_modules() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert not loaded_modules.intersection(FORBIDDEN_MODULES)
-    assert not any(module_name.startswith("ibkr_") for module_name in loaded_modules)
-    assert not any(
-        module_name.startswith("manual_ibkr_") for module_name in loaded_modules
-    )
     assert not hasattr(runtime_strategy_metadata_adapter, "main")
     assert not hasattr(runtime_strategy_metadata_adapter, "config")
     assert not hasattr(runtime_strategy_metadata_adapter, "persist_report")

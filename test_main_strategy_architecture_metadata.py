@@ -91,6 +91,16 @@ def _contains_strategy_architecture(value) -> bool:
     return False
 
 
+def _contains_metadata_schema_version(value) -> bool:
+    if isinstance(value, dict):
+        if "metadata_schema_version" in value:
+            return True
+        return any(_contains_metadata_schema_version(item) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_contains_metadata_schema_version(item) for item in value)
+    return False
+
+
 @pytest.fixture
 def main_harness(monkeypatch):
     broker = FakeBroker()
@@ -254,8 +264,10 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
             "build_orchestration_strategy_architecture_payload"
         )
         assert result_metadata is metadata
+        assert result_metadata.metadata_schema_version == "1"
         return {
             "strategy_architecture": {
+                "metadata_schema_version": "1",
                 "regime_id": "uptrend",
                 "selected_strategy_id": "close_momentum_v1",
                 "routing_reason": "selected_first_eligible_strategy",
@@ -275,6 +287,7 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
 
     report = main_harness["reports"][0]
     assert report["orchestration"]["strategy_architecture"] == {
+        "metadata_schema_version": "1",
         "regime_id": "uptrend",
         "selected_strategy_id": "close_momentum_v1",
         "routing_reason": "selected_first_eligible_strategy",
@@ -344,6 +357,7 @@ def test_metadata_assembly_does_not_alter_append_observation_behavior(
 
     assert len(main_harness["observations"]) == 1
     assert "strategy_architecture" not in main_harness["observations"][0]
+    assert "metadata_schema_version" not in main_harness["observations"][0]
 
 
 def test_metadata_success_does_not_emit_strategy_architecture_to_jsonl_events(
@@ -367,12 +381,17 @@ def test_metadata_success_does_not_emit_strategy_architecture_to_jsonl_events(
         _contains_strategy_architecture(event["payload"])
         for event in main_harness["events"]
     )
+    assert not any(
+        _contains_metadata_schema_version(event["payload"])
+        for event in main_harness["events"]
+    )
 
 
 def test_reporting_remains_passthrough_only_and_does_not_import_metadata_builders() -> None:
     orchestration = {
         "runtime_visibility": _runtime_visibility_summary(),
         "strategy_architecture": {
+            "metadata_schema_version": "1",
             "regime_id": "uptrend",
             "selected_strategy_id": "close_momentum_v1",
             "routing_reason": "selected_first_eligible_strategy",

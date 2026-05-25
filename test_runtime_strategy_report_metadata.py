@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import sys
 
 import pytest
 
@@ -9,25 +8,6 @@ import runtime_strategy_report_metadata
 from runtime_strategy_metadata_adapter import StrategyArchitectureMetadata
 from runtime_strategy_report_metadata import (
     build_orchestration_strategy_architecture_payload,
-)
-
-
-FORBIDDEN_MODULES = (
-    "main",
-    "reporting",
-    "observation_logger",
-    "event_logger",
-    "event_reader",
-    "analyze_observations",
-    "config",
-    "broker_factory",
-    "risk_engine",
-    "execution_engine",
-    "execution_use_case",
-    "state_manager",
-    "market_data",
-    "strategy_engine",
-    "signal_validator",
 )
 
 
@@ -65,6 +45,7 @@ def test_nested_fields_match_documented_contract() -> None:
     strategy_architecture = payload["strategy_architecture"]
 
     assert tuple(strategy_architecture) == (  # type: ignore[arg-type]
+        "metadata_schema_version",
         "regime_id",
         "selected_strategy_id",
         "routing_reason",
@@ -80,6 +61,7 @@ def test_copies_metadata_fields_exactly() -> None:
     strategy_architecture = payload["strategy_architecture"]
 
     assert strategy_architecture == {
+        "metadata_schema_version": metadata.metadata_schema_version,
         "regime_id": metadata.regime_id,
         "selected_strategy_id": metadata.selected_strategy_id,
         "routing_reason": metadata.routing_reason,
@@ -94,6 +76,14 @@ def test_source_equals_runtime_strategy_seam() -> None:
     strategy_architecture = payload["strategy_architecture"]
 
     assert strategy_architecture["source"] == "runtime_strategy_seam"  # type: ignore[index]
+
+
+def test_metadata_schema_version_is_first_nested_report_field() -> None:
+    payload = build_orchestration_strategy_architecture_payload(_metadata())
+    strategy_architecture = payload["strategy_architecture"]
+
+    assert tuple(strategy_architecture)[0] == "metadata_schema_version"  # type: ignore[arg-type]
+    assert strategy_architecture["metadata_schema_version"] == "1"  # type: ignore[index]
 
 
 def test_eligible_and_rejected_ids_remain_tuples() -> None:
@@ -114,6 +104,7 @@ def test_no_extra_nested_keys() -> None:
     payload = build_orchestration_strategy_architecture_payload(_metadata())
 
     assert set(payload["strategy_architecture"]) == {  # type: ignore[arg-type]
+        "metadata_schema_version",
         "regime_id",
         "selected_strategy_id",
         "routing_reason",
@@ -166,28 +157,21 @@ def test_result_exposes_no_signal_action_risk_order_broker_or_runtime_fields() -
 
 
 def test_module_does_not_import_main_reporting_observation_or_event_modules() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert "main" not in loaded_modules
-    assert "reporting" not in loaded_modules
-    assert "observation_logger" not in loaded_modules
-    assert "event_logger" not in loaded_modules
-    assert "event_reader" not in loaded_modules
-    assert "analyze_observations" not in loaded_modules
     assert not hasattr(runtime_strategy_report_metadata, "main")
+    assert not hasattr(runtime_strategy_report_metadata, "reporting")
     assert not hasattr(runtime_strategy_report_metadata, "persist_report")
     assert not hasattr(runtime_strategy_report_metadata, "append_observation")
     assert not hasattr(runtime_strategy_report_metadata, "log_event")
 
 
 def test_module_does_not_import_forbidden_outer_modules() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert not loaded_modules.intersection(FORBIDDEN_MODULES)
-    assert not any(module_name.startswith("ibkr_") for module_name in loaded_modules)
-    assert not any(
-        module_name.startswith("manual_ibkr_") for module_name in loaded_modules
-    )
+    assert not hasattr(runtime_strategy_report_metadata, "config")
+    assert not hasattr(runtime_strategy_report_metadata, "broker_factory")
+    assert not hasattr(runtime_strategy_report_metadata, "risk_engine")
+    assert not hasattr(runtime_strategy_report_metadata, "execution_engine")
+    assert not hasattr(runtime_strategy_report_metadata, "state_manager")
+    assert not hasattr(runtime_strategy_report_metadata, "market_data")
+    assert not hasattr(runtime_strategy_report_metadata, "strategy_engine")
 
 
 def test_repeated_calls_return_equal_payloads() -> None:

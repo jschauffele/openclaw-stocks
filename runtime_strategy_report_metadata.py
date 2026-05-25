@@ -11,6 +11,7 @@ def build_orchestration_strategy_architecture_payload(
 
     return {
         "strategy_architecture": {
+            "metadata_schema_version": metadata.metadata_schema_version,
             "regime_id": metadata.regime_id,
             "selected_strategy_id": metadata.selected_strategy_id,
             "routing_reason": metadata.routing_reason,

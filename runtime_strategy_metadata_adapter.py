@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from runtime_strategy_seam import RuntimeStrategySeamResult
 
 
 STRATEGY_ARCHITECTURE_SOURCE = "runtime_strategy_seam"
+METADATA_SCHEMA_VERSION = "1"
 
 
 @dataclass(frozen=True, slots=True)
 class StrategyArchitectureMetadata:
+    metadata_schema_version: str = field(init=False, default=METADATA_SCHEMA_VERSION)
     regime_id: str
     selected_strategy_id: str | None
     routing_reason: str
