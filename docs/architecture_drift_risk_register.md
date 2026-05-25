@@ -17,41 +17,6 @@ Any brittle scaffold, temporary test, deferred boundary, or known limitation mus
 
 ## Current Risks
 
-### Source-Inspection Contract Tests
-
-Risk:
-
-- `test_main_strategy_architecture_metadata.py` previously used `inspect` and source-substring assertions as temporary architecture-contract tests.
-
-Current mitigation:
-
-- The metadata integration tests were converted to behavior-based tests after implementation.
-- The behavior-based tests use monkeypatches, spies, and intercepts to verify report persistence, observation isolation, JSONL isolation, reporting pass-through behavior, metadata builder order, and no second market data fetch.
-
-Future required action:
-
-- Keep report metadata integration tests behavior-based.
-- Do not reintroduce source-inspection assertions as permanent runtime validation.
-
-Owner/context:
-
-- Deterministic Strategy Architecture
-- Report-only `strategy_architecture` metadata integration
-
-Status:
-
-- Resolved
-- Superseded by behavior-based tests
-
-Related files:
-
-- `test_main_strategy_architecture_metadata.py`
-- `docs/deterministic_strategy_architecture.md`
-
-Promotion/removal condition:
-
-- This entry may be removed after the next governance review confirms no source-inspection assertions remain for report metadata integration.
-
 ### Strategy Architecture Schema Expansion Without Governance
 
 Risk:
@@ -189,6 +154,21 @@ Related files:
 Promotion/removal condition:
 
 - Promote this risk to an implementation gate only after a concrete extraction trigger appears and a separate test-first refactor plan is approved.
+
+## Resolved Risks
+
+### Source-Inspection Contract Tests
+
+Historical note:
+
+- `test_main_strategy_architecture_metadata.py` previously used `inspect` and source-substring assertions as temporary architecture-contract tests.
+- The metadata integration tests were converted to behavior-based tests using monkeypatches, spies, and intercepts.
+
+Status:
+
+- Resolved
+- Superseded by behavior-based tests
+- Not a current open drift risk
 
 ## Phase Transition Checklist
 
