@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Snapshot architecture baseline / current source-of-truth HEAD: `e9ea547 Docs: record finalized governance validation evidence`
+Snapshot architecture baseline / current source-of-truth HEAD: `75211a5 Docs: plan strategy metadata schema version`
 
 This snapshot records the post-report-metadata-governance architecture state plus current AI execution governance and strategy metadata compatibility policy. It is docs-only governance evidence. It does not approve new runtime wiring, broker behavior, execution behavior, observation emission, JSONL emission, or production activation.
 
@@ -52,6 +52,7 @@ Completed deterministic strategy architecture and governance phases:
 - Cursor Local Execution Governance (`fd113d0 Docs: add Cursor local execution governance`)
 - Strategy Metadata Compatibility Policy (`bc539fd Docs: define strategy metadata compatibility policy`)
 - Source-Inspection Drift-Risk Closure (`4d5f4d9 Docs: close source-inspection drift risk`)
+- Strategy Metadata Schema-Version Planning (`75211a5 Docs: plan strategy metadata schema version`)
 
 ## Source Of Truth And Local Execution Providers
 
@@ -112,6 +113,18 @@ Current policy:
 - `eligible_strategy_ids` and `rejected_strategy_ids` remain ordered deterministic evidence lists after JSON persistence
 - `schema_version` is not required for the current payload
 - `schema_version` becomes required before field removal, rename, semantic change, replay-authoritative use, JSONL or observation emission, or external consumption
+
+Strategy metadata schema-version planning exists at `75211a5 Docs: plan strategy metadata schema version`.
+
+Planned first future additive report-only expansion candidate:
+
+- `metadata_schema_version`
+
+Planning status:
+
+- `metadata_schema_version` is not implemented.
+- current report-only `strategy_architecture` payload remains valid without `metadata_schema_version`
+- this planning does not approve code changes, JSONL emission, observation emission, replay-authoritative use, external consumption, or runtime behavior changes
 
 ## Prohibited And Unapproved Scope
 
