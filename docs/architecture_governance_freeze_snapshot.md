@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Snapshot architecture baseline / current source-of-truth HEAD: `bc539fd Docs: define strategy metadata compatibility policy`
+Snapshot architecture baseline / current source-of-truth HEAD: `4d5f4d9 Docs: close source-inspection drift risk`
 
 This snapshot records the post-report-metadata-governance architecture state plus current AI execution governance and strategy metadata compatibility policy. It is docs-only governance evidence. It does not approve new runtime wiring, broker behavior, execution behavior, observation emission, JSONL emission, or production activation.
 
@@ -51,6 +51,7 @@ Completed deterministic strategy architecture and governance phases:
 - Runtime Orchestration Drift-Risk Planning
 - Cursor Local Execution Governance (`fd113d0 Docs: add Cursor local execution governance`)
 - Strategy Metadata Compatibility Policy (`bc539fd Docs: define strategy metadata compatibility policy`)
+- Source-Inspection Drift-Risk Closure (`4d5f4d9 Docs: close source-inspection drift risk`)
 
 ## Source Of Truth And Local Execution Providers
 
@@ -191,11 +192,14 @@ Current `main.py` responsibilities include:
 
 Future extraction must be pressure-driven, not speculative.
 
-## Current Drift Risks
+## Drift Risk Status
 
-Current drift risks recorded in `docs/architecture_drift_risk_register.md`:
+Resolved/closed drift risk recorded in `docs/architecture_drift_risk_register.md`:
 
-- Source-inspection contract tests: resolved and superseded by behavior-based tests.
+- Source-inspection contract tests: resolved/closed, superseded by behavior-based tests, and no longer a current open drift risk.
+
+Current open drift risks recorded in `docs/architecture_drift_risk_register.md`:
+
 - Strategy Architecture Schema Expansion Without Governance: open; backward-compatibility and additive-expansion policy is documented, but the risk remains open until a schema-version gate, tests, and compatibility behavior are implemented for an actual expansion.
 - Strategy Architecture Mistaken As Replay-Authoritative: open.
 - Runtime Orchestration Complexity Accumulation: open.
