@@ -724,6 +724,40 @@ Recommended next gate:
 
 - collect or provide historical/paper evidence for Positive Control 3, False-Positive Review 1, and False-Positive Review 3, then run a read-only evidence sufficiency checkpoint
 
+## Read-Only Evidence Source Inventory Result
+
+Read-only local evidence source inventory found no existing local historical or paper close-sequence evidence artifacts for:
+
+- Positive Control 3
+- False-Positive Review 1
+- False-Positive Review 3
+
+Local artifact directory status:
+
+- `logs/` was not present locally.
+- `reports/` was not present locally.
+- `saved_run_artifacts/` was not present locally.
+
+Existing relevant docs are planning and governance only, not empirical evidence.
+
+`docs/ibkr_read_only_runtime_visibility_smoke_evidence.md` exists but is IBKR visibility evidence, not close-sequence strategy evidence.
+
+Evidence is not sufficient for a future evidence sufficiency checkpoint.
+
+Missing evidence remains:
+
+- comparable close-only historical or paper sequences
+- follow-through evidence after signal window
+- positive-control evidence for steady continuation
+- false-positive evidence for weak shallow upward drift
+- false-positive evidence for choppy recovery followed by short upward run
+
+False-Positive Review 2 remains rejected for the current review set. Threshold remains provisional and unchanged. Strategy ID recommendation remains provisional. Final stronger confirmation rule remains unapproved. Test planning remains blocked. Implementation remains blocked. VPS validation is not needed.
+
+Recommended next gate:
+
+- provide or locate historical/paper close-sequence evidence for Positive Control 3, False-Positive Review 1, and False-Positive Review 3, then run a read-only evidence sufficiency checkpoint
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
