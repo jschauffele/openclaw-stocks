@@ -11,6 +11,7 @@ from tools.evidence.read_only_historical_data_adapter import (
     AlpacaEvidenceHistoricalCloseProvider,
     CsvStaticHistoricalCloseProvider,
     EvidenceHistoricalCloseRequest,
+    build_alpaca_evidence_provider,
     get_close_bars_for_request,
 )
 from tools.evidence.three_close_evidence_scanner import CloseBar
@@ -80,6 +81,28 @@ class FakeAlpacaClient:
             }
         )
         return self.bars
+
+
+class FakeAlpacaClientFactory:
+    def __init__(self, bars: tuple[object, ...]) -> None:
+        self.bars = bars
+        self.calls: list[dict[str, str | None]] = []
+
+    def __call__(
+        self,
+        *,
+        api_key: str,
+        secret_key: str,
+        data_url: str | None,
+    ) -> FakeAlpacaClient:
+        self.calls.append(
+            {
+                "api_key": api_key,
+                "secret_key": secret_key,
+                "data_url": data_url,
+            }
+        )
+        return FakeAlpacaClient(self.bars)
 
 
 class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
@@ -393,6 +416,34 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 2)
         self.assertIn("not approved", FAIL_CLOSED_MESSAGE)
 
+    def test_cli_accepts_future_alpaca_args_but_still_fails_closed(self) -> None:
+        with self.assertRaises(SystemExit) as raised:
+            main(
+                [
+                    "--provider",
+                    "alpaca",
+                    "--alpaca-api-key",
+                    "fake-key",
+                    "--alpaca-secret-key",
+                    "fake-secret",
+                    "--alpaca-data-url",
+                    "https://example.invalid",
+                    "--symbols",
+                    "MSTR",
+                    "--timeframe",
+                    "15Min",
+                    "--start-date",
+                    "2026-01-01",
+                    "--end-date",
+                    "2026-01-02",
+                    "--output-path",
+                    "unused.json",
+                ]
+            )
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("not approved", FAIL_CLOSED_MESSAGE)
+
     def test_mock_only_alpaca_provider_passes_request_values_to_client(self) -> None:
         client = FakeAlpacaClient(
             (
@@ -475,6 +526,60 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             AlpacaEvidenceHistoricalCloseProvider(object())
+
+    def test_alpaca_provider_factory_requires_explicit_credentials(self) -> None:
+        factory = FakeAlpacaClientFactory(())
+
+        with self.assertRaises(ValueError):
+            build_alpaca_evidence_provider(
+                api_key="",
+                secret_key="fake-secret",
+                client_factory=factory,
+            )
+        with self.assertRaises(ValueError):
+            build_alpaca_evidence_provider(
+                api_key="fake-key",
+                secret_key="",
+                client_factory=factory,
+            )
+
+        self.assertEqual(factory.calls, [])
+
+    def test_alpaca_provider_factory_passes_explicit_credentials_to_fake_factory(
+        self,
+    ) -> None:
+        factory = FakeAlpacaClientFactory(
+            (FakeAlpacaBar("2026-01-01T00:00:00Z", 100.0),)
+        )
+
+        provider = build_alpaca_evidence_provider(
+            api_key="fake-key",
+            secret_key="fake-secret",
+            data_url="https://example.invalid",
+            client_factory=factory,
+        )
+        request = EvidenceHistoricalCloseRequest(
+            symbol="MSTR",
+            timeframe="15Min",
+            start="2026-01-01",
+            end="2026-01-02",
+        )
+        result = get_close_bars_for_request(provider, request)
+
+        self.assertEqual(
+            factory.calls,
+            [
+                {
+                    "api_key": "fake-key",
+                    "secret_key": "fake-secret",
+                    "data_url": "https://example.invalid",
+                }
+            ],
+        )
+        self.assertEqual(
+            result,
+            (CloseBar(timestamp="2026-01-01T00:00:00Z", close=100.0),),
+        )
 
 
 def _imported_roots(tree: ast.AST) -> set[str]:

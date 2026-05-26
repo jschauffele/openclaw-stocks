@@ -50,6 +50,17 @@ class EvidenceHistoricalCloseProvider(Protocol):
         """
 
 
+class AlpacaEvidenceClientFactory(Protocol):
+    def __call__(
+        self,
+        *,
+        api_key: str,
+        secret_key: str,
+        data_url: str | None,
+    ) -> object:
+        ...
+
+
 class CsvStaticHistoricalCloseProvider:
     def __init__(self, input_path: str | Path) -> None:
         path = Path(input_path)
@@ -142,6 +153,25 @@ class AlpacaEvidenceHistoricalCloseProvider:
             if request.max_bars is not None and len(bars) >= request.max_bars:
                 break
         return tuple(bars)
+
+
+def build_alpaca_evidence_provider(
+    *,
+    api_key: str,
+    secret_key: str,
+    client_factory: AlpacaEvidenceClientFactory,
+    data_url: str | None = None,
+) -> AlpacaEvidenceHistoricalCloseProvider:
+    normalized_api_key = _normalize_required_text("api_key", api_key)
+    normalized_secret_key = _normalize_required_text("secret_key", secret_key)
+    if client_factory is None:
+        raise ValueError("client_factory must be provided")
+    client = client_factory(
+        api_key=normalized_api_key,
+        secret_key=normalized_secret_key,
+        data_url=data_url,
+    )
+    return AlpacaEvidenceHistoricalCloseProvider(client)
 
 
 def get_close_bars_for_request(
