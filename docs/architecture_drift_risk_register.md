@@ -169,15 +169,17 @@ Risk:
 Current mitigation:
 
 - `docs/strategy_3_close_trend_confirmation_evidence.md` records that manual candle hunting by the user is not an approved OpenClaw evidence workflow.
+- `docs/strategy_3_close_trend_confirmation_evidence.md` records a docs-only architecture/design boundary for a possible future automated evidence collector.
 - Future 3-close evidence gathering must be project-controlled, auditable, and separately gated.
 - Evidence without provenance is not sufficient for any evidence sufficiency checkpoint.
 - Evidence artifacts remain review inputs only, not tests.
+- Any future collector must remain an isolated research/evidence utility and must avoid `main.py`, `config.py`, broker modules, risk, execution, state, reporting, observations, event/JSONL modules, runtime logs, reports, state files, production JSONL, and observation locations.
 - VPS-based evidence collection is not approved.
 - Test planning and implementation remain blocked.
 
 Future required action:
 
-- Add a separate architecture/design gate before any project-controlled evidence collector is implemented.
+- Add a separate implementation gate before any project-controlled evidence collector is implemented.
 - Keep any future collector isolated from `main.py`, broker submit paths, order APIs, runtime state, execution, risk, production JSONL, observations, and reporting.
 - Run a separate evidence sufficiency checkpoint before any test-planning gate.
 

@@ -860,6 +860,65 @@ VPS-based collection is not approved by this guardrail.
 
 Test planning and implementation remain blocked.
 
+## Automated Evidence Collector Architecture Design Record
+
+This is a docs-only architecture/design record for a possible future automated 3-close evidence collector. It does not approve implementation, test planning, evidence collection, strategy behavior changes, threshold finalization, strategy ID finalization, stronger confirmation rule finalization, broker work, runtime work, or VPS validation.
+
+Design decision:
+
+- A future collector must be an isolated research/evidence utility, not runtime.
+- Recommended source location:
+  - `tools/evidence/collect_3_close_evidence.py`
+  - `tools/evidence/three_close_evidence_scanner.py`
+  - `tools/evidence/read_only_historical_data_adapter.py`
+- Recommended artifact location:
+  - `evidence/3_close_trend_confirmation/<timestamp_or_run_id>/`
+- Canonical artifact format:
+  - JSON
+- Optional human-review artifact:
+  - Markdown summary
+- Production JSONL must be avoided to prevent confusion with runtime event logs.
+
+Collector import boundary:
+
+- Must not import `main.py`.
+- Must not import `config.py`.
+- Must not import broker modules.
+- Must not import risk modules.
+- Must not import execution modules.
+- Must not import state modules.
+- Must not import reporting modules.
+- Must not import observation modules.
+- Must not import event or JSONL modules.
+- May reuse pure data structures or validators only if doing so does not pull runtime, environment, broker, order, reporting, observation, or JSONL dependencies.
+
+Collector execution boundary:
+
+- Should use a dependency-injected provider interface.
+- Any network or data access remains blocked until a separate evidence-collection gate approves the provider and exact command.
+- Must write only to a caller-specified output path.
+- Must not default-write into runtime logs, reports, state files, production JSONL, observations, or reporting locations.
+- Must be reviewed and built locally first before any VPS run is considered.
+- Any VPS run requires separate approval after local design/build review and push.
+
+Existing boundary findings:
+
+- `market_data.py` has a `MarketDataProvider` protocol and validation, but its request shape only supports symbol, timeframe, and limit, not start/end.
+- `data_models.py` has reusable immutable `Candle`, `HistoricalBarsRequest`, and `HistoricalBarsResult`.
+- `alpaca_data_provider.py` is read-only historical-data related but loads credentials/environment and performs network calls, so it is not safe as a direct collector boundary without a separate gate.
+- `data_engine.py` is historical-data CLI related but loads credentials and fetches API data, so it is not safe as a direct collector boundary.
+- No existing `tools/`, `scripts/`, `research/`, or `evidence/` directories were found during the read-only checkpoint.
+
+Preserved blocks:
+
+- No implementation is approved.
+- No test planning is approved.
+- No evidence collection is approved.
+- No VPS validation is approved.
+- Evidence artifacts remain review inputs only, not tests.
+- Test planning remains blocked.
+- Implementation remains blocked.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
