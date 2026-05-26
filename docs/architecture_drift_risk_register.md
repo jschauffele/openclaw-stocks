@@ -211,6 +211,7 @@ Promotion/removal condition:
 Risk:
 
 - The docs-only portfolio/risk replay state contract could be mistaken for an implemented replay package schema or runtime capture path.
+- The docs-only replay package envelope schema could be mistaken for an implemented replay writer, manifest format, runtime capture path, or storage format.
 - Portfolio-state, broker-visible-state, reconciliation, risk-governance, exposure saturation, and event-order requirements could be treated as production data contracts before schema, storage, integrity validation, and attribution tooling exist.
 - Broker-visible state capture requirements could be misread as approval for broker/live/API calls, IBKR execution, Alpaca trading, VPS validation, or runtime mutation.
 - Evaluation outputs could be treated as promotion-grade evidence before replay package generation, attribution, and integrity controls are implemented.
@@ -218,6 +219,7 @@ Risk:
 Current mitigation:
 
 - `docs/replay_package_specification.md` records the portfolio/risk replay state contract as planning only.
+- `docs/replay_package_specification.md` records the replay package envelope schema as planning only.
 - `docs/replayability_foundations.md`, `docs/portfolio_construction_architecture.md`, `docs/full_position_governance_models.md`, `docs/position_lifecycle_governance.md`, and `docs/evaluation_infrastructure_architecture.md` reference the contract as a prerequisite, not as implementation approval.
 - The contract explicitly preserves that no implementation, strategy behavior change, broker/live/API work, VPS validation, execution activation, or production mutation is approved.
 - IBKR execution remains deferred.
@@ -226,6 +228,7 @@ Current mitigation:
 Future required action:
 
 - Add a separate replay package schema implementation gate before code.
+- Add a separate replay package envelope implementation gate before any writer, manifest, storage, or runtime capture code.
 - Add separate snapshot capture, storage, immutability, replay integrity, attribution, and evaluation engine gates before any output can support governance decisions.
 - Add a separate broker-visible state capture gate if broker observations beyond currently approved read-only visibility are needed.
 - Keep replay packages evidence-only until a promotion workflow gate is explicitly approved.

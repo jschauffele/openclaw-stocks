@@ -386,3 +386,21 @@ architecture modeling only. This note does not approve replay infrastructure,
 evaluation tooling, broker/live/API work, VPS validation, strategy behavior
 changes, risk behavior changes, portfolio mutation, execution activation, or
 promotion.
+
+## Replay Package Envelope Schema Prerequisite
+
+Evaluation infrastructure also depends on a stable replay package envelope
+schema before evaluation outputs can be compared across packages.
+
+The envelope schema planning record is documented in
+`docs/replay_package_specification.md`. It standardizes package identity,
+schema versioning, evidence references, section status, integrity,
+immutability, attribution references, and authority boundaries.
+
+Until the envelope schema is implemented through separate gates, evaluation
+remains architecture modeling only. This note does not approve replay writer
+implementation, runtime capture, JSONL or observation schema changes, `main.py`
+changes, broker/live/API work, IBKR/TWS work, Alpaca calls, VPS validation,
+strategy behavior changes, risk/reconciliation behavior changes, execution
+behavior, sell behavior, trim behavior, rebalance behavior, resize behavior,
+promotion behavior, or production mutation.

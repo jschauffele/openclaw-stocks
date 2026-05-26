@@ -480,6 +480,186 @@ Future storage concepts may include:
 Storage should avoid mixing mutable evaluation artifacts into immutable
 production evidence packages.
 
+## Replay Package Envelope Schema Planning
+
+The replay package envelope is a docs-only schema planning record. It is not
+implemented.
+
+Purpose:
+
+- Standardize package identity.
+- Standardize schema versioning.
+- Standardize references to package evidence sections.
+- Standardize integrity and immutability markers.
+- Standardize section status.
+- Preserve explicit authority boundaries.
+
+Proposed top-level sections:
+
+- `package_identity`
+- `schema`
+- `source_control`
+- `run_identity`
+- `replay_window`
+- `environment_classification`
+- `package_status`
+- `configuration_references`
+- `market_input_references`
+- `strategy_decision_references`
+- `portfolio_risk_snapshot_references`
+- `broker_visible_state_references`
+- `reconciliation_risk_references`
+- `event_order_references`
+- `attribution`
+- `integrity`
+- `immutability`
+- `authority_boundary`
+- `out_of_scope`
+
+Required `package_identity` fields:
+
+- `package_id`
+- `package_created_at`
+- `package_producer`
+- `parent_package_ids`
+- `related_package_ids`
+
+Required `schema` fields:
+
+- `replay_package_schema_version`
+- `schema_status`
+- `schema_migration_policy`
+- `compatible_reader_min_version`
+
+Required `source_control` fields:
+
+- `commit_sha`
+- `branch_or_release`
+- `worktree_status`
+- `dirty_worktree_indicator`
+- `source_control_remote`
+
+Required `run_identity` fields:
+
+- `run_id`
+- `trigger_source`
+- `runtime_entrypoint`
+- `dirty_worktree_indicator`
+- `operator_or_automation_classification`
+
+Required `replay_window` fields:
+
+- `window_start`
+- `window_end`
+- `timezone`
+- `calendar_assumptions`
+- `market_session_assumptions`
+
+Required `environment_classification` fields:
+
+- `environment_name`
+- `environment_type`
+- `broker_endpoint_classification`
+- `runtime_visibility_enabled`
+- `secrets_excluded`
+
+Required `package_status` fields:
+
+- `status`
+- `completeness_status`
+- `section_statuses`
+- `invalidated_reason`
+- `correction_references`
+
+Required reference sections:
+
+- `configuration_references`: references to sanitized runtime configuration,
+  feature flags, and governed policy versions.
+- `market_input_references`: references to provider identity, symbol, timeframe
+  or window, candle bundle, returned candle count, adjustment assumptions, and
+  data warnings.
+- `strategy_decision_references`: references to strategy identifier, strategy
+  version, parameter version, input payload, signal result, action proposal,
+  validation result, and strategy evaluation timestamp.
+- `portfolio_risk_snapshot_references`: references to portfolio snapshot
+  identifier, snapshot schema version, position/exposure records, saturation
+  records, and data freshness status.
+- `broker_visible_state_references`: references to observed-only broker state,
+  provider status, observation timestamp, freshness, errors, and safe account
+  scope where approved.
+- `reconciliation_risk_references`: references to reconciliation evidence,
+  risk-governance decision, applicable caps, pass/block/defer/manual-review
+  results, ambiguity markers, and decision timestamps.
+- `event_order_references`: references to ordered event stream identifier,
+  stable event identifiers, stage names, timestamps, terminal event, early-stop
+  markers, and out-of-order/correction markers.
+
+Required `attribution` fields:
+
+- `baseline_version_reference`
+- `candidate_version_reference`
+- `difference_cause`
+- `difference_cause_status`
+- `unknown_or_ambiguous_cause`
+- `attribution_notes_reference`
+
+Required `integrity` fields:
+
+- `content_hash`
+- `section_hashes`
+- `hash_algorithm`
+- `required_section_check`
+- `terminal_event_check`
+- `schema_validation_status`
+
+Required `immutability` fields:
+
+- `finalized`
+- `finalized_at`
+- `append_only_corrections`
+- `correction_references`
+- `annotation_references`
+
+Required `authority_boundary` fields:
+
+- `evidence_only`
+- `non_authoritative`
+- `no_runtime_mutation`
+- `no_execution_authority`
+- `no_broker_authority`
+- `no_strategy_behavior_change`
+- `no_secret_material`
+
+Required `out_of_scope` fields:
+
+- `replay_writer_implementation`
+- `runtime_capture_implementation`
+- `jsonl_observation_schema_changes`
+- `main_py_changes`
+- `broker_live_api_calls`
+- `ibkr_tws`
+- `alpaca_calls`
+- `vps_validation`
+- `strategy_behavior_changes`
+- `risk_reconciliation_behavior_changes`
+- `execution_sell_trim_rebalance_resize_promotion_behavior`
+
+Future required gates:
+
+- Schema implementation gate.
+- Runtime capture gate.
+- Storage and immutability gate.
+- Integrity validation gate.
+- Attribution gate.
+- Evaluation tooling gate.
+- Promotion workflow gate.
+
+This envelope schema planning does not approve replay writer implementation,
+runtime capture implementation, JSONL or observation schema changes, `main.py`
+changes, broker/live/API calls, IBKR/TWS work, Alpaca calls, VPS validation,
+strategy behavior changes, risk/reconciliation behavior changes, execution,
+sell, trim, rebalance, resize, or promotion behavior.
+
 ## Replay vs Simulation
 
 Replay reconstructs decisions from captured production evidence.

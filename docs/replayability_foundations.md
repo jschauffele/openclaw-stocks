@@ -297,6 +297,23 @@ A future replay package may include:
 Replay packages should be immutable once used for evaluation evidence. If a
 package changes, it should receive a new version.
 
+## Replay Package Envelope Schema Planning
+
+The replay package envelope schema planning record is documented in
+`docs/replay_package_specification.md`.
+
+The envelope is intended to standardize package identity, schema versioning,
+evidence references, integrity markers, section status, immutability markers,
+attribution references, and authority boundaries before any implementation
+gate. It remains docs-only and not implemented.
+
+This planning does not approve replay writer implementation, runtime capture,
+JSONL or observation schema changes, `main.py` changes, broker/live/API work,
+IBKR/TWS work, Alpaca calls, VPS validation, strategy behavior changes,
+risk/reconciliation behavior changes, execution behavior, sell behavior, trim
+behavior, rebalance behavior, resize behavior, promotion behavior, or production
+mutation.
+
 ## Replay vs Simulation
 
 Replay and simulation are related but distinct.
