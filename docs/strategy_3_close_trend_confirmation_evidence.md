@@ -1054,6 +1054,33 @@ These candidates may be reviewed as counterexamples where a choppy recovery foll
 - VPS validation needed: NO.
 - Missing neutral and insufficient-close evidence remain unresolved.
 
+## 3-Close Stronger Confirmation Evidence Phase Closure
+
+The 3-close stronger trend confirmation evidence phase is closed for now.
+
+Closure decision:
+
+- The committed Alpaca artifacts remain review inputs only, not accepted evidence.
+- Positive Control 3 is not sufficient for test planning because the evidence is mixed.
+- False-Positive Review 1 is not sufficient because the only candidate weakens the fixture.
+- False-Positive Review 3 is not sufficient for approval because the evidence is split between support and weakening.
+- Missing neutral and insufficient-close evidence remain unresolved.
+- No candidate is promoted to `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` by this closure.
+- Evidence sufficiency is not approved.
+- Strategy test planning is not approved.
+- Implementation is not approved.
+- A stronger 3-close confirmation rule is not approved.
+- The threshold remains provisional and unchanged.
+- The strategy ID recommendation remains provisional.
+- Current strategy behavior remains unchanged.
+- VPS validation is not needed.
+
+Roadmap decision:
+
+- Do not continue collecting more 3-close evidence under the current hypothesis.
+- Return to higher-value OpenClaw roadmap work unless a new, sharper strategy hypothesis is explicitly defined.
+- Future strategy research should avoid over-investing in close-only 3-candle confirmation unless paired with a clearer discriminating feature or regime filter.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
@@ -1078,6 +1105,6 @@ The following remain blocked by this evidence gate:
 
 ## Recommended Next Gate
 
-The next gate is docs-only evidence collection for stronger trend confirmation.
+The next gate is higher-value OpenClaw roadmap work, or a new docs-only strategy hypothesis review if a sharper strategy hypothesis is explicitly defined.
 
-Do not proceed to test planning until the required examples, threshold decision, expected outcomes, and strategy ID recommendation are recorded.
+Do not continue collecting more 3-close evidence under the current hypothesis. Do not proceed to test planning until a future gate records sufficient accepted examples, threshold decision, expected outcomes, and strategy ID recommendation.

@@ -167,6 +167,8 @@ Required future gate before implementation:
 
 ## Recommended Next Step
 
-The safest next phase is a docs-only strategy behavior review gate for controlled improvement of the current 3-close momentum strategy, if and only if concrete desired behavior or reference examples are provided.
+The 3-close stronger trend confirmation evidence phase is closed for now. Do not continue collecting more 3-close evidence under the current hypothesis.
+
+Return to higher-value OpenClaw roadmap work unless a new, sharper strategy hypothesis is explicitly defined. Future strategy research should avoid over-investing in close-only 3-candle confirmation unless paired with a clearer discriminating feature or regime filter.
 
 If no concrete strategy objective is available, pause strategy implementation work. Do not advance to runtime, broker, replay, JSONL, observation, or IBKR work from this document.
