@@ -217,6 +217,165 @@ Minimum reconciliation evidence:
 The package should preserve both the normalized decision and the underlying
 evidence that produced it.
 
+## Portfolio/Risk Replay State Contract Planning
+
+This planning record defines the minimum replay-grade portfolio and risk state
+contract needed for future deterministic evaluation and attribution. It is
+docs-only. It does not approve implementation, replay package writing, runtime
+changes, strategy behavior changes, broker/live/API work, VPS validation,
+execution activation, or portfolio mutation.
+
+Required portfolio-state snapshot fields:
+
+- Snapshot identifier.
+- Snapshot schema version.
+- Snapshot timestamp and timezone.
+- Source classification: internal state, broker-visible state, reconciled
+  composite, or operator-supplied review input.
+- Run identifier or replay package identifier.
+- Symbol universe in scope.
+- Per-symbol position records.
+- Cash and buying-power facts if they influence eligibility, risk, or exposure.
+- Open-order facts if they influence projected exposure or duplicate checks.
+- Governance configuration references used by the decision window.
+- Data freshness and completeness status.
+
+Required position and exposure fields:
+
+- Symbol.
+- Position quantity.
+- Position side.
+- Position market value or notional exposure when available.
+- Average cost or cost basis only if used by the future decision being replayed.
+- Existing exposure.
+- Requested order side and quantity.
+- Estimated order cost or exposure delta.
+- Open buy order quantity and count.
+- Projected exposure.
+- Maximum position size or applicable cap.
+- Remaining capacity under the cap.
+- Saturation state: unsaturated, saturated, over-cap, unknown, or not
+  applicable.
+- Exposure source and calculation timestamp.
+- Any ambiguity or missing-data reason.
+
+Broker-visible state boundary:
+
+- Broker-visible state is observed evidence, not authority.
+- Broker-visible state capture must remain separate from order submission,
+  cancellation, flattening, remediation, retry, resubmit, reconciliation
+  mutation, and runtime control behavior.
+- Broker-visible state may include account scope, positions, open orders,
+  order statuses, fills, buying power, connection state, provider name,
+  provider status, observation timestamp, freshness, and errors or timeouts.
+- Secrets, raw credentials, credential-derived values, and live account
+  identifiers that are not safe for persisted evidence must not be stored.
+- Capturing broker-visible state does not approve IBKR execution, Alpaca
+  trading, broker API calls, live routing, or VPS validation.
+
+Required reconciliation evidence fields:
+
+- Reconciliation timestamp.
+- Requested symbol, side, quantity, and estimated exposure impact.
+- Existing position quantity and exposure.
+- Open buy order quantity and count.
+- Projected exposure.
+- Applicable cap or limit.
+- Pass, block, defer, resize, or manual-review result if those result types are
+  approved in the future.
+- Reconciliation reason and human-readable message.
+- Evidence source references used by reconciliation.
+- Ambiguity flag and ambiguity reason.
+- Manual review flag if applicable.
+- Submit reconciliation status only when a separately approved submit workflow
+  is in scope.
+
+Required risk-governance decision fields:
+
+- Risk-governance policy identifier and version.
+- Risk decision timestamp.
+- Decision result: pass, block, defer, resize, manual review, or not applicable.
+- Decision reason.
+- Limits evaluated.
+- Input values used for each limit.
+- Current and projected exposure values.
+- Limit utilization before and after the proposal.
+- Blocking limit identifier when blocked.
+- Whether the result is authoritative or advisory.
+- Whether the decision depends on broker-visible state, internal state, or a
+  reconciled composite.
+
+Required exposure saturation fields:
+
+- Saturation policy identifier and version.
+- Saturation evaluation timestamp.
+- Saturation state before the proposal.
+- Existing exposure.
+- Proposed exposure delta.
+- Projected exposure.
+- Maximum allowed exposure.
+- Remaining capacity.
+- Whether the proposal is blocked by hard-cap enforcement.
+- Whether any resize, suppress, sell, trim, rebalance, or capital recycling
+  behavior is applicable. In the current OpenClaw state this must be recorded
+  as not applicable because those behaviors are not approved.
+- Explanation preserving the distinction between strategy demand,
+  reconciliation approval, risk approval, and execution permission.
+
+Required event-order evidence:
+
+- Ordered event stream identifier.
+- Stable event identifiers.
+- Event timestamps with timezone.
+- Runtime stage names.
+- Stage start and completion status.
+- Decision-relevant payload references.
+- Snapshot references used by each decision.
+- Reconciliation and risk decision ordering.
+- Early-stop or terminal outcome.
+- Final completion event.
+- Missing, late, duplicate, corrected, or out-of-order event markers.
+
+Attribution requirements:
+
+- Replay packages must support attribution of differences to strategy logic,
+  parameters, market inputs, portfolio state, broker-visible state,
+  reconciliation policy, risk policy, exposure caps, event ordering, lifecycle
+  assumptions, allocation assumptions, or execution assumptions.
+- Attribution must distinguish current approved behavior from candidate
+  behavior.
+- Attribution must identify whether a changed outcome is caused by a desired
+  candidate rule, missing evidence, stale state, data-quality issue, or
+  governance regression.
+- Attribution must not depend on AI discretion for expected outcomes.
+
+Out of scope for this contract:
+
+- Replay package writer implementation.
+- Runtime snapshot capture implementation.
+- Broker API calls.
+- Alpaca trading or market-data API calls.
+- IBKR execution or TWS/IB Gateway work.
+- VPS validation.
+- Strategy behavior changes.
+- Risk, reconciliation, sizing, sell, trim, rebalance, or execution behavior
+  changes.
+- Production JSONL or observation schema changes.
+- Evidence/research collection under the closed 3-close hypothesis.
+
+Future implementation gates required:
+
+- Replay package schema implementation gate.
+- Snapshot capture implementation gate.
+- Replay package storage and immutability gate.
+- Replay integrity validation gate.
+- Attribution engine planning and implementation gate.
+- Broker-visible state capture gate if broker observations are needed beyond
+  currently approved read-only visibility.
+- Portfolio/risk evaluation engine gate before any candidate comparison can
+  influence governance decisions.
+- Promotion workflow gate before any evaluated candidate can affect production.
+
 ## Required Lifecycle-State Capture
 
 Lifecycle-state capture is required only when lifecycle governance is introduced

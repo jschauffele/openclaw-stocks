@@ -294,3 +294,22 @@ Future implementation should be considered only after a specific institutional
 model is selected and its consequences are accepted. Until then, a full position
 continues to mean that BUY demand may exist, but additional exposure is blocked
 by reconciliation when projected exposure would exceed the configured cap.
+
+## Replay-State Dependency For Future Saturation Changes
+
+Any future change to full-position behavior requires replay-grade saturation
+evidence before implementation planning.
+
+At minimum, future evaluation must be able to reconstruct existing exposure,
+open buy order quantity, requested quantity, projected exposure, maximum
+allowed exposure, remaining capacity, saturation state, reconciliation result,
+risk-governance result, and event order for the decision window.
+
+The minimum portfolio/risk replay state contract is recorded in
+`docs/replay_package_specification.md`. That contract must remain evidence-only
+until a separate implementation gate approves schema, capture, storage,
+integrity validation, attribution, and evaluation tooling.
+
+This note does not approve strategy suppression, dynamic sizing, sell behavior,
+trim behavior, rebalance behavior, broker/live/API work, VPS validation, or
+execution activation.

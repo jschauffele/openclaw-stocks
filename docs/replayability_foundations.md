@@ -231,6 +231,23 @@ Evaluation should preserve:
 The same evaluation definition should be runnable again and produce equivalent
 results unless input versions intentionally change.
 
+## Portfolio/Risk State Contract Planning
+
+The minimum portfolio/risk replay state contract is recorded in
+`docs/replay_package_specification.md` under Portfolio/Risk Replay State
+Contract Planning.
+
+This contract is the next architecture lane after closure of the 3-close
+evidence phase. It defines the required portfolio snapshots, broker-visible
+state boundary, position and exposure fields, reconciliation evidence,
+risk-governance decisions, exposure saturation evidence, event-order evidence,
+and attribution requirements needed before deterministic evaluation can become
+implementation-ready.
+
+This planning does not approve replay infrastructure, snapshot capture tooling,
+runtime changes, broker/live/API work, VPS validation, strategy behavior
+changes, risk behavior changes, execution activation, or production mutation.
+
 ## Attribution Requirements
 
 Replay must support attribution of decision differences.

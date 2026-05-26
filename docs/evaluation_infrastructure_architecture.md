@@ -368,3 +368,21 @@ authority, data contracts, audit requirements, and operational controls.
 Until then, OpenClaw may continue to improve through documented governance
 modeling while production runtime remains deterministic, versioned,
 reproducible, and non-self-modifying.
+
+## Portfolio/Risk Replay State Contract Prerequisite
+
+Evaluation infrastructure depends on replay-grade portfolio/risk state before
+it can produce governance-grade attribution.
+
+The minimum contract is recorded in `docs/replay_package_specification.md`.
+Future evaluation must be able to compare baseline and candidate behavior while
+preserving portfolio snapshots, broker-visible state boundaries,
+position/exposure fields, reconciliation evidence, risk-governance decisions,
+exposure saturation evidence, event ordering, and attribution to the exact
+cause of any decision difference.
+
+Until that contract is implemented through separate gates, evaluation remains
+architecture modeling only. This note does not approve replay infrastructure,
+evaluation tooling, broker/live/API work, VPS validation, strategy behavior
+changes, risk behavior changes, portfolio mutation, execution activation, or
+promotion.

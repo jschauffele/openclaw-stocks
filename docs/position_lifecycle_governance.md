@@ -395,3 +395,19 @@ requirements, and rollback controls.
 Until then, OpenClaw remains governed by deterministic entry controls,
 hard-cap exposure enforcement, separated execution permission, and no automatic
 sell or rebalance behavior.
+
+## Replay-State Dependency For Lifecycle Governance
+
+Lifecycle governance should not move toward implementation until replay packages
+can preserve the portfolio/risk state that produced each lifecycle-relevant
+decision.
+
+The minimum portfolio/risk replay state contract is recorded in
+`docs/replay_package_specification.md`. Future lifecycle evaluation will need
+that contract plus separately approved lifecycle-state fields before hold,
+trim, exit, rebalance, capital recycling, opportunity-cost, or saturation-
+release behavior can be evaluated deterministically.
+
+This dependency does not approve lifecycle-state capture tooling, SELL
+semantics, rebalance semantics, broker/live/API work, VPS validation, execution
+activation, or strategy behavior changes.

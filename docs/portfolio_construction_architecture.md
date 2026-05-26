@@ -400,3 +400,24 @@ Minimum requirements include:
 Only after those capabilities are in place should OpenClaw consider implementing
 a portfolio-construction layer, capital allocator, exposure-budgeting engine,
 factor-aware model, rebalance lifecycle, or adaptive sizing system.
+
+## Portfolio/Risk Replay State Contract Dependency
+
+Before portfolio construction can move from architecture modeling to
+implementation planning, OpenClaw needs a replay-grade portfolio/risk state
+contract.
+
+The minimum contract is recorded in `docs/replay_package_specification.md`.
+Portfolio construction depends on that contract because future allocation,
+budgeting, ranking, suppression, resize, hold, trim, exit, or rebalance
+decisions must be attributable to explicit portfolio state, broker-visible
+state where approved, reconciliation evidence, risk-governance decisions,
+exposure saturation evidence, and event ordering.
+
+This dependency preserves the current distinction between strategy signal,
+allocation intent, reconciliation approval, risk approval, execution
+permission, and broker-facing execution.
+
+This note does not approve implementation, strategy behavior changes,
+portfolio-construction runtime wiring, broker/live/API work, VPS validation,
+sell behavior, rebalance behavior, adaptive sizing, or execution activation.
