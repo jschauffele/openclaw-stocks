@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 
 from tools.evidence.collect_3_close_evidence import FAIL_CLOSED_MESSAGE, main
 from tools.evidence.read_only_historical_data_adapter import (
+    AlpacaEvidenceHistoricalCloseProvider,
     CsvStaticHistoricalCloseProvider,
     EvidenceHistoricalCloseRequest,
     get_close_bars_for_request,
@@ -46,6 +47,38 @@ class FakeHistoricalCloseProvider:
         max_bars: int | None,
     ) -> tuple[CloseBar, ...]:
         self.calls.append((symbol, timeframe, start, end, max_bars))
+        return self.bars
+
+
+class FakeAlpacaBar:
+    def __init__(self, timestamp: str, close: float) -> None:
+        self.timestamp = timestamp
+        self.close = close
+
+
+class FakeAlpacaClient:
+    def __init__(self, bars: tuple[object, ...]) -> None:
+        self.bars = bars
+        self.calls: list[dict[str, object]] = []
+
+    def get_stock_bars(
+        self,
+        *,
+        symbol: str,
+        timeframe: str,
+        start: str,
+        end: str,
+        limit: int | None,
+    ) -> tuple[object, ...]:
+        self.calls.append(
+            {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "start": start,
+                "end": end,
+                "limit": limit,
+            }
+        )
         return self.bars
 
 
@@ -359,6 +392,89 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
 
         self.assertEqual(raised.exception.code, 2)
         self.assertIn("not approved", FAIL_CLOSED_MESSAGE)
+
+    def test_mock_only_alpaca_provider_passes_request_values_to_client(self) -> None:
+        client = FakeAlpacaClient(
+            (
+                FakeAlpacaBar("2026-01-01T00:00:00Z", 100.0),
+                FakeAlpacaBar("2026-01-01T00:15:00Z", 101.0),
+            )
+        )
+        provider = AlpacaEvidenceHistoricalCloseProvider(client)
+        request = EvidenceHistoricalCloseRequest(
+            symbol="mstr",
+            timeframe="15Min",
+            start="2026-01-01T00:00:00Z",
+            end="2026-01-02T00:00:00Z",
+            max_bars=2,
+        )
+
+        result = get_close_bars_for_request(provider, request)
+
+        self.assertEqual(
+            client.calls,
+            [
+                {
+                    "symbol": "MSTR",
+                    "timeframe": "15Min",
+                    "start": "2026-01-01T00:00:00Z",
+                    "end": "2026-01-02T00:00:00Z",
+                    "limit": 2,
+                }
+            ],
+        )
+        self.assertEqual(
+            result,
+            (
+                CloseBar(timestamp="2026-01-01T00:00:00Z", close=100.0),
+                CloseBar(timestamp="2026-01-01T00:15:00Z", close=101.0),
+            ),
+        )
+
+    def test_mock_only_alpaca_provider_honors_max_bars(self) -> None:
+        client = FakeAlpacaClient(
+            (
+                FakeAlpacaBar("2026-01-01T00:00:00Z", 100.0),
+                FakeAlpacaBar("2026-01-01T00:15:00Z", 101.0),
+                FakeAlpacaBar("2026-01-01T00:30:00Z", 102.0),
+            )
+        )
+        provider = AlpacaEvidenceHistoricalCloseProvider(client)
+        request = EvidenceHistoricalCloseRequest(
+            symbol="MSTR",
+            timeframe="15Min",
+            start="2026-01-01T00:00:00Z",
+            end="2026-01-02T00:00:00Z",
+            max_bars=2,
+        )
+
+        result = get_close_bars_for_request(provider, request)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[-1], CloseBar(timestamp="2026-01-01T00:15:00Z", close=101.0))
+
+    def test_mock_only_alpaca_provider_rejects_malformed_bars(self) -> None:
+        class MissingCloseBar:
+            timestamp = "2026-01-01T00:00:00Z"
+
+        client = FakeAlpacaClient((MissingCloseBar(),))
+        provider = AlpacaEvidenceHistoricalCloseProvider(client)
+        request = EvidenceHistoricalCloseRequest(
+            symbol="MSTR",
+            timeframe="15Min",
+            start="2026-01-01",
+            end="2026-01-02",
+        )
+
+        with self.assertRaises(ValueError):
+            get_close_bars_for_request(provider, request)
+
+    def test_mock_only_alpaca_provider_requires_injected_client(self) -> None:
+        with self.assertRaises(ValueError):
+            AlpacaEvidenceHistoricalCloseProvider(None)
+
+        with self.assertRaises(ValueError):
+            AlpacaEvidenceHistoricalCloseProvider(object())
 
 
 def _imported_roots(tree: ast.AST) -> set[str]:

@@ -104,6 +104,46 @@ class CsvStaticHistoricalCloseProvider:
         return tuple(bars)
 
 
+class AlpacaEvidenceHistoricalCloseProvider:
+    def __init__(self, client: object) -> None:
+        if client is None:
+            raise ValueError("client must be provided")
+        if not hasattr(client, "get_stock_bars"):
+            raise ValueError("client must provide get_stock_bars")
+        self.client = client
+
+    def get_close_bars(
+        self,
+        symbol: str,
+        timeframe: str,
+        start: str,
+        end: str,
+        max_bars: int | None,
+    ) -> tuple[CloseBar, ...]:
+        request = EvidenceHistoricalCloseRequest(
+            symbol=symbol,
+            timeframe=timeframe,
+            start=start,
+            end=end,
+            max_bars=max_bars,
+        )
+        raw_bars = self.client.get_stock_bars(
+            symbol=request.symbol,
+            timeframe=request.timeframe,
+            start=request.start,
+            end=request.end,
+            limit=request.max_bars,
+        )
+        bars: list[CloseBar] = []
+        for index, raw_bar in enumerate(raw_bars, start=1):
+            timestamp = _alpaca_bar_required_value(raw_bar, "timestamp", index)
+            close = _alpaca_bar_required_value(raw_bar, "close", index)
+            bars.append(CloseBar(timestamp=str(timestamp), close=float(close)))
+            if request.max_bars is not None and len(bars) >= request.max_bars:
+                break
+        return tuple(bars)
+
+
 def get_close_bars_for_request(
     provider: EvidenceHistoricalCloseProvider,
     request: EvidenceHistoricalCloseRequest,
@@ -142,6 +182,15 @@ def _csv_required_value(row: dict[str, str], field_name: str, row_number: int) -
     value = str(raw_value).strip()
     if not value:
         raise ValueError(f"CSV row {row_number} has empty {field_name}")
+    return value
+
+
+def _alpaca_bar_required_value(raw_bar: object, field_name: str, index: int) -> object:
+    if not hasattr(raw_bar, field_name):
+        raise ValueError(f"Alpaca mock bar {index} is missing {field_name}")
+    value = getattr(raw_bar, field_name)
+    if value is None or str(value).strip() == "":
+        raise ValueError(f"Alpaca mock bar {index} has empty {field_name}")
     return value
 
 
