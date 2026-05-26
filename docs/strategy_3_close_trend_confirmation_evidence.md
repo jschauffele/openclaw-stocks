@@ -352,6 +352,80 @@ The fixture classifications do not approve tests, implementation, strategy behav
 
 The next required gate remains user/Codex fixture acceptance review before any separate test-planning gate.
 
+## Threshold And Strategy ID Resolution Review
+
+Fixture evidence is sufficient for threshold decision review.
+
+Test planning remains blocked. Implementation remains blocked. Accepted fixtures remain candidates only, not tests.
+
+Historical or paper confirmation is still required for:
+
+- Positive Control 3
+- False-Positive Review 1
+- False-Positive Review 3
+
+This resolution review records provisional review recommendations only. It does not approve tests, implementation, strategy behavior changes, trading behavior changes, final threshold changes, final strategy ID decisions, or expanded input data.
+
+### 1. Percent Threshold
+
+Resolution surface:
+
+- Current threshold remains unchanged unless later evidence justifies change.
+- This gate does not change the threshold.
+
+Recorded status:
+
+- `PROVISIONAL_RECOMMENDATION_KEEP_THRESHOLD_UNCHANGED`
+
+Evidence that could justify changing the threshold later remains limited to user-accepted examples, historical or paper-trading confirmation, deterministic fixtures, and explicit strategy ID compatibility analysis.
+
+### 2. Stronger Confirmation Rule
+
+Resolution surface:
+
+- Candidate rule must remain close-only.
+- Candidate rule should distinguish strong multi-close continuation from weak, choppy, or late-spike sequences.
+- Exact rule is not finalized in this gate.
+
+Recorded status:
+
+- `CANDIDATE_RULE_REQUIRES_USER_APPROVAL`
+
+Future rule review must identify exact close sequence requirements, lookback handling, insufficient-data behavior, and expected outputs before any separate test-planning gate.
+
+### 3. Strategy ID
+
+Resolution surface:
+
+- Default recommendation is a new strategy ID for material behavior change.
+- Existing strategy ID may remain only if future review proves the change is backward-compatible and does not alter historical metadata meaning.
+
+Recorded status:
+
+- `PROVISIONAL_RECOMMENDATION_NEW_STRATEGY_ID_IF_IMPLEMENTED`
+
+This is not a final strategy ID decision.
+
+### 4. Fixture Decisions
+
+Resolution surface:
+
+- User must accept, revise, or reject each provisional example before test planning.
+- Examples needing historical or paper confirmation remain blocked until confirmation exists.
+
+Current fixture decision status:
+
+- accepted review fixtures remain candidates only
+- historical-confirmation examples remain blocked for test planning
+- user-review examples remain blocked for test planning
+- no fixture is promoted to a test in this gate
+
+### 5. Next Gate
+
+The next required gate is user/Codex explicit fixture decision review.
+
+Only after that review can a separate test-planning gate be considered.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
