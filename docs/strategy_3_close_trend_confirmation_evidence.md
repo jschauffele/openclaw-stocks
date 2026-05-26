@@ -123,6 +123,126 @@ This candidate may move to test planning only after all of the following are tru
 - strategy ID compatibility is explicitly decided
 - no risk, execution, broker, order, runtime, JSONL, observation, reporting, state, or configuration behavior change is approved
 
+## Initial Example Fixture Intake
+
+The examples below are proposed review fixtures only. They are not accepted tests, approved thresholds, approved behavior changes, or implementation requirements.
+
+User review is required before any example can move to test planning. Historical confirmation or paper-trading evidence is required where the review concern depends on actual follow-through after the close sequence.
+
+### Positive Control Examples
+
+These examples are intended to preserve clear baseline BUY behavior if stronger trend confirmation is later considered.
+
+#### Positive Control 1
+
+- Close sequence: `100.00, 101.00, 102.20, 103.50`
+- Current 3-close expected behavior: BUY
+- Proposed review concern: clear consecutive upward closes should not be rejected by stronger confirmation without evidence that the move is weak.
+- Expected stronger-confirmation behavior: provisional BUY
+- Review status: needs user review
+
+#### Positive Control 2
+
+- Close sequence: `50.00, 51.20, 52.60, 54.10`
+- Current 3-close expected behavior: BUY
+- Proposed review concern: stronger confirmation should preserve visibly accelerating close-only momentum when no broader input surface is approved.
+- Expected stronger-confirmation behavior: provisional BUY
+- Review status: needs user review
+
+#### Positive Control 3
+
+- Close sequence: `200.00, 203.00, 206.00, 209.00`
+- Current 3-close expected behavior: BUY
+- Proposed review concern: steady multi-close continuation should remain a candidate BUY unless historical evidence shows the baseline is unreliable in this pattern.
+- Expected stronger-confirmation behavior: provisional BUY
+- Review status: needs historical confirmation
+
+### False-Positive Review Examples
+
+These examples are intended to review cases where the current 3-close BUY may fire too early. They are not proof that the current behavior is wrong.
+
+#### False-Positive Review 1
+
+- Close sequence: `100.00, 100.05, 100.10, 100.15`
+- Current 3-close expected behavior: BUY
+- Proposed review concern: small incremental closes may satisfy direction while showing weak trend quality.
+- Expected stronger-confirmation behavior: provisional HOLD
+- Review status: needs historical confirmation
+
+#### False-Positive Review 2
+
+- Close sequence: `100.00, 100.05, 100.10, 103.00`
+- Current 3-close expected behavior: BUY
+- Proposed review concern: one large final candle after weak prior closes may represent late or unstable confirmation rather than durable trend.
+- Expected stronger-confirmation behavior: provisional HOLD
+- Review status: needs user review
+
+#### False-Positive Review 3
+
+- Close sequence: `100.00, 99.80, 100.05, 100.20, 100.35`
+- Current 3-close expected behavior: BUY
+- Proposed review concern: a short upward run after choppy movement may be too weak to treat as confirmed momentum.
+- Expected stronger-confirmation behavior: provisional HOLD
+- Review status: needs historical confirmation
+
+### Neutral Or HOLD Examples
+
+These examples are intended to confirm stronger trend review does not introduce new BUY behavior where the baseline remains HOLD.
+
+#### Neutral Example 1
+
+- Close sequence: `100.00, 100.00, 100.00, 100.00`
+- Current 3-close expected behavior: HOLD
+- Proposed review concern: flat closes should remain neutral.
+- Expected stronger-confirmation behavior: provisional HOLD
+- Review status: needs user review
+
+#### Neutral Example 2
+
+- Close sequence: `100.00, 101.00, 100.50, 101.20`
+- Current 3-close expected behavior: HOLD
+- Proposed review concern: choppy alternating closes should not become BUY only because the final close is higher.
+- Expected stronger-confirmation behavior: provisional HOLD
+- Review status: needs user review
+
+#### Neutral Example 3
+
+- Close sequence: `100.00, 99.50, 99.00, 98.70`
+- Current 3-close expected behavior: HOLD
+- Proposed review concern: downward continuation should remain outside BUY behavior.
+- Expected stronger-confirmation behavior: provisional HOLD
+- Review status: needs user review
+
+### Edge Case Coverage
+
+The proposed examples above cover the required edge-case categories as planning fixtures:
+
+- Small incremental closes: False-Positive Review 1
+- One large final candle after weak prior closes: False-Positive Review 2
+- Choppy alternating closes: Neutral Example 2 and False-Positive Review 3
+- Shallow trend versus strong trend: False-Positive Review 1 compared with Positive Control 1, Positive Control 2, and Positive Control 3
+- Insufficient close count: still needed before test planning
+
+#### Insufficient Close Count Edge Case
+
+- Close sequence: `100.00, 101.00`
+- Current 3-close expected behavior: HOLD
+- Proposed review concern: insufficient close count must remain deterministic and must not produce BUY under stronger confirmation.
+- Expected stronger-confirmation behavior: provisional HOLD
+- Review status: needs user review
+
+### Intake Decisions Still Required
+
+Before test planning, the following decisions remain unresolved:
+
+- Whether the current percent threshold remains unchanged or becomes part of review.
+- Whether stronger trend confirmation modifies the current strategy ID or requires a new strategy ID.
+- Which examples are accepted after user review.
+- Which examples require historical or paper-trading confirmation.
+- Whether any proposed provisional outcome should be changed before tests are written.
+
+No example in this section approves implementation, tests, strategy behavior changes, trading behavior changes, or expanded input data.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
