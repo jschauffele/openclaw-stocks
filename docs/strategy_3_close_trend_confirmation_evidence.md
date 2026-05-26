@@ -919,6 +919,56 @@ Preserved blocks:
 - Test planning remains blocked.
 - Implementation remains blocked.
 
+## Evidence Provider Data-Access Architecture Decision
+
+This is a docs-only provider/data-access architecture decision for possible future 3-close evidence collection. It does not approve implementation, evidence collection, VPS validation, strategy test planning, strategy behavior changes, broker work, runtime work, or network/API access.
+
+Provider boundary decision:
+
+- Future evidence provider code must be isolated under `tools/evidence/`.
+- Recommended future provider file:
+  - `tools/evidence/read_only_historical_data_adapter.py`
+- The collector should depend on a narrow dependency-injected provider protocol:
+  - `get_close_bars(symbol, timeframe, start, end, max_bars) -> tuple[CloseBar, ...]`
+- The provider interface is for future historical close retrieval only and must return close-only `CloseBar` values to the scanner.
+
+Existing boundary reuse decision:
+
+- `market_data.py` concepts and validation may be reused only if doing so does not pull runtime, environment, broker, order, reporting, observation, JSONL, or config dependencies.
+- `data_models.py` immutable structures may be reused if useful, but scanner-local `CloseBar` remains acceptable for maintaining evidence-tool isolation.
+- `alpaca_data_provider.py` must not be directly reused for collector execution yet because it loads credentials/environment and performs network calls.
+- `data_engine.py` must be avoided because it is CLI-oriented, credential-loading, and network-facing.
+- `config.py` must be avoided because it couples evidence tooling to runtime, broker, and environment settings.
+- `test_market_data.py` is network-facing and must not be used for this gate.
+
+Provider access guardrails:
+
+- Network and data access remain blocked until a separate evidence-collection gate approves the exact provider and command.
+- Any future real provider must use explicit credentials or explicit provider configuration only if separately approved.
+- Implicit `.env` loading is not approved unless separately approved.
+- Provider access must remain separate from runtime config, broker submit paths, order APIs, execution, risk, state, reporting, observations, event/JSONL modules, and runtime orchestration.
+
+Artifact/output guardrails:
+
+- Artifact output must remain caller-specified JSON.
+- Preferred future artifact path:
+  - `evidence/3_close_trend_confirmation/<run_id>/candidates.json`
+- No production JSONL, runtime logs, reports, state files, observation artifacts, or `last_run_report.json` may be written by this evidence path.
+
+Local and VPS boundary:
+
+- Local design/build review must happen before any VPS run is considered.
+- VPS execution remains blocked until a separate approval gate defines provider, command, symbols, timeframe, date range, max bars, and output path.
+
+Preserved blocks:
+
+- No implementation is approved.
+- No evidence collection is approved.
+- No VPS validation is approved.
+- No strategy test planning is approved.
+- Test planning remains blocked.
+- Strategy behavior remains unchanged.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
