@@ -597,6 +597,133 @@ Recommended next gate:
 
 - historical/paper evidence collection for Positive Control 3, False-Positive Review 1, and False-Positive Review 3
 
+## Historical And Paper Evidence Collection Plan
+
+This section defines the docs-only evidence collection plan for remaining unresolved stronger trend confirmation fixtures.
+
+This plan does not approve test planning, implementation, strategy behavior changes, threshold changes, final strategy ID decisions, final stronger confirmation rule decisions, or expanded input data.
+
+False-Positive Review 2 remains rejected for the current review set. Threshold remains provisional and unchanged. Strategy ID recommendation remains provisional. Final stronger confirmation rule remains unapproved. Test planning remains blocked. Implementation remains blocked. VPS validation is not needed.
+
+### Positive Control 3 Evidence Collection Plan
+
+Exact close pattern being evaluated:
+
+- `200.00, 203.00, 206.00, 209.00`
+- steady multi-close continuation
+- current 3-close expected behavior: BUY
+- provisional stronger-confirmation behavior: BUY
+
+Historical or paper evidence that would support the fixture:
+
+- comparable close-only sequences where each close advances meaningfully from the prior close
+- evidence that follow-through remained constructive after the signal window
+- examples showing that stronger confirmation should preserve steady continuation as a positive control
+- records showing the pattern is not merely a synthetic or overfit sequence
+
+Evidence that would reject or weaken the fixture:
+
+- repeated examples where similar steady continuation quickly failed after the signal
+- evidence that this pattern commonly appears at exhaustion points rather than durable continuation
+- evidence that the sequence requires unavailable context beyond closes to interpret reliably
+- inability to find any comparable historical or paper examples
+
+Evidence out of scope:
+
+- broker fills, order outcomes, risk sizing, execution quality, position state, JSONL events, observations, report formatting, or VPS logs
+- volume, open/high/low, candle-body, news, liquidity, options, or intraday context unless a future gate approves broader inputs
+- changing the threshold or strategy ID based on this fixture alone
+
+Close-only evidence sufficiency:
+
+- Close-only evidence is sufficient for this gate if comparable close sequences and follow-through records can be reviewed without adding new input fields.
+
+Why this fixture remains blocked:
+
+- It remains blocked until historical or paper evidence confirms that this steady continuation pattern is a valid positive-control candidate for future test planning.
+
+### False-Positive Review 1 Evidence Collection Plan
+
+Exact close pattern being evaluated:
+
+- `100.00, 100.05, 100.10, 100.15`
+- very small incremental upward closes
+- current 3-close expected behavior: BUY
+- provisional stronger-confirmation behavior: HOLD
+
+Historical or paper evidence that would support the fixture:
+
+- comparable close-only sequences where tiny incremental upward closes produced weak or unreliable follow-through
+- examples showing the baseline can classify shallow close drift as BUY even when trend quality is poor
+- evidence that shallow progression differs materially from accepted positive-control continuation patterns
+- records showing that the concern can be evaluated without changing the percent threshold in this gate
+
+Evidence that would reject or weaken the fixture:
+
+- repeated examples where similar shallow incremental closes produced reliable continuation
+- evidence that the current threshold already filters out this pattern in actual strategy evaluation
+- evidence that the fixture is unrealistic for the instrument universe being reviewed
+- inability to separate this concern from a threshold-change question
+
+Evidence out of scope:
+
+- threshold changes, symbol-specific tuning, risk sizing, broker behavior, execution results, state, JSONL, observations, reporting, VPS logs, or order outcomes
+- volume, open/high/low, candle body, spread, liquidity, or news context unless a future gate approves broader inputs
+- treating this fixture as proof of a behavior change without accepted historical or paper evidence
+
+Close-only evidence sufficiency:
+
+- Close-only evidence is sufficient for this gate if historical or paper records can show shallow close-only progression and its follow-through without additional input data.
+
+Why this fixture remains blocked:
+
+- It remains blocked until historical or paper evidence confirms that tiny incremental upward closes are a valid weak-trend false-positive candidate.
+
+### False-Positive Review 3 Evidence Collection Plan
+
+Exact close pattern being evaluated:
+
+- `100.00, 99.80, 100.05, 100.20, 100.35`
+- choppy movement followed by a short upward run
+- current 3-close expected behavior: BUY
+- provisional stronger-confirmation behavior: HOLD
+
+Historical or paper evidence that would support the fixture:
+
+- comparable close-only sequences where a choppy recovery followed by a short upward run produced unreliable follow-through
+- examples showing that stronger confirmation should distinguish choppy recovery from durable continuation
+- comparison records against accepted neutral choppy examples and positive-control continuation examples
+- evidence that the pattern can be evaluated using closes only
+
+Evidence that would reject or weaken the fixture:
+
+- repeated examples where similar choppy recovery sequences produced reliable continuation
+- evidence that the earlier choppy movement is irrelevant to the current 3-close baseline behavior
+- evidence that interpreting the pattern requires regime, volume, candle, liquidity, or news context outside this gate
+- inability to find comparable historical or paper examples
+
+Evidence out of scope:
+
+- regime changes, volume confirmation, candle-quality rules, symbol-specific thresholds, risk sizing, execution, broker behavior, JSONL, observations, reporting, state, order outcomes, or VPS validation
+- changing the stronger confirmation rule before a separate test-planning gate
+- converting this fixture into a test without accepted evidence
+
+Close-only evidence sufficiency:
+
+- Close-only evidence is sufficient for this gate if comparable close sequences can show whether choppy recovery differs from durable continuation using closes alone.
+
+Why this fixture remains blocked:
+
+- It remains blocked until historical or paper evidence confirms that choppy movement followed by a short upward run is a valid false-positive candidate.
+
+### Evidence Collection Plan Boundary
+
+The collection plan is docs-only and evidence-only. It does not approve tests, implementation, threshold changes, strategy ID finalization, stronger confirmation rule finalization, runtime validation, broker work, risk changes, execution changes, JSONL changes, observation changes, reporting changes, state changes, order behavior changes, or VPS use.
+
+Recommended next gate:
+
+- collect or provide historical/paper evidence for Positive Control 3, False-Positive Review 1, and False-Positive Review 3, then run a read-only evidence sufficiency checkpoint
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
