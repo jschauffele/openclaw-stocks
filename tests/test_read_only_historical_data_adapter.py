@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from tools.evidence.collect_3_close_evidence import FAIL_CLOSED_MESSAGE, main
 from tools.evidence.read_only_historical_data_adapter import (
     AlpacaEvidenceHistoricalCloseProvider,
+    AlpacaEvidenceStockBarsClientFactory,
     CsvStaticHistoricalCloseProvider,
     EvidenceHistoricalCloseRequest,
     build_alpaca_evidence_provider,
@@ -218,6 +219,16 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
                 tree = ast.parse(Path(relative_path).read_text(encoding="utf-8"))
                 imported_roots = _imported_roots(tree)
                 self.assertTrue(FORBIDDEN_IMPORT_ROOTS.isdisjoint(imported_roots))
+
+    def test_adapter_does_not_load_env_or_read_process_env(self) -> None:
+        for relative_path in [
+            "tools/evidence/read_only_historical_data_adapter.py",
+            "tools/evidence/collect_3_close_evidence.py",
+        ]:
+            with self.subTest(path=relative_path):
+                source = Path(relative_path).read_text(encoding="utf-8")
+                self.assertNotIn("load_dotenv", source)
+                self.assertNotIn("os.getenv", source)
 
     def test_csv_provider_filters_symbol_date_range_and_max_bars(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -444,6 +455,93 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 2)
         self.assertIn("not approved", FAIL_CLOSED_MESSAGE)
 
+    def test_cli_enabled_alpaca_requires_explicit_credentials_before_factory(self) -> None:
+        factory = FakeAlpacaClientFactory(())
+
+        with self.assertRaises(SystemExit) as raised:
+            main(
+                [
+                    "--provider",
+                    "alpaca",
+                    "--enable-alpaca-collection",
+                    "--symbols",
+                    "MSTR",
+                    "--timeframe",
+                    "15Min",
+                    "--start-date",
+                    "2026-01-01",
+                    "--end-date",
+                    "2026-01-02",
+                    "--output-path",
+                    "unused.json",
+                ],
+                alpaca_client_factory=factory,
+            )
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertEqual(factory.calls, [])
+
+    def test_cli_enabled_alpaca_path_uses_injected_fake_factory_only(self) -> None:
+        factory = FakeAlpacaClientFactory(
+            (
+                FakeAlpacaBar("2026-01-01T00:00:00Z", 200.0),
+                FakeAlpacaBar("2026-01-01T00:15:00Z", 203.0),
+                FakeAlpacaBar("2026-01-01T00:30:00Z", 206.0),
+                FakeAlpacaBar("2026-01-01T00:45:00Z", 209.0),
+                FakeAlpacaBar("2026-01-01T01:00:00Z", 211.0),
+            )
+        )
+        with TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "candidates.json"
+            exit_code = main(
+                [
+                    "--provider",
+                    "alpaca",
+                    "--enable-alpaca-collection",
+                    "--alpaca-api-key",
+                    "fake-key",
+                    "--alpaca-secret-key",
+                    "fake-secret",
+                    "--alpaca-data-url",
+                    "https://example.invalid",
+                    "--symbols",
+                    "MSTR",
+                    "--timeframe",
+                    "15Min",
+                    "--start-date",
+                    "2026-01-01T00:00:00Z",
+                    "--end-date",
+                    "2026-01-02T00:00:00Z",
+                    "--max-bars",
+                    "100",
+                    "--max-examples",
+                    "10",
+                    "--output-path",
+                    str(output_path),
+                ],
+                alpaca_client_factory=factory,
+            )
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(
+            factory.calls,
+            [
+                {
+                    "api_key": "fake-key",
+                    "secret_key": "fake-secret",
+                    "data_url": "https://example.invalid",
+                }
+            ],
+        )
+        self.assertEqual(payload["artifact_type"], "review_input_not_test")
+        self.assertEqual(payload["candidates"][0]["fixture_name"], "Positive Control 3")
+        self.assertEqual(payload["candidates"][0]["reviewer_decision"], "PENDING_REVIEW")
+        self.assertEqual(
+            payload["candidates"][0]["review_status"],
+            "GENERATED_CANDIDATE_NOT_ACCEPTED",
+        )
+
     def test_mock_only_alpaca_provider_passes_request_values_to_client(self) -> None:
         client = FakeAlpacaClient(
             (
@@ -580,6 +678,9 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
             result,
             (CloseBar(timestamp="2026-01-01T00:00:00Z", close=100.0),),
         )
+
+    def test_real_alpaca_factory_type_is_present_but_not_constructed_by_tests(self) -> None:
+        self.assertTrue(callable(AlpacaEvidenceStockBarsClientFactory()))
 
 
 def _imported_roots(tree: ast.AST) -> set[str]:

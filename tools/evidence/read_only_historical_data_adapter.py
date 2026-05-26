@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -59,6 +60,52 @@ class AlpacaEvidenceClientFactory(Protocol):
         data_url: str | None,
     ) -> object:
         ...
+
+
+class AlpacaEvidenceStockBarsClient:
+    def __init__(self, sdk_client: object) -> None:
+        self.sdk_client = sdk_client
+
+    def get_stock_bars(
+        self,
+        *,
+        symbol: str,
+        timeframe: str,
+        start: str,
+        end: str,
+        limit: int | None,
+    ) -> tuple[object, ...]:
+        stock_bars_request, timeframe_value = _load_alpaca_request_types()
+        request = stock_bars_request(
+            symbol_or_symbols=symbol,
+            timeframe=_alpaca_timeframe(timeframe, timeframe_value),
+            start=_parse_iso_datetime(start),
+            end=_parse_iso_datetime(end),
+            limit=limit,
+            adjustment="raw",
+            feed="iex",
+        )
+        response = self.sdk_client.get_stock_bars(request)
+        return tuple(getattr(response, "data", {}).get(symbol, ()))
+
+
+class AlpacaEvidenceStockBarsClientFactory:
+    def __call__(
+        self,
+        *,
+        api_key: str,
+        secret_key: str,
+        data_url: str | None,
+    ) -> AlpacaEvidenceStockBarsClient:
+        stock_historical_data_client = _load_alpaca_client_type()
+        client_kwargs: dict[str, object] = {
+            "api_key": api_key,
+            "secret_key": secret_key,
+            "raw_data": False,
+        }
+        if data_url:
+            client_kwargs["url_override"] = data_url
+        return AlpacaEvidenceStockBarsClient(stock_historical_data_client(**client_kwargs))
 
 
 class CsvStaticHistoricalCloseProvider:
@@ -222,6 +269,38 @@ def _alpaca_bar_required_value(raw_bar: object, field_name: str, index: int) -> 
     if value is None or str(value).strip() == "":
         raise ValueError(f"Alpaca mock bar {index} has empty {field_name}")
     return value
+
+
+def _load_alpaca_client_type() -> type:
+    from alpaca.data.historical.stock import StockHistoricalDataClient
+
+    return StockHistoricalDataClient
+
+
+def _load_alpaca_request_types() -> tuple[type, object]:
+    from alpaca.data.requests import StockBarsRequest
+    from alpaca.data.timeframe import TimeFrame
+
+    return StockBarsRequest, TimeFrame
+
+
+def _alpaca_timeframe(timeframe: str, timeframe_type: object) -> object:
+    timeframe_map = {
+        "1Min": timeframe_type.Minute,
+        "5Min": timeframe_type(5, timeframe_type.Minute.unit_value),
+        "15Min": timeframe_type(15, timeframe_type.Minute.unit_value),
+        "1Hour": timeframe_type.Hour,
+        "1Day": timeframe_type.Day,
+    }
+    if timeframe not in timeframe_map:
+        supported = ", ".join(timeframe_map)
+        raise ValueError(f"Unsupported Alpaca timeframe: {timeframe}. Supported: {supported}")
+    return timeframe_map[timeframe]
+
+
+def _parse_iso_datetime(value: str) -> datetime:
+    normalized = value.replace("Z", "+00:00")
+    return datetime.fromisoformat(normalized)
 
 
 def _normalize_required_text(field_name: str, value: str) -> str:
