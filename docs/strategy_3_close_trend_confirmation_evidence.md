@@ -426,6 +426,55 @@ The next required gate is user/Codex explicit fixture decision review.
 
 Only after that review can a separate test-planning gate be considered.
 
+## Explicit Fixture Decision Review
+
+This review records explicit fixture decision status for stronger trend confirmation examples.
+
+This review does not approve tests. This review does not approve implementation. This review does not approve strategy behavior changes, trading behavior changes, threshold changes, final strategy ID decisions, or expanded input data. Accepted items remain candidates only, not tests.
+
+Threshold remains provisional and unchanged. Strategy ID recommendation remains provisional. Final candidate rule remains unapproved. Test planning remains blocked until enough fixtures are explicitly accepted and required confirmations are satisfied.
+
+Allowed decision statuses:
+
+- `ACCEPT_FOR_TEST_PLANNING_CANDIDATE`
+- `REVISE_BEFORE_TEST_PLANNING`
+- `REJECT`
+- `BLOCKED_PENDING_HISTORICAL_CONFIRMATION`
+- `BLOCKED_PENDING_USER_REVIEW`
+
+### Explicit Fixture Decision Table
+
+| Example | Decision status | Reason |
+| --- | --- | --- |
+| Positive Control 1 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Clear close-only upward continuation is suitable as a future test-planning candidate, but it is not a test. |
+| Positive Control 2 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Clear close-only accelerating continuation is suitable as a future test-planning candidate, but it is not a test. |
+| Positive Control 3 | `BLOCKED_PENDING_HISTORICAL_CONFIRMATION` | Historical or paper confirmation remains required before this steady-continuation example can support test planning. |
+| False-Positive Review 1 | `BLOCKED_PENDING_HISTORICAL_CONFIRMATION` | Historical or paper evidence remains required before small incremental closes can be treated as a confirmed weak-trend example. |
+| False-Positive Review 2 | `BLOCKED_PENDING_USER_REVIEW` | User must accept, revise, or reject the provisional HOLD expectation for one large final candle after weak prior closes. |
+| False-Positive Review 3 | `BLOCKED_PENDING_HISTORICAL_CONFIRMATION` | Historical or paper confirmation remains required before the choppy-then-upward-run example can support test planning. |
+| Neutral Example 1 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Flat closes are suitable as a future neutral candidate, but this does not approve a test. |
+| Neutral Example 2 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Choppy alternating closes are suitable as a future neutral candidate, but this does not approve a test. |
+| Neutral Example 3 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Downward continuation is suitable as a future HOLD candidate, but this does not approve a test. |
+| Insufficient Close Count Edge Case | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Insufficient close count is suitable as a future edge-case candidate, but this does not approve a test. |
+
+### Historical And Paper Confirmation Requirements
+
+Historical or paper confirmation remains required for:
+
+- Positive Control 3
+- False-Positive Review 1
+- False-Positive Review 3
+
+### Remaining Blocks
+
+Before any separate test-planning gate can be considered:
+
+- blocked fixtures must receive historical, paper, or user confirmation
+- threshold recommendation must remain explicit and provisional or be resolved in a later gate
+- strategy ID recommendation must remain explicit and provisional or be resolved in a later gate
+- final close-only candidate rule must be approved for test planning in a separate gate
+- accepted fixture candidates must still be translated into tests only by a future test-planning gate
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
