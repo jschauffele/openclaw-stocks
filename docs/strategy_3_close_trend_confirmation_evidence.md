@@ -475,6 +475,109 @@ Before any separate test-planning gate can be considered:
 - final close-only candidate rule must be approved for test planning in a separate gate
 - accepted fixture candidates must still be translated into tests only by a future test-planning gate
 
+## Historical And Paper Confirmation Planning
+
+This section plans confirmation requirements for blocked stronger trend confirmation fixtures.
+
+This is docs-only planning. It does not approve test planning, implementation, strategy behavior changes, threshold changes, final strategy ID decisions, final confirmation-rule decisions, or expanded input data. VPS validation is not needed.
+
+### Accepted Fixture Candidates Already Identified
+
+The following 6 fixtures are accepted only as future test-planning candidates, not tests:
+
+- Positive Control 1
+- Positive Control 2
+- Neutral Example 1
+- Neutral Example 2
+- Neutral Example 3
+- Insufficient Close Count Edge Case
+
+### Blocked Fixtures
+
+The following fixtures remain blocked:
+
+- Positive Control 3
+- False-Positive Review 1
+- False-Positive Review 2
+- False-Positive Review 3
+
+### Positive Control 3 Confirmation Requirement
+
+Fixture:
+
+- Close sequence: `200.00, 203.00, 206.00, 209.00`
+- Provisional stronger-confirmation behavior: BUY
+
+Historical or paper evidence required:
+
+- example records where a steady multi-close continuation remained constructive after the signal
+- evidence that stronger confirmation should preserve this pattern as a positive control
+- confirmation that the move is not just an overfit synthetic sequence
+- close-only data is sufficient unless a future gate separately approves broader inputs
+
+Planning status:
+
+- blocked pending historical or paper confirmation
+
+### False-Positive Review 1 Confirmation Requirement
+
+Fixture:
+
+- Close sequence: `100.00, 100.05, 100.10, 100.15`
+- Provisional stronger-confirmation behavior: HOLD
+
+Historical or paper evidence required:
+
+- examples where very small incremental upward closes produced weak or unreliable follow-through
+- evidence that the current 3-close BUY can fire on close-only movement that is too shallow to treat as durable momentum
+- comparison against positive controls showing the difference between shallow and stronger continuation
+- confirmation that no threshold change is required to evaluate this concern unless a later gate explicitly approves threshold review
+
+Planning status:
+
+- blocked pending historical or paper confirmation
+
+### False-Positive Review 3 Confirmation Requirement
+
+Fixture:
+
+- Close sequence: `100.00, 99.80, 100.05, 100.20, 100.35`
+- Provisional stronger-confirmation behavior: HOLD
+
+Historical or paper evidence required:
+
+- examples where choppy movement followed by a short upward run produced unreliable follow-through
+- evidence that stronger confirmation should distinguish choppy recovery from durable continuation
+- confirmation that close-only review is sufficient for this fixture
+- comparison against accepted neutral choppy fixture and positive-control continuation fixtures
+
+Planning status:
+
+- blocked pending historical or paper confirmation
+
+### False-Positive Review 2 User-Review Question
+
+Fixture:
+
+- Close sequence: `100.00, 100.05, 100.10, 103.00`
+- Provisional stronger-confirmation behavior: HOLD
+
+Exact unresolved user-review question:
+
+- Should one large final close after two weak prior upward closes remain a provisional HOLD for stronger trend confirmation review, be revised into a provisional BUY, or be rejected as a fixture?
+
+Planning status:
+
+- blocked pending user review
+
+### Planning Boundary
+
+Threshold remains provisional and unchanged. Strategy ID recommendation remains provisional. Final stronger confirmation rule remains unapproved. Test planning remains blocked. Implementation remains blocked. VPS validation is not needed.
+
+Recommended next gate:
+
+- user review of False-Positive Review 2 and historical/paper evidence collection for Positive Control 3, False-Positive Review 1, and False-Positive Review 3
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
