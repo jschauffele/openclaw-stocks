@@ -358,6 +358,7 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
             payload["candidates"][0]["review_status"],
             "GENERATED_CANDIDATE_NOT_ACCEPTED",
         )
+        self.assertEqual(payload["candidates"][0]["source_provider"], f"csv:{input_path}")
 
     def test_cli_uses_max_bars_separately_from_max_examples(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -536,11 +537,23 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
         )
         self.assertEqual(payload["artifact_type"], "review_input_not_test")
         self.assertEqual(payload["candidates"][0]["fixture_name"], "Positive Control 3")
+        self.assertEqual(payload["candidates"][0]["source_provider"], "alpaca:iex")
         self.assertEqual(payload["candidates"][0]["reviewer_decision"], "PENDING_REVIEW")
         self.assertEqual(
             payload["candidates"][0]["review_status"],
             "GENERATED_CANDIDATE_NOT_ACCEPTED",
         )
+        artifact_text = json.dumps(payload, sort_keys=True)
+        for forbidden_text in (
+            "api_key",
+            "secret_key",
+            "alpaca-api-key",
+            "alpaca-secret-key",
+            "fake-key",
+            "fake-secret",
+            "https://example.invalid",
+        ):
+            self.assertNotIn(forbidden_text, artifact_text)
 
     def test_mock_only_alpaca_provider_passes_request_values_to_client(self) -> None:
         client = FakeAlpacaClient(

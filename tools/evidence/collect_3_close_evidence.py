@@ -59,6 +59,7 @@ def main(
         parser.error(FAIL_CLOSED_MESSAGE)
 
     provider = _build_provider(args, parser, alpaca_client_factory)
+    source_provider = _source_provider_label(args)
     candidates = []
     for symbol in args.symbols:
         request = EvidenceHistoricalCloseRequest(
@@ -74,7 +75,7 @@ def main(
                 symbol=request.symbol,
                 timeframe=request.timeframe,
                 bars=bars,
-                source_provider=f"csv:{args.input_path}",
+                source_provider=source_provider,
                 evidence_type="historical",
                 max_examples=args.max_examples,
             )
@@ -102,6 +103,14 @@ def _build_provider(
         data_url=args.alpaca_data_url,
         client_factory=alpaca_client_factory or AlpacaEvidenceStockBarsClientFactory(),
     )
+
+
+def _source_provider_label(args: argparse.Namespace) -> str:
+    if args.provider == "csv":
+        return f"csv:{args.input_path}"
+    if args.provider == "alpaca":
+        return "alpaca:iex"
+    raise ValueError(f"unsupported provider: {args.provider}")
 
 
 if __name__ == "__main__":
