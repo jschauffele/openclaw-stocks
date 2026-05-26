@@ -1,0 +1,1847 @@
+{
+  "schema": "openclaw_3_close_evidence_candidates_v1",
+  "artifact_type": "review_input_not_test",
+  "scanner_version": "3_close_evidence_scanner_v1",
+  "scanner_settings": {
+    "meaning": "scanner candidate-generation heuristics only; not strategy thresholds, not strategy behavior approval, and not finalized stronger confirmation logic",
+    "shallow_drift_max_delta": 0.1,
+    "steady_continuation_min_delta": 0.5,
+    "steady_continuation_max_to_min_delta_ratio": 2.0
+  },
+  "candidates": [
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-05 14:45:00+00:00 to 2026-01-05 16:30:00+00:00",
+      "close_sequence": [
+        166.71,
+        165.09,
+        165.48,
+        166.43,
+        167.22,
+        165.33,
+        164.32,
+        163.565
+      ],
+      "signal_window_closes": [
+        166.71,
+        165.09,
+        165.48,
+        166.43,
+        167.22
+      ],
+      "follow_through_closes": [
+        165.33,
+        164.32,
+        163.565
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-05 18:00:00+00:00 to 2026-01-05 19:45:00+00:00",
+      "close_sequence": [
+        161.955,
+        161.51,
+        162.2,
+        164.37,
+        164.83,
+        165.355,
+        164.58,
+        164.215
+      ],
+      "signal_window_closes": [
+        161.955,
+        161.51,
+        162.2,
+        164.37,
+        164.83
+      ],
+      "follow_through_closes": [
+        165.355,
+        164.58,
+        164.215
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-06 18:30:00+00:00 to 2026-01-06 20:15:00+00:00",
+      "close_sequence": [
+        154.835,
+        154.6,
+        155.56,
+        155.835,
+        155.985,
+        156.24,
+        157.82,
+        158.49
+      ],
+      "signal_window_closes": [
+        154.835,
+        154.6,
+        155.56,
+        155.835,
+        155.985
+      ],
+      "follow_through_closes": [
+        156.24,
+        157.82,
+        158.49
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-06 20:30:00+00:00 to 2026-01-07 14:00:00+00:00",
+      "close_sequence": [
+        159.235,
+        157.975,
+        158.18,
+        166.47,
+        166.7,
+        164.67,
+        164.16,
+        162.27
+      ],
+      "signal_window_closes": [
+        159.235,
+        157.975,
+        158.18,
+        166.47,
+        166.7
+      ],
+      "follow_through_closes": [
+        164.67,
+        164.16,
+        162.27
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-07 15:00:00+00:00 to 2026-01-07 16:45:00+00:00",
+      "close_sequence": [
+        162.99,
+        158.995,
+        162.47,
+        164.66,
+        164.86,
+        164.285,
+        164.06,
+        164.08
+      ],
+      "signal_window_closes": [
+        162.99,
+        158.995,
+        162.47,
+        164.66,
+        164.86
+      ],
+      "follow_through_closes": [
+        164.285,
+        164.06,
+        164.08
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-07 16:15:00+00:00 to 2026-01-07 18:00:00+00:00",
+      "close_sequence": [
+        164.285,
+        164.06,
+        164.08,
+        164.16,
+        164.785,
+        165.45,
+        163.9,
+        162.53
+      ],
+      "signal_window_closes": [
+        164.285,
+        164.06,
+        164.08,
+        164.16,
+        164.785
+      ],
+      "follow_through_closes": [
+        165.45,
+        163.9,
+        162.53
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-07 18:30:00+00:00 to 2026-01-07 20:15:00+00:00",
+      "close_sequence": [
+        161.24,
+        160.09,
+        160.395,
+        161.07,
+        161.935,
+        161.915,
+        161.805,
+        160.51
+      ],
+      "signal_window_closes": [
+        161.24,
+        160.09,
+        160.395,
+        161.07,
+        161.935
+      ],
+      "follow_through_closes": [
+        161.915,
+        161.805,
+        160.51
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-08 14:15:00+00:00 to 2026-01-08 16:00:00+00:00",
+      "close_sequence": [
+        159.19,
+        157.335,
+        159.71,
+        161.01,
+        162.93,
+        162.52,
+        163.79,
+        165.09
+      ],
+      "signal_window_closes": [
+        159.19,
+        157.335,
+        159.71,
+        161.01,
+        162.93
+      ],
+      "follow_through_closes": [
+        162.52,
+        163.79,
+        165.09
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-08 14:30:00+00:00 to 2026-01-08 16:00:00+00:00",
+      "close_sequence": [
+        157.335,
+        159.71,
+        161.01,
+        162.93,
+        162.52,
+        163.79,
+        165.09
+      ],
+      "signal_window_closes": [
+        157.335,
+        159.71,
+        161.01,
+        162.93
+      ],
+      "follow_through_closes": [
+        162.52,
+        163.79,
+        165.09
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "steady close-only continuation but first follow-through close is below signal window",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-08 16:00:00+00:00 to 2026-01-08 17:45:00+00:00",
+      "close_sequence": [
+        165.09,
+        164.89,
+        165.745,
+        166.92,
+        167.555,
+        166.62,
+        168.69,
+        169.95
+      ],
+      "signal_window_closes": [
+        165.09,
+        164.89,
+        165.745,
+        166.92,
+        167.555
+      ],
+      "follow_through_closes": [
+        166.62,
+        168.69,
+        169.95
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-08 16:15:00+00:00 to 2026-01-08 17:45:00+00:00",
+      "close_sequence": [
+        164.89,
+        165.745,
+        166.92,
+        167.555,
+        166.62,
+        168.69,
+        169.95
+      ],
+      "signal_window_closes": [
+        164.89,
+        165.745,
+        166.92,
+        167.555
+      ],
+      "follow_through_closes": [
+        166.62,
+        168.69,
+        169.95
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "steady close-only continuation but first follow-through close is below signal window",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-08 17:45:00+00:00 to 2026-01-08 19:30:00+00:00",
+      "close_sequence": [
+        169.95,
+        167.95,
+        169.445,
+        169.515,
+        169.84,
+        169.6,
+        168.94,
+        167.875
+      ],
+      "signal_window_closes": [
+        169.95,
+        167.95,
+        169.445,
+        169.515,
+        169.84
+      ],
+      "follow_through_closes": [
+        169.6,
+        168.94,
+        167.875
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-12 14:00:00+00:00 to 2026-01-12 16:00:00+00:00",
+      "close_sequence": [
+        157.59,
+        156.535,
+        157.11,
+        157.35,
+        158.935,
+        159.8,
+        160.01,
+        160.28
+      ],
+      "signal_window_closes": [
+        157.59,
+        156.535,
+        157.11,
+        157.35,
+        158.935
+      ],
+      "follow_through_closes": [
+        159.8,
+        160.01,
+        160.28
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-12 19:00:00+00:00 to 2026-01-12 20:45:00+00:00",
+      "close_sequence": [
+        160.73,
+        160.41,
+        160.93,
+        162.39,
+        162.51,
+        162.72,
+        161.75,
+        162.21
+      ],
+      "signal_window_closes": [
+        160.73,
+        160.41,
+        160.93,
+        162.39,
+        162.51
+      ],
+      "follow_through_closes": [
+        162.72,
+        161.75,
+        162.21
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-13 17:15:00+00:00 to 2026-01-13 19:00:00+00:00",
+      "close_sequence": [
+        167.71,
+        167.55,
+        167.98,
+        168.675,
+        169.86,
+        170.005,
+        169.91,
+        169.96
+      ],
+      "signal_window_closes": [
+        167.71,
+        167.55,
+        167.98,
+        168.675,
+        169.86
+      ],
+      "follow_through_closes": [
+        170.005,
+        169.91,
+        169.96
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-13 18:30:00+00:00 to 2026-01-13 20:15:00+00:00",
+      "close_sequence": [
+        170.005,
+        169.91,
+        169.96,
+        170.06,
+        170.74,
+        171.87,
+        172.33,
+        172.985
+      ],
+      "signal_window_closes": [
+        170.005,
+        169.91,
+        169.96,
+        170.06,
+        170.74
+      ],
+      "follow_through_closes": [
+        171.87,
+        172.33,
+        172.985
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-13 20:15:00+00:00 to 2026-01-14 14:00:00+00:00",
+      "close_sequence": [
+        172.985,
+        171.995,
+        173.01,
+        173.51,
+        176.94,
+        177.5,
+        177.02,
+        178.49
+      ],
+      "signal_window_closes": [
+        172.985,
+        171.995,
+        173.01,
+        173.51,
+        176.94
+      ],
+      "follow_through_closes": [
+        177.5,
+        177.02,
+        178.49
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-14 13:15:00+00:00 to 2026-01-14 15:15:00+00:00",
+      "close_sequence": [
+        177.5,
+        177.02,
+        178.49,
+        178.7,
+        182.78,
+        185.4,
+        185.77,
+        184.74
+      ],
+      "signal_window_closes": [
+        177.5,
+        177.02,
+        178.49,
+        178.7,
+        182.78
+      ],
+      "follow_through_closes": [
+        185.4,
+        185.77,
+        184.74
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-14 18:15:00+00:00 to 2026-01-14 20:00:00+00:00",
+      "close_sequence": [
+        179.12,
+        176.91,
+        177.995,
+        179.11,
+        179.875,
+        179.005,
+        178.5,
+        180.12
+      ],
+      "signal_window_closes": [
+        179.12,
+        176.91,
+        177.995,
+        179.11,
+        179.875
+      ],
+      "follow_through_closes": [
+        179.005,
+        178.5,
+        180.12
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-14 18:30:00+00:00 to 2026-01-14 20:00:00+00:00",
+      "close_sequence": [
+        176.91,
+        177.995,
+        179.11,
+        179.875,
+        179.005,
+        178.5,
+        180.12
+      ],
+      "signal_window_closes": [
+        176.91,
+        177.995,
+        179.11,
+        179.875
+      ],
+      "follow_through_closes": [
+        179.005,
+        178.5,
+        180.12
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "steady close-only continuation but first follow-through close is below signal window",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-15 15:15:00+00:00 to 2026-01-15 17:00:00+00:00",
+      "close_sequence": [
+        171.25,
+        171.205,
+        172.46,
+        173.4,
+        174.45,
+        176.06,
+        176.9,
+        176.92
+      ],
+      "signal_window_closes": [
+        171.25,
+        171.205,
+        172.46,
+        173.4,
+        174.45
+      ],
+      "follow_through_closes": [
+        176.06,
+        176.9,
+        176.92
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-15 15:30:00+00:00 to 2026-01-15 17:00:00+00:00",
+      "close_sequence": [
+        171.205,
+        172.46,
+        173.4,
+        174.45,
+        176.06,
+        176.9,
+        176.92
+      ],
+      "signal_window_closes": [
+        171.205,
+        172.46,
+        173.4,
+        174.45
+      ],
+      "follow_through_closes": [
+        176.06,
+        176.9,
+        176.92
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "steady close-only continuation with constructive follow-through",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-15 15:45:00+00:00 to 2026-01-15 17:15:00+00:00",
+      "close_sequence": [
+        172.46,
+        173.4,
+        174.45,
+        176.06,
+        176.9,
+        176.92,
+        176.44
+      ],
+      "signal_window_closes": [
+        172.46,
+        173.4,
+        174.45,
+        176.06
+      ],
+      "follow_through_closes": [
+        176.9,
+        176.92,
+        176.44
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "steady close-only continuation with constructive follow-through",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-15 16:00:00+00:00 to 2026-01-15 17:30:00+00:00",
+      "close_sequence": [
+        173.4,
+        174.45,
+        176.06,
+        176.9,
+        176.92,
+        176.44,
+        176.985
+      ],
+      "signal_window_closes": [
+        173.4,
+        174.45,
+        176.06,
+        176.9
+      ],
+      "follow_through_closes": [
+        176.92,
+        176.44,
+        176.985
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "steady close-only continuation with constructive follow-through",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-16 14:15:00+00:00 to 2026-01-16 16:00:00+00:00",
+      "close_sequence": [
+        171.65,
+        168.28,
+        169.89,
+        172.95,
+        173.1,
+        169.34,
+        170.49,
+        170.93
+      ],
+      "signal_window_closes": [
+        171.65,
+        168.28,
+        169.89,
+        172.95,
+        173.1
+      ],
+      "follow_through_closes": [
+        169.34,
+        170.49,
+        170.93
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-16 15:15:00+00:00 to 2026-01-16 17:00:00+00:00",
+      "close_sequence": [
+        173.1,
+        169.34,
+        170.49,
+        170.93,
+        172.4,
+        172.7,
+        171.99,
+        170.46
+      ],
+      "signal_window_closes": [
+        173.1,
+        169.34,
+        170.49,
+        170.93,
+        172.4
+      ],
+      "follow_through_closes": [
+        172.7,
+        171.99,
+        170.46
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-16 16:45:00+00:00 to 2026-01-16 18:30:00+00:00",
+      "close_sequence": [
+        171.99,
+        170.46,
+        170.68,
+        171.94,
+        172.3,
+        171.32,
+        171.85,
+        172.09
+      ],
+      "signal_window_closes": [
+        171.99,
+        170.46,
+        170.68,
+        171.94,
+        172.3
+      ],
+      "follow_through_closes": [
+        171.32,
+        171.85,
+        172.09
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-16 17:45:00+00:00 to 2026-01-16 19:30:00+00:00",
+      "close_sequence": [
+        172.3,
+        171.32,
+        171.85,
+        172.09,
+        172.405,
+        172.275,
+        170.945,
+        171.32
+      ],
+      "signal_window_closes": [
+        172.3,
+        171.32,
+        171.85,
+        172.09,
+        172.405
+      ],
+      "follow_through_closes": [
+        172.275,
+        170.945,
+        171.32
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-16 19:45:00+00:00 to 2026-01-20 14:30:00+00:00",
+      "close_sequence": [
+        171.75,
+        171.66,
+        171.895,
+        173.34,
+        173.71,
+        174.08,
+        164.72,
+        163.07
+      ],
+      "signal_window_closes": [
+        171.75,
+        171.66,
+        171.895,
+        173.34,
+        173.71
+      ],
+      "follow_through_closes": [
+        174.08,
+        164.72,
+        163.07
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-20 14:45:00+00:00 to 2026-01-20 16:30:00+00:00",
+      "close_sequence": [
+        160.21,
+        160.14,
+        160.5,
+        161.53,
+        161.81,
+        162.09,
+        162.54,
+        161.67
+      ],
+      "signal_window_closes": [
+        160.21,
+        160.14,
+        160.5,
+        161.53,
+        161.81
+      ],
+      "follow_through_closes": [
+        162.09,
+        162.54,
+        161.67
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-21 14:30:00+00:00 to 2026-01-21 16:15:00+00:00",
+      "close_sequence": [
+        161.235,
+        161.2,
+        162.41,
+        162.575,
+        162.67,
+        163.04,
+        161.36,
+        160.6
+      ],
+      "signal_window_closes": [
+        161.235,
+        161.2,
+        162.41,
+        162.575,
+        162.67
+      ],
+      "follow_through_closes": [
+        163.04,
+        161.36,
+        160.6
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-21 16:45:00+00:00 to 2026-01-21 18:30:00+00:00",
+      "close_sequence": [
+        157.55,
+        156.17,
+        157.36,
+        158.22,
+        159.03,
+        158.64,
+        159.0,
+        158.77
+      ],
+      "signal_window_closes": [
+        157.55,
+        156.17,
+        157.36,
+        158.22,
+        159.03
+      ],
+      "follow_through_closes": [
+        158.64,
+        159.0,
+        158.77
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-21 17:00:00+00:00 to 2026-01-21 18:30:00+00:00",
+      "close_sequence": [
+        156.17,
+        157.36,
+        158.22,
+        159.03,
+        158.64,
+        159.0,
+        158.77
+      ],
+      "signal_window_closes": [
+        156.17,
+        157.36,
+        158.22,
+        159.03
+      ],
+      "follow_through_closes": [
+        158.64,
+        159.0,
+        158.77
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "steady close-only continuation but first follow-through close is below signal window",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-21 18:45:00+00:00 to 2026-01-21 20:30:00+00:00",
+      "close_sequence": [
+        159.04,
+        158.69,
+        162.44,
+        164.61,
+        164.66,
+        164.28,
+        162.34,
+        163.64
+      ],
+      "signal_window_closes": [
+        159.04,
+        158.69,
+        162.44,
+        164.61,
+        164.66
+      ],
+      "follow_through_closes": [
+        164.28,
+        162.34,
+        163.64
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-22 17:00:00+00:00 to 2026-01-22 18:45:00+00:00",
+      "close_sequence": [
+        162.45,
+        162.07,
+        162.16,
+        162.28,
+        162.445,
+        162.68,
+        162.365,
+        161.27
+      ],
+      "signal_window_closes": [
+        162.45,
+        162.07,
+        162.16,
+        162.28,
+        162.445
+      ],
+      "follow_through_closes": [
+        162.68,
+        162.365,
+        161.27
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-22 18:30:00+00:00 to 2026-01-22 20:15:00+00:00",
+      "close_sequence": [
+        162.365,
+        161.27,
+        161.51,
+        161.96,
+        163.15,
+        162.66,
+        162.65,
+        161.95
+      ],
+      "signal_window_closes": [
+        162.365,
+        161.27,
+        161.51,
+        161.96,
+        163.15
+      ],
+      "follow_through_closes": [
+        162.66,
+        162.65,
+        161.95
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-23 15:00:00+00:00 to 2026-01-23 16:45:00+00:00",
+      "close_sequence": [
+        160.26,
+        159.84,
+        161.2,
+        163.05,
+        163.38,
+        162.81,
+        164.74,
+        164.93
+      ],
+      "signal_window_closes": [
+        160.26,
+        159.84,
+        161.2,
+        163.05,
+        163.38
+      ],
+      "follow_through_closes": [
+        162.81,
+        164.74,
+        164.93
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-23 16:00:00+00:00 to 2026-01-23 17:45:00+00:00",
+      "close_sequence": [
+        163.38,
+        162.81,
+        164.74,
+        164.93,
+        165.61,
+        168.24,
+        167.7,
+        166.46
+      ],
+      "signal_window_closes": [
+        163.38,
+        162.81,
+        164.74,
+        164.93,
+        165.61
+      ],
+      "follow_through_closes": [
+        168.24,
+        167.7,
+        166.46
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-26 17:00:00+00:00 to 2026-01-26 18:45:00+00:00",
+      "close_sequence": [
+        160.35,
+        159.92,
+        160.39,
+        160.55,
+        160.75,
+        161.55,
+        161.72,
+        163.585
+      ],
+      "signal_window_closes": [
+        160.35,
+        159.92,
+        160.39,
+        160.55,
+        160.75
+      ],
+      "follow_through_closes": [
+        161.55,
+        161.72,
+        163.585
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-27 17:15:00+00:00 to 2026-01-27 19:00:00+00:00",
+      "close_sequence": [
+        158.44,
+        157.14,
+        157.82,
+        158.15,
+        158.46,
+        157.75,
+        159.02,
+        158.43
+      ],
+      "signal_window_closes": [
+        158.44,
+        157.14,
+        157.82,
+        158.15,
+        158.46
+      ],
+      "follow_through_closes": [
+        157.75,
+        159.02,
+        158.43
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-29 16:15:00+00:00 to 2026-01-29 18:00:00+00:00",
+      "close_sequence": [
+        143.74,
+        142.88,
+        144.2,
+        144.22,
+        145.0,
+        144.22,
+        143.34,
+        142.915
+      ],
+      "signal_window_closes": [
+        143.74,
+        142.88,
+        144.2,
+        144.22,
+        145.0
+      ],
+      "follow_through_closes": [
+        144.22,
+        143.34,
+        142.915
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-29 20:00:00+00:00 to 2026-01-30 14:00:00+00:00",
+      "close_sequence": [
+        140.64,
+        139.66,
+        141.73,
+        143.23,
+        144.03,
+        143.4,
+        143.43,
+        140.11
+      ],
+      "signal_window_closes": [
+        140.64,
+        139.66,
+        141.73,
+        143.23,
+        144.03
+      ],
+      "follow_through_closes": [
+        143.4,
+        143.43,
+        140.11
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-30 15:30:00+00:00 to 2026-01-30 17:15:00+00:00",
+      "close_sequence": [
+        143.19,
+        142.565,
+        143.825,
+        144.12,
+        144.96,
+        144.48,
+        143.32,
+        145.545
+      ],
+      "signal_window_closes": [
+        143.19,
+        142.565,
+        143.825,
+        144.12,
+        144.96
+      ],
+      "follow_through_closes": [
+        144.48,
+        143.32,
+        145.545
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-30 18:00:00+00:00 to 2026-01-30 19:45:00+00:00",
+      "close_sequence": [
+        144.545,
+        143.7,
+        143.95,
+        147.97,
+        148.83,
+        149.74,
+        149.415,
+        148.15
+      ],
+      "signal_window_closes": [
+        144.545,
+        143.7,
+        143.95,
+        147.97,
+        148.83
+      ],
+      "follow_through_closes": [
+        149.74,
+        149.415,
+        148.15
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-30 19:45:00+00:00 to 2026-02-02 13:30:00+00:00",
+      "close_sequence": [
+        148.15,
+        146.83,
+        147.69,
+        148.81,
+        149.74,
+        149.97,
+        138.73,
+        138.69
+      ],
+      "signal_window_closes": [
+        148.15,
+        146.83,
+        147.69,
+        148.81,
+        149.74
+      ],
+      "follow_through_closes": [
+        149.97,
+        138.73,
+        138.69
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "Positive Control 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-01-30 20:00:00+00:00 to 2026-02-02 13:30:00+00:00",
+      "close_sequence": [
+        146.83,
+        147.69,
+        148.81,
+        149.74,
+        149.97,
+        138.73,
+        138.69
+      ],
+      "signal_window_closes": [
+        146.83,
+        147.69,
+        148.81,
+        149.74
+      ],
+      "follow_through_closes": [
+        149.97,
+        138.73,
+        138.69
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "steady close-only continuation with constructive follow-through",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-02-02 14:30:00+00:00 to 2026-02-02 16:15:00+00:00",
+      "close_sequence": [
+        143.865,
+        140.715,
+        141.955,
+        144.675,
+        145.07,
+        145.92,
+        147.225,
+        146.465
+      ],
+      "signal_window_closes": [
+        143.865,
+        140.715,
+        141.955,
+        144.675,
+        145.07
+      ],
+      "follow_through_closes": [
+        145.92,
+        147.225,
+        146.465
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-02-03 19:00:00+00:00 to 2026-02-03 20:45:00+00:00",
+      "close_sequence": [
+        129.31,
+        129.065,
+        129.25,
+        129.4,
+        129.46,
+        130.99,
+        132.71,
+        133.255
+      ],
+      "signal_window_closes": [
+        129.31,
+        129.065,
+        129.25,
+        129.4,
+        129.46
+      ],
+      "follow_through_closes": [
+        130.99,
+        132.71,
+        133.255
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-02-04 17:30:00+00:00 to 2026-02-04 19:15:00+00:00",
+      "close_sequence": [
+        122.2,
+        121.95,
+        122.12,
+        124.04,
+        125.08,
+        124.94,
+        125.57,
+        125.7
+      ],
+      "signal_window_closes": [
+        122.2,
+        121.95,
+        122.12,
+        124.04,
+        125.08
+      ],
+      "follow_through_closes": [
+        124.94,
+        125.57,
+        125.7
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "supports_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run and weak first follow-through close",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    },
+    {
+      "fixture_name": "False-Positive Review 3",
+      "symbol": "MSTR",
+      "timeframe": "15Min",
+      "date_time_range": "2026-02-04 18:30:00+00:00 to 2026-02-04 20:15:00+00:00",
+      "close_sequence": [
+        125.08,
+        124.94,
+        125.57,
+        125.7,
+        127.09,
+        128.8,
+        127.42,
+        127.56
+      ],
+      "signal_window_closes": [
+        125.08,
+        124.94,
+        125.57,
+        125.7,
+        127.09
+      ],
+      "follow_through_closes": [
+        128.8,
+        127.42,
+        127.56
+      ],
+      "source_provider": "alpaca:iex",
+      "evidence_type": "historical",
+      "fixture_effect": "weakens_fixture",
+      "ambiguity_notes": "choppy close-only recovery followed by short upward run but first follow-through close continued higher",
+      "uses_close_only_data": true,
+      "non_close_data_present_but_out_of_scope": false,
+      "reviewer_decision": "PENDING_REVIEW",
+      "review_status": "GENERATED_CANDIDATE_NOT_ACCEPTED",
+      "generated_at": "2026-05-26T20:01:53.562477+00:00"
+    }
+  ]
+}
