@@ -318,6 +318,40 @@ The next required gate is user/Codex fixture acceptance review.
 
 If the fixture acceptance review accepts enough examples and resolves threshold and strategy ID decisions, a separate test-planning gate may follow.
 
+## Fixture Acceptance Review
+
+This section classifies the drafted examples for review-readiness only.
+
+Accepted examples are still not tests. Accepted examples are only candidates for a future separate test-planning gate. Historical or paper confirmation remains required where marked. User review remains required before test planning. Threshold decision remains unresolved. Strategy ID decision remains unresolved. Test planning remains blocked. Implementation remains blocked.
+
+Allowed fixture review classifications:
+
+- `ACCEPTED_FOR_REVIEW_FIXTURE`
+- `NEEDS_HISTORICAL_CONFIRMATION`
+- `NEEDS_USER_REVIEW`
+- `REJECTED_OR_REVISE`
+
+### Fixture Classification Table
+
+| Example | Fixture review classification | Rationale |
+| --- | --- | --- |
+| Positive Control 1 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Clear close-only upward continuation is suitable as a review fixture, but it is not a test and still needs user review before test planning. |
+| Positive Control 2 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Clear close-only accelerating continuation is suitable as a review fixture, but it is not a test and still needs user review before test planning. |
+| Positive Control 3 | `NEEDS_HISTORICAL_CONFIRMATION` | Steady continuation is plausible, but the document already marks it as needing historical confirmation before it can support test planning. |
+| False-Positive Review 1 | `NEEDS_HISTORICAL_CONFIRMATION` | Small incremental closes are a useful concern, but historical or paper evidence is needed to show this pattern is actually weak. |
+| False-Positive Review 2 | `NEEDS_USER_REVIEW` | One large final candle after weak prior closes is a useful review concern, but the provisional HOLD expectation needs user acceptance or revision. |
+| False-Positive Review 3 | `NEEDS_HISTORICAL_CONFIRMATION` | Choppy movement followed by a short upward run is plausible as a false positive, but follow-through evidence is needed. |
+| Neutral Example 1 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Flat closes are a clean close-only neutral review fixture, but not an approved test. |
+| Neutral Example 2 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Choppy alternating closes are a useful close-only neutral review fixture, but not an approved test. |
+| Neutral Example 3 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Downward continuation is a clean close-only HOLD review fixture, but not an approved test. |
+| Insufficient Close Count Edge Case | `ACCEPTED_FOR_REVIEW_FIXTURE` | Insufficient data is a required deterministic edge-case review fixture, but not an approved test. |
+
+### Review Boundary
+
+The fixture classifications do not approve tests, implementation, strategy behavior changes, trading behavior changes, threshold changes, final strategy ID decisions, or expanded input data.
+
+The next required gate remains user/Codex fixture acceptance review before any separate test-planning gate.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
