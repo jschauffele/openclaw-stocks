@@ -174,8 +174,15 @@ These examples are intended to review cases where the current 3-close BUY may fi
 - Close sequence: `100.00, 100.05, 100.10, 103.00`
 - Current 3-close expected behavior: BUY
 - Proposed review concern: one large final candle after weak prior closes may represent late or unstable confirmation rather than durable trend.
-- Expected stronger-confirmation behavior: provisional HOLD
-- Review status: needs user review
+- Expected stronger-confirmation behavior: N/A, rejected as fixture for current review set
+- Review status: rejected as fixture for current review set
+- Decision: `REJECT_AS_FIXTURE_FOR_CURRENT_REVIEW_SET`
+- Decision rationale: one large final close after two weak prior upward closes is too ambiguous for the current stronger-confirmation review set.
+- Decision rationale: weak prior closes show insufficient sustained buyer control.
+- Decision rationale: the large final close could represent breakout, exhaustion, stop-hunt behavior, news/liquidity effects, short-covering, or other non-repeatable movement.
+- Decision rationale: the current review set should focus on cleaner patterns where momentum builds consistently across the full close sequence.
+- Governance note: this fixture is rejected for this review set, not converted into BUY or HOLD.
+- Governance note: the rejected fixture remains documented for governance history and possible future empirical review.
 
 #### False-Positive Review 3
 
@@ -329,7 +336,7 @@ Allowed fixture review classifications:
 - `ACCEPTED_FOR_REVIEW_FIXTURE`
 - `NEEDS_HISTORICAL_CONFIRMATION`
 - `NEEDS_USER_REVIEW`
-- `REJECTED_OR_REVISE`
+- `REJECTED_FOR_CURRENT_REVIEW_SET`
 
 ### Fixture Classification Table
 
@@ -339,7 +346,7 @@ Allowed fixture review classifications:
 | Positive Control 2 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Clear close-only accelerating continuation is suitable as a review fixture, but it is not a test and still needs user review before test planning. |
 | Positive Control 3 | `NEEDS_HISTORICAL_CONFIRMATION` | Steady continuation is plausible, but the document already marks it as needing historical confirmation before it can support test planning. |
 | False-Positive Review 1 | `NEEDS_HISTORICAL_CONFIRMATION` | Small incremental closes are a useful concern, but historical or paper evidence is needed to show this pattern is actually weak. |
-| False-Positive Review 2 | `NEEDS_USER_REVIEW` | One large final candle after weak prior closes is a useful review concern, but the provisional HOLD expectation needs user acceptance or revision. |
+| False-Positive Review 2 | `REJECTED_FOR_CURRENT_REVIEW_SET` | User decision rejects this fixture for the current stronger-confirmation review set because one large final close after weak prior upward closes is too ambiguous. The rejected fixture remains documented for governance history and possible future empirical review. |
 | False-Positive Review 3 | `NEEDS_HISTORICAL_CONFIRMATION` | Choppy movement followed by a short upward run is plausible as a false positive, but follow-through evidence is needed. |
 | Neutral Example 1 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Flat closes are a clean close-only neutral review fixture, but not an approved test. |
 | Neutral Example 2 | `ACCEPTED_FOR_REVIEW_FIXTURE` | Choppy alternating closes are a useful close-only neutral review fixture, but not an approved test. |
@@ -417,7 +424,7 @@ Current fixture decision status:
 
 - accepted review fixtures remain candidates only
 - historical-confirmation examples remain blocked for test planning
-- user-review examples remain blocked for test planning
+- rejected examples remain outside the current review set
 - no fixture is promoted to a test in this gate
 
 ### 5. Next Gate
@@ -450,7 +457,7 @@ Allowed decision statuses:
 | Positive Control 2 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Clear close-only accelerating continuation is suitable as a future test-planning candidate, but it is not a test. |
 | Positive Control 3 | `BLOCKED_PENDING_HISTORICAL_CONFIRMATION` | Historical or paper confirmation remains required before this steady-continuation example can support test planning. |
 | False-Positive Review 1 | `BLOCKED_PENDING_HISTORICAL_CONFIRMATION` | Historical or paper evidence remains required before small incremental closes can be treated as a confirmed weak-trend example. |
-| False-Positive Review 2 | `BLOCKED_PENDING_USER_REVIEW` | User must accept, revise, or reject the provisional HOLD expectation for one large final candle after weak prior closes. |
+| False-Positive Review 2 | `REJECT` | User decision rejects this fixture for the current stronger-confirmation review set. It is not converted into BUY or HOLD and remains documented for governance history and possible future empirical review. |
 | False-Positive Review 3 | `BLOCKED_PENDING_HISTORICAL_CONFIRMATION` | Historical or paper confirmation remains required before the choppy-then-upward-run example can support test planning. |
 | Neutral Example 1 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Flat closes are suitable as a future neutral candidate, but this does not approve a test. |
 | Neutral Example 2 | `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` | Choppy alternating closes are suitable as a future neutral candidate, but this does not approve a test. |
@@ -469,7 +476,7 @@ Historical or paper confirmation remains required for:
 
 Before any separate test-planning gate can be considered:
 
-- blocked fixtures must receive historical, paper, or user confirmation
+- blocked fixtures must receive historical or paper confirmation
 - threshold recommendation must remain explicit and provisional or be resolved in a later gate
 - strategy ID recommendation must remain explicit and provisional or be resolved in a later gate
 - final close-only candidate rule must be approved for test planning in a separate gate
@@ -498,8 +505,11 @@ The following fixtures remain blocked:
 
 - Positive Control 3
 - False-Positive Review 1
-- False-Positive Review 2
 - False-Positive Review 3
+
+The following fixture is rejected for the current review set:
+
+- False-Positive Review 2
 
 ### Positive Control 3 Confirmation Requirement
 
@@ -555,20 +565,29 @@ Planning status:
 
 - blocked pending historical or paper confirmation
 
-### False-Positive Review 2 User-Review Question
+### False-Positive Review 2 Rejection Decision
 
 Fixture:
 
 - Close sequence: `100.00, 100.05, 100.10, 103.00`
-- Provisional stronger-confirmation behavior: HOLD
+- Prior provisional stronger-confirmation behavior: HOLD
 
-Exact unresolved user-review question:
+Decision:
 
-- Should one large final close after two weak prior upward closes remain a provisional HOLD for stronger trend confirmation review, be revised into a provisional BUY, or be rejected as a fixture?
+- `REJECT_AS_FIXTURE_FOR_CURRENT_REVIEW_SET`
+
+Rationale:
+
+- one large final close after two weak prior upward closes is too ambiguous for the current stronger-confirmation review set
+- weak prior closes show insufficient sustained buyer control
+- the large final close could represent breakout, exhaustion, stop-hunt behavior, news/liquidity effects, short-covering, or other non-repeatable movement
+- the current review set should focus on cleaner patterns where momentum builds consistently across the full close sequence
 
 Planning status:
 
-- blocked pending user review
+- rejected for this review set
+- not converted into BUY or HOLD
+- remains documented for governance history and possible future empirical review
 
 ### Planning Boundary
 
@@ -576,7 +595,7 @@ Threshold remains provisional and unchanged. Strategy ID recommendation remains 
 
 Recommended next gate:
 
-- user review of False-Positive Review 2 and historical/paper evidence collection for Positive Control 3, False-Positive Review 1, and False-Positive Review 3
+- historical/paper evidence collection for Positive Control 3, False-Positive Review 1, and False-Positive Review 3
 
 ## Blocked Scope
 
