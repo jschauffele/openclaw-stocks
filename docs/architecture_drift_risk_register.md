@@ -157,6 +157,50 @@ Promotion/removal condition:
 
 - Promote this risk to an implementation gate only after a concrete extraction trigger appears and a separate test-first refactor plan is approved.
 
+### Manual Evidence Collection Process Drift
+
+Risk:
+
+- Manual candle hunting could be mistaken for an approved OpenClaw evidence workflow.
+- Externally supplied close-sequence examples could be treated as sufficient without source, symbol, timeframe, date/time range, signal-window closes, follow-through closes, ambiguity notes, close-only status, reviewer decision, and review status.
+- Evidence artifacts could be mistaken for tests or implementation approval before a separate evidence sufficiency checkpoint.
+- An automated evidence collector could be introduced without a separate architecture/design gate or without isolation from runtime, broker, execution, risk, state, orders, production JSONL, observations, reporting, and `main.py`.
+
+Current mitigation:
+
+- `docs/strategy_3_close_trend_confirmation_evidence.md` records that manual candle hunting by the user is not an approved OpenClaw evidence workflow.
+- Future 3-close evidence gathering must be project-controlled, auditable, and separately gated.
+- Evidence without provenance is not sufficient for any evidence sufficiency checkpoint.
+- Evidence artifacts remain review inputs only, not tests.
+- VPS-based evidence collection is not approved.
+- Test planning and implementation remain blocked.
+
+Future required action:
+
+- Add a separate architecture/design gate before any project-controlled evidence collector is implemented.
+- Keep any future collector isolated from `main.py`, broker submit paths, order APIs, runtime state, execution, risk, production JSONL, observations, and reporting.
+- Run a separate evidence sufficiency checkpoint before any test-planning gate.
+
+Owner/context:
+
+- 3-close stronger trend confirmation evidence review
+- Evidence provenance and process governance
+
+Status:
+
+- Open
+- Requires review before evidence sufficiency or collector design
+
+Related files:
+
+- `docs/strategy_3_close_trend_confirmation_evidence.md`
+- `docs/strategy_3_close_review.md`
+- `docs/strategy_review_planning.md`
+
+Promotion/removal condition:
+
+- Close this risk only after evidence provenance rules are satisfied, any collector workflow is separately approved if needed, and evidence sufficiency is verified without approving tests or implementation prematurely.
+
 ## Resolved Risks
 
 ### Source-Inspection Contract Tests

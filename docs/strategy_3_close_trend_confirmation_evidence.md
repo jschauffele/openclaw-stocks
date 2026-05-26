@@ -828,6 +828,38 @@ This template does not collect or create new market data. It only defines requir
 
 Future evidence must be reviewed before it can support an evidence sufficiency checkpoint. Accepted fixture candidates remain candidates only, not tests.
 
+## Evidence Process Drift Guardrail
+
+Manual candle hunting by the user is not an approved OpenClaw evidence workflow.
+
+Future 3-close evidence gathering must be project-controlled, auditable, and separately gated before it can support any evidence sufficiency checkpoint.
+
+Externally provided evidence may be reviewed only if it includes:
+
+- source of evidence
+- symbol
+- timeframe
+- date/time range
+- close sequence
+- signal-window closes
+- follow-through closes after the signal window
+- notes on ambiguity
+- whether the evidence uses close-only data
+- reviewer decision
+- review status
+
+Evidence without provenance is not sufficient for any evidence sufficiency checkpoint.
+
+Evidence artifacts are review inputs only, not tests. Evidence sufficiency must remain a separate checkpoint.
+
+Any future automated collector must be approved through a separate architecture/design gate before implementation. This guardrail does not approve evidence collection, collector design, implementation, test planning, strategy behavior changes, threshold finalization, strategy ID finalization, or final stronger-confirmation rule approval.
+
+Any future collector must be isolated from `main.py`, broker submit paths, order APIs, runtime state, execution, risk, production JSONL, observations, and reporting.
+
+VPS-based collection is not approved by this guardrail.
+
+Test planning and implementation remain blocked.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
