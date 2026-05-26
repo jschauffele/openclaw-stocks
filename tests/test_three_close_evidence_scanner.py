@@ -190,6 +190,7 @@ class ThreeCloseEvidenceScannerTests(unittest.TestCase):
         for relative_path in [
             "tools/evidence/three_close_evidence_scanner.py",
             "tools/evidence/collect_3_close_evidence.py",
+            "tools/evidence/read_only_historical_data_adapter.py",
         ]:
             with self.subTest(path=relative_path):
                 tree = ast.parse(Path(relative_path).read_text(encoding="utf-8"))
