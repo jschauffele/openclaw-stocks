@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from tools.evidence.three_close_evidence_scanner import CloseBar
+
+CSV_REQUIRED_FIELDS = frozenset({"symbol", "timestamp", "close"})
 
 
 @dataclass(frozen=True)
@@ -46,6 +50,60 @@ class EvidenceHistoricalCloseProvider(Protocol):
         """
 
 
+class CsvStaticHistoricalCloseProvider:
+    def __init__(self, input_path: str | Path) -> None:
+        path = Path(input_path)
+        if str(path).strip() == "":
+            raise ValueError("input_path must be provided")
+        if not path.exists():
+            raise ValueError(f"input_path does not exist: {path}")
+        if path.is_dir():
+            raise ValueError("input_path must be a CSV file, not a directory")
+        self.input_path = path
+
+    def get_close_bars(
+        self,
+        symbol: str,
+        timeframe: str,
+        start: str,
+        end: str,
+        max_bars: int | None,
+    ) -> tuple[CloseBar, ...]:
+        request = EvidenceHistoricalCloseRequest(
+            symbol=symbol,
+            timeframe=timeframe,
+            start=start,
+            end=end,
+            max_bars=max_bars,
+        )
+        bars: list[CloseBar] = []
+
+        with self.input_path.open(newline="", encoding="utf-8") as csv_file:
+            reader = csv.DictReader(csv_file)
+            _validate_csv_fields(reader.fieldnames)
+            for row_number, row in enumerate(reader, start=2):
+                row_symbol = _csv_required_value(row, "symbol", row_number).upper()
+                timestamp = _csv_required_value(row, "timestamp", row_number)
+                close_raw = _csv_required_value(row, "close", row_number)
+                if row_symbol != request.symbol:
+                    continue
+                if timestamp < request.start or timestamp > request.end:
+                    continue
+
+                try:
+                    close = float(close_raw)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"CSV row {row_number} has invalid close: {close_raw}"
+                    ) from exc
+
+                bars.append(CloseBar(timestamp=timestamp, close=close))
+                if request.max_bars is not None and len(bars) >= request.max_bars:
+                    break
+
+        return tuple(bars)
+
+
 def get_close_bars_for_request(
     provider: EvidenceHistoricalCloseProvider,
     request: EvidenceHistoricalCloseRequest,
@@ -67,6 +125,24 @@ def _validate_close_bars(bars: tuple[CloseBar, ...]) -> tuple[CloseBar, ...]:
         if not isinstance(bar, CloseBar):
             raise ValueError("provider must return only CloseBar values")
     return bars
+
+
+def _validate_csv_fields(fieldnames: list[str] | None) -> None:
+    if fieldnames is None:
+        raise ValueError("CSV input must include a header row")
+    normalized_fields = {field.strip() for field in fieldnames}
+    missing_fields = CSV_REQUIRED_FIELDS - normalized_fields
+    if missing_fields:
+        missing = ", ".join(sorted(missing_fields))
+        raise ValueError(f"CSV input is missing required fields: {missing}")
+
+
+def _csv_required_value(row: dict[str, str], field_name: str, row_number: int) -> str:
+    raw_value = row.get(field_name, "")
+    value = str(raw_value).strip()
+    if not value:
+        raise ValueError(f"CSV row {row_number} has empty {field_name}")
+    return value
 
 
 def _normalize_required_text(field_name: str, value: str) -> str:

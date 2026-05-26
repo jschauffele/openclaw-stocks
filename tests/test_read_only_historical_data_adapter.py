@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import json
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from tools.evidence.collect_3_close_evidence import FAIL_CLOSED_MESSAGE, main
 from tools.evidence.read_only_historical_data_adapter import (
+    CsvStaticHistoricalCloseProvider,
     EvidenceHistoricalCloseRequest,
     get_close_bars_for_request,
 )
@@ -150,14 +154,211 @@ class ReadOnlyHistoricalDataAdapterTests(unittest.TestCase):
         self.assertEqual(len(provider.calls), 1)
 
     def test_adapter_does_not_import_forbidden_runtime_modules(self) -> None:
-        tree = ast.parse(
-            Path("tools/evidence/read_only_historical_data_adapter.py").read_text(
-                encoding="utf-8"
-            )
-        )
-        imported_roots = _imported_roots(tree)
+        for relative_path in [
+            "tools/evidence/read_only_historical_data_adapter.py",
+            "tools/evidence/collect_3_close_evidence.py",
+        ]:
+            with self.subTest(path=relative_path):
+                tree = ast.parse(Path(relative_path).read_text(encoding="utf-8"))
+                imported_roots = _imported_roots(tree)
+                self.assertTrue(FORBIDDEN_IMPORT_ROOTS.isdisjoint(imported_roots))
 
-        self.assertTrue(FORBIDDEN_IMPORT_ROOTS.isdisjoint(imported_roots))
+    def test_csv_provider_filters_symbol_date_range_and_max_bars(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / "bars.csv"
+            input_path.write_text(
+                "\n".join(
+                    [
+                        "symbol,timestamp,close",
+                        "AAPL,2026-01-01T00:00:00Z,99.0",
+                        "MSTR,2026-01-01T00:00:00Z,100.0",
+                        "MSTR,2026-01-01T00:15:00Z,101.0",
+                        "MSTR,2026-01-01T00:30:00Z,102.0",
+                        "MSTR,2026-01-03T00:00:00Z,103.0",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            provider = CsvStaticHistoricalCloseProvider(input_path)
+            request = EvidenceHistoricalCloseRequest(
+                symbol="MSTR",
+                timeframe="15Min",
+                start="2026-01-01T00:00:00Z",
+                end="2026-01-02T00:00:00Z",
+                max_bars=2,
+            )
+
+            result = get_close_bars_for_request(provider, request)
+
+        self.assertEqual(
+            result,
+            (
+                CloseBar(timestamp="2026-01-01T00:00:00Z", close=100.0),
+                CloseBar(timestamp="2026-01-01T00:15:00Z", close=101.0),
+            ),
+        )
+
+    def test_csv_provider_rejects_missing_fields(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / "bars.csv"
+            input_path.write_text(
+                "symbol,timestamp\nMSTR,2026-01-01T00:00:00Z\n",
+                encoding="utf-8",
+            )
+            provider = CsvStaticHistoricalCloseProvider(input_path)
+            request = EvidenceHistoricalCloseRequest(
+                symbol="MSTR",
+                timeframe="15Min",
+                start="2026-01-01",
+                end="2026-01-02",
+            )
+
+            with self.assertRaises(ValueError):
+                get_close_bars_for_request(provider, request)
+
+    def test_csv_provider_rejects_malformed_rows(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / "bars.csv"
+            input_path.write_text(
+                "symbol,timestamp,close\nMSTR,2026-01-01T00:00:00Z,not-a-number\n",
+                encoding="utf-8",
+            )
+            provider = CsvStaticHistoricalCloseProvider(input_path)
+            request = EvidenceHistoricalCloseRequest(
+                symbol="MSTR",
+                timeframe="15Min",
+                start="2026-01-01",
+                end="2026-01-02",
+            )
+
+            with self.assertRaises(ValueError):
+                get_close_bars_for_request(provider, request)
+
+    def test_csv_provider_rejects_empty_input_path(self) -> None:
+        with self.assertRaises(ValueError):
+            CsvStaticHistoricalCloseProvider("")
+
+    def test_cli_writes_json_only_to_caller_specified_output_path(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / "bars.csv"
+            output_path = Path(temp_dir) / "evidence" / "candidates.json"
+            input_path.write_text(
+                "\n".join(
+                    [
+                        "symbol,timestamp,close",
+                        "MSTR,2026-01-01T00:00:00Z,200.0",
+                        "MSTR,2026-01-01T00:15:00Z,203.0",
+                        "MSTR,2026-01-01T00:30:00Z,206.0",
+                        "MSTR,2026-01-01T00:45:00Z,209.0",
+                        "MSTR,2026-01-01T01:00:00Z,211.0",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            exit_code = main(
+                [
+                    "--provider",
+                    "csv",
+                    "--input-path",
+                    str(input_path),
+                    "--symbols",
+                    "MSTR",
+                    "--timeframe",
+                    "15Min",
+                    "--start-date",
+                    "2026-01-01T00:00:00Z",
+                    "--end-date",
+                    "2026-01-02T00:00:00Z",
+                    "--max-examples",
+                    "10",
+                    "--output-path",
+                    str(output_path),
+                ]
+            )
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["artifact_type"], "review_input_not_test")
+        self.assertEqual(
+            payload["candidates"][0]["reviewer_decision"],
+            "PENDING_REVIEW",
+        )
+        self.assertEqual(
+            payload["candidates"][0]["review_status"],
+            "GENERATED_CANDIDATE_NOT_ACCEPTED",
+        )
+
+    def test_cli_uses_max_bars_separately_from_max_examples(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            input_path = Path(temp_dir) / "bars.csv"
+            output_path = Path(temp_dir) / "evidence" / "candidates.json"
+            input_path.write_text(
+                "\n".join(
+                    [
+                        "symbol,timestamp,close",
+                        "MSTR,2026-01-01T00:00:00Z,200.0",
+                        "MSTR,2026-01-01T00:15:00Z,203.0",
+                        "MSTR,2026-01-01T00:30:00Z,206.0",
+                        "MSTR,2026-01-01T00:45:00Z,209.0",
+                        "MSTR,2026-01-01T01:00:00Z,211.0",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            exit_code = main(
+                [
+                    "--provider",
+                    "csv",
+                    "--input-path",
+                    str(input_path),
+                    "--symbols",
+                    "MSTR",
+                    "--timeframe",
+                    "15Min",
+                    "--start-date",
+                    "2026-01-01T00:00:00Z",
+                    "--end-date",
+                    "2026-01-02T00:00:00Z",
+                    "--max-examples",
+                    "10",
+                    "--max-bars",
+                    "3",
+                    "--output-path",
+                    str(output_path),
+                ]
+            )
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["candidates"], [])
+
+    def test_cli_fails_closed_for_non_csv_provider(self) -> None:
+        with self.assertRaises(SystemExit) as raised:
+            main(
+                [
+                    "--provider",
+                    "alpaca",
+                    "--symbols",
+                    "MSTR",
+                    "--timeframe",
+                    "15Min",
+                    "--start-date",
+                    "2026-01-01",
+                    "--end-date",
+                    "2026-01-02",
+                    "--output-path",
+                    "unused.json",
+                ]
+            )
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("not approved", FAIL_CLOSED_MESSAGE)
 
 
 def _imported_roots(tree: ast.AST) -> set[str]:

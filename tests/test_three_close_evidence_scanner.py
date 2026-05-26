@@ -29,6 +29,7 @@ FORBIDDEN_IMPORT_ROOTS = {
     "alpaca_data_provider",
     "broker_factory",
     "broker_interface",
+    "data_engine",
     "event_logger",
     "event_reader",
     "execution_engine",
