@@ -243,6 +243,81 @@ Before test planning, the following decisions remain unresolved:
 
 No example in this section approves implementation, tests, strategy behavior changes, trading behavior changes, or expanded input data.
 
+## Threshold And Strategy ID Decision Gate
+
+The drafted example set is sufficient to move to threshold-decision planning.
+
+Test planning remains blocked. Implementation remains blocked. Threshold decision remains unresolved. Strategy ID decision remains unresolved. User review remains required.
+
+This gate records decision items only. It does not approve tests, implementation, strategy behavior changes, trading behavior changes, or expanded input data.
+
+### 1. Percent Threshold
+
+Decision item:
+
+- Decide whether the current percent threshold remains unchanged.
+
+Current gate decision:
+
+- No threshold change is approved in this gate.
+- The current percent threshold remains unresolved for future review.
+
+Evidence that could justify changing the threshold later:
+
+- user-accepted examples showing the baseline threshold admits weak BUY cases
+- historical or paper-trading examples showing repeated false positives at the current threshold
+- positive-control examples proving a revised threshold would not reject desired BUY cases
+- deterministic fixtures showing the threshold effect without AI discretion
+- explicit strategy ID compatibility analysis for any threshold change
+
+### 2. Stronger Trend Confirmation Rule
+
+Decision item:
+
+- Decide what close-only confirmation rule is being considered.
+
+Current gate decision:
+
+- Stronger trend confirmation remains candidate-only.
+- No confirmation rule is approved for implementation.
+- Any future rule must remain close-only unless a separate gate approves broader inputs.
+
+Possible future rule descriptions must identify exact close sequence requirements, lookback handling, insufficient-data behavior, and expected outputs before test planning.
+
+### 3. Strategy Identity
+
+Decision item:
+
+- Decide whether stronger trend confirmation modifies the existing strategy ID or requires a new strategy ID.
+
+Default recommendation:
+
+- Create a new strategy ID for any material behavior change.
+
+Existing strategy ID may remain only if future review proves the change is minor, backward-compatible, and does not alter historical metadata meaning.
+
+Current gate decision:
+
+- No final strategy ID decision is made in this gate.
+
+### 4. Fixture Acceptance
+
+Decision item:
+
+- User must accept, revise, or reject each provisional example before test planning.
+
+Current gate decision:
+
+- No example is accepted as a test fixture in this gate.
+- Historical or paper confirmation remains required for examples marked as needing confirmation.
+- Provisional expected outcomes may still be revised before tests are written.
+
+### 5. Next Required Gate
+
+The next required gate is user/Codex fixture acceptance review.
+
+If the fixture acceptance review accepts enough examples and resolves threshold and strategy ID decisions, a separate test-planning gate may follow.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
