@@ -758,6 +758,76 @@ Recommended next gate:
 
 - provide or locate historical/paper close-sequence evidence for Positive Control 3, False-Positive Review 1, and False-Positive Review 3, then run a read-only evidence sufficiency checkpoint
 
+## Evidence Intake Template
+
+This section provides a docs-only template for future user-provided or externally located evidence. It does not accept evidence, approve tests, approve implementation, approve strategy behavior changes, finalize threshold behavior, finalize strategy ID, or finalize the stronger confirmation rule.
+
+No evidence has been accepted yet for Positive Control 3, False-Positive Review 1, or False-Positive Review 3.
+
+False-Positive Review 2 remains rejected for the current review set. Threshold remains provisional and unchanged. Strategy ID recommendation remains provisional. Final stronger confirmation rule remains unapproved. Test planning remains blocked. Implementation remains blocked. VPS validation is not needed.
+
+Evidence entries must remain close-only for this gate. If source material contains non-close data, that data must be identified as present but out of scope unless a later governance gate approves a broader input surface.
+
+### Positive Control 3 Evidence Entry Template
+
+- Fixture name: Positive Control 3
+- Symbol: TBD
+- Date/time range: TBD
+- Timeframe: TBD
+- Close sequence: TBD
+- Signal-window closes: TBD
+- Follow-through closes after signal window: TBD
+- Source of evidence: TBD
+- Evidence type: TBD historical or paper
+- Fixture effect: TBD supports, weakens, or rejects the fixture
+- Notes on ambiguity: TBD
+- Uses close-only data: TBD
+- Non-close data present but out of scope: TBD
+- Reviewer decision: TBD
+- Review status: pending evidence intake
+
+### False-Positive Review 1 Evidence Entry Template
+
+- Fixture name: False-Positive Review 1
+- Symbol: TBD
+- Date/time range: TBD
+- Timeframe: TBD
+- Close sequence: TBD
+- Signal-window closes: TBD
+- Follow-through closes after signal window: TBD
+- Source of evidence: TBD
+- Evidence type: TBD historical or paper
+- Fixture effect: TBD supports, weakens, or rejects the fixture
+- Notes on ambiguity: TBD
+- Uses close-only data: TBD
+- Non-close data present but out of scope: TBD
+- Reviewer decision: TBD
+- Review status: pending evidence intake
+
+### False-Positive Review 3 Evidence Entry Template
+
+- Fixture name: False-Positive Review 3
+- Symbol: TBD
+- Date/time range: TBD
+- Timeframe: TBD
+- Close sequence: TBD
+- Signal-window closes: TBD
+- Follow-through closes after signal window: TBD
+- Source of evidence: TBD
+- Evidence type: TBD historical or paper
+- Fixture effect: TBD supports, weakens, or rejects the fixture
+- Notes on ambiguity: TBD
+- Uses close-only data: TBD
+- Non-close data present but out of scope: TBD
+- Reviewer decision: TBD
+- Review status: pending evidence intake
+
+### Evidence Intake Boundary
+
+This template does not collect or create new market data. It only defines required fields for future evidence supplied by the user or located externally under a separate allowed evidence-review gate.
+
+Future evidence must be reviewed before it can support an evidence sufficiency checkpoint. Accepted fixture candidates remain candidates only, not tests.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
