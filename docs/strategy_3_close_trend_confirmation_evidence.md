@@ -969,6 +969,91 @@ Preserved blocks:
 - Test planning remains blocked.
 - Strategy behavior remains unchanged.
 
+## Alpaca 3-Close Evidence Curation Shortlist
+
+This is a docs-only curation record for the latest committed Alpaca 3-close review artifacts. It does not approve evidence sufficiency, strategy test planning, implementation, strategy behavior changes, evidence collection, API/network access, broker work, runtime work, or VPS validation.
+
+Latest committed artifacts:
+
+- `evidence/3_close_trend_confirmation/local_alpaca_2026_01_02_to_2026_05_24/AAPL_candidates.json`
+- `evidence/3_close_trend_confirmation/local_alpaca_2026_01_02_to_2026_05_24/MSFT_candidates.json`
+- `evidence/3_close_trend_confirmation/local_alpaca_2026_01_02_to_2026_05_24/MSTR_candidates.json`
+
+Artifact status:
+
+- Artifact type: `review_input_not_test`
+- Reviewer decision: `PENDING_REVIEW`
+- Review status: `GENERATED_CANDIDATE_NOT_ACCEPTED`
+- Source provider: `alpaca:iex`
+
+No candidate is promoted to `ACCEPT_FOR_TEST_PLANNING_CANDIDATE` by this shortlist.
+
+### Positive Control 3 Supports
+
+These candidates may be reviewed as possible support for preserving clear baseline BUY behavior after stronger trend confirmation.
+
+1. MSFT, `2026-01-23 13:45:00+00:00 to 2026-01-23 15:30:00+00:00`
+   - Curation note: review-worthy, strong clean continuation.
+2. MSFT, `2026-01-23 14:15:00+00:00 to 2026-01-23 15:45:00+00:00`
+   - Curation note: ambiguous because it overlaps the first MSFT window.
+3. MSTR, `2026-01-15 15:30:00+00:00 to 2026-01-15 17:00:00+00:00`
+   - Curation note: review-worthy cross-symbol support.
+
+### Positive Control 3 Weakens
+
+These candidates may be reviewed as counterexamples to treating steady multi-close continuation as automatically durable.
+
+1. MSFT, `2026-01-21 19:00:00+00:00 to 2026-01-21 20:30:00+00:00`
+   - Curation note: review-worthy counterexample.
+2. AAPL, `2026-02-06 13:30:00+00:00 to 2026-02-06 15:30:00+00:00`
+   - Curation note: review-worthy counterexample.
+3. MSTR, `2026-01-08 16:15:00+00:00 to 2026-01-08 17:45:00+00:00`
+   - Curation note: ambiguous because first follow-through weakens but later follow-through recovers.
+
+### False-Positive Review 3 Supports
+
+These candidates may be reviewed as possible support for the concern that a short upward run after choppy movement can be too weak to treat as confirmed momentum.
+
+1. MSTR, `2026-01-16 14:15:00+00:00 to 2026-01-16 16:00:00+00:00`
+   - Curation note: review-worthy.
+2. MSTR, `2026-01-06 20:30:00+00:00 to 2026-01-07 14:00:00+00:00`
+   - Curation note: ambiguous due overnight/session gap.
+3. MSFT, `2026-02-03 17:15:00+00:00 to 2026-02-03 19:00:00+00:00`
+   - Curation note: review-worthy.
+4. MSTR, `2026-01-05 14:45:00+00:00 to 2026-01-05 16:30:00+00:00`
+   - Curation note: review-worthy.
+5. MSFT, `2026-01-21 18:45:00+00:00 to 2026-01-21 20:30:00+00:00`
+   - Curation note: review-worthy.
+
+### False-Positive Review 3 Weakens
+
+These candidates may be reviewed as counterexamples where a choppy recovery followed by a short upward run continued higher.
+
+1. MSFT, `2026-01-29 19:15:00+00:00 to 2026-01-29 21:00:00+00:00`
+   - Curation note: review-worthy counterexample.
+2. MSFT, `2026-01-23 13:30:00+00:00 to 2026-01-23 15:30:00+00:00`
+   - Curation note: ambiguous because it overlaps Positive Control 3 support.
+3. MSTR, `2026-01-23 16:00:00+00:00 to 2026-01-23 17:45:00+00:00`
+   - Curation note: review-worthy counterexample.
+4. MSTR, `2026-01-14 13:15:00+00:00 to 2026-01-14 15:15:00+00:00`
+   - Curation note: review-worthy counterexample.
+5. AAPL, `2026-02-02 13:15:00+00:00 to 2026-02-02 15:15:00+00:00`
+   - Curation note: review-worthy counterexample.
+
+### False-Positive Review 1
+
+- AAPL, `2026-01-22 16:30:00+00:00 to 2026-01-22 18:00:00+00:00`
+- Decision: reject-worthy for supporting False-Positive Review 1 because the tiny upward drift did not immediately fail; first follow-through continued higher.
+- This candidate may be retained only as a counterexample.
+
+### Preserved Curation Blocks
+
+- Evidence sufficiency remains not approved.
+- Strategy test planning remains not approved.
+- Implementation remains not approved.
+- VPS validation needed: NO.
+- Missing neutral and insufficient-close evidence remain unresolved.
+
 ## Blocked Scope
 
 The following remain blocked by this evidence gate:
