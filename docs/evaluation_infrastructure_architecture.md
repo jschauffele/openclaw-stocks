@@ -35,6 +35,19 @@ Replay systems do not have production authority. They must not mutate live
 state, approve execution, change production parameters, or change production
 strategy logic.
 
+Initial replay package implementation planning is limited to a future pure
+offline mapper. That mapper may consume existing event JSONL, run reports,
+observation JSONL, order state JSON, and runtime visibility summaries by
+explicit artifact path or already-loaded dictionaries only. It must not import
+or call `main.py`, `config.py`, broker modules, Alpaca or IBKR modules, runtime
+writers, event log writers, observation appenders, report persisters, or state
+write functions.
+
+The offline mapper planning boundary does not approve implementation, tests,
+artifact writing, storage, runtime integration, broker/live/API work, strategy
+behavior changes, VPS validation, or promotion decisions. Sidecar artifact
+writing remains deferred until a separate storage and immutability gate.
+
 ### Evaluation Systems
 
 Evaluation systems compare replay outputs, candidate strategies, parameter

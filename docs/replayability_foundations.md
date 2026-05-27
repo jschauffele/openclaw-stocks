@@ -248,6 +248,23 @@ This planning does not approve replay infrastructure, snapshot capture tooling,
 runtime changes, broker/live/API work, VPS validation, strategy behavior
 changes, risk behavior changes, execution activation, or production mutation.
 
+## Offline Mapper Planning Boundary
+
+The future replay package implementation shape is pure offline mapper only.
+The planning record is captured in `docs/replay_package_specification.md` under
+Offline Replay Mapper Implementation Planning.
+
+This boundary preserves that no implementation, tests, runtime integration,
+artifact writer, broker/live/API work, strategy behavior change, or VPS
+validation is approved. A future mapper may consume explicit existing artifact
+paths or already-loaded dictionaries, but it must not import `main.py`,
+`config.py`, broker modules, Alpaca or IBKR modules, runtime writers, event log
+writers, observation appenders, report persisters, or state write functions.
+
+Sidecar artifact writing remains deferred until a separate storage and
+immutability gate. Replay output remains evidence-only and cannot approve
+promotion or production behavior.
+
 ## Attribution Requirements
 
 Replay must support attribution of decision differences.

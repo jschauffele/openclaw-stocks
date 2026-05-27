@@ -220,14 +220,19 @@ Current mitigation:
 
 - `docs/replay_package_specification.md` records the portfolio/risk replay state contract as planning only.
 - `docs/replay_package_specification.md` records the replay package envelope schema as planning only.
+- `docs/replay_package_specification.md` records the future implementation shape as pure offline mapper only.
 - `docs/replayability_foundations.md`, `docs/portfolio_construction_architecture.md`, `docs/full_position_governance_models.md`, `docs/position_lifecycle_governance.md`, and `docs/evaluation_infrastructure_architecture.md` reference the contract as a prerequisite, not as implementation approval.
 - The contract explicitly preserves that no implementation, strategy behavior change, broker/live/API work, VPS validation, execution activation, or production mutation is approved.
+- The offline mapper planning boundary preserves that no implementation, tests, runtime integration, sidecar artifact writer, storage, JSONL/report/observation schema changes, broker/live/API work, strategy behavior change, VPS validation, or promotion decision is approved.
+- Any future mapper must consume explicit existing artifact paths or already-loaded dictionaries only, and must not import `main.py`, `config.py`, broker modules, Alpaca or IBKR modules, runtime writers, event log writers, observation appenders, report persisters, or state write functions.
 - IBKR execution remains deferred.
 - The evidence/research pipeline remains parked as reusable infrastructure only after closure of the 3-close evidence phase.
 
 Future required action:
 
 - Add a separate replay package schema implementation gate before code.
+- Add a separate offline mapper implementation gate before any `tools/replay/` code.
+- Add a separate offline mapper test gate before tests.
 - Add a separate replay package envelope implementation gate before any writer, manifest, storage, or runtime capture code.
 - Add separate snapshot capture, storage, immutability, replay integrity, attribution, and evaluation engine gates before any output can support governance decisions.
 - Add a separate broker-visible state capture gate if broker observations beyond currently approved read-only visibility are needed.

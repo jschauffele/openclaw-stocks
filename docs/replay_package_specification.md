@@ -660,6 +660,82 @@ changes, broker/live/API calls, IBKR/TWS work, Alpaca calls, VPS validation,
 strategy behavior changes, risk/reconciliation behavior changes, execution,
 sell, trim, rebalance, resize, or promotion behavior.
 
+## Offline Replay Mapper Implementation Planning
+
+The future replay package implementation shape is pure offline mapper only.
+This is a docs-only planning record. It does not approve implementation, tests,
+runtime integration, artifact writing, storage, broker/live/API work, strategy
+behavior changes, VPS validation, or replay-based promotion decisions.
+
+The future mapper may consume existing artifacts only by explicit file path or
+as already-loaded dictionaries supplied by a caller:
+
+- Event JSONL.
+- `last_run_report.json`.
+- Observation JSONL.
+- Order state JSON.
+- Runtime visibility summaries already present in reports or events.
+
+The future mapper must not import or call:
+
+- `main.py`.
+- `config.py`.
+- Broker modules.
+- Alpaca modules.
+- IBKR modules.
+- Runtime writers.
+- `event_logger` write functions.
+- `observation_logger` append functions.
+- `reporting` persist functions.
+- `state_manager` write functions.
+
+The future mapper must not mutate runtime state, production artifacts, broker
+state, order state, observation files, event logs, reports, configuration, or
+environment variables. It must not change JSONL, report, observation, order
+state, runtime visibility, strategy, risk, reconciliation, or execution
+schemas. It must not become a runtime-integrated writer.
+
+Sidecar artifact writing remains deferred until a separate storage and
+immutability gate approves writer scope, output location, finalization rules,
+hashing rules, correction handling, and retention expectations.
+
+Initial future code location, if later approved:
+
+- `tools/replay/`
+
+Initial future implementation units, if later approved:
+
+- Replay package schema constants or dataclasses.
+- Offline mapper from existing artifact dictionaries.
+- Validation-only completeness checks.
+- In-memory envelope builder.
+
+Out of scope for the offline mapper planning gate:
+
+- Artifact writer.
+- Storage.
+- Hashing or integrity enforcement.
+- Runtime capture.
+- Runtime integration.
+- Broker/live/API work.
+- Alpaca calls.
+- IBKR/TWS work.
+- Credential or `.env` handling.
+- Strategy behavior changes.
+- Risk or reconciliation behavior changes.
+- Execution, sell, trim, rebalance, resize, promotion, or order behavior.
+- Replay-based promotion decisions.
+
+Future gates required before implementation:
+
+- Offline mapper schema implementation gate.
+- Offline mapper test gate.
+- Storage and immutability gate before any artifact writer.
+- Integrity validation gate before hash enforcement.
+- Attribution gate before candidate comparison.
+- Evaluation tooling gate before package sets can inform governance.
+- Promotion workflow gate before replay output can affect production behavior.
+
 ## Replay vs Simulation
 
 Replay reconstructs decisions from captured production evidence.
