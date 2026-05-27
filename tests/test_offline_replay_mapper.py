@@ -208,6 +208,164 @@ def test_mapper_does_not_mutate_inputs_or_return_input_objects_by_identity() -> 
     )
 
 
+def test_partial_candidate_artifact_shape_maps_to_incomplete_replay_package() -> None:
+    run_id = "run_2026-05-26T13:45:27Z_efa92a"
+    market_input_event = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "event_id": "evt_0001",
+        "event_type": "data",
+        "stage": "market_input_captured",
+        "timestamp_utc": "2026-05-26T13:45:28Z",
+        "timestamp": "2026-05-26T13:45:28Z",
+        "status": "ok",
+        "payload": {
+            "symbol": "AAPL",
+            "timeframe": "5Min",
+            "source": "alpaca",
+            "adjustment": "raw",
+            "adjusted": False,
+            "warnings": [],
+            "candles": [
+                {
+                    "timestamp": "2026-05-26T13:30:00+00:00",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.5,
+                    "close": 100.4,
+                    "volume": 1000.0,
+                },
+                {
+                    "timestamp": "2026-05-26T13:35:00+00:00",
+                    "open": 100.4,
+                    "high": 101.4,
+                    "low": 100.1,
+                    "close": 100.9,
+                    "volume": 1100.0,
+                },
+                {
+                    "timestamp": "2026-05-26T13:40:00+00:00",
+                    "open": 100.9,
+                    "high": 101.8,
+                    "low": 100.6,
+                    "close": 101.5,
+                    "volume": 1200.0,
+                },
+            ],
+        },
+    }
+    strategy_evaluated_event = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "event_id": "evt_0002",
+        "event_type": "strategy",
+        "stage": "strategy_evaluated",
+        "timestamp_utc": "2026-05-26T13:45:29Z",
+        "timestamp": "2026-05-26T13:45:29Z",
+        "status": "ok",
+        "payload": {
+            "signal": "buy",
+            "decision": "buy",
+            "action": "buy",
+            "reason": "percent_change_meets_buy_threshold",
+            "previous_close": 100.9,
+            "latest_close": 101.5,
+            "price_delta": 0.6,
+            "percent_change": 0.5946481665014867,
+            "three_close_percent_change": 1.095617529880476,
+        },
+    }
+    action_proposal_event = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "event_id": "evt_0003",
+        "event_type": "strategy",
+        "stage": "action_proposal",
+        "timestamp_utc": "2026-05-26T13:45:30Z",
+        "timestamp": "2026-05-26T13:45:30Z",
+        "status": "blocked",
+        "payload": {
+            "signal": "buy",
+            "decision": "buy",
+            "action": "buy",
+            "reason": "strategy_hold",
+        },
+    }
+    completion_event = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "event_id": "evt_0004",
+        "event_type": "system",
+        "stage": "completion",
+        "timestamp_utc": "2026-05-26T13:45:31Z",
+        "timestamp": "2026-05-26T13:45:31Z",
+        "status": "blocked",
+        "payload": {"reason": "strategy_hold"},
+    }
+    events = [
+        market_input_event,
+        strategy_evaluated_event,
+        action_proposal_event,
+        completion_event,
+    ]
+    observations = [
+        {
+            "timestamp_utc": "2026-05-26T13:45:30Z",
+            "run_id": run_id,
+            "symbol": "AAPL",
+            "signal": "buy",
+            "action": "buy",
+            "result": "blocked",
+            "reason": "strategy_hold",
+            "previous_close": 100.9,
+            "latest_close": 101.5,
+            "price_delta": 0.6,
+            "percent_change": 0.5946481665014867,
+            "three_close_percent_change": 1.095617529880476,
+            "signal_timeframe": "5Min",
+            "signal_limit": 5,
+            "latest_candle_timestamp": "2026-05-26T13:40:00+00:00",
+        }
+    ]
+
+    package = build_replay_package(events=events, observations=observations)
+
+    assert package["package_status"]["status"] == "incomplete"
+    assert package["package_status"]["section_statuses"] == {
+        "events": "present",
+        "run_report": "absent",
+        "observations": "present",
+        "order_state": "absent",
+        "runtime_visibility": "absent",
+    }
+    assert package["event_order_references"]["events"] == events
+    assert package["event_order_references"]["events"] is not events
+    assert package["market_input_references"]["events"] == [market_input_event]
+    assert package["market_input_references"]["events"][0] is not market_input_event
+    assert package["strategy_decision_references"]["events"] == [
+        strategy_evaluated_event,
+        action_proposal_event,
+    ]
+    assert completion_event in package["event_order_references"]["events"]
+    assert package["reconciliation_risk_references"]["observations"] == observations
+    assert (
+        package["reconciliation_risk_references"]["observations"]
+        is not observations
+    )
+    assert package["configuration_references"] == {
+        "status": "absent",
+        "reason": "not_supplied",
+    }
+    assert package["portfolio_risk_snapshot_references"] == {
+        "status": "absent",
+        "reason": "portfolio_risk_reference_not_supplied",
+    }
+    assert package["broker_visible_state_references"] == {
+        "status": "absent",
+        "reason": "broker_visible_reference_not_supplied",
+    }
+
+
 def test_mapper_rejects_non_loaded_input_shapes() -> None:
     try:
         build_replay_package(events={"run_id": "run_1"})  # type: ignore[arg-type]
