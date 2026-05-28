@@ -279,6 +279,158 @@ class SmokeSafetyControlTests(unittest.TestCase):
                     with self.assertRaises(SmokeSafetyRefusal):
                         _refuse_if_last_run_requires_cleanup(state_path)
 
+    def test_default_run_refuses_unsafe_last_state_before_submit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            write_smoke_last_state(
+                state_path,
+                {
+                    "final_broker_state": "open_orders",
+                    "disconnect_joined": True,
+                    "disconnect_passed": True,
+                },
+            )
+
+            with self.assertRaises(SmokeSafetyRefusal):
+                run_fake_smoke(
+                    lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                    state_path=state_path,
+                    open_order_snapshots=[open_orders()],
+                    position_snapshots=[flat_position()],
+                )
+
+            self.assertEqual(FakeIBKRBrokerAdapter.instances, [])
+            self.assertEqual(FakeReconciliationWorkflow.instances, [])
+
+    def test_cleanup_stale_state_only_missing_state_exits_without_native_calls(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+
+            with patch(
+                "manual_ibkr_submit_reconciliation_smoke.load_ibkr_native_api",
+                side_effect=AssertionError("cleanup without state must not connect"),
+            ):
+                stdout = io.StringIO()
+                with redirect_stdout(stdout):
+                    result = run_localhost_submit_reconciliation_smoke(
+                        timeout=0.25,
+                        lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                        last_state_path=state_path,
+                        cleanup_stale_state_only=True,
+                    )
+
+            self.assertEqual(result["cleanup_result"], "CLEANUP_NOT_NEEDED")
+            self.assertIn("cleanup_result=CLEANUP_NOT_NEEDED", stdout.getvalue())
+            self.assertFalse(state_path.exists())
+
+    def test_cleanup_stale_state_only_safe_state_exits_without_native_calls(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            safe_state = {
+                "submit_attempted": False,
+                "final_broker_state": "clean",
+                "disconnect_joined": True,
+                "disconnect_passed": True,
+            }
+            write_smoke_last_state(state_path, safe_state)
+
+            with patch(
+                "manual_ibkr_submit_reconciliation_smoke.load_ibkr_native_api",
+                side_effect=AssertionError("cleanup safe state must not connect"),
+            ):
+                stdout = io.StringIO()
+                with redirect_stdout(stdout):
+                    result = run_localhost_submit_reconciliation_smoke(
+                        timeout=0.25,
+                        lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                        last_state_path=state_path,
+                        cleanup_stale_state_only=True,
+                    )
+
+            self.assertEqual(
+                result["cleanup_result"],
+                "CLEANUP_NOT_NEEDED_SAFE_STATE",
+            )
+            self.assertIn(
+                "cleanup_result=CLEANUP_NOT_NEEDED_SAFE_STATE",
+                stdout.getvalue(),
+            )
+            self.assertEqual(json.loads(state_path.read_text()), safe_state)
+
+    def test_cleanup_stale_state_only_archives_unsafe_state_when_broker_clean(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            stale_state = {
+                "symbol": "AAPL",
+                "qty": 1,
+                "order_ref": "OPENCLAW_SMOKE_MARKET_20260521125109",
+                "order_id": 9,
+                "order_status": "submitted",
+                "final_broker_state": "open_orders",
+                "final_broker_state_reason": "open_orders_exist",
+                "disconnect_joined": True,
+                "disconnect_passed": True,
+            }
+            write_smoke_last_state(state_path, stale_state)
+
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[flat_position()],
+                timeout=0.25,
+                cleanup_stale_state_only=True,
+                submitted_at="20260521-13:14:15",
+            )
+
+            archive_path = Path(result["archive_path"])
+            self.assertEqual(result["cleanup_result"], "STALE_STATE_ARCHIVED")
+            self.assertFalse(state_path.exists())
+            self.assertTrue(archive_path.exists())
+            self.assertEqual(json.loads(archive_path.read_text()), stale_state)
+            self.assertEqual(archive_path.parent.name, "archived_ibkr_smoke_states")
+            self.assertIn("OPENCLAW_SMOKE_MARKET_20260521125109", archive_path.name)
+            self.assertIn("open_orders", archive_path.name)
+            self.assertIn("20260521-13_14_15", archive_path.name)
+            self.assertEqual(adapter.open_order_calls, [("AAPL", 2.0)])
+            self.assertEqual(adapter.position_calls, [("AAPL", 2.0)])
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+            self.assertEqual(FakeReconciliationWorkflow.instances, [])
+
+    def test_cleanup_stale_state_only_does_not_archive_when_broker_not_clean(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+            stale_state = {
+                "order_ref": "OPENCLAW_SMOKE_MARKET_20260521125109",
+                "final_broker_state": "open_orders",
+                "disconnect_joined": True,
+                "disconnect_passed": True,
+            }
+            write_smoke_last_state(state_path, stale_state)
+
+            with self.assertRaisesRegex(SmokeSafetyRefusal, "broker_state=open_orders"):
+                run_fake_smoke(
+                    lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                    state_path=state_path,
+                    open_order_snapshots=[open_orders(qty=1, count=1)],
+                    position_snapshots=[flat_position()],
+                    timeout=0.25,
+                    cleanup_stale_state_only=True,
+                )
+
+            self.assertTrue(state_path.exists())
+            self.assertEqual(json.loads(state_path.read_text()), stale_state)
+            self.assertFalse((Path(tmpdir) / "archived_ibkr_smoke_states").exists())
+            adapter = FakeIBKRBrokerAdapter.instances[-1]
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+            self.assertEqual(FakeReconciliationWorkflow.instances, [])
+
     def test_lock_releases_on_normal_completion(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             lock_path = Path(tmpdir) / "ibkr_smoke.lock"
@@ -979,6 +1131,7 @@ def run_fake_smoke(
     qty: int = 1,
     preflight_only: bool = False,
     report_only: bool = False,
+    cleanup_stale_state_only: bool = False,
     order_type: str = "market",
     limit_price: float | None = None,
     order_status: str = "submitted",
@@ -1024,10 +1177,15 @@ def run_fake_smoke(
                 last_state_path=state_path,
                 preflight_only=preflight_only,
                 report_only=report_only,
+                cleanup_stale_state_only=cleanup_stale_state_only,
                 order_type=order_type,
                 limit_price=limit_price,
             )
-    adapter = FakeIBKRBrokerAdapter.instances[-1]
+    adapter = (
+        FakeIBKRBrokerAdapter.instances[-1]
+        if FakeIBKRBrokerAdapter.instances
+        else None
+    )
     workflow = (
         FakeReconciliationWorkflow.instances[-1]
         if FakeReconciliationWorkflow.instances

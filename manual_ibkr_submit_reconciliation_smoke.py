@@ -6,6 +6,8 @@ import json
 from math import isfinite
 import os
 from pathlib import Path
+import re
+import sys
 from time import monotonic
 import time
 
@@ -36,6 +38,7 @@ SMOKE_ORDER_REF_PREFIX = "OPENCLAW_SMOKE"
 SMOKE_LOCAL_DIR = Path(__file__).resolve().parent / ".local"
 SMOKE_LOCK_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke.lock"
 SMOKE_LAST_STATE_PATH = SMOKE_LOCAL_DIR / "ibkr_smoke_last_state.json"
+SMOKE_ARCHIVE_DIR = SMOKE_LOCAL_DIR / "archived_ibkr_smoke_states"
 UNSAFE_RECONCILIATION_STATUSES = frozenset(
     {"unresolved", "partially_filled_unresolved"}
 )
@@ -564,6 +567,7 @@ def run_localhost_submit_reconciliation_smoke(
     last_state_path: Path | str = SMOKE_LAST_STATE_PATH,
     preflight_only: bool = False,
     report_only: bool = False,
+    cleanup_stale_state_only: bool = False,
     order_type: str = "market",
     limit_price: float | None = None,
 ):
@@ -572,6 +576,21 @@ def run_localhost_submit_reconciliation_smoke(
     lock = SmokeRunLock(Path(lock_path))
     last_run_state = _read_smoke_last_state(Path(last_state_path))
     print(f"last_run_state={last_run_state}")
+    if cleanup_stale_state_only and report_only:
+        raise ValueError("cleanup-stale-state-only cannot be combined with report-only")
+    if cleanup_stale_state_only and preflight_only:
+        raise ValueError("cleanup-stale-state-only cannot be combined with preflight-only")
+    if cleanup_stale_state_only:
+        return _run_cleanup_stale_state_only(
+            host=host,
+            port=port,
+            client_id=client_id,
+            timeout=timeout,
+            symbol=symbol,
+            lock=lock,
+            last_state_path=Path(last_state_path),
+            last_run_state=last_run_state,
+        )
     if not report_only:
         _refuse_if_last_run_requires_cleanup(Path(last_state_path))
 
@@ -1084,6 +1103,218 @@ def write_smoke_last_state(path: Path, state: dict[str, object]) -> None:
     )
 
 
+def _run_cleanup_stale_state_only(
+    *,
+    host: str,
+    port: int,
+    client_id: int,
+    timeout: float,
+    symbol: str,
+    lock: SmokeRunLock,
+    last_state_path: Path,
+    last_run_state: dict[str, object] | None,
+) -> dict[str, object]:
+    if last_run_state is None:
+        result = {
+            "cleanup_result": "CLEANUP_NOT_NEEDED",
+            "last_run_state": None,
+            "archive_path": None,
+        }
+        print(f"cleanup_result={result['cleanup_result']}")
+        return result
+
+    cleanup_reason = _last_run_cleanup_reason(last_run_state)
+    if cleanup_reason is None:
+        result = {
+            "cleanup_result": "CLEANUP_NOT_NEEDED_SAFE_STATE",
+            "last_run_state": last_run_state,
+            "archive_path": None,
+        }
+        print(f"cleanup_result={result['cleanup_result']}")
+        return result
+
+    native_api = load_ibkr_native_api()
+    recorder = ReconciliationSmokeRecorder()
+    registry = IBKRPendingRequestRegistry()
+    request_coordinator = IBKRRequestCoordinator(registry=registry)
+    bridge = RecordingReconciliationBridge(
+        registry,
+        request_coordinator=request_coordinator,
+        recorder=recorder,
+    )
+    coordinator = IBKRRuntimeArbitrationCoordinator(enabled=True)
+    wrapper_class = build_native_submit_reconciliation_wrapper_class(
+        native_api.e_wrapper
+    )
+    wrapper = wrapper_class(
+        coordinator=coordinator,
+        bridge=bridge,
+        recorder=recorder,
+    )
+    native_client = native_api.e_client(wrapper)
+    client = RecordingReconciliationClient(
+        client=native_client,
+        request_coordinator=request_coordinator,
+        recorder=recorder,
+    )
+    coordinator.client = client
+    adapter = IBKRBrokerAdapter(
+        client=client,
+        native_api=native_api,
+        bridge=bridge,
+        registry=registry,
+        request_coordinator=request_coordinator,
+        coordinator=coordinator,
+    )
+    lock.acquire()
+
+    broker_state = None
+    disconnect_joined = False
+    disconnect_passed = False
+    disconnect_error = None
+    safety_timeout = max(timeout, SMOKE_SAFETY_READ_TIMEOUT)
+    disconnect_timeout = max(timeout, SMOKE_DISCONNECT_TIMEOUT)
+
+    try:
+        coordinator.connect(
+            host=host,
+            port=port,
+            client_id=client_id,
+            timeout=timeout,
+        )
+        if not coordinator.wait_for_completion(timeout=timeout):
+            coordinator.timeout_connect(
+                message="cleanup stale state timed out waiting for nextValidId",
+                elapsed_ms=int(timeout * 1000),
+            )
+        connection_result = coordinator.connect_result()
+        print(f"connection_result={connection_result}")
+        print(f"connection_completion_source={coordinator.completed_by}")
+        print(f"next_valid_id={bridge.latest_next_valid_id}")
+
+        if connection_result is None or not connection_result.passed:
+            print("cleanup_stale_state_skipped=connect_failed")
+            print("cleanup_result=STALE_STATE_NOT_ARCHIVED")
+            raise SmokeSafetyRefusal("stale state cleanup requires successful connect")
+
+        run_thread_ready = wait_for_run_thread_ready(
+            coordinator,
+            timeout=RUN_THREAD_READY_TIMEOUT,
+        )
+        print(f"run_thread_ready_before_cleanup={run_thread_ready}")
+        print(f"run_thread_state_before_cleanup={coordinator.thread_owner.thread_state}")
+        if not run_thread_ready:
+            print("cleanup_stale_state_skipped=run_thread_not_ready")
+            print("cleanup_result=STALE_STATE_NOT_ARCHIVED")
+            raise SmokeSafetyRefusal("stale state cleanup requires ready runtime thread")
+
+        try:
+            broker_state = query_smoke_broker_state(
+                adapter,
+                symbol=symbol,
+                timeout=safety_timeout,
+            )
+        except Exception as exc:
+            print(f"cleanup_broker_state_error={str(exc) or type(exc).__name__}")
+            print("cleanup_result=STALE_STATE_NOT_ARCHIVED")
+            raise SmokeSafetyRefusal(
+                "stale state cleanup requires readable current broker state"
+            ) from exc
+        print(f"cleanup_open_order_snapshot={broker_state.open_order_snapshot}")
+        print(f"cleanup_position_snapshot={broker_state.position_snapshot}")
+        print(f"cleanup_broker_state={broker_state.state}")
+
+        if broker_state.state != "clean":
+            print("cleanup_result=STALE_STATE_NOT_ARCHIVED")
+            raise SmokeSafetyRefusal(
+                "stale state cleanup requires current broker_state=clean; "
+                f"broker_state={broker_state.state}"
+            )
+
+        archive_path = _archive_smoke_last_state(
+            last_state_path,
+            last_run_state,
+            timestamp=_ibkr_execution_filter_time_now(),
+        )
+        result = {
+            "cleanup_result": "STALE_STATE_ARCHIVED",
+            "cleanup_reason": cleanup_reason,
+            "old_state_summary": _smoke_state_summary(last_run_state),
+            "current_broker_state": broker_state,
+            "archive_path": str(archive_path),
+        }
+        print(f"cleanup_result={result['cleanup_result']}")
+        print(f"cleanup_reason={cleanup_reason}")
+        print(f"old_state_summary={result['old_state_summary']}")
+        print(f"current_broker_state={broker_state.state}")
+        print(f"archive_path={archive_path}")
+        return result
+    finally:
+        print(f"callback_count={len(recorder.events)}")
+        for event in recorder.events:
+            print(f"callback_event={event}")
+        try:
+            disconnect_joined = coordinator.disconnect(timeout=disconnect_timeout)
+            disconnect_result = coordinator.disconnect_result()
+            disconnect_passed = bool(
+                disconnect_joined
+                and disconnect_result is not None
+                and getattr(disconnect_result, "passed", False)
+            )
+        except Exception as exc:
+            disconnect_result = None
+            disconnect_passed = False
+            disconnect_error = str(exc) or type(exc).__name__
+        print(f"disconnect_joined={disconnect_joined}")
+        print(f"disconnect_result={disconnect_result}")
+        print(f"disconnect_passed={disconnect_passed}")
+        if disconnect_error is not None:
+            print(f"disconnect_error={disconnect_error}")
+        print(f"connect_state={coordinator.connect_state}")
+        print(f"shutdown_state={coordinator.shutdown_state}")
+        print(f"thread_state={coordinator.thread_owner.thread_state}")
+        lock.release()
+
+
+def _archive_smoke_last_state(
+    last_state_path: Path,
+    state: dict[str, object],
+    *,
+    timestamp: str,
+) -> Path:
+    archive_dir = last_state_path.parent / SMOKE_ARCHIVE_DIR.name
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    order_ref = _archive_component(state.get("order_ref") or "no_order_ref")
+    final_state = _archive_component(state.get("final_broker_state") or "unknown")
+    timestamp_component = _archive_component(timestamp)
+    archive_path = archive_dir / (
+        f"ibkr_smoke_last_state__{order_ref}__{final_state}__"
+        f"{timestamp_component}.json"
+    )
+    last_state_path.replace(archive_path)
+    return archive_path
+
+
+def _archive_component(value: object) -> str:
+    component = str(value).strip() or "unknown"
+    component = re.sub(r"[^A-Za-z0-9_.-]+", "_", component)
+    return component.strip("._-") or "unknown"
+
+
+def _smoke_state_summary(state: dict[str, object]) -> dict[str, object]:
+    return {
+        "symbol": state.get("symbol"),
+        "qty": state.get("qty"),
+        "order_ref": state.get("order_ref"),
+        "order_id": state.get("order_id"),
+        "order_status": state.get("order_status"),
+        "reconciliation_status": state.get("reconciliation_status"),
+        "manual_review_required": state.get("manual_review_required"),
+        "final_broker_state": state.get("final_broker_state"),
+        "final_broker_state_reason": state.get("final_broker_state_reason"),
+    }
+
+
 def _refuse_if_last_run_requires_cleanup(path: Path) -> None:
     state = _read_smoke_last_state(path)
     if state is None:
@@ -1204,20 +1435,33 @@ def _parse_args():
         action="store_true",
         help="Read smoke broker and last-run state without placing an order.",
     )
+    parser.add_argument(
+        "--cleanup-stale-state-only",
+        action="store_true",
+        help=(
+            "Archive unsafe last-run state only after current read-only broker "
+            "state is clean. Never submits."
+        ),
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = _parse_args()
-    run_localhost_submit_reconciliation_smoke(
-        host=args.host,
-        port=args.port,
-        client_id=args.client_id,
-        timeout=args.timeout,
-        symbol=args.symbol,
-        qty=args.qty,
-        preflight_only=args.preflight_only,
-        report_only=args.report_only,
-        order_type=args.order_type,
-        limit_price=args.limit_price,
-    )
+    try:
+        run_localhost_submit_reconciliation_smoke(
+            host=args.host,
+            port=args.port,
+            client_id=args.client_id,
+            timeout=args.timeout,
+            symbol=args.symbol,
+            qty=args.qty,
+            preflight_only=args.preflight_only,
+            report_only=args.report_only,
+            cleanup_stale_state_only=args.cleanup_stale_state_only,
+            order_type=args.order_type,
+            limit_price=args.limit_price,
+        )
+    except SmokeSafetyRefusal as exc:
+        print(f"smoke_safety_refusal={exc}")
+        sys.exit(1)
