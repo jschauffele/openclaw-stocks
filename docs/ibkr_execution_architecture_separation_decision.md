@@ -8,6 +8,15 @@ Runtime visibility remains observability and readiness metadata only. It may rep
 
 IBKR execution must not evolve by extending runtime visibility. Execution adapters, submit workflows, reconciliation workflows, and order-building logic remain separate from visibility providers.
 
+## Connection Context Guard
+
+IBKR/TWS localhost evidence is scoped to the execution context that produced it.
+`127.0.0.1` means the loopback interface of the current process context, not
+automatically the user's Mac GUI TWS context. See
+`docs/ibkr_tws_connection_context_matrix.md` before interpreting any
+`localhost` IBKR/TWS result from `DIRECT_MAC_TERMINAL`, `CODEX_LOCAL`, `VPS`,
+or `CODEX_VPS`.
+
 ## Boundaries
 
 `runtime_visibility_blocking` is not execution authorization. It may be calculated and reported, but it must not permit, deny, or route orders.
