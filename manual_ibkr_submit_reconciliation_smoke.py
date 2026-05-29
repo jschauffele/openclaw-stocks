@@ -42,6 +42,15 @@ SMOKE_ARCHIVE_DIR = SMOKE_LOCAL_DIR / "archived_ibkr_smoke_states"
 UNSAFE_RECONCILIATION_STATUSES = frozenset(
     {"unresolved", "partially_filled_unresolved"}
 )
+MARKET_ORDER_SUBMIT_BLOCKED_OUTSIDE_REGULAR_SESSION = (
+    "MARKET_ORDER_SUBMIT_BLOCKED_OUTSIDE_REGULAR_SESSION"
+)
+DEFERRED_MARKET_ORDER_WARNING_CODES = frozenset({399})
+DEFERRED_MARKET_ORDER_MESSAGE_PATTERNS = (
+    "will not be placed at the exchange until",
+    "next regular trading session",
+    "outside regular trading hours",
+)
 
 
 class SmokeSafetyRefusal(RuntimeError):
@@ -568,6 +577,7 @@ def run_localhost_submit_reconciliation_smoke(
     preflight_only: bool = False,
     report_only: bool = False,
     cleanup_stale_state_only: bool = False,
+    regular_session_confirmed: bool = False,
     order_type: str = "market",
     limit_price: float | None = None,
 ):
@@ -724,6 +734,10 @@ def run_localhost_submit_reconciliation_smoke(
             final_broker_state = pre_submit_state.state
             final_broker_state_reason = pre_submit_state.reason
             return pre_submit_state
+        _require_market_regular_session_permission(
+            order_type=smoke_order_type,
+            regular_session_confirmed=regular_session_confirmed,
+        )
 
         order_ref = build_smoke_order_ref(
             order_type=smoke_order_type,
@@ -824,6 +838,16 @@ def run_localhost_submit_reconciliation_smoke(
                 final_broker_state_reason = str(exc) or type(exc).__name__
                 print(f"final_broker_state={final_broker_state}")
                 print(f"final_broker_state_error={final_broker_state_reason}")
+        deferred_market_order_evidence = _deferred_market_order_evidence(
+            recorder.events,
+            order_result=order_result,
+            final_broker_state=final_broker_state,
+        )
+        if deferred_market_order_evidence:
+            print(f"deferred_market_order_evidence={deferred_market_order_evidence}")
+            if final_broker_state == "clean":
+                final_broker_state = "unknown"
+                final_broker_state_reason = "deferred_market_order_detected"
         print(f"callback_count={len(recorder.events)}")
         for event in recorder.events:
             print(f"callback_event={event}")
@@ -868,7 +892,8 @@ def run_localhost_submit_reconciliation_smoke(
                         ),
                         "manual_review_required": bool(
                             getattr(workflow_result, "manual_review_required", False)
-                        ),
+                        )
+                        or bool(deferred_market_order_evidence),
                         "final_broker_state": final_broker_state,
                         "final_broker_state_reason": final_broker_state_reason,
                         "disconnect_joined": disconnect_joined,
@@ -980,6 +1005,20 @@ def build_smoke_limit_order(
         contract=contract,
         order=order,
     )
+
+
+def _require_market_regular_session_permission(
+    *,
+    order_type: str,
+    regular_session_confirmed: bool,
+) -> None:
+    if order_type != "market":
+        return
+    if regular_session_confirmed:
+        print("market_order_regular_session_confirmed=True")
+        return
+    print(f"market_order_submit_guard={MARKET_ORDER_SUBMIT_BLOCKED_OUTSIDE_REGULAR_SESSION}")
+    raise SmokeSafetyRefusal(MARKET_ORDER_SUBMIT_BLOCKED_OUTSIDE_REGULAR_SESSION)
 
 
 def apply_smoke_order_ref(order_payload, order_ref: str):
@@ -1404,6 +1443,57 @@ def _workflow_evidence(workflow_result) -> dict:
     return {}
 
 
+def _deferred_market_order_evidence(
+    events: list[dict[str, object]],
+    *,
+    order_result,
+    final_broker_state: str,
+) -> dict[str, object] | None:
+    warning_events = [
+        event
+        for event in events
+        if _is_deferred_market_order_warning(event)
+    ]
+    broker_status = str(getattr(order_result, "broker_status", "") or "")
+    order_status = str(getattr(order_result, "order_status", "") or "")
+    deferred_status = "pre" + "submitted"
+    pre_submitted_open_order = (
+        final_broker_state == "open_orders"
+        and broker_status.lower() == deferred_status
+    )
+    if not warning_events and not pre_submitted_open_order:
+        return None
+    return {
+        "warning_codes": [
+            event.get("code")
+            for event in warning_events
+            if event.get("code") is not None
+        ],
+        "warning_messages": [
+            event.get("message")
+            for event in warning_events
+            if event.get("message") is not None
+        ],
+        "broker_status": broker_status or None,
+        "order_status": order_status or None,
+        "final_broker_state": final_broker_state,
+        "manual_review_required": True,
+    }
+
+
+def _is_deferred_market_order_warning(event: dict[str, object]) -> bool:
+    if event.get("event_type") != "error":
+        return False
+    try:
+        code = int(event.get("code"))
+    except (TypeError, ValueError):
+        code = None
+    message = str(event.get("message") or "").lower()
+    return code in DEFERRED_MARKET_ORDER_WARNING_CODES or any(
+        pattern in message for pattern in DEFERRED_MARKET_ORDER_MESSAGE_PATTERNS
+    )
+
+
 def _latest_place_order_id(recorder: ReconciliationSmokeRecorder):
     place_events = [
         event for event in recorder.events if event["event_type"] == "placeOrder"
@@ -1443,6 +1533,14 @@ def _parse_args():
             "state is clean. Never submits."
         ),
     )
+    parser.add_argument(
+        "--regular-session-confirmed",
+        action="store_true",
+        help=(
+            "Allow a market paper submit only after the operator has confirmed "
+            "regular-session conditions. Defaults to blocked."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -1459,6 +1557,7 @@ if __name__ == "__main__":
             preflight_only=args.preflight_only,
             report_only=args.report_only,
             cleanup_stale_state_only=args.cleanup_stale_state_only,
+            regular_session_confirmed=args.regular_session_confirmed,
             order_type=args.order_type,
             limit_price=args.limit_price,
         )

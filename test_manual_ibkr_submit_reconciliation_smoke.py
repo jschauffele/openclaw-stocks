@@ -28,6 +28,7 @@ from manual_ibkr_submit_reconciliation_smoke import (
     SmokeRunLock,
     SmokeSafetyRefusal,
     SMOKE_DISCONNECT_TIMEOUT,
+    _deferred_market_order_evidence,
     _ibkr_execution_filter_time_now,
     _refuse_if_last_run_requires_cleanup,
     classify_smoke_broker_state,
@@ -558,11 +559,52 @@ class SmokeSafetyControlTests(unittest.TestCase):
                 position_snapshots=[flat_position()],
                 order_type="market",
                 timeout=0.25,
+                regular_session_confirmed=True,
             )
 
             self.assertIsNone(result)
             self.assertFalse(adapter.build_market_order_called)
             self.assertFalse(adapter.submit_market_order_called)
+
+    def test_market_submit_defaults_to_blocked_before_order_construction(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+
+            with self.assertRaisesRegex(
+                SmokeSafetyRefusal,
+                "MARKET_ORDER_SUBMIT_BLOCKED_OUTSIDE_REGULAR_SESSION",
+            ):
+                run_fake_smoke(
+                    lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                    state_path=state_path,
+                    open_order_snapshots=[open_orders()],
+                    position_snapshots=[flat_position()],
+                    order_type="market",
+                )
+
+            adapter = FakeIBKRBrokerAdapter.instances[-1]
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertFalse(state["submit_attempted"])
+            self.assertEqual(state["final_broker_state"], "not_submitted")
+
+    def test_market_submit_explicit_regular_session_permission_allows_fake_path(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders(), open_orders()],
+                position_snapshots=[flat_position(), flat_position()],
+                order_type="market",
+                regular_session_confirmed=True,
+            )
+
+            self.assertEqual(result.order_status, "submitted")
+            self.assertTrue(adapter.build_market_order_called)
+            self.assertTrue(adapter.submit_market_order_called)
 
     def test_clean_limit_mode_builds_limit_order_without_market_builder(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -816,12 +858,63 @@ class SmokeSafetyControlTests(unittest.TestCase):
                 position_snapshots=[flat_position(), flat_position()],
                 order_type="market",
                 submitted_at="20260512-10:01:02",
+                regular_session_confirmed=True,
             )
 
             self.assertEqual(
                 adapter.submitted_order.order.orderRef,
                 "OPENCLAW_SMOKE_MARKET_20260512100102",
             )
+
+    def test_deferred_market_order_warning_is_manual_review_evidence(self) -> None:
+        order_result = BrokerOrderResult(
+            broker_name="ibkr",
+            order_id="10",
+            order_status="submitted",
+            broker_status="Submitted",
+            is_terminal=False,
+        )
+
+        evidence = _deferred_market_order_evidence(
+            [
+                {
+                    "event_type": "error",
+                    "code": 399,
+                    "message": (
+                        "Your order will not be placed at the exchange until "
+                        "2026-05-29 09:30:00 US/Eastern."
+                    ),
+                }
+            ],
+            order_result=order_result,
+            final_broker_state="clean",
+        )
+
+        self.assertIsNotNone(evidence)
+        self.assertTrue(evidence["manual_review_required"])
+        self.assertEqual(evidence["warning_codes"], [399])
+
+    def test_presubmitted_open_order_persists_manual_review_required(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"
+
+            result, adapter, _native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=state_path,
+                open_order_snapshots=[open_orders(), open_orders(qty=1, count=1)],
+                position_snapshots=[flat_position(), flat_position()],
+                order_type="market",
+                regular_session_confirmed=True,
+                broker_status="PreSubmitted",
+            )
+
+            self.assertEqual(result.broker_status, "PreSubmitted")
+            self.assertTrue(adapter.submit_market_order_called)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertTrue(state["manual_review_required"])
+            self.assertEqual(state["final_broker_state"], "open_orders")
+            with self.assertRaisesRegex(SmokeSafetyRefusal, "manual_review_required"):
+                _refuse_if_last_run_requires_cleanup(state_path)
 
 
 class FakeSafetyAdapter:
@@ -907,8 +1000,9 @@ class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
     open_order_snapshots: list[BrokerOpenOrderState] = []
     position_snapshots: list[BrokerPositionState] = []
     order_status = "submitted"
+    broker_status = "Submitted"
 
-    def __init__(self, **_kwargs) -> None:
+    def __init__(self, **kwargs) -> None:
         if not self.open_order_snapshots or not self.position_snapshots:
             raise AssertionError("fake broker snapshots were not configured")
         super().__init__(
@@ -918,6 +1012,7 @@ class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
         self.build_market_order_called = False
         self.submit_market_order_called = False
         self.submitted_order = None
+        self.recorder = getattr(kwargs.get("client"), "recorder", None)
         self.instances.append(self)
 
     def get_open_buy_order_qty(
@@ -951,7 +1046,7 @@ class FakeIBKRBrokerAdapter(FakeSafetyAdapter):
             broker_name="ibkr",
             order_id="123",
             order_status=self.order_status,
-            broker_status="PreSubmitted",
+            broker_status=self.broker_status,
             is_terminal=False,
         )
 
@@ -1135,7 +1230,9 @@ def run_fake_smoke(
     order_type: str = "market",
     limit_price: float | None = None,
     order_status: str = "submitted",
+    broker_status: str = "Submitted",
     submitted_at: str = "20260512-10:01:02",
+    regular_session_confirmed: bool = False,
     include_coordinator: bool = False,
     include_workflow: bool = False,
 ):
@@ -1143,6 +1240,7 @@ def run_fake_smoke(
     FakeIBKRBrokerAdapter.open_order_snapshots = list(open_order_snapshots)
     FakeIBKRBrokerAdapter.position_snapshots = list(position_snapshots)
     FakeIBKRBrokerAdapter.order_status = order_status
+    FakeIBKRBrokerAdapter.broker_status = broker_status
     FakeCoordinator.instances = []
     FakeReconciliationWorkflow.instances = []
     native_api = FakeNativeApi()
@@ -1178,6 +1276,7 @@ def run_fake_smoke(
                 preflight_only=preflight_only,
                 report_only=report_only,
                 cleanup_stale_state_only=cleanup_stale_state_only,
+                regular_session_confirmed=regular_session_confirmed,
                 order_type=order_type,
                 limit_price=limit_price,
             )
