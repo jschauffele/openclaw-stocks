@@ -845,6 +845,13 @@ This contract does not approve `broker_factory.py` changes, does not approve
 `main.py` changes, does not enable `OPENCLAW_BROKER=ibkr`, does not approve
 production routing, does not require broker calls, and does not require TWS.
 
+The IBKR read-only runtime visibility activation boundary is defined in
+`docs/runtime_visibility_architecture_decision.md`. That boundary is
+observation-only. It does not approve IBKR execution runtime activation,
+submit readiness, cleanup, flatten, sell, cancel, retry, remediation,
+`broker_factory.py`, `config.py`, `main.py`, systemd changes, VPS work, or live
+trading.
+
 ### Future IBKR Event Evidence Fields
 
 Future IBKR paper runtime events must preserve the stable run-event envelope

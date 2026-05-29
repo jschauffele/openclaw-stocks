@@ -31,6 +31,36 @@ Manual-only runtime visibility remains the default until scheduled or runtime pr
 
 Read-only visibility evidence proves only observability/readiness metadata behavior. It is not approval for strategy-driven IBKR execution.
 
+## IBKR Read-Only Runtime Visibility Activation Contract
+
+Future IBKR read-only runtime visibility activation means observation only. It
+may collect and report broker-visible state such as connection readiness,
+open-order state, position state, broker-state classification, disconnect
+state, and runtime-thread state.
+
+It is not IBKR execution runtime activation. It is not submit readiness. It is
+not authority to clean up, flatten, sell, cancel, retry, resubmit, remediate,
+route orders, enable live trading, or bypass any execution gate.
+
+IBKR read-only visibility must not bypass the managed AAPL long `1` paper hold
+state. While that managed non-flat state remains active, future IBKR submit
+smokes remain blocked unless a separate explicit cleanup or flatten gate
+records a different decision.
+
+IBKR read-only visibility must not alter the Alpaca scheduled baseline. It must
+not change strategy, risk, execution, reconciliation, broker construction,
+state writes, observations, systemd behavior, or scheduled runtime behavior.
+
+This contract does not authorize changes to `broker_factory.py`, `config.py`,
+`main.py`, systemd service or timer files, `.env`, runtime state files, logs,
+or any Python runtime implementation. Any future code or config change requires
+a separate test-only or implementation gate before work begins.
+
+Any future activation path must remain deterministic, source-controlled,
+auditable, and separately approved. The approval must name the exact files,
+configuration surface, command or validation path, stop conditions, rollback
+posture, and evidence required before and after activation.
+
 ## Enforcement
 
 Any enforcement behavior requires a separate explicit architecture review before implementation.

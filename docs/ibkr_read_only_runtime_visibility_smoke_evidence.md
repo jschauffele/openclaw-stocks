@@ -162,4 +162,9 @@ visibility. It does not approve submit, reconciliation, `main.py`, VPS work,
 scheduled IBKR activation, broker routing, bridge or tunnel work, or live
 trading.
 
-Recommended next gate: `IBKR_LOCAL_PAPER_SUBMIT_GATE_APPROVAL_PLAN`.
+Future IBKR read-only runtime visibility activation is governed by
+`docs/runtime_visibility_architecture_decision.md`. That contract remains
+observation-only and does not bypass the managed AAPL long `1` paper hold
+state, authorize submit readiness, or approve cleanup, flatten, sell, cancel,
+retry, resubmit, remediation, scheduled IBKR runtime, `broker_factory.py`,
+`config.py`, `main.py`, systemd changes, VPS work, or live trading.
