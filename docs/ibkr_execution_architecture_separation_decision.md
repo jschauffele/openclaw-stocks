@@ -787,6 +787,15 @@ post-run check must record final broker state, final reconciliation state,
 manual-review status, open orders, positions, execution evidence, disconnect
 evidence, and whether rollback is required before another attempt.
 
+An intentional non-flat paper position after a successful submit smoke is a
+managed and blocked next-state, not a clean precondition for another submit
+smoke. No further submit smoke may run until the position state has been
+explicitly reviewed and the next-state decision has been recorded.
+
+OpenClaw must not automatically cancel, flatten, sell, retry, resubmit, or
+remediate that paper position. Any cleanup, flatten, or offsetting sell action
+requires a separate explicit gate and approval before execution.
+
 ### Unsafe-State Blockers
 
 Any of the following states must block IBKR paper runtime activation or further

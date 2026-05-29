@@ -119,6 +119,10 @@ behavior.
   reconciliation-required.
 - No scheduled runtime, no VPS, no `main.py`, and no live trading occurred.
 
+The successful AAPL BUY left the paper account with expected AAPL long `1`
+state. Future IBKR submit gates must account for this managed non-flat state
+before any further submit smoke is approved.
+
 ## Boundary
 
 This evidence is scoped to the exact `DIRECT_MAC_TERMINAL` paper-submit run

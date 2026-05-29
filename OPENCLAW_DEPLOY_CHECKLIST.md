@@ -61,6 +61,14 @@ git push origin main
 
 ## 5. Update The VPS From GitHub
 
+Before any VPS deploy, fetch, pull, merge, restore, or `scp` write, verify the
+VPS root filesystem is mounted read-write. If the filesystem is read-only or
+the result is ambiguous, stop and report the ambiguity. Do not retry sync,
+restore, or copy operations until the filesystem state is resolved.
+
+When `CODEX_VPS` and a direct VPS terminal disagree about filesystem state, the
+direct VPS terminal is authoritative for deploy decisions.
+
 Use the VPS git checkout now that SSH deploy access is configured:
 
 ```bash
@@ -83,6 +91,14 @@ cd /opt/openclaw-stocks && python3 main.py
 ```
 
 ## 7. Verify The Latest Result
+
+Starting or restarting `openclaw.timer` may immediately trigger a natural
+systemd run. After starting the timer, wait for `openclaw.service` to settle
+back to inactive before classifying runtime behavior.
+
+Inspect both `last_run_report.json` and the latest `logs/*.jsonl` before
+deciding whether the run was expected timer behavior or unexpected runtime
+drift.
 
 ```bash
 cd /opt/openclaw-stocks && tail -n 50 last_run_report.json
