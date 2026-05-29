@@ -206,6 +206,7 @@ class InjectedIBKRReadOnlyVisibilityProvider:
         self.broker_state = broker_state
         self.read_calls = 0
         self.execution_like_calls = 0
+        self.config = None
 
     def read_broker_state(self):
         self.read_calls += 1
@@ -242,6 +243,15 @@ class InjectedIBKRReadOnlyVisibilityProvider:
         raise AssertionError("read-only visibility must not sell")
 
 
+class InjectedIBKRReadOnlyVisibilityProviderClass(InjectedIBKRReadOnlyVisibilityProvider):
+    instances = []
+
+    def __init__(self, config) -> None:
+        super().__init__(broker_state="non_flat_position")
+        self.config = config
+        self.__class__.instances.append(self)
+
+
 class MainSubmitUncertaintyTests(unittest.TestCase):
     def setUp(self) -> None:
         FakeSubmitReconciliationWorkflow.calls = []
@@ -249,6 +259,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             "unresolved",
             manual_review_required=True,
         )
+        InjectedIBKRReadOnlyVisibilityProviderClass.instances = []
 
     def run_main_with_order_status(
         self,
@@ -261,7 +272,18 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         runtime_visibility_enabled: bool = False,
         runtime_visibility_providers: str = "",
         runtime_visibility_fake_broker_state: str = "clean",
+        ibkr_runtime_visibility_enabled: bool = False,
+        ibkr_runtime_visibility_mode: str = "paper_localhost",
+        ibkr_runtime_visibility_host: str = "127.0.0.1",
+        ibkr_runtime_visibility_port: int = 7497,
+        ibkr_runtime_visibility_client_id: int = 9117,
+        ibkr_runtime_visibility_timeout: float = 5.0,
+        ibkr_runtime_visibility_disconnect_timeout: float = 2.0,
+        ibkr_runtime_visibility_symbol: str = "AAPL",
+        ibkr_runtime_visibility_include_executions: bool = False,
+        ibkr_runtime_visibility_execution_since: str = "",
         runtime_visibility_provider_override=None,
+        ibkr_read_only_provider_class=None,
         patch_runtime_visibility: bool = True,
         workflow_result_override=None,
     ):
@@ -281,6 +303,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         build_action_proposal_calls = []
         risk_check_calls = []
         reconcile_position_calls = []
+        create_broker_adapter_calls = []
 
         def persist_report(**kwargs):
             reports.append(kwargs)
@@ -329,6 +352,10 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
                 "open_buy_order_qty": 0,
                 "projected_qty": 1,
             }
+
+        def create_broker_adapter_call(*args, **kwargs):
+            create_broker_adapter_calls.append((args, kwargs))
+            return broker
 
         patchers = [
             patch("config.load_config"),
@@ -386,6 +413,56 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
                 runtime_visibility_fake_broker_state,
                 create=True,
             ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED",
+                ibkr_runtime_visibility_enabled,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_MODE",
+                ibkr_runtime_visibility_mode,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST",
+                ibkr_runtime_visibility_host,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT",
+                ibkr_runtime_visibility_port,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_CLIENT_ID",
+                ibkr_runtime_visibility_client_id,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT",
+                ibkr_runtime_visibility_timeout,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT",
+                ibkr_runtime_visibility_disconnect_timeout,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_SYMBOL",
+                ibkr_runtime_visibility_symbol,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_INCLUDE_EXECUTIONS",
+                ibkr_runtime_visibility_include_executions,
+                create=True,
+            ),
+            patch(
+                "config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_EXECUTION_SINCE",
+                ibkr_runtime_visibility_execution_since,
+                create=True,
+            ),
             patch("config.ALPACA_API_KEY", "key", create=True),
             patch("config.ALPACA_SECRET_KEY", "secret", create=True),
             patch("config.ALPACA_BASE_URL", "https://paper-api.alpaca.markets", create=True),
@@ -393,7 +470,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             patch("config.env_str", side_effect=lambda _name, default: default),
             patch("config.env_int", side_effect=lambda _name, default: default),
             patch("main.setup_logging"),
-            patch("main.create_broker_adapter", return_value=broker),
+            patch("main.create_broker_adapter", side_effect=create_broker_adapter_call),
             patch("main.generate_run_id", return_value="run-test"),
             patch("main.initialize_event_logger"),
             patch("main.log_event", side_effect=log_event),
@@ -459,6 +536,13 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
                     ),
                 ]
             )
+        if ibkr_read_only_provider_class is not None:
+            patchers.append(
+                patch(
+                    "ibkr_read_only_runtime_provider.IBKRReadOnlyRuntimeProvider",
+                    ibkr_read_only_provider_class,
+                )
+            )
         with ExitStack() as stack:
             for patcher in patchers:
                 stack.enter_context(patcher)
@@ -479,6 +563,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             "build_action_proposal_calls": build_action_proposal_calls,
             "risk_check_calls": risk_check_calls,
             "reconcile_position_calls": reconcile_position_calls,
+            "create_broker_adapter_calls": create_broker_adapter_calls,
         }
 
     def assert_default_runtime_visibility_summary(self, report) -> None:
@@ -1580,6 +1665,126 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertEqual(visibility_report["provider_name"], "ibkr_read_only")
         self.assertEqual(visibility_report["broker_state"], "non_flat_position")
         self.assertEqual(visibility_report["reason"], "broker_state_non_flat_position")
+        self.assertEqual(
+            visibility_report["raw_diagnostics"]["position_snapshot"],
+            {
+                "found": True,
+                "symbol": "AAPL",
+                "qty": 1,
+                "side": "long",
+            },
+        )
+        for field in [
+            "submit_approved",
+            "submit_attempted",
+            "cleanup_approved",
+            "flatten",
+            "sell",
+            "cancel",
+            "retry",
+            "remediation",
+            "safe_to_submit",
+            "order_id",
+            "order_status",
+            "submit_state",
+            "reconciliation_status",
+        ]:
+            with self.subTest(field=field):
+                self.assertNotIn(field, runtime_visibility)
+                self.assertNotIn(field, visibility_report)
+                self.assertNotIn(field, visibility_report["raw_diagnostics"])
+
+    def test_real_config_defaults_are_clear_through_main_report_path(self) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_broker="alpaca",
+            patch_runtime_visibility=False,
+            ibkr_read_only_provider_class=InjectedIBKRReadOnlyVisibilityProviderClass,
+        )
+
+        self.assertEqual(InjectedIBKRReadOnlyVisibilityProviderClass.instances, [])
+        self.assertEqual(result["broker"].submit_calls, 1)
+        self.assertEqual(len(result["write_state_calls"]), 1)
+        self.assertEqual(
+            result["create_broker_adapter_calls"],
+            [
+                (
+                    ("alpaca",),
+                    {
+                        "alpaca_api_key": "key",
+                        "alpaca_secret_key": "secret",
+                    },
+                )
+            ],
+        )
+        report = result["reports"][-1]
+        self.assertEqual(report["result"], "success")
+        self.assertEqual(report["reason"], "paper_order_submitted")
+        self.assertNotIn("ibkr_runtime", report)
+        self.assertEqual(
+            report["orchestration"]["runtime_visibility"],
+            runtime_visibility_summary(),
+        )
+
+    def test_real_config_ibkr_read_only_visibility_is_report_only_in_main_path(
+        self,
+    ) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_broker="alpaca",
+            runtime_visibility_enabled=True,
+            runtime_visibility_providers="ibkr_read_only",
+            ibkr_runtime_visibility_enabled=True,
+            ibkr_runtime_visibility_host="localhost",
+            ibkr_runtime_visibility_port=4002,
+            ibkr_runtime_visibility_client_id=9234,
+            ibkr_runtime_visibility_timeout=1.25,
+            ibkr_runtime_visibility_disconnect_timeout=0.75,
+            ibkr_runtime_visibility_symbol="AAPL",
+            patch_runtime_visibility=False,
+            ibkr_read_only_provider_class=InjectedIBKRReadOnlyVisibilityProviderClass,
+        )
+
+        self.assertEqual(len(InjectedIBKRReadOnlyVisibilityProviderClass.instances), 1)
+        provider = InjectedIBKRReadOnlyVisibilityProviderClass.instances[0]
+        self.assertEqual(provider.read_calls, 1)
+        self.assertEqual(provider.execution_like_calls, 0)
+        self.assertEqual(provider.config.host, "localhost")
+        self.assertEqual(provider.config.port, 4002)
+        self.assertEqual(provider.config.client_id, 9234)
+        self.assertEqual(provider.config.timeout, 1.25)
+        self.assertEqual(provider.config.disconnect_timeout, 0.75)
+        self.assertEqual(provider.config.symbol, "AAPL")
+        self.assertEqual(result["broker"].submit_calls, 1)
+        self.assertEqual(len(result["write_state_calls"]), 1)
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        self.assertEqual(
+            result["create_broker_adapter_calls"],
+            [
+                (
+                    ("alpaca",),
+                    {
+                        "alpaca_api_key": "key",
+                        "alpaca_secret_key": "secret",
+                    },
+                )
+            ],
+        )
+        report = result["reports"][-1]
+        self.assertEqual(report["result"], "success")
+        self.assertEqual(report["reason"], "paper_order_submitted")
+        self.assertNotIn("ibkr_runtime", report)
+        runtime_visibility = report["orchestration"]["runtime_visibility"]
+        self.assertEqual(runtime_visibility["runtime_visibility_blocking"], True)
+        self.assertEqual(
+            runtime_visibility["runtime_visibility_reason"],
+            "ibkr_read_only:broker_state_non_flat_position",
+        )
+        visibility_report = runtime_visibility["runtime_visibility_reports"][0]
+        self.assertEqual(visibility_report["provider_name"], "ibkr_read_only")
+        self.assertEqual(visibility_report["broker_state"], "non_flat_position")
+        self.assertEqual(visibility_report["reason"], "broker_state_non_flat_position")
+        self.assertNotEqual(visibility_report["reason"], "broker_state_clean")
         self.assertEqual(
             visibility_report["raw_diagnostics"]["position_snapshot"],
             {
