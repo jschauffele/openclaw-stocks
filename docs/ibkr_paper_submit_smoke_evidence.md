@@ -123,6 +123,37 @@ The successful AAPL BUY left the paper account with expected AAPL long `1`
 state. Future IBKR submit gates must account for this managed non-flat state
 before any further submit smoke is approved.
 
+## Post-Submit Managed Non-Flat State
+
+The current `DIRECT_MAC_TERMINAL` read-only IBKR Paper observation at commit
+`1eaad94` confirms that the successful submit smoke still leaves AAPL long `1`
+as a managed non-flat paper state.
+
+| Field | Value |
+| --- | --- |
+| `symbol` | `AAPL` |
+| `open_buy_order_count` | `0` |
+| `open_buy_order_qty` | `0` |
+| `position.found` | `true` |
+| `position.qty` | `1` |
+| `position.side` | `long` |
+| `broker_state` | `non_flat_position` |
+| `runtime_visibility_blocking` | `true` |
+| `runtime_visibility_reason` | `IBKRReadOnlyRuntimeProvider:broker_state_non_flat_position` |
+| `connection_result.passed` | `true` |
+| `disconnect_result.passed` | `true` |
+| `shutdown_state` | `complete` |
+| `thread_state` | `stopped` |
+
+Classification: PASS / EXPECTED MANAGED BLOCKING STATE.
+
+This managed state is intentionally blocking for future IBKR submit smokes
+until an explicit hold, cleanup, or flatten decision is recorded. OpenClaw must
+not automatically cancel, flatten, sell, retry, resubmit, or remediate this
+paper position. No submit, cancel, flatten, sell, cleanup, broker remediation,
+`main.py`, VPS, or scheduled IBKR runtime occurred during this read-only
+observation.
+
 ## Boundary
 
 This evidence is scoped to the exact `DIRECT_MAC_TERMINAL` paper-submit run
