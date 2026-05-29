@@ -640,6 +640,12 @@ No runtime activation occurred. `main.py` was not executed. No strategy, risk,
 market data, production state-write, or observation path ran. No VPS action
 occurred.
 
+A later successful regular-session paper submit smoke is recorded separately in
+`docs/ibkr_paper_submit_smoke_evidence.md`. That evidence is scoped to
+`DIRECT_MAC_TERMINAL`, commit `d2be842`, and the dedicated manual submit
+harness. It records a filled AAPL buy order with no open-order residue,
+expected non-flat final position, and no reconciliation invocation.
+
 ## Controlled Paper Activation Readiness Checklist
 
 This checklist defines the gates required before any IBKR paper runtime routing
