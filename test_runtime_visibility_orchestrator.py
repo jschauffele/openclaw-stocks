@@ -5,6 +5,20 @@ import unittest
 from runtime_visibility_orchestrator import build_runtime_visibility_summary
 
 
+FORBIDDEN_AUTHORITY_FIELDS = {
+    "submit_approved",
+    "submit_attempted",
+    "order_id",
+    "cleanup_approved",
+    "flatten",
+    "sell",
+    "cancel",
+    "retry",
+    "remediation",
+    "safe_to_submit",
+}
+
+
 class FakeReadOnlyProvider:
     def __init__(
         self,
@@ -130,15 +144,6 @@ class RuntimeVisibilityOrchestratorTests(unittest.TestCase):
 
         result = build_runtime_visibility_summary(providers)
 
-        forbidden_fields = {
-            "submit_approved",
-            "submit_attempted",
-            "order_id",
-            "cleanup_approved",
-            "flatten",
-            "sell",
-            "safe_to_submit",
-        }
         self.assertEqual(
             set(result.keys()),
             {
@@ -161,8 +166,29 @@ class RuntimeVisibilityOrchestratorTests(unittest.TestCase):
                 "raw_diagnostics",
             },
         )
-        self.assertFalse(forbidden_fields.intersection(result))
-        self.assertFalse(forbidden_fields.intersection(report))
+        self.assertFalse(FORBIDDEN_AUTHORITY_FIELDS.intersection(result))
+        self.assertFalse(FORBIDDEN_AUTHORITY_FIELDS.intersection(report))
+
+    def test_ibkr_read_only_non_flat_summary_is_report_only(self) -> None:
+        provider = FakeReadOnlyProvider(
+            provider_name="ibkr_read_only",
+            broker_state="non_flat_position",
+        )
+
+        result = build_runtime_visibility_summary([provider])
+
+        self.assertEqual(result["runtime_visibility_blocking"], True)
+        self.assertEqual(
+            result["runtime_visibility_reason"],
+            "ibkr_read_only:broker_state_non_flat_position",
+        )
+        report = result["runtime_visibility_reports"][0]
+        self.assertEqual(report["provider_name"], "ibkr_read_only")
+        self.assertEqual(report["broker_state"], "non_flat_position")
+        self.assertEqual(report["reason"], "broker_state_non_flat_position")
+        self.assertFalse(FORBIDDEN_AUTHORITY_FIELDS.intersection(result))
+        self.assertFalse(FORBIDDEN_AUTHORITY_FIELDS.intersection(report))
+        self.assertEqual(provider.execution_like_calls, 0)
 
     def test_provider_error_returns_blocking_summary(self) -> None:
         result = build_runtime_visibility_summary([RaisingProvider()])

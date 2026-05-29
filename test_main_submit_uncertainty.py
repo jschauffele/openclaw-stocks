@@ -14,6 +14,9 @@ from broker_interface import (
     BrokerOrderResult,
     BrokerSubmitReconciliationResult,
 )
+from runtime_visibility_orchestrator import (
+    build_runtime_visibility_summary as build_real_runtime_visibility_summary,
+)
 
 
 def install_alpaca_import_stubs() -> None:
@@ -196,6 +199,49 @@ def runtime_visibility_summary():
     }
 
 
+class InjectedIBKRReadOnlyVisibilityProvider:
+    provider_name = "ibkr_read_only"
+
+    def __init__(self, *, broker_state: str = "non_flat_position") -> None:
+        self.broker_state = broker_state
+        self.read_calls = 0
+        self.execution_like_calls = 0
+
+    def read_broker_state(self):
+        self.read_calls += 1
+        return {
+            "provider_status": "enabled",
+            "enabled": True,
+            "broker_state": self.broker_state,
+            "open_order_snapshot": {
+                "open_buy_order_count": 0,
+                "open_buy_order_qty": 0,
+            },
+            "position_snapshot": {
+                "found": True,
+                "symbol": "AAPL",
+                "qty": 1,
+                "side": "long",
+            },
+        }
+
+    def submit_market_order(self, *_args, **_kwargs):
+        self.execution_like_calls += 1
+        raise AssertionError("read-only visibility must not submit")
+
+    def cancel_order(self, *_args, **_kwargs):
+        self.execution_like_calls += 1
+        raise AssertionError("read-only visibility must not cancel")
+
+    def flatten(self, *_args, **_kwargs):
+        self.execution_like_calls += 1
+        raise AssertionError("read-only visibility must not flatten")
+
+    def sell(self, *_args, **_kwargs):
+        self.execution_like_calls += 1
+        raise AssertionError("read-only visibility must not sell")
+
+
 class MainSubmitUncertaintyTests(unittest.TestCase):
     def setUp(self) -> None:
         FakeSubmitReconciliationWorkflow.calls = []
@@ -215,6 +261,7 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         runtime_visibility_enabled: bool = False,
         runtime_visibility_providers: str = "",
         runtime_visibility_fake_broker_state: str = "clean",
+        runtime_visibility_provider_override=None,
         patch_runtime_visibility: bool = True,
         workflow_result_override=None,
     ):
@@ -388,20 +435,27 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             ),
         ]
         if patch_runtime_visibility:
+            def build_runtime_visibility_providers_call(config_module):
+                runtime_provider_calls.append(config_module)
+                if runtime_visibility_provider_override is None:
+                    return []
+                return runtime_visibility_provider_override
+
+            def build_runtime_visibility_summary_call(providers):
+                runtime_visibility_calls.append(providers)
+                if runtime_visibility_provider_override is None:
+                    return runtime_visibility_summary()
+                return build_real_runtime_visibility_summary(providers)
+
             patchers.extend(
                 [
                     patch(
                         "main.build_runtime_visibility_providers",
-                        side_effect=lambda config_module: (
-                            runtime_provider_calls.append(config_module) or []
-                        ),
+                        side_effect=build_runtime_visibility_providers_call,
                     ),
                     patch(
                         "main.build_runtime_visibility_summary",
-                        side_effect=lambda providers: (
-                            runtime_visibility_calls.append(providers)
-                            or runtime_visibility_summary()
-                        ),
+                        side_effect=build_runtime_visibility_summary_call,
                     ),
                 ]
             )
@@ -1489,6 +1543,71 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertNotIn(field, runtime_visibility)
                 self.assertNotIn(field, runtime_visibility["runtime_visibility_reports"][0])
+
+    def test_injected_ibkr_read_only_visibility_does_not_activate_execution_runtime(
+        self,
+    ) -> None:
+        provider = InjectedIBKRReadOnlyVisibilityProvider(
+            broker_state="non_flat_position"
+        )
+
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_broker="alpaca",
+            runtime_visibility_enabled=True,
+            runtime_visibility_providers="ibkr_read_only",
+            runtime_visibility_provider_override=[provider],
+        )
+
+        self.assertEqual(result["runtime_provider_calls"], [main.config])
+        self.assertEqual(result["runtime_visibility_calls"], [[provider]])
+        self.assertEqual(provider.read_calls, 1)
+        self.assertEqual(provider.execution_like_calls, 0)
+        self.assertEqual(result["broker"].submit_calls, 1)
+        self.assertEqual(len(result["write_state_calls"]), 1)
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        report = result["reports"][-1]
+        self.assertEqual(report["result"], "success")
+        self.assertEqual(report["reason"], "paper_order_submitted")
+        self.assertNotIn("ibkr_runtime", report)
+        runtime_visibility = report["orchestration"]["runtime_visibility"]
+        self.assertEqual(runtime_visibility["runtime_visibility_blocking"], True)
+        self.assertEqual(
+            runtime_visibility["runtime_visibility_reason"],
+            "ibkr_read_only:broker_state_non_flat_position",
+        )
+        visibility_report = runtime_visibility["runtime_visibility_reports"][0]
+        self.assertEqual(visibility_report["provider_name"], "ibkr_read_only")
+        self.assertEqual(visibility_report["broker_state"], "non_flat_position")
+        self.assertEqual(visibility_report["reason"], "broker_state_non_flat_position")
+        self.assertEqual(
+            visibility_report["raw_diagnostics"]["position_snapshot"],
+            {
+                "found": True,
+                "symbol": "AAPL",
+                "qty": 1,
+                "side": "long",
+            },
+        )
+        for field in [
+            "submit_approved",
+            "submit_attempted",
+            "cleanup_approved",
+            "flatten",
+            "sell",
+            "cancel",
+            "retry",
+            "remediation",
+            "safe_to_submit",
+            "order_id",
+            "order_status",
+            "submit_state",
+            "reconciliation_status",
+        ]:
+            with self.subTest(field=field):
+                self.assertNotIn(field, runtime_visibility)
+                self.assertNotIn(field, visibility_report)
+                self.assertNotIn(field, visibility_report["raw_diagnostics"])
 
     def test_ibkr_runtime_visibility_config_cannot_authorize_ibkr_submit(
         self,

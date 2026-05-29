@@ -8,6 +8,21 @@ from runtime_visibility_preflight import (
 )
 
 
+FORBIDDEN_AUTHORITY_FIELDS = {
+    "clean_submit_readiness",
+    "safe_to_submit",
+    "submit_approved",
+    "submit_attempted",
+    "order_id",
+    "cleanup_approved",
+    "flatten",
+    "sell",
+    "cancel",
+    "retry",
+    "remediation",
+}
+
+
 class FakeReadOnlyProvider:
     def __init__(
         self,
@@ -140,19 +155,48 @@ class RuntimeVisibilityPreflightTests(unittest.TestCase):
         self.assertEqual(report["reason"], "broker_state_non_flat_position")
         self.assertNotEqual(report["reason"], "broker_state_clean")
         self.assertEqual(provider.execution_like_calls, 0)
-        for field in [
-            "clean_submit_readiness",
-            "safe_to_submit",
-            "submit_approved",
-            "submit_attempted",
-            "order_id",
-            "cleanup_approved",
-            "flatten",
-            "sell",
-        ]:
+        for field in FORBIDDEN_AUTHORITY_FIELDS:
             with self.subTest(field=field):
                 self.assertNotIn(field, report)
                 self.assertNotIn(field, report["raw_diagnostics"])
+
+    def test_ibkr_read_only_aapl_long_state_is_not_clean_submit_readiness(
+        self,
+    ) -> None:
+        provider = FakeReadOnlyProvider(
+            provider_name="ibkr_read_only",
+            diagnostics={
+                **diagnostics(broker_state="non_flat_position"),
+                "position_snapshot": {
+                    "found": True,
+                    "symbol": "AAPL",
+                    "qty": 1,
+                    "side": "long",
+                },
+            },
+        )
+
+        report = build_runtime_visibility_report(provider).to_dict()
+
+        self.assertEqual(report["provider_name"], "ibkr_read_only")
+        self.assertEqual(report["broker_state"], "non_flat_position")
+        self.assertEqual(report["blocking"], True)
+        self.assertEqual(report["reason"], "broker_state_non_flat_position")
+        self.assertNotEqual(report["reason"], "broker_state_clean")
+        self.assertEqual(
+            report["raw_diagnostics"]["position_snapshot"],
+            {
+                "found": True,
+                "symbol": "AAPL",
+                "qty": 1,
+                "side": "long",
+            },
+        )
+        for field in FORBIDDEN_AUTHORITY_FIELDS:
+            with self.subTest(field=field):
+                self.assertNotIn(field, report)
+                self.assertNotIn(field, report["raw_diagnostics"])
+        self.assertEqual(provider.execution_like_calls, 0)
 
     def test_unknown_produces_blocking_report(self) -> None:
         provider = FakeReadOnlyProvider(

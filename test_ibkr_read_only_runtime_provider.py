@@ -8,6 +8,19 @@ from ibkr_read_only_runtime_provider import (
 )
 
 
+FORBIDDEN_AUTHORITY_FIELDS = {
+    "submit_approved",
+    "submit_attempted",
+    "cleanup_approved",
+    "flatten",
+    "sell",
+    "cancel",
+    "retry",
+    "remediation",
+    "safe_to_submit",
+}
+
+
 class IBKRReadOnlyRuntimeProviderTests(unittest.TestCase):
     def test_disabled_provider_does_not_call_diagnostics(self) -> None:
         calls = []
@@ -127,9 +140,58 @@ class IBKRReadOnlyRuntimeProviderTests(unittest.TestCase):
             "cancel",
             "flatten",
             "flatten_position",
+            "sell",
+            "retry",
+            "remediate",
         ]:
             with self.subTest(method=method_name):
                 self.assertFalse(hasattr(provider, method_name))
+
+    def test_managed_non_flat_position_report_has_no_authority_fields(self) -> None:
+        def diagnostics_runner(**kwargs):
+            return {
+                "connection_result": {"passed": True},
+                "connection_completion_source": "callback",
+                "next_valid_id": 701,
+                "open_order_snapshot": {
+                    "open_buy_order_count": 0,
+                    "open_buy_order_qty": 0,
+                },
+                "position_snapshot": {
+                    "found": True,
+                    "symbol": "AAPL",
+                    "qty": 1,
+                    "side": "long",
+                },
+                "broker_state": "non_flat_position",
+                "disconnect_result": {"passed": True},
+                "connect_state": "disconnected",
+                "shutdown_state": "complete",
+                "thread_state": {"thread_state": "stopped"},
+            }
+
+        provider = IBKRReadOnlyRuntimeProvider(
+            IBKRReadOnlyRuntimeProviderConfig(enabled=True, symbol="AAPL"),
+            diagnostics_runner=diagnostics_runner,
+        )
+
+        result = provider.read_broker_state()
+
+        self.assertEqual(result["provider_status"], "enabled")
+        self.assertEqual(result["broker_state"], "non_flat_position")
+        self.assertEqual(
+            result["position_snapshot"],
+            {
+                "found": True,
+                "symbol": "AAPL",
+                "qty": 1,
+                "side": "long",
+            },
+        )
+        for field in FORBIDDEN_AUTHORITY_FIELDS:
+            with self.subTest(field=field):
+                self.assertNotIn(field, result)
+                self.assertFalse(hasattr(provider, field))
 
     def test_diagnostics_exception_returns_unknown_error_state(self) -> None:
         def diagnostics_runner(**kwargs):

@@ -8,6 +8,17 @@ from runtime_visibility_provider_composer import build_runtime_visibility_provid
 
 
 IBKR_MODULES = ("ibkr_read_only_runtime_provider", "ibkr_runtime_diagnostics")
+FORBIDDEN_AUTHORITY_FIELDS = {
+    "submit_approved",
+    "submit_attempted",
+    "cleanup_approved",
+    "flatten",
+    "sell",
+    "cancel",
+    "retry",
+    "remediation",
+    "safe_to_submit",
+}
 
 
 def drop_ibkr_modules() -> None:
@@ -211,6 +222,60 @@ class RuntimeVisibilityProviderComposerTests(unittest.TestCase):
                 }
             ],
         )
+        assert_ibkr_modules_not_loaded(self)
+
+    def test_ibkr_read_only_injected_provider_path_is_report_only(self) -> None:
+        drop_ibkr_modules()
+        config_module = valid_ibkr_config(
+            OPENCLAW_IBKR_RUNTIME_VISIBILITY_SYMBOL="AAPL",
+            OPENCLAW_IBKR_RUNTIME_VISIBILITY_INCLUDE_EXECUTIONS=False,
+        )
+
+        class InjectedReadOnlyProvider:
+            provider_name = "ibkr_read_only"
+
+            def read_broker_state(self):
+                return {
+                    "provider_status": "enabled",
+                    "enabled": True,
+                    "broker_state": "non_flat_position",
+                    "position_snapshot": {
+                        "found": True,
+                        "symbol": "AAPL",
+                        "qty": 1,
+                        "side": "long",
+                    },
+                }
+
+        factory_calls = []
+
+        def factory(**kwargs):
+            factory_calls.append(kwargs)
+            return InjectedReadOnlyProvider()
+
+        providers = build_runtime_visibility_providers(
+            config_module,
+            ibkr_provider_factory=factory,
+        )
+
+        self.assertEqual(len(providers), 1)
+        provider = providers[0]
+        self.assertEqual(provider.provider_name, "ibkr_read_only")
+        self.assertEqual(provider.read_broker_state()["broker_state"], "non_flat_position")
+        self.assertFalse(FORBIDDEN_AUTHORITY_FIELDS.intersection(factory_calls[0]))
+        for field in FORBIDDEN_AUTHORITY_FIELDS:
+            with self.subTest(field=field):
+                self.assertFalse(hasattr(provider, field))
+        for method_name in [
+            "submit_market_order",
+            "cancel_order",
+            "flatten",
+            "sell",
+            "retry",
+            "remediate",
+        ]:
+            with self.subTest(method=method_name):
+                self.assertFalse(hasattr(provider, method_name))
         assert_ibkr_modules_not_loaded(self)
 
 
