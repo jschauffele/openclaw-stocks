@@ -154,6 +154,24 @@ paper position. No submit, cancel, flatten, sell, cleanup, broker remediation,
 `main.py`, VPS, or scheduled IBKR runtime occurred during this read-only
 observation.
 
+## Managed Paper Hold Decision
+
+Institutional decision: HOLD AAPL long `1` as managed IBKR Paper state for now.
+
+This hold decision records the current next-state for the expected non-flat
+paper position left by the successful submit smoke. Open AAPL buy orders remain
+`0`, runtime visibility blocks future submit smoke because
+`broker_state=non_flat_position`, Alpaca scheduled baseline is active and
+settled, IBKR scheduled runtime is not active, and no live trading is approved.
+
+Do not flatten, sell, cancel, retry, resubmit, or remediate this managed paper
+position. Future IBKR submit smoke remains blocked until this hold state is
+intentionally changed through a separate explicit cleanup or flatten gate.
+
+This is not approval for live trading, scheduled IBKR runtime, cleanup,
+flatten, sell, cancel, retry, resubmit, broker remediation, or another IBKR
+submit smoke.
+
 ## Boundary
 
 This evidence is scoped to the exact `DIRECT_MAC_TERMINAL` paper-submit run
