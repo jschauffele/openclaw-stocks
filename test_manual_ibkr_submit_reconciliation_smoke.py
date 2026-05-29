@@ -646,6 +646,24 @@ class SmokeSafetyControlTests(unittest.TestCase):
             self.assertFalse(adapter.build_market_order_called)
             self.assertFalse(adapter.submit_market_order_called)
 
+    def test_non_flat_pre_submit_state_refuses_before_order_construction(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result, adapter, native_api = run_fake_smoke(
+                lock_path=Path(tmpdir) / "ibkr_smoke.lock",
+                state_path=Path(tmpdir) / "ibkr_smoke_last_state.json",
+                open_order_snapshots=[open_orders()],
+                position_snapshots=[position(qty=1, found=True)],
+                order_type="limit",
+                limit_price=100.25,
+            )
+
+            self.assertIsNone(result)
+            self.assertEqual(native_api.order_count, 0)
+            self.assertFalse(adapter.build_market_order_called)
+            self.assertFalse(adapter.submit_market_order_called)
+            self.assertEqual(adapter.open_order_calls, [("AAPL", 5.0)])
+            self.assertEqual(adapter.position_calls, [("AAPL", 5.0)])
+
     def test_final_open_order_state_persists_and_blocks_next_run(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             state_path = Path(tmpdir) / "ibkr_smoke_last_state.json"

@@ -1444,6 +1444,117 @@ class MainSubmitUncertaintyTests(unittest.TestCase):
         self.assertEqual(report["result"], "success")
         self.assertEqual(report["reason"], "paper_order_submitted")
 
+    def test_ibkr_read_only_non_flat_visibility_is_observational_in_alpaca_path(
+        self,
+    ) -> None:
+        result = self.run_main_with_order_status(
+            "submitted",
+            openclaw_broker="alpaca",
+            runtime_visibility_enabled=True,
+            runtime_visibility_providers="fake",
+            runtime_visibility_fake_broker_state="non_flat_position",
+            patch_runtime_visibility=False,
+        )
+
+        self.assertEqual(result["broker"].submit_calls, 1)
+        self.assertEqual(len(result["write_state_calls"]), 1)
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        report = result["reports"][-1]
+        runtime_visibility = report["orchestration"]["runtime_visibility"]
+        self.assertEqual(runtime_visibility["runtime_visibility_blocking"], True)
+        self.assertEqual(
+            runtime_visibility["runtime_visibility_reason"],
+            "fake:broker_state_non_flat_position",
+        )
+        self.assertEqual(
+            runtime_visibility["runtime_visibility_reports"][0]["broker_state"],
+            "non_flat_position",
+        )
+        self.assertEqual(report["result"], "success")
+        self.assertEqual(report["reason"], "paper_order_submitted")
+        self.assertNotIn("ibkr_runtime", report)
+        for field in [
+            "lifecycle_approved",
+            "connect_approved",
+            "submit_approved",
+            "reconciliation_approved",
+            "connect_attempted",
+            "submit_attempted",
+            "reconciliation_attempted",
+            "order_id",
+            "order_status",
+            "submit_state",
+            "reconciliation_status",
+        ]:
+            with self.subTest(field=field):
+                self.assertNotIn(field, runtime_visibility)
+                self.assertNotIn(field, runtime_visibility["runtime_visibility_reports"][0])
+
+    def test_ibkr_runtime_visibility_config_cannot_authorize_ibkr_submit(
+        self,
+    ) -> None:
+        with patch(
+            "main.build_fake_native_lifecycle_connect_report_fields",
+            side_effect=ValueError(
+                "fake-native lifecycle evidence requires injected native API"
+            ),
+        ):
+            result = self.run_main_with_order_status(
+                "submitted",
+                openclaw_broker="ibkr",
+                ibkr_runtime_enabled=True,
+                runtime_visibility_enabled=True,
+                runtime_visibility_providers="fake",
+                runtime_visibility_fake_broker_state="non_flat_position",
+                patch_runtime_visibility=False,
+            )
+
+        completion_events = [
+            event
+            for event in result["events"]
+            if event["event_type"] == "system" and event["stage"] == "completion"
+        ]
+        self.assertEqual(len(completion_events), 1)
+        self.assertEqual(completion_events[0]["status"], "blocked")
+        self.assertEqual(
+            completion_events[0]["payload"]["reason"],
+            "ibkr_runtime_lifecycle_not_approved",
+        )
+        report = result["reports"][0]
+        self.assertEqual(report["result"], "blocked")
+        self.assertEqual(report["reason"], "ibkr_runtime_lifecycle_not_approved")
+        ibkr_runtime = report["ibkr_runtime"]
+        self.assertEqual(ibkr_runtime["submit_approved"], False)
+        self.assertEqual(ibkr_runtime["submit_attempted"], False)
+        self.assertEqual(ibkr_runtime["reconciliation_attempted"], False)
+        self.assertEqual(ibkr_runtime["reason"], "ibkr_runtime_lifecycle_not_approved")
+        self.assertNotEqual(ibkr_runtime["reason"], "ibkr_runtime_submit_not_approved")
+        self.assertFalse(
+            any(
+                event["event_type"] == "data" and event["stage"] == "fetch"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(any(event["stage"] == "strategy_evaluated" for event in result["events"]))
+        self.assertFalse(any(event["stage"] == "risk_check" for event in result["events"]))
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "submission"
+                for event in result["events"]
+            )
+        )
+        self.assertFalse(
+            any(
+                event["event_type"] == "order" and event["stage"] == "reconciliation"
+                for event in result["events"]
+            )
+        )
+        self.assertEqual(result["broker"].submit_calls, 0)
+        self.assertEqual(result["write_state_calls"], [])
+        self.assertEqual(FakeSubmitReconciliationWorkflow.calls, [])
+        self.assertEqual(result["market_data_calls"], [])
+        self.assertEqual(result["risk_check_calls"], [])
+
     def test_no_retry_resubmit_or_safe_to_retry_exists(self) -> None:
         self.assertFalse(hasattr(FakeSubmitReconciliationWorkflow, "retry"))
         self.assertFalse(hasattr(FakeSubmitReconciliationWorkflow, "resubmit"))

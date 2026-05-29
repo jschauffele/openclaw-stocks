@@ -128,6 +128,32 @@ class RuntimeVisibilityPreflightTests(unittest.TestCase):
         self.assertEqual(report["blocking"], True)
         self.assertEqual(report["reason"], "broker_state_non_flat_position")
 
+    def test_non_flat_read_only_state_is_blocking_but_not_clean_readiness(self) -> None:
+        provider = FakeReadOnlyProvider(
+            diagnostics=diagnostics(broker_state="non_flat_position")
+        )
+
+        report = build_runtime_visibility_report(provider).to_dict()
+
+        self.assertEqual(report["broker_state"], "non_flat_position")
+        self.assertEqual(report["blocking"], True)
+        self.assertEqual(report["reason"], "broker_state_non_flat_position")
+        self.assertNotEqual(report["reason"], "broker_state_clean")
+        self.assertEqual(provider.execution_like_calls, 0)
+        for field in [
+            "clean_submit_readiness",
+            "safe_to_submit",
+            "submit_approved",
+            "submit_attempted",
+            "order_id",
+            "cleanup_approved",
+            "flatten",
+            "sell",
+        ]:
+            with self.subTest(field=field):
+                self.assertNotIn(field, report)
+                self.assertNotIn(field, report["raw_diagnostics"])
+
     def test_unknown_produces_blocking_report(self) -> None:
         provider = FakeReadOnlyProvider(
             diagnostics=diagnostics(broker_state="unknown")

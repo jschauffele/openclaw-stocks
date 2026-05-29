@@ -120,6 +120,50 @@ class RuntimeVisibilityOrchestratorTests(unittest.TestCase):
             "ibkr:broker_state_non_flat_position",
         )
 
+    def test_non_flat_visibility_report_has_no_authority_fields(self) -> None:
+        providers = [
+            FakeReadOnlyProvider(
+                provider_name="ibkr",
+                broker_state="non_flat_position",
+            )
+        ]
+
+        result = build_runtime_visibility_summary(providers)
+
+        forbidden_fields = {
+            "submit_approved",
+            "submit_attempted",
+            "order_id",
+            "cleanup_approved",
+            "flatten",
+            "sell",
+            "safe_to_submit",
+        }
+        self.assertEqual(
+            set(result.keys()),
+            {
+                "runtime_visibility_reports",
+                "runtime_visibility_blocking",
+                "runtime_visibility_reason",
+            },
+        )
+        self.assertTrue(result["runtime_visibility_blocking"])
+        report = result["runtime_visibility_reports"][0]
+        self.assertEqual(
+            set(report.keys()),
+            {
+                "provider_name",
+                "provider_status",
+                "enabled",
+                "broker_state",
+                "blocking",
+                "reason",
+                "raw_diagnostics",
+            },
+        )
+        self.assertFalse(forbidden_fields.intersection(result))
+        self.assertFalse(forbidden_fields.intersection(report))
+
     def test_provider_error_returns_blocking_summary(self) -> None:
         result = build_runtime_visibility_summary([RaisingProvider()])
 
