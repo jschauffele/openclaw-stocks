@@ -10,6 +10,7 @@ import config
 from broker_factory import SUPPORTED_BROKERS, create_broker_adapter
 from ibkr_runtime_assembly import IBKRRuntimeAssemblyConfig, assemble_ibkr_runtime
 from ibkr_runtime_config import build_ibkr_runtime_assembly_config
+from runtime_visibility_provider_composer import build_runtime_visibility_providers
 
 
 IBKR_RUNTIME_ENV_NAMES = (
@@ -24,6 +25,21 @@ IBKR_RUNTIME_ENV_NAMES = (
     "OPENCLAW_IBKR_RUNTIME_ACCOUNT",
     "OPENCLAW_IBKR_RUNTIME_MODEL_CODE",
     "OPENCLAW_IBKR_RUNTIME_ORDER_ID_START",
+)
+
+IBKR_READ_ONLY_VISIBILITY_ENV_NAMES = (
+    "OPENCLAW_RUNTIME_VISIBILITY_ENABLED",
+    "OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_MODE",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_CLIENT_ID",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT_SECONDS",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT_SECONDS",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_SYMBOL",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_INCLUDE_EXECUTIONS",
+    "OPENCLAW_IBKR_RUNTIME_VISIBILITY_EXECUTION_SINCE",
 )
 
 
@@ -50,6 +66,30 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
         self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_ACCOUNT, "")
         self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_MODEL_CODE, "")
         self.assertIsNone(config.OPENCLAW_IBKR_RUNTIME_ORDER_ID_START)
+        self.assertFalse(config.OPENCLAW_RUNTIME_VISIBILITY_ENABLED)
+        self.assertEqual(config.OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS, "")
+        self.assertFalse(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED)
+        self.assertEqual(
+            config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_MODE,
+            "paper_localhost",
+        )
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST, "127.0.0.1")
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT, 7497)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_CLIENT_ID, 9117)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT_SECONDS, 5.0)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT, 5.0)
+        self.assertEqual(
+            config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT_SECONDS,
+            2.0,
+        )
+        self.assertEqual(
+            config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT,
+            2.0,
+        )
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_SYMBOL, "AAPL")
+        self.assertFalse(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_INCLUDE_EXECUTIONS)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_EXECUTION_SINCE, "")
+        self.assertEqual(build_runtime_visibility_providers(config), [])
 
     def test_valid_runtime_overrides_remain_separate_from_alpaca_config(self) -> None:
         self.refresh_with(
@@ -91,6 +131,8 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
     def test_runtime_config_stays_separate_from_read_only_visibility_config(self) -> None:
         self.refresh_with(
             {
+                "OPENCLAW_RUNTIME_VISIBILITY_ENABLED": "true",
+                "OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS": "ibkr_read_only",
                 "OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED": "true",
                 "OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST": "example.com",
                 "OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT": "7496",
@@ -100,6 +142,12 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
         self.assertFalse(config.OPENCLAW_IBKR_RUNTIME_ENABLED)
         self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_HOST, "127.0.0.1")
         self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_PORT, 7497)
+        self.assertTrue(config.OPENCLAW_RUNTIME_VISIBILITY_ENABLED)
+        self.assertEqual(config.OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS, "ibkr_read_only")
+        self.assertTrue(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST, "example.com")
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT, 7496)
+        self.assertEqual(build_runtime_visibility_providers(config), [])
 
     def test_config_presence_does_not_enable_ibkr_broker_selection(self) -> None:
         self.refresh_with(
@@ -120,6 +168,112 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
                 alpaca_api_key="key",
                 alpaca_secret_key="secret",
             )
+
+    def test_read_only_visibility_config_does_not_enable_runtime_or_broker(
+        self,
+    ) -> None:
+        self.refresh_with(
+            {
+                "OPENCLAW_RUNTIME_VISIBILITY_ENABLED": "true",
+                "OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS": "ibkr_read_only",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED": "true",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_MODE": "paper_localhost",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST": "localhost",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT": "4002",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_CLIENT_ID": "9234",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT_SECONDS": "1.25",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT_SECONDS": "0.75",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_SYMBOL": "msft",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_INCLUDE_EXECUTIONS": "true",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_EXECUTION_SINCE": "20260512 09:30:00",
+            }
+        )
+
+        self.assertEqual(config.OPENCLAW_BROKER, "alpaca")
+        self.assertFalse(config.OPENCLAW_IBKR_RUNTIME_ENABLED)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_HOST, "127.0.0.1")
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_PORT, 7497)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_CLIENT_ID, 9107)
+        self.assertTrue(config.OPENCLAW_RUNTIME_VISIBILITY_ENABLED)
+        self.assertEqual(config.OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS, "ibkr_read_only")
+        self.assertTrue(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_MODE, "paper_localhost")
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST, "localhost")
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT, 4002)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_CLIENT_ID, 9234)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT_SECONDS, 1.25)
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT, 1.25)
+        self.assertEqual(
+            config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT_SECONDS,
+            0.75,
+        )
+        self.assertEqual(
+            config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT,
+            0.75,
+        )
+        self.assertEqual(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_SYMBOL, "MSFT")
+        self.assertTrue(config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_INCLUDE_EXECUTIONS)
+        self.assertEqual(
+            config.OPENCLAW_IBKR_RUNTIME_VISIBILITY_EXECUTION_SINCE,
+            "20260512 09:30:00",
+        )
+        with self.assertRaisesRegex(
+            ValueError,
+            "Unsupported OPENCLAW_BROKER='ibkr'; supported brokers: alpaca",
+        ):
+            create_broker_adapter(
+                "ibkr",
+                alpaca_api_key="key",
+                alpaca_secret_key="secret",
+            )
+
+    def test_read_only_visibility_config_can_feed_injected_provider_only(
+        self,
+    ) -> None:
+        self.refresh_with(
+            {
+                "OPENCLAW_RUNTIME_VISIBILITY_ENABLED": "true",
+                "OPENCLAW_RUNTIME_VISIBILITY_PROVIDERS": "ibkr_read_only",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_ENABLED": "true",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_MODE": "paper_localhost",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_HOST": "localhost",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_PORT": "4002",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_CLIENT_ID": "9234",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_TIMEOUT_SECONDS": "1.25",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_DISCONNECT_TIMEOUT_SECONDS": "0.75",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_SYMBOL": "MSFT",
+                "OPENCLAW_IBKR_RUNTIME_VISIBILITY_INCLUDE_EXECUTIONS": "true",
+            }
+        )
+        factory_calls = []
+        provider = object()
+
+        def factory(**kwargs):
+            factory_calls.append(kwargs)
+            return provider
+
+        providers = build_runtime_visibility_providers(
+            config,
+            ibkr_provider_factory=factory,
+        )
+
+        self.assertEqual(providers, [provider])
+        self.assertEqual(
+            factory_calls,
+            [
+                {
+                    "enabled": True,
+                    "host": "localhost",
+                    "port": 4002,
+                    "client_id": 9234,
+                    "timeout": 1.25,
+                    "disconnect_timeout": 0.75,
+                    "symbol": "MSFT",
+                    "include_executions": True,
+                    "execution_since": "",
+                }
+            ],
+        )
 
     def test_invalid_runtime_values_fail_closed(self) -> None:
         cases = (
@@ -172,6 +326,14 @@ class IBKRRuntimeConfigTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertTrue(name.startswith("OPENCLAW_IBKR_RUNTIME_"))
                 self.assertFalse(name.startswith("OPENCLAW_IBKR_RUNTIME_VISIBILITY_"))
+
+    def test_read_only_visibility_config_names_are_explicitly_namespaced(
+        self,
+    ) -> None:
+        for name in IBKR_READ_ONLY_VISIBILITY_ENV_NAMES:
+            with self.subTest(name=name):
+                self.assertIn("VISIBILITY", name)
+                self.assertFalse(name.startswith("OPENCLAW_IBKR_RUNTIME_ENABLED"))
 
     def test_default_config_maps_to_disabled_assembly_config(self) -> None:
         self.refresh_with({})
