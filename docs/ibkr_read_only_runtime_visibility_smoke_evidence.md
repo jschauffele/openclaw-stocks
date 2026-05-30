@@ -177,3 +177,74 @@ no-op posture before execution. This evidence file does not approve `.env`
 changes, VPS work, systemd changes, broker/API/TWS access, `main.py`, runtime
 activation, submit readiness, cleanup, flatten, sell, cancel, retry,
 remediation, or live trading.
+
+## Direct Mac Terminal Managed Non-Flat Read-Only Evidence
+
+### Source State
+
+| Field | Value |
+| --- | --- |
+| `source_commit` | `54a73d0 Docs: add deterministic VPS settle-check guard` |
+| `branch` | `main` |
+| `pre_smoke_worktree` | `clean` |
+| `execution_context` | `DIRECT_MAC_TERMINAL` |
+
+### Command
+
+```bash
+.venv-ibkr312/bin/python manual_ibkr_read_only_runtime_visibility_smoke.py --host 127.0.0.1 --port 7497 --client-id 9117 --symbol AAPL --timeout 5 --disconnect-timeout 2
+```
+
+### Runtime Visibility Result
+
+| Field | Value |
+| --- | --- |
+| `classification` | `PASS_READ_ONLY_VISIBILITY_OBSERVED / EXPECTED_NON_FLAT_BLOCKING_STATE` |
+| `runtime_visibility_blocking` | `true` |
+| `runtime_visibility_reason` | `IBKRReadOnlyRuntimeProvider:broker_state_non_flat_position` |
+| `provider_name` | `IBKRReadOnlyRuntimeProvider` |
+| `provider_status` | `enabled` |
+| `broker_state` | `non_flat_position` |
+
+### Connection Evidence
+
+| Field | Value |
+| --- | --- |
+| `connection_result.passed` | `true` |
+| `connection_result.reason` | `connect_ready` |
+| `connection_completion_source` | `callback` |
+| `next_valid_id` | `1` |
+
+### Broker State Evidence
+
+| Field | Value |
+| --- | --- |
+| `open_buy_order_count` | `0` |
+| `open_buy_order_qty` | `0` |
+| `position_snapshot.found` | `true` |
+| `position_snapshot.symbol` | `AAPL` |
+| `position_snapshot.qty` | `1` |
+| `position_snapshot.raw_qty` | `1.0` |
+| `position_snapshot.side` | `long` |
+
+### Shutdown Evidence
+
+| Field | Value |
+| --- | --- |
+| `disconnect_result.passed` | `true` |
+| `disconnect_result.reason` | `disconnect_complete` |
+| `shutdown_state` | `complete` |
+| `thread_state` | `stopped` |
+
+### Interpretation
+
+This is read-only evidence only. The provider correctly observed the expected
+managed non-flat IBKR Paper state: AAPL long `1` with no open buy orders.
+`runtime_visibility_blocking=true` is evidence only and is not execution
+authority, cleanup authority, submit readiness, or live trading approval.
+
+AAPL long `1` remains a managed non-flat IBKR Paper state. No submit, cleanup,
+flatten, sell, cancel, retry, resubmit, or remediation occurred. No future IBKR
+submit smoke is approved while this non-flat state remains unresolved or is
+managed only by the existing hold decision. Any cleanup, flatten, sell, or
+state-change action requires a separate explicit gate.
