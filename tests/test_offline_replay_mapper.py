@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 import sys
 from pathlib import Path
@@ -117,9 +118,20 @@ def _order_state() -> dict:
 
 def _runtime_visibility() -> dict:
     return {
+        "run_id": "run_1",
         "runtime_visibility_reports": [],
         "runtime_visibility_blocking": False,
         "runtime_visibility_reason": "runtime_visibility_clear",
+    }
+
+
+def _complete_replay_inputs() -> dict:
+    return {
+        "events": _event_payloads(),
+        "run_report": _run_report(),
+        "observations": _observations(),
+        "order_state": _order_state(),
+        "runtime_visibility": _runtime_visibility(),
     }
 
 
@@ -137,11 +149,12 @@ def test_mapper_returns_documented_top_level_envelope_sections() -> None:
 
 
 def test_mapper_uses_in_memory_inputs_and_preserves_source_payload_shapes() -> None:
-    events = _event_payloads()
-    run_report = _run_report()
-    observations = _observations()
-    order_state = _order_state()
-    runtime_visibility = _runtime_visibility()
+    inputs = _complete_replay_inputs()
+    events = inputs["events"]
+    run_report = inputs["run_report"]
+    observations = inputs["observations"]
+    order_state = inputs["order_state"]
+    runtime_visibility = inputs["runtime_visibility"]
 
     package = build_replay_package(
         events=events,
@@ -190,12 +203,86 @@ def test_missing_sections_are_marked_absent_without_inventing_facts() -> None:
     assert package["immutability"]["reason"] == "deferred_until_storage_gate"
 
 
-def test_mapper_does_not_mutate_inputs_or_return_input_objects_by_identity() -> None:
+def test_event_stream_replay_fixture_is_useful_but_not_complete_or_authoritative() -> None:
     events = _event_payloads()
-    run_report = _run_report()
-    observations = _observations()
-    order_state = _order_state()
-    runtime_visibility = _runtime_visibility()
+
+    package = build_replay_package(events=events)
+
+    assert package["package_status"]["status"] == "incomplete"
+    assert package["package_status"]["section_statuses"] == {
+        "events": "present",
+        "run_report": "absent",
+        "observations": "absent",
+        "order_state": "absent",
+        "runtime_visibility": "absent",
+    }
+    assert package["run_identity"]["run_id"] == "run_1"
+    assert package["event_order_references"]["events"] == events
+    assert package["authority_boundary"]["evidence_only"] is True
+    assert package["authority_boundary"]["no_execution_authority"] is True
+    assert package["authority_boundary"]["no_broker_authority"] is True
+    assert package["authority_boundary"]["no_strategy_behavior_change"] is True
+    assert package["out_of_scope"]["artifact_writer"] is True
+    assert package["out_of_scope"]["runtime_capture"] is True
+    assert package["out_of_scope"]["broker_live_api_work"] is True
+    assert package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+
+def test_mixed_event_run_ids_cannot_be_treated_as_complete_replay_package() -> None:
+    inputs = _complete_replay_inputs()
+    inputs["events"][1]["run_id"] = "run_2"
+
+    package = build_replay_package(**inputs)
+
+    assert package["package_status"]["status"] == "incomplete"
+    assert package["run_identity"]["run_id"] == "run_1"
+
+
+def test_run_report_run_id_mismatch_cannot_override_event_stream_identity() -> None:
+    inputs = _complete_replay_inputs()
+    inputs["run_report"]["run_id"] = "run_2"
+
+    package = build_replay_package(**inputs)
+
+    assert package["package_status"]["status"] == "incomplete"
+    assert package["run_identity"]["run_id"] == "run_1"
+
+
+def test_order_state_run_id_mismatch_cannot_be_treated_as_aligned() -> None:
+    inputs = _complete_replay_inputs()
+    inputs["order_state"]["run_id"] = "run_2"
+
+    package = build_replay_package(**inputs)
+
+    assert package["package_status"]["status"] == "incomplete"
+
+
+def test_observation_run_id_mismatch_cannot_be_treated_as_aligned() -> None:
+    inputs = _complete_replay_inputs()
+    inputs["observations"][0]["run_id"] = "run_2"
+
+    package = build_replay_package(**inputs)
+
+    assert package["package_status"]["status"] == "incomplete"
+
+
+def test_runtime_visibility_run_id_mismatch_cannot_be_treated_as_aligned() -> None:
+    inputs = _complete_replay_inputs()
+    inputs["runtime_visibility"]["run_id"] = "run_2"
+
+    package = build_replay_package(**inputs)
+
+    assert package["package_status"]["status"] == "incomplete"
+
+
+def test_mapper_does_not_mutate_inputs_or_return_input_objects_by_identity() -> None:
+    inputs = _complete_replay_inputs()
+    events = inputs["events"]
+    run_report = inputs["run_report"]
+    observations = inputs["observations"]
+    order_state = inputs["order_state"]
+    runtime_visibility = inputs["runtime_visibility"]
+    original_inputs = deepcopy(inputs)
     original = (
         repr(events),
         repr(run_report),
@@ -219,6 +306,7 @@ def test_mapper_does_not_mutate_inputs_or_return_input_objects_by_identity() -> 
         repr(order_state),
         repr(runtime_visibility),
     ) == original
+    assert inputs == original_inputs
     assert package["event_order_references"]["events"] is not events
     assert package["configuration_references"]["run_report"] is not run_report
     assert package["reconciliation_risk_references"]["observations"] is not observations

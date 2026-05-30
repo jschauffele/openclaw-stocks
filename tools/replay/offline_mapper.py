@@ -41,6 +41,13 @@ def build_replay_package(
         order_state=copied_order_state,
         runtime_visibility=copied_runtime_visibility,
     )
+    run_id_alignment = _run_id_alignment(
+        events=copied_events,
+        run_report=copied_report,
+        observations=copied_observations,
+        order_state=copied_order_state,
+        runtime_visibility=copied_runtime_visibility,
+    )
 
     package = {
         "package_identity": _package_identity(copied_events, copied_report),
@@ -53,8 +60,9 @@ def build_replay_package(
         "replay_window": absent_section(),
         "environment_classification": absent_section(),
         "package_status": {
-            "status": _overall_status(section_statuses),
+            "status": _overall_status(section_statuses, run_id_alignment),
             "section_statuses": section_statuses,
+            "run_id_alignment": run_id_alignment,
         },
         "configuration_references": _configuration_references(copied_report),
         "market_input_references": _market_input_references(copied_events),
@@ -234,19 +242,111 @@ def _status(is_present: bool) -> str:
     return SECTION_STATUS_ABSENT
 
 
-def _overall_status(section_statuses: dict[str, str]) -> str:
-    if all(status == SECTION_STATUS_PRESENT for status in section_statuses.values()):
+def _overall_status(
+    section_statuses: dict[str, str],
+    run_id_alignment: dict[str, Any],
+) -> str:
+    if all(
+        status == SECTION_STATUS_PRESENT for status in section_statuses.values()
+    ) and run_id_alignment["aligned"]:
         return "complete"
     return "incomplete"
+
+
+def _run_id_alignment(
+    *,
+    events: list[dict[str, Any]],
+    run_report: dict[str, Any] | None,
+    observations: list[dict[str, Any]] | None,
+    order_state: dict[str, Any] | None,
+    runtime_visibility: dict[str, Any] | None,
+) -> dict[str, Any]:
+    event_run_ids = _run_ids_from_events(events)
+    canonical_run_id = _event_stream_run_id(events)
+    mismatches: dict[str, Any] = {}
+
+    if len(event_run_ids) > 1:
+        mismatches["events"] = sorted(event_run_ids)
+
+    if canonical_run_id is not None:
+        _record_mismatch(
+            mismatches,
+            "run_report",
+            _run_id_from_dict(run_report),
+            canonical_run_id,
+        )
+        _record_mismatch(
+            mismatches,
+            "order_state",
+            _run_id_from_dict(order_state),
+            canonical_run_id,
+        )
+        _record_event_mismatches(
+            mismatches,
+            "observations",
+            observations,
+            canonical_run_id,
+        )
+        _record_mismatch(
+            mismatches,
+            "runtime_visibility",
+            _run_id_from_dict(runtime_visibility),
+            canonical_run_id,
+        )
+
+    return {
+        "aligned": bool(canonical_run_id) and not mismatches,
+        "canonical_run_id": canonical_run_id,
+        "mismatches": mismatches,
+    }
+
+
+def _record_mismatch(
+    mismatches: dict[str, Any],
+    section: str,
+    section_run_id: str | None,
+    canonical_run_id: str,
+) -> None:
+    if section_run_id is not None and section_run_id != canonical_run_id:
+        mismatches[section] = section_run_id
+
+
+def _record_event_mismatches(
+    mismatches: dict[str, Any],
+    section: str,
+    events: list[dict[str, Any]] | None,
+    canonical_run_id: str,
+) -> None:
+    if events is None:
+        return
+    section_run_ids = _run_ids_from_events(events)
+    mismatched_run_ids = section_run_ids - {canonical_run_id}
+    if mismatched_run_ids:
+        mismatches[section] = sorted(mismatched_run_ids)
+
+
+def _run_ids_from_events(events: list[dict[str, Any]]) -> set[str]:
+    return {str(event["run_id"]) for event in events if event.get("run_id")}
+
+
+def _run_id_from_dict(value: dict[str, Any] | None) -> str | None:
+    if value is not None and value.get("run_id"):
+        return str(value["run_id"])
+    return None
+
+
+def _event_stream_run_id(events: list[dict[str, Any]]) -> str | None:
+    for event in events:
+        if event.get("run_id"):
+            return str(event["run_id"])
+    return None
 
 
 def _run_id(
     events: list[dict[str, Any]],
     run_report: dict[str, Any] | None,
 ) -> str | None:
-    if run_report is not None and run_report.get("run_id"):
-        return str(run_report["run_id"])
-    for event in events:
-        if event.get("run_id"):
-            return str(event["run_id"])
-    return None
+    event_run_id = _event_stream_run_id(events)
+    if event_run_id is not None:
+        return event_run_id
+    return _run_id_from_dict(run_report)
