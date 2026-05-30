@@ -53,9 +53,27 @@ def test_schema_records_out_of_scope_runtime_and_writer_work() -> None:
     assert OUT_OF_SCOPE["artifact_writer"] is True
     assert OUT_OF_SCOPE["storage"] is True
     assert OUT_OF_SCOPE["hashing_integrity_enforcement"] is True
+    assert OUT_OF_SCOPE["runtime_capture"] is True
     assert OUT_OF_SCOPE["runtime_integration"] is True
     assert OUT_OF_SCOPE["broker_live_api_work"] is True
+    assert OUT_OF_SCOPE["alpaca_calls"] is True
+    assert OUT_OF_SCOPE["ibkr_tws_work"] is True
     assert OUT_OF_SCOPE["credential_or_env_handling"] is True
+    assert OUT_OF_SCOPE["replay_based_promotion_decisions"] is True
+
+
+def test_replay_schema_remains_scaffold_only_and_non_authoritative() -> None:
+    assert AUTHORITY_BOUNDARY["evidence_only"] is True
+    assert AUTHORITY_BOUNDARY["non_authoritative"] is True
+    assert AUTHORITY_BOUNDARY["no_runtime_mutation"] is True
+    assert AUTHORITY_BOUNDARY["no_execution_authority"] is True
+    assert AUTHORITY_BOUNDARY["no_broker_authority"] is True
+    assert AUTHORITY_BOUNDARY["no_strategy_behavior_change"] is True
+    assert OUT_OF_SCOPE["artifact_writer"] is True
+    assert OUT_OF_SCOPE["runtime_capture"] is True
+    assert OUT_OF_SCOPE["storage"] is True
+    assert OUT_OF_SCOPE["hashing_integrity_enforcement"] is True
+    assert OUT_OF_SCOPE["replay_based_promotion_decisions"] is True
 
 
 def test_replay_input_bundle_is_plain_dataclass() -> None:

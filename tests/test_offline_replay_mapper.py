@@ -1,12 +1,26 @@
 from __future__ import annotations
 
+import json
 import sys
+from pathlib import Path
 from types import FunctionType
 
 import tools.replay.offline_mapper as offline_mapper
 import tools.replay.package_schema as package_schema
 from tools.replay.offline_mapper import build_replay_package
-from tools.replay.package_schema import AUTHORITY_BOUNDARY, ENVELOPE_SECTIONS
+from tools.replay.package_schema import (
+    AUTHORITY_BOUNDARY,
+    ENVELOPE_SECTIONS,
+    OUT_OF_SCOPE,
+)
+
+
+EVIDENCE_CANDIDATE_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "evidence"
+    / "3_close_trend_confirmation"
+    / "local_alpaca_2026_01_02_to_2026_05_24"
+)
 
 
 def _event_payloads() -> list[dict]:
@@ -107,6 +121,13 @@ def _runtime_visibility() -> dict:
         "runtime_visibility_blocking": False,
         "runtime_visibility_reason": "runtime_visibility_clear",
     }
+
+
+def _committed_candidate_artifacts() -> list[dict]:
+    return [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(EVIDENCE_CANDIDATE_DIR.glob("*_candidates.json"))
+    ]
 
 
 def test_mapper_returns_documented_top_level_envelope_sections() -> None:
@@ -375,11 +396,81 @@ def test_mapper_rejects_non_loaded_input_shapes() -> None:
         raise AssertionError("expected TypeError")
 
     try:
+        build_replay_package(events=str(EVIDENCE_CANDIDATE_DIR))  # type: ignore[arg-type]
+    except TypeError as exc:
+        assert str(exc) == "events must be a list of dictionaries"
+    else:
+        raise AssertionError("expected TypeError")
+
+    try:
         build_replay_package(events=[], run_report=[])  # type: ignore[arg-type]
     except TypeError as exc:
         assert str(exc) == "optional replay inputs must be dictionaries"
     else:
         raise AssertionError("expected TypeError")
+
+
+def test_committed_three_close_candidate_jsons_are_review_inputs_not_replay_packages() -> None:
+    artifacts = _committed_candidate_artifacts()
+
+    assert {artifact["artifact_type"] for artifact in artifacts} == {
+        "review_input_not_test",
+    }
+    assert {artifact["schema"] for artifact in artifacts} == {
+        "openclaw_3_close_evidence_candidates_v1",
+    }
+
+    for artifact in artifacts:
+        assert "package_status" not in artifact
+        assert "event_order_references" not in artifact
+        assert "authority_boundary" not in artifact
+        assert "out_of_scope" not in artifact
+        assert artifact["candidates"]
+        for candidate in artifact["candidates"]:
+            assert candidate["reviewer_decision"] == "PENDING_REVIEW"
+            assert candidate["review_status"] == "GENERATED_CANDIDATE_NOT_ACCEPTED"
+
+
+def test_candidate_artifacts_cannot_be_promoted_to_complete_replay_packages() -> None:
+    artifacts = _committed_candidate_artifacts()
+
+    for artifact in artifacts:
+        package = build_replay_package(
+            events=artifact["candidates"],
+            run_report=artifact,
+        )
+
+        assert package["package_status"]["status"] == "incomplete"
+        assert package["package_status"]["section_statuses"] == {
+            "events": "present",
+            "run_report": "present",
+            "observations": "absent",
+            "order_state": "absent",
+            "runtime_visibility": "absent",
+        }
+        assert package["market_input_references"] == {
+            "status": "absent",
+            "reason": "market_input_event_not_supplied",
+        }
+        assert package["portfolio_risk_snapshot_references"] == {
+            "status": "present",
+            "run_report": artifact,
+            "order_state": None,
+        }
+        assert package["broker_visible_state_references"] == {
+            "status": "present",
+            "run_report": artifact,
+            "runtime_visibility": None,
+        }
+        assert package["integrity"]["reason"] == "deferred_until_integrity_gate"
+        assert package["immutability"]["reason"] == "deferred_until_storage_gate"
+        assert package["authority_boundary"] == AUTHORITY_BOUNDARY
+        assert package["out_of_scope"] == OUT_OF_SCOPE
+        assert package["out_of_scope"]["artifact_writer"] is True
+        assert package["out_of_scope"]["runtime_capture"] is True
+        assert package["out_of_scope"]["storage"] is True
+        assert package["out_of_scope"]["broker_live_api_work"] is True
+        assert package["out_of_scope"]["replay_based_promotion_decisions"] is True
 
 
 def test_import_isolation_and_no_side_effect_fragments() -> None:
