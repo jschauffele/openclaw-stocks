@@ -172,6 +172,54 @@ This is not approval for live trading, scheduled IBKR runtime, cleanup,
 flatten, sell, cancel, retry, resubmit, broker remediation, or another IBKR
 submit smoke.
 
+## Managed Paper State And Smoke-State Guard
+
+This guard controls any future work after the successful paper submit smoke
+left AAPL long `1`.
+
+AAPL long `1` is a managed non-flat IBKR Paper hold state. It is not clean
+readiness. It blocks future submit-smoke precondition approval unless the state
+is separately resolved or explicitly governed by an operator-approved
+disposition gate.
+
+Stale local smoke-state files, including `.local/ibkr_smoke_last_state.json`
+and archived smoke states, must not be archived, deleted, or treated as cleaned
+as a shortcut while current broker truth is non-flat. Local smoke state must be
+reconciled against current read-only broker truth. `--cleanup-stale-state-only`
+must not be used to bypass a non-flat broker state; it is valid only when
+current read-only `broker_state` is clean and the active lane explicitly
+approves stale-state handling.
+
+Any future state review must start read-only. `DIRECT_MAC_TERMINAL` is the
+preferred context for local TWS Paper visibility unless another context has
+been explicitly proven. Read-only visibility is evidence only and cannot
+approve submit, cleanup, flatten, sell, cancel, retry, remediation, broker
+activation, scheduled runtime, or live trading.
+
+Clean-readiness criteria before any future submit-smoke precondition approval:
+
+- no open buy orders
+- no unmanaged or unresolved positions
+- current broker truth reports `broker_state=clean`
+- local smoke-state file is absent, safe, or explicitly reconciled by a
+  source-controlled workflow
+- repo and evidence state are current and documented
+- separate explicit operator approval names the submit-smoke lane
+
+Stop conditions:
+
+- current broker truth is non-flat and the active lane is not an explicit
+  operator-approved disposition plan
+- stale local smoke state conflicts with current broker truth
+- any action path implies order construction, submit, cancel, flatten, sell,
+  cleanup, retry, remediation, or position change
+- execution context is unclear or unproven
+
+Cleanup, flatten, sell, cancel, retry, remediation, submit smoke, `.env`
+changes, scheduled runtime changes, broker activation, and live trading each
+require separate explicit gates. This guard records no current approval for any
+of those actions.
+
 ## Boundary
 
 This evidence is scoped to the exact `DIRECT_MAC_TERMINAL` paper-submit run
