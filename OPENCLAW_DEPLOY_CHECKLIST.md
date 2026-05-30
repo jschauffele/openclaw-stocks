@@ -100,6 +100,23 @@ Inspect both `last_run_report.json` and the latest `logs/*.jsonl` before
 deciding whether the run was expected timer behavior or unexpected runtime
 drift.
 
+Do not classify VPS runtime from `last_run_report.json` unless all of these
+settle checks pass:
+
+- `openclaw.service` is inactive
+- `openclaw.timer` is active
+- the VPS root filesystem is mounted read-write
+- repo `HEAD` is aligned with `origin/main`
+- the latest JSONL `run_id` matches `last_run_report.json` `run_id`
+- `openclaw.service` remains inactive after report and JSONL capture
+
+Replace fixed sleep-only classification with service-settle polling. If
+`openclaw.service` is active or activating during capture, or becomes active
+or activating after capture, classify the evidence as
+`RUNTIME_STATE_UNSETTLED`, wait for the service to settle inactive, and
+recapture report and JSONL evidence. Do not use stale reports for final
+runtime classification.
+
 ```bash
 cd /opt/openclaw-stocks && tail -n 50 last_run_report.json
 ```
