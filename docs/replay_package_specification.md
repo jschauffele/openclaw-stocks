@@ -660,6 +660,85 @@ changes, broker/live/API calls, IBKR/TWS work, Alpaca calls, VPS validation,
 strategy behavior changes, risk/reconciliation behavior changes, execution,
 sell, trim, rebalance, resize, or promotion behavior.
 
+## Replay Sample Eligibility Contract
+
+This contract classifies future replay samples before any artifact copying,
+replay package writer, runtime capture, storage, immutability, or evaluation
+lane is approved.
+
+### `EVENT_STREAM_REPLAY_FIXTURE`
+
+An `EVENT_STREAM_REPLAY_FIXTURE` is an event JSONL-only fixture.
+
+It is valid only for reviewing:
+
+- event ordering
+- stage coverage
+- terminal outcome
+- market, strategy, risk, and reconcile sequencing
+
+It is not a complete replay package. It does not approve strategy promotion,
+evaluation authority, runtime capture, replay writer implementation, artifact
+storage, broker authority, API work, or live trading.
+
+### `PARTIAL_OR_MISALIGNED_SAMPLE`
+
+A `PARTIAL_OR_MISALIGNED_SAMPLE` is any bundle with missing required artifacts
+or mixed `run_id` artifacts.
+
+This includes any case where `order_state.json`, `last_run_report.json`,
+observations, or runtime visibility do not align to the event JSONL `run_id`.
+It also includes any case where those sections are missing and have not been
+explicitly recorded as absent, not applicable, or not enabled.
+
+A `PARTIAL_OR_MISALIGNED_SAMPLE` must not be classified as complete.
+
+### `COMPLETE_REPLAY_PACKAGE_CANDIDATE`
+
+A `COMPLETE_REPLAY_PACKAGE_CANDIDATE` requires one canonical `run_id`.
+
+Minimum requirements:
+
+- aligned event JSONL for the canonical `run_id`
+- terminal completion event in that event JSONL
+- `last_run_report.json` aligned to the same `run_id`
+- `order_state.json` aligned to the same `run_id` or explicitly recorded as
+  absent or not applicable
+- observations filtered to the same `run_id` or explicitly recorded as absent
+- runtime visibility from matching report or event data, or explicitly
+  recorded as absent or not enabled
+- every absent or not-applicable section named in package status evidence
+
+Integrity and immutability may remain deferred unless a later storage gate
+approves hashing, finalization, correction handling, retention, and storage
+rules.
+
+### Strict `run_id` Alignment Rules
+
+- Every event in the event JSONL must share the same `run_id`.
+- `last_run_report.json` `run_id` must match the event JSONL `run_id`.
+- `order_state.json` `run_id` must match the event JSONL `run_id`, or the
+  section must be recorded as absent or not applicable.
+- Observation rows may be included only when their `run_id` matches the event
+  JSONL `run_id`.
+- Runtime visibility must come from matching report or event data, or be
+  recorded as absent or not enabled.
+- Mixed-run artifacts classify as `PARTIAL_OR_MISALIGNED_SAMPLE`.
+- `last_run_report.json` and `order_state.json` are derived summaries; the
+  event JSONL remains the source of truth.
+
+### Forbidden Assumptions
+
+- An event-only sample is not a complete replay package.
+- The latest `order_state.json` must not be assumed to belong to a candidate
+  run without matching `run_id` evidence.
+- Observations must not be bulk-included without `run_id` filtering.
+- Runtime visibility absence must not be interpreted as clean broker state.
+- Replay package output does not authorize strategy evaluation, strategy
+  promotion, runtime capture, artifact writer implementation, storage,
+  broker/API work, live trading, or production behavior changes.
+- This docs-only contract does not approve copying VPS runtime artifacts.
+
 ## Offline Replay Mapper Implementation Planning
 
 The future replay package implementation shape is pure offline mapper only.
