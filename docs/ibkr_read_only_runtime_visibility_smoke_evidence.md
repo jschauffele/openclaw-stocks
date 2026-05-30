@@ -168,3 +168,12 @@ observation-only and does not bypass the managed AAPL long `1` paper hold
 state, authorize submit readiness, or approve cleanup, flatten, sell, cancel,
 retry, resubmit, remediation, scheduled IBKR runtime, `broker_factory.py`,
 `config.py`, `main.py`, systemd changes, VPS work, or live trading.
+
+Any future read-only visibility dry run must also follow the operator contract
+in `docs/runtime_visibility_architecture_decision.md`. The approving record
+must name the execution context, exact environment surface, exact command, stop
+conditions, expected report fields, evidence fields to capture, and rollback or
+no-op posture before execution. This evidence file does not approve `.env`
+changes, VPS work, systemd changes, broker/API/TWS access, `main.py`, runtime
+activation, submit readiness, cleanup, flatten, sell, cancel, retry,
+remediation, or live trading.

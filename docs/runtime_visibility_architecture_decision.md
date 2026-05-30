@@ -61,6 +61,57 @@ auditable, and separately approved. The approval must name the exact files,
 configuration surface, command or validation path, stop conditions, rollback
 posture, and evidence required before and after activation.
 
+## Future IBKR Read-Only Visibility Dry-Run Operator Contract
+
+A future IBKR read-only visibility dry run is observation-only. It is not IBKR
+execution runtime activation. It is not submit readiness. It is not authority
+to clean up, flatten, sell, cancel, retry, resubmit, remediate, route orders,
+enable live trading, or bypass any execution gate.
+
+`runtime_visibility_blocking=true` is evidence only. It may identify observed
+broker state that would require operator review, but it must not permit, deny,
+route, submit, cancel, flatten, sell, retry, remediate, or clean up anything.
+
+The managed AAPL long `1` paper position remains a held non-flat paper state.
+It is not clean submit readiness. A read-only visibility dry run must report
+that state as evidence only and must not change the hold decision.
+
+Before any future dry run is executed, the approving record must name:
+
+- execution context
+- exact environment surface
+- exact command
+- stop conditions
+- expected report fields
+- evidence fields to capture
+- rollback or no-op posture
+
+Expected report evidence is limited to observation fields such as
+`orchestration.runtime_visibility.runtime_visibility_reports`,
+`runtime_visibility_blocking`, `runtime_visibility_reason`, provider name,
+provider status, connection readiness, open-order state, position state,
+broker-state classification, disconnect state, shutdown state, and thread
+state.
+
+The following must remain absent from read-only visibility evidence:
+
+- `submit_approved`
+- `submit_attempted`
+- `cleanup_approved`
+- `flatten`
+- `sell`
+- `cancel`
+- `retry`
+- `remediation`
+- `safe_to_submit`
+- order construction or order ID fields
+- submit or reconciliation state fields
+
+This contract does not approve `.env` changes, VPS work, systemd changes,
+scheduled behavior changes, broker/API/TWS access, `main.py` execution, runtime
+activation, submit smoke, cleanup, flatten, sell, cancel, retry, remediation,
+or live trading.
+
 ## Enforcement
 
 Any enforcement behavior requires a separate explicit architecture review before implementation.

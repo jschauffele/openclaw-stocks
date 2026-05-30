@@ -852,6 +852,13 @@ submit readiness, cleanup, flatten, sell, cancel, retry, remediation,
 `broker_factory.py`, `config.py`, `main.py`, systemd changes, VPS work, or live
 trading.
 
+A future IBKR read-only visibility dry run must follow the operator contract in
+`docs/runtime_visibility_architecture_decision.md`. The approving record must
+name the execution context, exact environment surface, exact command, stop
+conditions, expected report fields, evidence fields to capture, and rollback or
+no-op posture before execution. `runtime_visibility_blocking=true` remains
+evidence only and does not grant execution, cleanup, or submit authority.
+
 ### Future IBKR Event Evidence Fields
 
 Future IBKR paper runtime events must preserve the stable run-event envelope
