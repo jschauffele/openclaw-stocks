@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -21,6 +22,17 @@ EVIDENCE_CANDIDATE_DIR = (
     / "evidence"
     / "3_close_trend_confirmation"
     / "local_alpaca_2026_01_02_to_2026_05_24"
+)
+RISK_BLOCKED_FIXTURE = (
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "replay"
+    / "event_streams"
+    / "risk_blocked"
+    / "run_2026-05-29T19:45:04Z_8b7033.jsonl"
+)
+RISK_BLOCKED_FIXTURE_SHA256 = (
+    "8c68bb94ea663997874b28c705820b78ca45808cd5fd4a36363582bdcc72aca4"
 )
 
 
@@ -140,6 +152,57 @@ def _committed_candidate_artifacts() -> list[dict]:
         json.loads(path.read_text(encoding="utf-8"))
         for path in sorted(EVIDENCE_CANDIDATE_DIR.glob("*_candidates.json"))
     ]
+
+
+def test_risk_blocked_event_stream_fixture_guard() -> None:
+    assert RISK_BLOCKED_FIXTURE.is_file()
+
+    fixture_bytes = RISK_BLOCKED_FIXTURE.read_bytes()
+    assert hashlib.sha256(fixture_bytes).hexdigest() == RISK_BLOCKED_FIXTURE_SHA256
+
+    events = [
+        json.loads(line)
+        for line in fixture_bytes.decode("utf-8").splitlines()
+        if line
+    ]
+
+    assert len(events) == 10
+    assert {event["run_id"] for event in events} == {
+        "run_2026-05-29T19:45:04Z_8b7033"
+    }
+    assert [event["event_id"] for event in events] == [
+        f"evt_{index:04d}" for index in range(1, 11)
+    ]
+    assert [event["stage"] for event in events] == [
+        "startup",
+        "config",
+        "market_session",
+        "fetch",
+        "market_input_captured",
+        "strategy_evaluated",
+        "duplicate_check",
+        "risk_check",
+        "reconcile",
+        "completion",
+    ]
+
+    terminal_event = events[-1]
+    assert terminal_event["stage"] == "completion"
+    assert terminal_event["status"] == "blocked"
+    assert (
+        terminal_event["payload"]["reason"]
+        == "projected_exposure_exceeds_max_position_size"
+    )
+
+    for event in events:
+        for field in (
+            "schema_version",
+            "timestamp_utc",
+            "event_type",
+            "stage",
+            "status",
+        ):
+            assert event.get(field) is not None
 
 
 def test_mapper_returns_documented_top_level_envelope_sections() -> None:
