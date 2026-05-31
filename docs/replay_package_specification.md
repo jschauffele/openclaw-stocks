@@ -754,6 +754,74 @@ Stop conditions:
 - Derived artifacts are mismatched.
 - Intake would imply evaluation or promotion authority.
 
+### Future Risk-Blocked Fixture Intake Gate Planning
+
+This is a docs-only planning record for the first future explicit
+artifact-intake gate. It does not approve copying now, fixture file creation
+now, replay package creation, file ingestion, writer implementation, runtime
+capture, storage, immutability, evaluation, broker/API work, strategy
+promotion, or live trading.
+
+Purpose:
+
+- The first fixture class is a risk-blocked event-stream fixture.
+- It is selected because it exercises market, data, strategy, duplicate, risk,
+  reconcile, and completion sequencing while ending safely blocked.
+- It remains `EVENT_STREAM_REPLAY_FIXTURE` only.
+- It is not a complete replay package.
+
+Candidate source set examples only:
+
+- `logs/run_2026-05-29T19:45:04Z_8b7033.jsonl`
+- `logs/run_2026-05-29T19:30:05Z_678e3b.jsonl`
+- `logs/run_2026-05-29T19:15:08Z_2d98e5.jsonl`
+
+A future artifact-intake gate must select exactly one candidate before any
+copying. That gate must name the exact source path and target repo path before
+copying.
+
+Required pre-copy verification for the future gate:
+
+- Source environment.
+- Source commit, if known.
+- Original source path.
+- Filesystem or capture timestamp.
+- Reason for selection.
+- All events share one `run_id`.
+- Ordered event IDs.
+- Timestamps present.
+- `schema_version` present.
+- `event_type`, `stage`, and `status` present.
+- Terminal completion event present.
+- Expected 10-stage sequence present: startup, config, market session, fetch,
+  market input captured, strategy evaluated, duplicate check, risk check,
+  reconcile, completion.
+- Final block reason is `projected_exposure_exceeds_max_position_size`.
+- No derived artifacts paired unless `run_id` alignment is proven.
+- No complete replay package classification claimed.
+
+Redaction and sensitivity review for the future gate:
+
+- No secrets.
+- No credentials.
+- No account identifiers.
+- No sensitive broker details.
+- No unapproved broker/API data exposure.
+- No manual edits unless provenance records them.
+
+Stop conditions:
+
+- Mixed `run_id` values.
+- Missing completion event.
+- Ambiguous schema.
+- Source path unclear.
+- Target path unclear.
+- Source commit or provenance unclear beyond allowed classification.
+- Sensitive data present.
+- Derived artifacts mismatched.
+- Fixture would imply evaluation, promotion, runtime capture, broker/API, or
+  live-trading authority.
+
 ### `PARTIAL_OR_MISALIGNED_SAMPLE`
 
 A `PARTIAL_OR_MISALIGNED_SAMPLE` is any bundle with missing required artifacts
