@@ -681,6 +681,79 @@ It is not a complete replay package. It does not approve strategy promotion,
 evaluation authority, runtime capture, replay writer implementation, artifact
 storage, broker authority, API work, or live trading.
 
+### Future Controlled Event-Stream Fixture Intake Planning
+
+This is a docs-only planning record for possible future event JSONL-only
+fixture intake. It does not approve artifact copying, fixture file creation,
+replay package creation, file ingestion, writer implementation, runtime
+capture, storage, immutability, evaluation, broker/API work, strategy
+promotion, or live trading.
+
+Fixture classification:
+
+- `EVENT_STREAM_REPLAY_FIXTURE` remains event JSONL-only.
+- It is useful for event ordering, stage coverage, terminal outcome, and
+  market, strategy, risk, and reconcile sequencing review.
+- It is not a complete replay package.
+- It cannot authorize strategy promotion, evaluation, runtime capture, writer
+  implementation, broker/API work, or live trading.
+
+Candidate eligibility for a future proposed event-stream fixture:
+
+- One canonical `run_id`.
+- All events share the same `run_id`.
+- Ordered `event_id` values.
+- Timestamps present.
+- Terminal completion event present.
+- `schema_version` present.
+- `event_type`, `stage`, and `status` present.
+- No mixed-run events.
+- No manual edits unless explicitly recorded by future provenance rules.
+
+Future provenance requirements:
+
+- Source environment.
+- Source commit, if known.
+- Original file path.
+- Capture timestamp or filesystem timestamp.
+- Reason for selection.
+- Whether the source was VPS, local, or other.
+- Whether the artifact is copied, referenced, or only reviewed.
+- Explicit statement that copying is not approved by this plan.
+
+Fixture classes to consider as examples only, not approved intake:
+
+- Market-closed block fixture.
+- After-hours block fixture.
+- Market-open strategy-evaluated fixture.
+- Risk-blocked fixture.
+- Reconciliation-mismatch fixture.
+- Duplicate-order-blocked fixture.
+- Insufficient-market-data fixture.
+
+Future intake gate requirements before any fixture is copied into the repo or a
+fixture directory:
+
+- Separate explicit artifact-intake gate.
+- Exact source path named.
+- Target repo path named.
+- Provenance metadata defined.
+- Redaction and sanitization review completed.
+- No secrets, account identifiers, credentials, or sensitive broker details.
+- No derived artifacts paired unless `run_id` alignment is proven.
+- No complete replay package classification unless contract requirements are
+  satisfied.
+
+Stop conditions:
+
+- Event stream has mixed `run_id` values.
+- Terminal completion is missing.
+- Event schema is ambiguous.
+- Source path or provenance is unclear.
+- Artifact contains secrets or sensitive account data.
+- Derived artifacts are mismatched.
+- Intake would imply evaluation or promotion authority.
+
 ### `PARTIAL_OR_MISALIGNED_SAMPLE`
 
 A `PARTIAL_OR_MISALIGNED_SAMPLE` is any bundle with missing required artifacts
