@@ -889,6 +889,39 @@ Stop conditions:
 - Copy would imply evaluation, promotion, broker/API, runtime capture, writer,
   or live-trading authority.
 
+### Source-Controlled Event-Stream Fixture Inventory
+
+The following event-stream fixture is intentionally source-controlled:
+
+- Path:
+  `tests/fixtures/replay/event_streams/risk_blocked/run_2026-05-29T19:45:04Z_8b7033.jsonl`
+- Classification: `EVENT_STREAM_REPLAY_FIXTURE`.
+- Status: source-controlled fixture.
+- SHA256:
+  `8c68bb94ea663997874b28c705820b78ca45808cd5fd4a36363582bdcc72aca4`.
+- `run_id`: `run_2026-05-29T19:45:04Z_8b7033`.
+- Event count: 10.
+- Terminal reason: `projected_exposure_exceeds_max_position_size`.
+
+Authority boundary:
+
+- The fixture is incomplete and non-authoritative.
+- The fixture is not a complete replay package.
+- The fixture has no paired `run_report`, `order_state`, observations, or
+  runtime-visibility artifacts.
+- The fixture does not authorize evaluation, strategy promotion, broker/API
+  work, runtime capture, writer implementation, storage, or live trading.
+
+Ignore-rule note:
+
+- The broad `.gitignore` `*.jsonl` rule would hide future JSONL fixture
+  candidates.
+- This fixture is intentionally source-controlled despite that broad ignore
+  behavior.
+- Future JSONL fixture additions must be explicitly reviewed and force-added
+  only through an approved artifact-intake gate.
+- This inventory entry does not change `.gitignore`.
+
 ### `PARTIAL_OR_MISALIGNED_SAMPLE`
 
 A `PARTIAL_OR_MISALIGNED_SAMPLE` is any bundle with missing required artifacts
