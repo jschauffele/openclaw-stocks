@@ -223,19 +223,37 @@ Current mitigation:
 - `docs/replay_package_specification.md` records the future implementation shape as pure offline mapper only.
 - `docs/replayability_foundations.md`, `docs/portfolio_construction_architecture.md`, `docs/full_position_governance_models.md`, `docs/position_lifecycle_governance.md`, and `docs/evaluation_infrastructure_architecture.md` reference the contract as a prerequisite, not as implementation approval.
 - The contract explicitly preserves that no implementation, strategy behavior change, broker/live/API work, VPS validation, execution activation, or production mutation is approved.
-- The offline mapper planning boundary preserves that no implementation, tests, runtime integration, sidecar artifact writer, storage, JSONL/report/observation schema changes, broker/live/API work, strategy behavior change, VPS validation, or promotion decision is approved.
-- Any future mapper must consume explicit existing artifact paths or already-loaded dictionaries only, and must not import `main.py`, `config.py`, broker modules, Alpaca or IBKR modules, runtime writers, event log writers, observation appenders, report persisters, or state write functions.
+- The offline mapper scaffold and tests now exist.
+- The offline mapper remains offline, in-memory, evidence-only, and
+  non-authoritative.
+- The current mapper uses the event stream as the canonical `run_id` source.
+- The current mapper complete status is conservative: all tracked sections
+  must be present and aligned.
+- `run_report` cannot override the event `run_id`; mixed event `run_id` values
+  and mismatched report, order-state, observation, or runtime-visibility
+  sections keep the package incomplete.
+- The mapper boundary preserves that no runtime integration, sidecar artifact
+  writer, storage, JSONL/report/observation schema changes, broker/live/API
+  work, strategy behavior change, VPS validation, or promotion decision is
+  approved.
+- The mapper must consume explicit existing artifact paths or already-loaded
+  dictionaries only, and must not import `main.py`, `config.py`, broker modules,
+  Alpaca or IBKR modules, runtime writers, event log writers, observation
+  appenders, report persisters, or state write functions.
+- No artifact copying is approved.
 - IBKR execution remains deferred.
 - The evidence/research pipeline remains parked as reusable infrastructure only after closure of the 3-close evidence phase.
 
 Future required action:
 
 - Add a separate replay package schema implementation gate before code.
-- Add a separate offline mapper implementation gate before any `tools/replay/` code.
-- Add a separate offline mapper test gate before tests.
 - Add a separate replay package envelope implementation gate before any writer, manifest, storage, or runtime capture code.
 - Add separate snapshot capture, storage, immutability, replay integrity, attribution, and evaluation engine gates before any output can support governance decisions.
 - Add a separate broker-visible state capture gate if broker observations beyond currently approved read-only visibility are needed.
+- Add a separate absent/not-applicable completeness semantics gate before
+  missing tracked sections can count as complete.
+- Add separate artifact intake, replay package writer, runtime capture,
+  storage/immutability, and evaluation gates before any such capability exists.
 - Keep replay packages evidence-only until a promotion workflow gate is explicitly approved.
 
 Owner/context:
@@ -260,6 +278,117 @@ Related files:
 Promotion/removal condition:
 
 - Close this risk only after the replay package schema, snapshot capture, storage, integrity validation, attribution, evaluation tooling, and promotion boundaries are implemented or explicitly rejected through separate gates.
+
+### Future Architecture Contracts Mistaken As Current Implementation
+
+Risk:
+
+- Target-architecture review identified future contracts, decisions, and guards
+  that could be mistaken for current-phase implementation work.
+- Treating these observations as current tasks could change strategy, risk,
+  execution, broker, runtime, storage, or live-trading behavior without a
+  separate gate.
+
+Current mitigation:
+
+- These items are recorded as future architecture contracts, future design
+  decisions, or future guards only.
+- They do not approve artifact intake, artifact copying, replay package
+  writing, runtime capture, storage, immutability, evaluation, broker/API work,
+  strategy behavior changes, risk behavior changes, execution behavior changes,
+  or live trading.
+- No runtime, broker, API, strategy, or live-trading authority is created.
+
+Future formal contracts:
+
+- Strategy Lifecycle & Promotion Contract: define a governed lifecycle for
+  proposing, researching, isolating, backtesting, paper-validating, versioning,
+  approving, promoting, monitoring, rejecting, and retiring deterministic
+  strategies. No strategy may be invented or modified live. Promotion requires
+  evidence, attribution, risk review, and rollback criteria.
+- As-Of Feature Availability Contract: no feature may reach strategy, replay,
+  backtest, or regime classification unless it is provably observable at the
+  decision timestamp. Future design must account for `source_timestamp`,
+  `available_at_timestamp`, `signal_timestamp`, aggregation windows, session
+  context, macro release timing, revised data, and mixed-frequency inputs to
+  prevent look-ahead bias.
+- Canonical Broker Order State Machine Contract: broker adapters must translate
+  native Alpaca, IBKR, and crypto order, fill, and position states into
+  canonical OpenClaw state before reconciliation. Native broker ambiguity must
+  not leak into the core reconciliation engine. Future design must account for
+  partial fills, cancels, rejects, stale states, retryability, fees, dust, lot
+  size, minimum notional, margin, funding, and borrow constraints.
+- Multi-Asset / Cross-Asset Risk Contract: define portfolio-level risk across
+  equities, crypto, treasury proxies, BTC/ETH-linked instruments, brokers, and
+  venues. Cross-asset exposure must account for correlated economic risk,
+  market-hour differences, 24/7 crypto, liquidity, funding, margin, borrow,
+  liquidation risk, and unified asset-aware reporting.
+- Execution Broker-State Freshness Contract: require pre-trade broker snapshot
+  freshness. Local projected state may support exposure projection but must not
+  replace broker truth. Reconciliation validity is required before submit.
+  Async post-submit checks are allowed only after deterministic submit gates.
+  Execution must fail closed on stale, unknown, mismatched, or unavailable
+  broker state.
+
+Future design decisions and guards:
+
+- Regime Classifier Design Decision: required before expanded regime-aware
+  routing. Define deterministic regime labels, feature inputs, as-of data
+  constraints, abstain behavior, logging, replayability, and validation
+  evidence. ML is not approved unless a separate model-risk governance gate
+  exists.
+- Signal Orchestrator Conflict-Resolution Design Decision: required before
+  multi-strategy routing. Define deterministic priority, veto, weighting,
+  abstention, correlation or overlap handling, no-trade behavior, and
+  attribution behavior for conflicting signals. Final weighting rules are not
+  specified now.
+- Performance Attribution Design Decision: required before strategy promotion
+  or capital allocation. Attribute outcomes by strategy, regime, symbol, asset
+  class, signal family, execution quality, slippage, fees, risk gates, blocked
+  trades, broker/exchange, and paper/live comparison. Attribution is not
+  implemented in this phase.
+- Execution Timing & Freshness Guard: define signal timestamp, decision
+  timestamp, broker snapshot timestamp, data freshness limits, order proposal
+  timestamp, submit timestamp, ack/fill timestamps, and stale-state fail-closed
+  rules. This is a future timing/freshness guard, not a low-latency mandate.
+  Latency optimization must never bypass risk, broker-state authority, or
+  reconciliation.
+- Shadow / A-B / Paper Comparison Validation: future promotion design must
+  define whether strategies move through shadow mode, A/B paper comparison,
+  champion/challenger evaluation, or parallel non-executing observation before
+  promotion. No strategy may be promoted only because a single paper run or
+  isolated backtest looks favorable.
+- Regime Transition Handling: future regime classifier design must define
+  transition behavior between regimes, including hysteresis, cooldowns, abstain
+  states, confidence thresholds, and prevention of strategy churn during
+  ambiguous market transitions.
+
+Future required action:
+
+- Promote any item above only through a separate, explicit architecture and
+  implementation gate with tests and authority boundaries appropriate to that
+  phase.
+- Keep these observations out of current replay closeout implementation scope.
+
+Owner/context:
+
+- Future target architecture
+- Replay closeout architecture review
+
+Status:
+
+- Open
+- Future-only contracts, decisions, and guards
+
+Related files:
+
+- `docs/architecture_drift_risk_register.md`
+
+Promotion/removal condition:
+
+- Close or split this risk only after each future contract, decision, or guard
+  is either implemented through a separate approved gate or explicitly rejected
+  through governance review.
 
 ## Resolved Risks
 

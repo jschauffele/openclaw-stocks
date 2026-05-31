@@ -741,13 +741,13 @@ rules.
 
 ## Offline Replay Mapper Implementation Planning
 
-The future replay package implementation shape is pure offline mapper only.
-This is a docs-only planning record. It does not approve implementation, tests,
+The replay package implementation shape remains pure offline mapper only.
+The current scaffold and tests exist. This planning record does not approve
 runtime integration, artifact writing, storage, broker/live/API work, strategy
 behavior changes, VPS validation, or replay-based promotion decisions.
 
-The future mapper may consume existing artifacts only by explicit file path or
-as already-loaded dictionaries supplied by a caller:
+The mapper may consume existing artifacts only by explicit file path or as
+already-loaded dictionaries supplied by a caller:
 
 - Event JSONL.
 - `last_run_report.json`.
@@ -755,7 +755,7 @@ as already-loaded dictionaries supplied by a caller:
 - Order state JSON.
 - Runtime visibility summaries already present in reports or events.
 
-The future mapper must not import or call:
+The mapper must not import or call:
 
 - `main.py`.
 - `config.py`.
@@ -768,11 +768,20 @@ The future mapper must not import or call:
 - `reporting` persist functions.
 - `state_manager` write functions.
 
-The future mapper must not mutate runtime state, production artifacts, broker
+The mapper must not mutate runtime state, production artifacts, broker
 state, order state, observation files, event logs, reports, configuration, or
 environment variables. It must not change JSONL, report, observation, order
 state, runtime visibility, strategy, risk, reconciliation, or execution
 schemas. It must not become a runtime-integrated writer.
+
+The current mapper uses the event stream as the canonical `run_id` source.
+`run_report` cannot override the event `run_id`. Mixed event `run_id` values,
+mismatched `run_report`, mismatched `order_state`, mismatched observations, or
+mismatched runtime visibility keep the package incomplete.
+
+Current mapper complete status is conservative: all tracked sections must be
+present and aligned. Future absent/not-applicable completeness semantics remain
+a separate gate.
 
 Sidecar artifact writing remains deferred until a separate storage and
 immutability gate approves writer scope, output location, finalization rules,

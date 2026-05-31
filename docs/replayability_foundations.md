@@ -248,18 +248,24 @@ This planning does not approve replay infrastructure, snapshot capture tooling,
 runtime changes, broker/live/API work, VPS validation, strategy behavior
 changes, risk behavior changes, execution activation, or production mutation.
 
-## Offline Mapper Planning Boundary
+## Offline Mapper Boundary
 
-The future replay package implementation shape is pure offline mapper only.
-The planning record is captured in `docs/replay_package_specification.md` under
-Offline Replay Mapper Implementation Planning.
+The replay package implementation shape remains pure offline mapper only.
+The current scaffold and tests exist, and the planning record is captured in
+`docs/replay_package_specification.md` under Offline Replay Mapper
+Implementation Planning.
 
-This boundary preserves that no implementation, tests, runtime integration,
-artifact writer, broker/live/API work, strategy behavior change, or VPS
-validation is approved. A future mapper may consume explicit existing artifact
-paths or already-loaded dictionaries, but it must not import `main.py`,
-`config.py`, broker modules, Alpaca or IBKR modules, runtime writers, event log
-writers, observation appenders, report persisters, or state write functions.
+This boundary preserves that no runtime integration, artifact writer,
+broker/live/API work, strategy behavior change, or VPS validation is approved.
+The mapper may consume explicit existing artifact paths or already-loaded
+dictionaries, but it must not import `main.py`, `config.py`, broker modules,
+Alpaca or IBKR modules, runtime writers, event log writers, observation
+appenders, report persisters, or state write functions.
+
+The current mapper uses the event stream as the canonical `run_id` source and
+applies conservative complete-status semantics: all tracked sections must be
+present and aligned. Future absent/not-applicable completeness semantics remain
+a separate gate.
 
 Sidecar artifact writing remains deferred until a separate storage and
 immutability gate. Replay output remains evidence-only and cannot approve
