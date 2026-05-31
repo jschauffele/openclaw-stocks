@@ -822,6 +822,73 @@ Stop conditions:
 - Fixture would imply evaluation, promotion, runtime capture, broker/API, or
   live-trading authority.
 
+### Future Risk-Blocked Artifact Intake Authorization Planning
+
+This is a docs-only authorization plan for a future explicit artifact-copy
+gate using the verified risk-blocked candidate. It does not approve copying
+now, fixture creation now, replay package creation, file ingestion, writer
+implementation, runtime capture, storage, immutability, evaluation, broker/API
+work, strategy promotion, or live trading.
+
+Candidate identity:
+
+- Source environment: VPS.
+- Source path: `logs/run_2026-05-29T19:45:04Z_8b7033.jsonl`.
+- Source verification HEAD: `19c3e70`.
+- `run_id`: `run_2026-05-29T19:45:04Z_8b7033`.
+- SHA256:
+  `8c68bb94ea663997874b28c705820b78ca45808cd5fd4a36363582bdcc72aca4`.
+- File size: 3633 bytes.
+- Birth timestamp: 2026-05-29 19:45:04 UTC.
+- Modify timestamp: 2026-05-29 19:45:05 UTC.
+
+Fixture classification:
+
+- `EVENT_STREAM_REPLAY_FIXTURE`.
+- Incomplete and non-authoritative.
+- Not a complete replay package.
+- No derived artifacts paired.
+- No evaluation or promotion authority.
+
+Future target path requirement:
+
+- No file is created now.
+- If no target convention exists before the copy gate, the next gate must
+  define the exact target repo path before copying.
+- Proposed future convention only:
+  `tests/fixtures/replay/event_streams/risk_blocked/run_2026-05-29T19:45:04Z_8b7033.jsonl`.
+
+Future copy gate requirements:
+
+- Reconfirm VPS HEAD or record if the source environment changed.
+- Reconfirm the source file exists.
+- Recompute SHA256 and match the recorded hash.
+- Reconfirm no sensitive key hits.
+- Reconfirm event count, `run_id`, stage sequence, terminal completion, and
+  terminal reason.
+- Name the exact target repo path.
+- Copy exactly one file.
+- Preserve file content byte-for-byte.
+- Record copied status.
+- Run only appropriate non-runtime validation, such as SHA256 comparison and
+  git diff checks.
+- Avoid Python and tests unless a separate test gate is explicitly approved.
+
+Stop conditions:
+
+- Source file missing.
+- SHA256 mismatch.
+- `run_id` mismatch.
+- Stage sequence mismatch.
+- Terminal reason mismatch.
+- Sensitive data detected.
+- Target path unclear.
+- More than one artifact would be copied.
+- Derived artifacts would be paired.
+- Copy would imply replay package completeness.
+- Copy would imply evaluation, promotion, broker/API, runtime capture, writer,
+  or live-trading authority.
+
 ### `PARTIAL_OR_MISALIGNED_SAMPLE`
 
 A `PARTIAL_OR_MISALIGNED_SAMPLE` is any bundle with missing required artifacts
