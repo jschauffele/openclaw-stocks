@@ -121,6 +121,44 @@ runtime classification.
 cd /opt/openclaw-stocks && tail -n 50 last_run_report.json
 ```
 
+### Alpaca Timer Baseline Settle-Capture Runbook
+
+The Alpaca scheduled timer is the current operational baseline. Baseline
+verification is observational only: it classifies timer, service, report, and
+JSONL evidence, and it must not change runtime behavior.
+
+Use timer/service/report/JSONL evidence for baseline classification. Do not use
+raw `python3 main.py` as a baseline verification path.
+
+Required settle-capture checks:
+
+- `openclaw.service` must be inactive before final classification.
+- `openclaw.timer` must be active for restored-baseline classification.
+- Do not classify from `last_run_report.json` alone.
+- The latest JSONL `run_id` must match `last_run_report.json` `run_id`.
+- The latest JSONL completion event must be checked for `stage`, `status`, and
+  `reason`.
+- If `openclaw.service` is active or activating during capture, or becomes
+  active or activating after capture, classify the evidence as
+  `RUNTIME_STATE_UNSETTLED`, wait for the service to settle inactive, and
+  recapture report and JSONL evidence.
+
+Expected closed-day block classification:
+
+```text
+ALPACA_TIMER_BASELINE_RESTORED / DETERMINISTIC_SETTLE_CAPTURED / EXPECTED_CLOSED_DAY_BLOCK
+```
+
+Forbidden during baseline monitoring:
+
+- manual `main.py` execution
+- broker/API/TWS calls
+- `.env` changes
+- systemd changes, except explicit approved timer stop/start in sync or restore
+  gates
+- submit, cancel, flatten, sell, cleanup, or remediation
+- live trading
+
 ## 8. Verify VPS Repo Is Clean
 
 ```bash
