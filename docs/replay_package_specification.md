@@ -922,6 +922,55 @@ Ignore-rule note:
   only through an approved artifact-intake gate.
 - This inventory entry does not change `.gitignore`.
 
+### First Guarded Event-Stream Fixture Phase Closeout
+
+The first controlled event-stream fixture phase is closed.
+
+Closed phase scope:
+
+- Planned, authorized, copied, source-controlled, inventoried,
+  hash/structure guarded, mapper-compatibility guarded, pushed, synced to VPS,
+  and settled under the Alpaca timer baseline.
+
+Fixture:
+
+- Path:
+  `tests/fixtures/replay/event_streams/risk_blocked/run_2026-05-29T19:45:04Z_8b7033.jsonl`
+- SHA256:
+  `8c68bb94ea663997874b28c705820b78ca45808cd5fd4a36363582bdcc72aca4`.
+- Classification: `EVENT_STREAM_REPLAY_FIXTURE`.
+- Fixture shape: event-only, incomplete, evidence-only, non-authoritative, and
+  not a complete replay package.
+
+Guard tests:
+
+- `tests/test_offline_replay_mapper.py::test_risk_blocked_event_stream_fixture_guard`
+- `tests/test_offline_replay_mapper.py::test_risk_blocked_event_stream_fixture_maps_as_incomplete_evidence_only_package`
+
+Mapper boundary:
+
+- Current mapper input remains in-memory loaded dictionaries only.
+- No file ingestion is approved.
+
+Authority boundary:
+
+- No execution authority.
+- No broker authority.
+- No replay-based promotion authority.
+
+Deferred future gates:
+
+- Replay package creation.
+- File ingestion.
+- Replay writer.
+- Runtime capture.
+- Storage and immutability.
+- Evaluation framework.
+- Strategy promotion workflow.
+- Additional fixture intake.
+- Broker/API/TWS/IBKR work.
+- Live trading.
+
 ### `PARTIAL_OR_MISALIGNED_SAMPLE`
 
 A `PARTIAL_OR_MISALIGNED_SAMPLE` is any bundle with missing required artifacts
