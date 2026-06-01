@@ -13,6 +13,63 @@ This document is implementation planning only. It does not approve replay
 infrastructure, evaluation infrastructure, promotion tooling, runtime mutation,
 execution activation, broker writes, or production behavior changes.
 
+## Replay Package Prerequisite Rebase
+
+The current replay package state is parked and non-authoritative.
+
+Current state:
+
+- The source-controlled replay fixture remains an `EVENT_STREAM_REPLAY_FIXTURE`:
+  event-only, incomplete, evidence-only, non-authoritative, and not a complete
+  replay package.
+- The current mapper is an in-memory scaffold only and accepts already-loaded
+  dictionaries only.
+- The event stream `run_id` is canonical only inside current in-memory mapper
+  behavior. That mapper behavior is not a source-controlled immutable replay
+  package.
+- Mapper completeness is not equivalent to a complete replay package.
+
+Existing replay package contracts already cover:
+
+- Package identity.
+- Code and version metadata.
+- Configuration metadata.
+- Market input.
+- Strategy input.
+- Portfolio state.
+- Broker-visible state.
+- Reconciliation and risk evidence.
+- Event ordering.
+- Terminal completion requirements.
+- Strict `run_id` alignment.
+- JSONL as the source of truth.
+- Reports and state files as derived summaries.
+- As-of feature availability as a prerequisite.
+- Replay, evaluation, and promotion authority boundaries.
+
+Missing prerequisites before complete replay packages:
+
+- Replay package schema implementation gate.
+- Package writer and exact package layout.
+- File ingestion rules, if any.
+- Runtime capture or snapshot capture gate.
+- Storage and immutability governance.
+- Hashing, manifest, integrity validation, and correction or annotation rules.
+- Absent or not-applicable completeness semantics.
+- Provenance rules for every package section.
+- Redaction and sanitization rules for broker or account-sensitive facts.
+- Portfolio/risk state contract implementation.
+- Broker-visible state capture contract if broker observations are used.
+- As-of eligibility checks for market data and derived features.
+- Attribution framework and metric definitions.
+- Evaluation tooling gate.
+- Promotion workflow gate.
+
+Current replay package outputs cannot authorize strategy evaluation, strategy
+promotion, runtime capture, artifact writer implementation, storage, broker/API
+work, live trading, production behavior changes, execution permission, broker
+authority, or strategy/risk behavior changes.
+
 ## Immutable Evidence Philosophy
 
 Replay packages should be immutable evidence artifacts.
