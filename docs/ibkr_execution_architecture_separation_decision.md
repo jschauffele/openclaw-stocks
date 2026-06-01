@@ -17,6 +17,52 @@ automatically the user's Mac GUI TWS context. See
 `localhost` IBKR/TWS result from `DIRECT_MAC_TERMINAL`, `CODEX_LOCAL`, `VPS`,
 or `CODEX_VPS`.
 
+## IBKR Parked-State Runbook
+
+IBKR remains parked and broker-sensitive.
+
+Current parked state:
+
+- Runtime visibility and execution are separate control planes.
+- Read-only visibility is evidence only.
+- Read-only visibility cannot authorize submit, cleanup, flatten, sell,
+  cancel, retry, remediation, routing, or live trading.
+- `broker_factory.py` remains Alpaca-only for supported production broker
+  selection.
+- `OPENCLAW_BROKER=ibkr` remains unsupported for production routing.
+- `main.py` remains closed to IBKR orchestration.
+- Bridge and tunnel behavior is not approved.
+- VPS and `CODEX_LOCAL` IBKR socket paths are not valid for Mac-local TWS
+  without separate execution-context proof.
+
+Known managed IBKR Paper state:
+
+- Symbol: `AAPL`.
+- Position: long `1`.
+- Open buy orders: `0`.
+- Broker state: `non_flat_position`.
+- Runtime visibility: `runtime_visibility_blocking=true`.
+
+This is a managed blocking state, not clean submit readiness. Submit readiness
+cannot be inferred from visibility evidence.
+
+Future read-only IBKR visibility check prerequisite:
+
+- A separate explicit read-only visibility gate must name the execution
+  context, host and port, client ID, symbol, timeout, command, stop conditions,
+  expected evidence fields, and forbidden actions.
+- The gate must preserve that visibility is evidence only and must not bypass
+  the managed AAPL long `1` paper state.
+
+Future cleanup, flatten, sell, cancel, or remediation prerequisite:
+
+- A separate explicit disposition or remediation gate is required.
+- Current read-only broker truth must be captured first.
+- The gate must record explicit operator approval, the exact action,
+  rollback or no-op posture, stop conditions, and evidence requirements.
+- No visibility result, submit-smoke history, local smoke-state file, or
+  runtime report may imply disposition authority by itself.
+
 ## Boundaries
 
 `runtime_visibility_blocking` is not execution authorization. It may be calculated and reported, but it must not permit, deny, or route orders.
