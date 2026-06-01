@@ -945,6 +945,127 @@ behavior changes, cleanup, flatten, sell, cancel, remediation, or live trading.
 Writer output cannot become runtime truth and cannot replace JSONL as canonical
 event chronology.
 
+## Replay Package Layout, Manifest, Hash, and Lifecycle Contract
+
+Package layout, manifest, hash, integrity, finalization, and lifecycle planning
+remains governance-only. This contract does not approve package layout
+implementation, manifest implementation, hashing implementation, integrity
+validation implementation, writer behavior, package creation, file ingestion,
+runtime capture, storage implementation, evaluation, attribution, promotion,
+broker work, or live trading. Complete replay package authority requires future
+implementation gates and validation.
+
+Package identity and layout governance:
+
+- Future packages require either a canonical `run_id` or an explicitly governed
+  `package_id`.
+- One package directory is required per canonical `run_id` or governed
+  `package_id`.
+- Deterministic package layout is required before implementation.
+- Exact future output root and approved package paths must be defined before
+  implementation.
+- Exact file names and section layout must be defined before implementation.
+- Package layout must separate immutable evidence artifacts from mutable
+  evaluation outputs.
+
+Required future package lifecycle states:
+
+- `draft`.
+- `finalized`.
+- `invalidated`.
+- `superseded`.
+
+Lifecycle rules:
+
+- Draft packages may be incomplete and non-authoritative.
+- Finalized packages must be immutable evidence artifacts.
+- Finalized packages must not be overwritten.
+- Invalidated packages must remain retained with invalidation metadata.
+- Superseded packages must remain retained with supersession references.
+- Corrections, annotations, invalidations, and reviewer notes must be
+  append-only records.
+- Original facts must not be rewritten.
+
+Manifest governance:
+
+- Future manifest schema must be defined before implementation.
+- Future manifest must include `package_id`, canonical `run_id`, package schema
+  version, package lifecycle status, `created_at` timestamp, source commit,
+  source runtime version when available, source artifact references, section
+  list, section status, section hashes, package or manifest hash, completeness
+  status, authority boundary, redaction status, provenance summary, and
+  correction, annotation, invalidation, or supersession references.
+- Manifest serialization must be deterministic before hash enforcement.
+- Manifest cannot be used as authority until manifest schema, hash rules, and
+  validation rules are implemented.
+
+Hash and integrity governance:
+
+- Content hash algorithm must be explicitly chosen before implementation.
+- Canonical serialization rules must be defined before hash enforcement.
+- Section-level hashes are required before package completeness can be
+  authoritative.
+- Manifest or package-level hash relationship must be defined before
+  implementation.
+- Hash mismatch must fail closed once hashing exists.
+- Missing section hash must fail closed once hashing exists.
+- Mixed `run_id` must fail closed.
+- Missing provenance must fail closed.
+- Unknown source path or source reference must fail closed.
+- Unclear redaction status must fail closed.
+
+Section completeness governance:
+
+- Future complete package section requirements must be explicit.
+- Absent, not-applicable, disabled, unavailable, stale, redacted, untrusted, and
+  unknown states must be governed before package authority.
+- Current event-only fixture and mapper scaffold completeness remain
+  insufficient for complete replay package authority.
+- Complete package status cannot be inferred from presence of files alone.
+- Complete package status cannot be inferred from `last_run_report.json` alone.
+- Complete package status cannot be inferred from mapper scaffold complete
+  status alone.
+
+Retention, discovery, and index governance:
+
+- Finalized packages require retention rules before implementation.
+- Invalidated and superseded packages require retention rules before
+  implementation.
+- Discovery or index format must be defined before implementation.
+- Retained immutable evidence must be separated from disposable evaluation
+  artifacts.
+
+Layout, manifest, hash, and lifecycle stop conditions:
+
+- Missing canonical `run_id` or `package_id`.
+- Mixed `run_id`.
+- Missing terminal completion.
+- Missing source artifact reference.
+- Unknown source path.
+- Missing provenance.
+- Missing redaction status.
+- Sensitive data exposure.
+- Attempted overwrite of finalized evidence.
+- Missing lifecycle status.
+- Unknown package authority.
+- Missing manifest field once manifest exists.
+- Missing section hash once hashing exists.
+- Hash or manifest mismatch once hashing exists.
+- Non-deterministic serialization discovered.
+- Implied evaluation authority.
+- Implied promotion authority.
+- Implied execution permission.
+- Implied broker authority.
+- Implied live trading authority.
+
+This contract cannot authorize replay package creation, writer implementation,
+file ingestion, runtime capture, storage implementation, evaluation,
+attribution, promotion, broker work, execution permission, strategy or risk
+behavior changes, cleanup, flatten, sell, cancel, remediation, or live trading.
+JSONL remains canonical event chronology until a future governed package can
+reference it as immutable evidence. Package artifacts cannot replace JSONL as
+canonical event chronology unless explicitly approved by future governance.
+
 Runtime capture prerequisites:
 
 - Storage and immutability contract.
