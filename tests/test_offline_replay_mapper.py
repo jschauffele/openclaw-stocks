@@ -7,8 +7,10 @@ import sys
 from pathlib import Path
 from types import FunctionType
 
+import tools.replay.draft_envelope as draft_envelope
 import tools.replay.offline_mapper as offline_mapper
 import tools.replay.package_schema as package_schema
+from tools.replay.draft_envelope import build_draft_replay_envelope
 from tools.replay.offline_mapper import build_replay_package
 from tools.replay.package_schema import (
     AUTHORITY_BOUNDARY,
@@ -182,41 +184,6 @@ def _complete_replay_inputs() -> dict:
     }
 
 
-def _build_test_only_draft_replay_envelope(source: dict | ReplayInputBundle) -> dict:
-    if isinstance(source, ReplayInputBundle):
-        loaded_inputs = {
-            "events": source.events,
-            "run_report": source.run_report,
-            "observations": source.observations,
-            "order_state": source.order_state,
-            "runtime_visibility": source.runtime_visibility,
-        }
-    elif isinstance(source, dict):
-        loaded_inputs = source
-    else:
-        raise TypeError("draft envelope scaffold accepts loaded replay inputs only")
-
-    package = build_replay_package(**loaded_inputs)
-    return {
-        "lifecycle_status": "draft",
-        "evidence_only": True,
-        "non_authoritative": True,
-        "complete_replay_package_authority": False,
-        "writer_authority": False,
-        "filesystem_writes": False,
-        "package_directory_creation": False,
-        "file_path_ingestion": False,
-        "manifest_creation": False,
-        "hashing_integrity_enforcement": False,
-        "runtime_capture": False,
-        "storage_finalization_immutability": False,
-        "evaluation_or_promotion": False,
-        "broker_api_authority": False,
-        "canonical_chronology": "event_jsonl",
-        "mapper_package": package,
-    }
-
-
 def _committed_candidate_artifacts() -> list[dict]:
     return [
         json.loads(path.read_text(encoding="utf-8"))
@@ -335,11 +302,11 @@ def test_risk_blocked_event_stream_fixture_maps_as_incomplete_evidence_only_pack
     assert package["out_of_scope"]["replay_based_promotion_decisions"] is True
 
 
-def test_test_only_draft_replay_envelope_scaffold_preserves_writer_boundaries() -> None:
+def test_draft_replay_envelope_source_preserves_writer_boundaries() -> None:
     inputs = _complete_replay_inputs()
     original_inputs = deepcopy(inputs)
 
-    envelope = _build_test_only_draft_replay_envelope(
+    envelope = build_draft_replay_envelope(
         ReplayInputBundle(**inputs)
     )
 
@@ -376,7 +343,7 @@ def test_test_only_draft_replay_envelope_scaffold_preserves_writer_boundaries() 
     assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
     assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
 
-    event_only_envelope = _build_test_only_draft_replay_envelope(
+    event_only_envelope = build_draft_replay_envelope(
         {"events": _risk_blocked_fixture_events()}
     )
 
@@ -391,7 +358,7 @@ def test_test_only_draft_replay_envelope_scaffold_preserves_writer_boundaries() 
     ]
 
     try:
-        _build_test_only_draft_replay_envelope(RISK_BLOCKED_FIXTURE)  # type: ignore[arg-type]
+        build_draft_replay_envelope(RISK_BLOCKED_FIXTURE)  # type: ignore[arg-type]
     except TypeError as exc:
         assert str(exc) == (
             "draft envelope scaffold accepts loaded replay inputs only"
@@ -402,19 +369,18 @@ def test_test_only_draft_replay_envelope_scaffold_preserves_writer_boundaries() 
     for forbidden_name in FORBIDDEN_DRAFT_ENVELOPE_NAMES:
         assert (
             forbidden_name
-            not in _build_test_only_draft_replay_envelope.__code__.co_names
+            not in build_draft_replay_envelope.__code__.co_names
         )
 
 
-def test_future_source_module_boundary_remains_test_only_and_in_memory() -> None:
-    assert not FUTURE_DRAFT_ENVELOPE_MODULE.exists()
-    assert "test_only" in _build_test_only_draft_replay_envelope.__name__
-    assert "draft" in _build_test_only_draft_replay_envelope.__name__
+def test_draft_envelope_source_module_remains_pure_in_memory() -> None:
+    assert FUTURE_DRAFT_ENVELOPE_MODULE.is_file()
+    assert "draft" in build_draft_replay_envelope.__name__
 
-    loaded_dict_envelope = _build_test_only_draft_replay_envelope(
+    loaded_dict_envelope = build_draft_replay_envelope(
         _complete_replay_inputs()
     )
-    bundle_envelope = _build_test_only_draft_replay_envelope(
+    bundle_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
     )
 
@@ -436,7 +402,7 @@ def test_future_source_module_boundary_remains_test_only_and_in_memory() -> None
         assert envelope["evaluation_or_promotion"] is False
         assert envelope["broker_api_authority"] is False
 
-    event_only_envelope = _build_test_only_draft_replay_envelope(
+    event_only_envelope = build_draft_replay_envelope(
         {"events": _risk_blocked_fixture_events()}
     )
     assert (
@@ -446,7 +412,7 @@ def test_future_source_module_boundary_remains_test_only_and_in_memory() -> None
     assert event_only_envelope["complete_replay_package_authority"] is False
 
     try:
-        _build_test_only_draft_replay_envelope(str(RISK_BLOCKED_FIXTURE))  # type: ignore[arg-type]
+        build_draft_replay_envelope(str(RISK_BLOCKED_FIXTURE))  # type: ignore[arg-type]
     except TypeError as exc:
         assert str(exc) == (
             "draft envelope scaffold accepts loaded replay inputs only"
@@ -463,7 +429,7 @@ def test_future_source_module_boundary_remains_test_only_and_in_memory() -> None
         "non_authoritative"
     ] is True
 
-    helper_names = _build_test_only_draft_replay_envelope.__code__.co_names
+    helper_names = build_draft_replay_envelope.__code__.co_names
     for forbidden_name in FORBIDDEN_DRAFT_ENVELOPE_NAMES:
         assert forbidden_name not in helper_names
 
@@ -906,7 +872,7 @@ def test_import_isolation_and_no_side_effect_fragments() -> None:
     }
 
     assert forbidden_modules.isdisjoint(sys.modules)
-    for module in (package_schema, offline_mapper):
+    for module in (package_schema, offline_mapper, draft_envelope):
         assert not any(hasattr(module, name) for name in forbidden_modules)
 
     forbidden_names = {
@@ -927,7 +893,7 @@ def test_import_isolation_and_no_side_effect_fragments() -> None:
         "write_run_report",
     }
 
-    for module in (package_schema, offline_mapper):
+    for module in (package_schema, offline_mapper, draft_envelope):
         for value in module.__dict__.values():
             if isinstance(value, FunctionType):
                 assert forbidden_names.isdisjoint(value.__code__.co_names)
