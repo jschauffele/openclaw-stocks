@@ -248,7 +248,9 @@ Future gate required:
 
 ## Next Gate
 
-The next allowed gate is docs-only evidence intake for the current 3-close strategy review.
+Broad 3-close evidence continuation is closed unless a sharper hypothesis or
+defect rationale is opened. Do not continue collecting more broad 3-close
+evidence under the current hypothesis.
 
 Implementation remains blocked until a future gate defines exact deterministic rule changes, fixture expectations, strategy ID compatibility, and targeted tests.
 

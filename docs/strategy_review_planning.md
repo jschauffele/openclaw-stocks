@@ -28,6 +28,51 @@ JSONL and observation strategy expansion remain deferred.
 
 VPS validation is not needed for this docs-only phase.
 
+## Strategy/Risk Roadmap Rebase
+
+Strategy/risk remains governance-only. This roadmap rebase does not approve
+strategy behavior changes, risk behavior changes, evaluation, promotion,
+broker/API work, IBKR action, or live trading.
+
+Current production strategy state:
+
+- Production strategy behavior remains the existing close-based momentum path.
+- `close_momentum_v1` remains the default strategy catalog entry.
+- Strategy metadata has no execution authority and no broker compatibility
+  authority.
+- Regime classifier, strategy router, and strategy integration scaffolds remain
+  deterministic metadata/control-plane scaffolds only.
+
+Current production risk state:
+
+- Risk behavior remains hard-cap enforcement through reconciliation and risk
+  checks.
+- Saturated BUY proposals may remain visible as strategy demand while
+  reconciliation blocks projected exposure above `max_position_size`.
+- No automatic sell, trim, rebalance, dynamic sizing, portfolio construction,
+  allocation arbitration, short or hedge behavior, adaptive optimization, or
+  strategy promotion is approved.
+
+Broad 3-close evidence continuation is closed unless a sharper hypothesis or
+defect rationale is opened. Future treasury-proxy/MSTR, portfolio
+construction, regime routing, short/hedge, and multi-strategy work remain
+future architecture only.
+
+Any future strategy/risk implementation requires:
+
+- Explicit hypothesis or defect rationale.
+- Deterministic acceptance criteria and fixtures.
+- Strategy ID compatibility or new strategy ID decision.
+- Replay-grade input and state package contracts.
+- Evaluation and attribution framework.
+- Promotion workflow with approval, monitoring, and rollback criteria.
+- As-of feature availability contract.
+- Portfolio/risk state contract before allocation, ranking, resize,
+  suppression, trim, exit, or rebalance logic.
+- Risk review for cap, sizing, allocation, sell, hedge, or short behavior.
+- Proof-boundary separation between signal, allocation, risk, reconciliation,
+  execution permission, and broker execution.
+
 ## Possible Next Strategy Surfaces
 
 ### Controlled Improvement Of Current 3-Close Momentum Strategy
