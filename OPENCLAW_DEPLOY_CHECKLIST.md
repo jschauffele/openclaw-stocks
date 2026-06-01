@@ -132,22 +132,36 @@ raw `python3 main.py` as a baseline verification path.
 
 Required settle-capture checks:
 
+- Expected `HEAD` must be confirmed before classifying the run.
+- The worktree must be clean.
+- The VPS root filesystem must be mounted read-write.
 - `openclaw.service` must be inactive before final classification.
 - `openclaw.timer` must be active for restored-baseline classification.
 - Do not classify from `last_run_report.json` alone.
 - The latest JSONL `run_id` must match `last_run_report.json` `run_id`.
 - The latest JSONL completion event must be checked for `stage`, `status`, and
   `reason`.
+- Stale report or stale JSONL evidence must be explicitly classified and must
+  not close a deploy gate.
 - If `openclaw.service` is active or activating during capture, or becomes
   active or activating after capture, classify the evidence as
   `RUNTIME_STATE_UNSETTLED`, wait for the service to settle inactive, and
   recapture report and JSONL evidence.
 
-Expected closed-day block classification:
+Expected safe blocked classifications depend on market-session context.
+Closed-day and pre-market blocks are both expected when the JSONL completion
+reason is consistent with the session state.
+
+Examples:
 
 ```text
 ALPACA_TIMER_BASELINE_RESTORED / DETERMINISTIC_SETTLE_CAPTURED / EXPECTED_CLOSED_DAY_BLOCK
+ALPACA_TIMER_BASELINE_RESTORED / DETERMINISTIC_SETTLE_CAPTURED / EXPECTED_PRE_MARKET_BLOCK
 ```
+
+Expected safe terminal reasons may include `market_holiday_or_closed_day`,
+`before_regular_session_open`, `after_regular_session_close`, or another
+explicitly approved market-session guard reason.
 
 Forbidden during baseline monitoring:
 

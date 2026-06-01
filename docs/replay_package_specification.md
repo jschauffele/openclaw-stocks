@@ -160,6 +160,62 @@ attribution, promotion, runtime capture implementation, writer behavior,
 storage, broker/API/TWS/IBKR/Alpaca work, execution permission, strategy or
 risk behavior changes, or live trading.
 
+## Observability and Reporting Alignment Rebase
+
+Current observability and reporting artifacts remain operational evidence, not
+replay package authority.
+
+Source-of-truth boundary:
+
+- JSONL event streams are canonical for event chronology and `run_id`
+  alignment.
+- `last_run_report.json` is a derived operational summary and cannot be used
+  alone as source-of-truth evidence.
+- `order_state.json` is separate operational state evidence and cannot be used
+  alone as source-of-truth evidence.
+- Observations are separate append-only evidence and require `run_id` filtering
+  before replay package use.
+- Runtime visibility metadata is observed-only readiness evidence. It does not
+  create execution permission, submit readiness, cleanup authority, broker
+  routing authority, or live trading authority.
+
+Settle-capture evidence for operational classification must include:
+
+- Expected `HEAD`.
+- Clean worktree.
+- Root filesystem read-write status.
+- Timer active after restore.
+- Service inactive after settle.
+- Latest JSONL identified.
+- Latest JSONL terminal event inspected.
+- `last_run_report.json` `run_id` matched to latest JSONL `run_id`.
+- Terminal `stage`, `status`, and `reason` inspected.
+
+`last_run_report.json` cannot classify a run without matching the latest JSONL
+`run_id`. Stale report or stale JSONL evidence must be explicitly classified
+and cannot close a deploy gate.
+
+Expected safe terminal reasons depend on market-session state and may include:
+
+- `market_holiday_or_closed_day`.
+- `before_regular_session_open`.
+- `after_regular_session_close`.
+- Other explicitly approved market-session guard reasons.
+
+Closed-day block and pre-market block are both expected safe blocked
+classifications when they are consistent with market-session context.
+
+Current report, state, observation, and runtime visibility outputs cannot
+authorize replay package completeness, evaluation, attribution, promotion,
+runtime capture implementation, writer behavior, storage,
+broker/API/TWS/IBKR/Alpaca work, execution permission, strategy or risk
+behavior changes, cleanup, flatten, sell, cancel, remediation, or live trading.
+
+Future complete replay packages still require implemented section schemas for
+report, state, observation, and runtime visibility evidence; absent and
+not-applicable semantics; provenance; redaction; hashing, manifest, and
+integrity; storage and immutability; as-of eligibility; and package layout.
+
 ## Immutable Evidence Philosophy
 
 Replay packages should be immutable evidence artifacts.
