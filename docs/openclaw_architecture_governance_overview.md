@@ -35,6 +35,48 @@ bounded responsibilities:
 The validated architecture is therefore a controlled proposal and governance
 system, not an autonomous portfolio optimizer or execution system.
 
+## Post-Replay Roadmap Rebase
+
+The first guarded replay fixture phase is complete and parked.
+
+Completed replay fixture scope:
+
+- One risk-blocked event-stream fixture was approved through a controlled
+  artifact-intake gate, copied, source-controlled, inventoried,
+  hash/structure guarded, mapper-compatibility guarded, pushed, synced to VPS,
+  and settled under the Alpaca timer baseline.
+- The fixture remains an `EVENT_STREAM_REPLAY_FIXTURE`: event-only,
+  incomplete, evidence-only, non-authoritative, and not a complete replay
+  package.
+- The current replay mapper remains in-memory only. No file ingestion is
+  approved.
+- The single approved fixture intake is closed. No further artifact copying is
+  approved without a separate explicit gate.
+
+Deferred replay and evaluation gates remain:
+
+- Replay package creation.
+- File ingestion.
+- Replay writer.
+- Runtime capture.
+- Storage and immutability.
+- Evaluation framework.
+- Strategy promotion workflow.
+- Additional fixture intake.
+- Broker/API/TWS/IBKR work.
+- Live trading.
+
+Operational and roadmap ordering after replay park:
+
+- The Alpaca timer baseline remains the current operational baseline.
+- IBKR remains parked and broker-sensitive, including the known managed
+  non-flat AAPL paper state. IBKR review must remain read-only unless a future
+  gate explicitly opens broker work.
+- Strategy and risk roadmap work remains governance-only until replay,
+  evaluation, attribution, and promotion contracts are explicitly opened.
+- Recommended next-lane ordering should stay read-only or docs-only unless a
+  new explicit gate opens implementation authority.
+
 ## Current Deterministic Operational Model
 
 The current operational model is deterministic across signal production,

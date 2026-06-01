@@ -240,7 +240,9 @@ Current mitigation:
   dictionaries only, and must not import `main.py`, `config.py`, broker modules,
   Alpaca or IBKR modules, runtime writers, event log writers, observation
   appenders, report persisters, or state write functions.
-- No artifact copying is approved.
+- The single guarded risk-blocked event-stream fixture intake is complete and
+  closed. No further artifact copying is approved without a separate explicit
+  artifact-intake gate.
 - IBKR execution remains deferred.
 - The evidence/research pipeline remains parked as reusable infrastructure only after closure of the 3-close evidence phase.
 
