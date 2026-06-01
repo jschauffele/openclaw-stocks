@@ -34,6 +34,15 @@ If the system records the full decision-relevant inputs at each stage, a run can
 
 Every event in a run should contain these top-level fields.
 
+### schema_version
+
+Purpose:
+- identifies the event envelope version
+- allows future readers to distinguish historical event shapes from later
+  schemas
+- prevents replay or review tooling from silently treating incompatible
+  records as equivalent
+
 ### run_id
 
 Purpose:
@@ -55,12 +64,22 @@ Purpose:
 - defines what stage fact is being recorded
 - determines which payload facts are expected
 
+### timestamp_utc
+
+Purpose:
+- records when the event was captured in UTC
+- preserves ordered timing across the run
+- supports later audit and replay review
+- is the canonical timestamp field for current JSONL event records
+
 ### timestamp
 
 Purpose:
 - records when the event was captured
 - preserves ordered timing across the run
 - supports later audit and replay review
+- is retained as a compatibility mirror of `timestamp_utc` in current event
+  records
 
 ### stage
 
@@ -83,11 +102,47 @@ Purpose:
 - captures what the bot observed, calculated, or concluded at that stage
 - stays flexible so different event types can record different fact sets without changing the top-level contract
 
-## 4. Ordered Event Types For One Run
+Current event records therefore use this envelope:
+
+- `schema_version`
+- `run_id`
+- `event_id`
+- `event_type`
+- `stage`
+- `timestamp_utc`
+- `timestamp`
+- `status`
+- `payload`
+
+## 4. Current Runtime Stage Vocabulary
+
+The current runtime, tests, and source-controlled event-stream fixture use these
+stage names:
+
+| Current `stage` | Historical or conceptual name | Notes |
+| --- | --- | --- |
+| `startup` | `run_started` | Anchors the run and starting context. |
+| `config` | `config_loaded` | Records configuration validation and controls. |
+| `market_session` | `market_checked` | Records market/session gating. |
+| `fetch` | `data_fetched` | Records market data fetch or insufficiency. |
+| `market_input_captured` | `data_fetched` continuation | Records replay-grade market input evidence after a successful fetch. |
+| `strategy_evaluated` | `strategy_evaluated` | Records strategy output before later gates. |
+| `duplicate_check` | `duplicate_checked` | Records duplicate protection result. |
+| `risk_check` | `risk_checked` | Records risk gate result. |
+| `reconcile` | `reconciliation_checked` | Records reconciliation result. |
+| `completion` | `run_completed` | Records the terminal run outcome. |
+
+The historical or conceptual names are retained in this contract as explanatory
+labels. The current runtime vocabulary above is the replay-aligned vocabulary
+for existing JSONL event streams and the source-controlled replay fixture.
+
+## 5. Ordered Event Types For One Run
 
 The canonical ordered event sequence for one run is below.
 Some runs will stop early, so later events may not occur.
 `order_submitted` is optional because some runs block, hold, or stay in dry-run mode.
+The section names below describe conceptual event meanings; current JSONL
+records should be interpreted through the stage vocabulary table above.
 
 ### run_started
 
@@ -332,9 +387,11 @@ Decision-relevant payload facts:
 - final artifact summary facts if needed for derived outputs
 - completion timestamp
 
-## 5. Derived Artifacts
+## 6. Derived Artifacts
 
-`order_state.json` and `last_run_report.json` are derived artifacts because they are summaries of run facts, not the full historical fact record.
+`last_run_report.json`, `order_state.json`, observations, and runtime
+visibility records are derived summaries or separate evidence because they are
+not the full historical event record.
 
 They are useful because they provide a compact current view.
 They are not the source of truth because:
@@ -347,7 +404,12 @@ They are not the source of truth because:
 The event stream should hold the primary record.
 Derived files should be rebuildable from that record.
 
-## 6. Replay Requirements
+Complete replay package candidates require strict `run_id` alignment between
+the JSONL event stream and any paired report, state, observation, or runtime
+visibility evidence. The JSONL event stream is the canonical source of truth
+for current replay alignment review.
+
+## 7. Replay Requirements
 
 The event stream must make it possible to reconstruct:
 
@@ -372,7 +434,26 @@ Replay should allow a reviewer to answer:
 - why did the bot continue, block, hold, or submit
 - what facts materially changed the final outcome
 
-## 7. Non-Goals
+Terminal completion remains mandatory for replay review. Status and terminal
+reason values are evidence fields unless a future replay package or evaluation
+gate defines stricter eligibility rules.
+
+An event JSONL-only fixture is an `EVENT_STREAM_REPLAY_FIXTURE`. It is useful
+for event ordering, stage coverage, terminal outcome, and sequencing review, but
+it is event-only, incomplete, evidence-only, non-authoritative, and not a
+complete replay package.
+
+The current offline mapper is an in-memory scaffold only. It accepts
+already-loaded dictionaries only and does not provide file ingestion, replay
+package creation, writer behavior, runtime capture, storage, evaluation, or
+promotion authority.
+
+Event evidence cannot authorize replay package completeness, strategy
+evaluation, strategy promotion, broker/API/TWS/IBKR/Alpaca work, runtime
+capture, writer behavior, storage, execution permission, strategy or risk
+behavior changes, or live trading.
+
+## 8. Non-Goals
 
 This contract does not try to solve:
 
@@ -386,3 +467,11 @@ This contract does not try to solve:
 - multi-broker standardization beyond the run facts that must be captured
 - research-event contracts outside the live run record
 - full historical market-data warehousing
+- replay package creation
+- file ingestion
+- replay writer behavior
+- runtime capture
+- storage or immutability implementation
+- evaluation, attribution, experiment registry, or promotion logic
+- broker/API/TWS/IBKR/Alpaca work
+- live trading approval
