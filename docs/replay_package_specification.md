@@ -824,6 +824,84 @@ Stop conditions:
 The replay package envelope is a docs-only schema planning record. It is not
 implemented.
 
+## Replay Mapper and Schema Governance Rebase
+
+The current offline mapper and schema remain scaffold-level only.
+
+Current mapper boundary:
+
+- The mapper is an offline in-memory scaffold.
+- It accepts already-loaded dictionaries only.
+- It does not implement file path ingestion.
+- It does not implement runtime capture.
+- It does not implement writer behavior.
+- It does not implement storage, immutability, hashing, manifest, or integrity
+  enforcement.
+- It does not implement evaluation, attribution, experiment registry, or
+  promotion logic.
+
+Current schema boundary:
+
+- The schema is a planning scaffold, not an authoritative production replay
+  package schema.
+- Current schema constants and helper shapes must not be interpreted as
+  implemented package governance.
+- Event JSONL remains canonical for current `run_id` alignment.
+- Event-only fixtures remain incomplete, evidence-only, non-authoritative, and
+  not complete replay packages.
+- Mixed event `run_id` values and mismatched report, state, observation, or
+  runtime visibility evidence keep scaffold output incomplete.
+
+Scaffold completeness boundary:
+
+- Current `complete` status means only that tracked in-memory buckets are
+  present and aligned under current scaffold rules.
+- Current `complete` status does not mean immutable replay package
+  completeness.
+- Current `complete` status does not authorize evaluation, promotion, runtime
+  capture, writer behavior, storage, broker work, strategy or risk behavior
+  changes, or live trading.
+- Present and absent markers are provisional and too coarse for future package
+  authority.
+
+Future governance must define absent, not-applicable, disabled, unavailable,
+stale, redacted, untrusted, and unknown semantics before complete replay
+packages can be authoritative.
+
+Missing prerequisites before complete replay package authority include:
+
+- Implemented package schema and migration policy.
+- File ingestion rules, if any.
+- Writer authority gate.
+- Package layout gate.
+- Runtime capture gate.
+- Storage, finalization, immutability, retention, and discovery rules.
+- Hashing, manifest, and integrity enforcement.
+- Provenance enforcement.
+- Redaction enforcement.
+- Section-level required-field validation.
+- Status vocabulary governance.
+- As-of eligibility checks.
+- Portfolio/risk state capture implementation.
+- Broker-visible state capture implementation, if used.
+- Evaluation, attribution, experiment, and promotion gates.
+
+Current mapper and schema outputs cannot authorize:
+
+- Complete replay package status.
+- Runtime capture.
+- File ingestion.
+- Writer behavior.
+- Storage.
+- Hashing or manifest enforcement.
+- Evaluation.
+- Attribution.
+- Promotion.
+- Broker/API/TWS/IBKR/Alpaca work.
+- Execution permission.
+- Strategy or risk behavior changes.
+- Live trading.
+
 Purpose:
 
 - Standardize package identity.
