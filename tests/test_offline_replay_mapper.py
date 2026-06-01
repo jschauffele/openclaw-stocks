@@ -14,6 +14,7 @@ from tools.replay.package_schema import (
     AUTHORITY_BOUNDARY,
     ENVELOPE_SECTIONS,
     OUT_OF_SCOPE,
+    ReplayInputBundle,
 )
 
 
@@ -147,6 +148,41 @@ def _complete_replay_inputs() -> dict:
     }
 
 
+def _build_test_only_draft_replay_envelope(source: dict | ReplayInputBundle) -> dict:
+    if isinstance(source, ReplayInputBundle):
+        loaded_inputs = {
+            "events": source.events,
+            "run_report": source.run_report,
+            "observations": source.observations,
+            "order_state": source.order_state,
+            "runtime_visibility": source.runtime_visibility,
+        }
+    elif isinstance(source, dict):
+        loaded_inputs = source
+    else:
+        raise TypeError("draft envelope scaffold accepts loaded replay inputs only")
+
+    package = build_replay_package(**loaded_inputs)
+    return {
+        "lifecycle_status": "draft",
+        "evidence_only": True,
+        "non_authoritative": True,
+        "complete_replay_package_authority": False,
+        "writer_authority": False,
+        "filesystem_writes": False,
+        "package_directory_creation": False,
+        "file_path_ingestion": False,
+        "manifest_creation": False,
+        "hashing_integrity_enforcement": False,
+        "runtime_capture": False,
+        "storage_finalization_immutability": False,
+        "evaluation_or_promotion": False,
+        "broker_api_authority": False,
+        "canonical_chronology": "event_jsonl",
+        "mapper_package": package,
+    }
+
+
 def _committed_candidate_artifacts() -> list[dict]:
     return [
         json.loads(path.read_text(encoding="utf-8"))
@@ -263,6 +299,93 @@ def test_risk_blocked_event_stream_fixture_maps_as_incomplete_evidence_only_pack
     assert package["out_of_scope"]["runtime_capture"] is True
     assert package["out_of_scope"]["storage"] is True
     assert package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+
+def test_test_only_draft_replay_envelope_scaffold_preserves_writer_boundaries() -> None:
+    inputs = _complete_replay_inputs()
+    original_inputs = deepcopy(inputs)
+
+    envelope = _build_test_only_draft_replay_envelope(
+        ReplayInputBundle(**inputs)
+    )
+
+    assert inputs == original_inputs
+    assert envelope["lifecycle_status"] == "draft"
+    assert envelope["evidence_only"] is True
+    assert envelope["non_authoritative"] is True
+    assert envelope["complete_replay_package_authority"] is False
+    assert envelope["writer_authority"] is False
+    assert envelope["filesystem_writes"] is False
+    assert envelope["package_directory_creation"] is False
+    assert envelope["file_path_ingestion"] is False
+    assert envelope["manifest_creation"] is False
+    assert envelope["hashing_integrity_enforcement"] is False
+    assert envelope["runtime_capture"] is False
+    assert envelope["storage_finalization_immutability"] is False
+    assert envelope["evaluation_or_promotion"] is False
+    assert envelope["broker_api_authority"] is False
+    assert envelope["canonical_chronology"] == "event_jsonl"
+
+    mapper_package = envelope["mapper_package"]
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_runtime_mutation"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
+
+    event_only_envelope = _build_test_only_draft_replay_envelope(
+        {"events": _risk_blocked_fixture_events()}
+    )
+
+    assert event_only_envelope["lifecycle_status"] == "draft"
+    assert event_only_envelope["complete_replay_package_authority"] is False
+    assert (
+        event_only_envelope["mapper_package"]["package_status"]["status"]
+        == "incomplete"
+    )
+    assert event_only_envelope["mapper_package"]["event_order_references"][
+        "events"
+    ]
+
+    try:
+        _build_test_only_draft_replay_envelope(RISK_BLOCKED_FIXTURE)  # type: ignore[arg-type]
+    except TypeError as exc:
+        assert str(exc) == (
+            "draft envelope scaffold accepts loaded replay inputs only"
+        )
+    else:
+        raise AssertionError("expected TypeError")
+
+    for forbidden_name in (
+        "open",
+        "write",
+        "write_text",
+        "write_bytes",
+        "mkdir",
+        "touch",
+        "replace",
+        "rename",
+        "unlink",
+        "rmdir",
+        "hashlib",
+        "main",
+        "broker",
+        "alpaca",
+        "ibkr",
+    ):
+        assert (
+            forbidden_name
+            not in _build_test_only_draft_replay_envelope.__code__.co_names
+        )
 
 
 def test_mapper_returns_documented_top_level_envelope_sections() -> None:
