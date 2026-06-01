@@ -154,17 +154,22 @@ def _committed_candidate_artifacts() -> list[dict]:
     ]
 
 
+def _risk_blocked_fixture_events() -> list[dict]:
+    fixture_bytes = RISK_BLOCKED_FIXTURE.read_bytes()
+    return [
+        json.loads(line)
+        for line in fixture_bytes.decode("utf-8").splitlines()
+        if line
+    ]
+
+
 def test_risk_blocked_event_stream_fixture_guard() -> None:
     assert RISK_BLOCKED_FIXTURE.is_file()
 
     fixture_bytes = RISK_BLOCKED_FIXTURE.read_bytes()
     assert hashlib.sha256(fixture_bytes).hexdigest() == RISK_BLOCKED_FIXTURE_SHA256
 
-    events = [
-        json.loads(line)
-        for line in fixture_bytes.decode("utf-8").splitlines()
-        if line
-    ]
+    events = _risk_blocked_fixture_events()
 
     assert len(events) == 10
     assert {event["run_id"] for event in events} == {
@@ -203,6 +208,61 @@ def test_risk_blocked_event_stream_fixture_guard() -> None:
             "status",
         ):
             assert event.get(field) is not None
+
+
+def test_risk_blocked_event_stream_fixture_maps_as_incomplete_evidence_only_package() -> None:
+    events = _risk_blocked_fixture_events()
+
+    package = build_replay_package(events=events)
+
+    assert package["package_status"]["status"] == "incomplete"
+    assert package["package_status"]["section_statuses"] == {
+        "events": "present",
+        "run_report": "absent",
+        "observations": "absent",
+        "order_state": "absent",
+        "runtime_visibility": "absent",
+    }
+    assert package["package_status"]["run_id_alignment"] == {
+        "aligned": True,
+        "canonical_run_id": "run_2026-05-29T19:45:04Z_8b7033",
+        "mismatches": {},
+    }
+    assert package["run_identity"]["run_id"] == (
+        "run_2026-05-29T19:45:04Z_8b7033"
+    )
+    assert package["event_order_references"]["events"] == events
+    assert package["event_order_references"]["events"] is not events
+    assert package["market_input_references"]["events"] == [events[4]]
+    assert package["strategy_decision_references"]["events"] == [events[5]]
+    assert package["reconciliation_risk_references"]["events"] == [
+        events[6],
+        events[7],
+        events[8],
+    ]
+    assert package["configuration_references"] == {
+        "status": "absent",
+        "reason": "not_supplied",
+    }
+    assert package["portfolio_risk_snapshot_references"] == {
+        "status": "absent",
+        "reason": "portfolio_risk_reference_not_supplied",
+    }
+    assert package["broker_visible_state_references"] == {
+        "status": "absent",
+        "reason": "broker_visible_reference_not_supplied",
+    }
+    assert package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert package["immutability"]["reason"] == "deferred_until_storage_gate"
+    assert package["authority_boundary"]["evidence_only"] is True
+    assert package["authority_boundary"]["non_authoritative"] is True
+    assert package["authority_boundary"]["no_execution_authority"] is True
+    assert package["authority_boundary"]["no_broker_authority"] is True
+    assert package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert package["out_of_scope"]["artifact_writer"] is True
+    assert package["out_of_scope"]["runtime_capture"] is True
+    assert package["out_of_scope"]["storage"] is True
+    assert package["out_of_scope"]["replay_based_promotion_decisions"] is True
 
 
 def test_mapper_returns_documented_top_level_envelope_sections() -> None:
