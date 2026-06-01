@@ -537,6 +537,107 @@ Future storage concepts may include:
 Storage should avoid mixing mutable evaluation artifacts into immutable
 production evidence packages.
 
+## Storage/Immutability Governance Contract
+
+Storage and immutability planning remains governance-only. This contract does
+not approve package creation, artifact copying, file ingestion, writer
+behavior, runtime capture, storage implementation, hashing implementation,
+manifest implementation, evaluation, promotion, broker work, or live trading.
+
+Replay packages must eventually be immutable evidence artifacts, not mutable
+evaluation outputs. Immutable production evidence must be separated from
+mutable evaluation outputs, reports, comparisons, and recommendations. Original
+facts must not be rewritten. Corrections, annotations, invalidations, and
+reviewer notes must be appended as separate records.
+
+Required future package identity and path convention:
+
+- One package directory per canonical `run_id` or explicitly governed
+  `package_id`.
+- Deterministic package layout.
+- Explicit package status such as `draft`, `finalized`, `invalidated`, or
+  `superseded`.
+
+Required future manifest fields:
+
+- `package_id`.
+- Canonical `run_id`.
+- Schema version.
+- `created_at` timestamp.
+- Source commit.
+- Source artifact references.
+- Section list.
+- Section status.
+- Section hashes.
+- Completeness status.
+- Authority boundary.
+- Redaction status.
+- Correction and annotation references.
+
+Required hashing and integrity rules:
+
+- Content hash algorithm must be specified before implementation.
+- Section-level hashes are required.
+- Manifest hash is required.
+- Hash mismatch must fail closed.
+- Mixed `run_id` evidence must fail closed.
+- Missing provenance must fail closed.
+- Unclear source path must fail closed.
+
+Required provenance rules:
+
+- Every package section needs source artifact identity.
+- Every package section needs a source path or source reference.
+- Captured sections need a capture timestamp.
+- Decision-relevant sections need a decision timestamp.
+- Feature or input data needs as-of eligibility evidence.
+- Source commit or runtime version is required where applicable.
+
+Required redaction and sanitization rules:
+
+- Raw credentials and secrets must never be stored.
+- Broker/account-sensitive identifiers require explicit safe handling.
+- Account identifiers may be stored only if governance marks them safe or
+  redacted.
+- Redaction must preserve audit usefulness without leaking secrets.
+
+Required retention, discovery, and index policy:
+
+- Finalized package retention rule.
+- Invalidated package retention rule.
+- Package discovery or index rule.
+- Distinction between retained evidence and disposable evaluation artifacts.
+
+Writer authority boundary:
+
+- A future writer may write only approved package artifacts under an explicit
+  gate.
+- A writer cannot call broker/API/TWS/Alpaca/IBKR.
+- A writer cannot call `main.py`.
+- A writer cannot mutate runtime state.
+- A writer cannot promote strategies or create execution permission.
+
+Runtime capture prerequisites:
+
+- Storage and immutability contract.
+- Manifest and hash contract.
+- Provenance and redaction contract.
+- Package layout contract.
+- Stop conditions.
+- Evidence classification rules.
+
+Stop conditions:
+
+- Sensitive data exposure.
+- Missing provenance.
+- Hash mismatch.
+- Mixed `run_id`.
+- Unclear source path.
+- Unknown package authority.
+- Implied evaluation or promotion authority.
+- Missing redaction status.
+- Missing as-of eligibility for decision-relevant features.
+
 ## Replay Package Envelope Schema Planning
 
 The replay package envelope is a docs-only schema planning record. It is not
