@@ -43,6 +43,18 @@ FUTURE_DRAFT_ENVELOPE_MODULE = (
     / "replay"
     / "draft_envelope.py"
 )
+FUTURE_PACKAGE_CREATION_MODULES = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_writer.py",
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_creator.py",
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_creation.py",
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "manifest_writer.py",
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "manifest_generator.py"
+    ),
+)
 FORBIDDEN_DRAFT_ENVELOPE_NAMES = (
     "Path",
     "os",
@@ -70,6 +82,19 @@ FORBIDDEN_DRAFT_ENVELOPE_NAMES = (
     "rename",
     "unlink",
     "rmdir",
+)
+FORBIDDEN_PACKAGE_CREATION_NAMES = (
+    *FORBIDDEN_DRAFT_ENVELOPE_NAMES,
+    "package_writer",
+    "package_creator",
+    "package_creation",
+    "manifest_writer",
+    "manifest_generator",
+    "hash_writer",
+    "integrity_validator",
+    "storage_writer",
+    "runtime_capture",
+    "file_ingestion",
 )
 
 
@@ -432,6 +457,84 @@ def test_draft_envelope_source_module_remains_pure_in_memory() -> None:
     helper_names = build_draft_replay_envelope.__code__.co_names
     for forbidden_name in FORBIDDEN_DRAFT_ENVELOPE_NAMES:
         assert forbidden_name not in helper_names
+
+
+def test_replay_package_creation_boundary_remains_unimplemented() -> None:
+    for module_path in FUTURE_PACKAGE_CREATION_MODULES:
+        assert not module_path.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    event_only_envelope = build_draft_replay_envelope(
+        {"events": _risk_blocked_fixture_events()}
+    )
+    report_only_package = build_replay_package(
+        events=[],
+        run_report=_run_report(),
+    )
+
+    for envelope in (complete_inputs_envelope, event_only_envelope):
+        assert envelope["lifecycle_status"] == "draft"
+        assert envelope["evidence_only"] is True
+        assert envelope["non_authoritative"] is True
+        assert envelope["complete_replay_package_authority"] is False
+        assert envelope["writer_authority"] is False
+        assert envelope["filesystem_writes"] is False
+        assert envelope["package_directory_creation"] is False
+        assert envelope["file_path_ingestion"] is False
+        assert envelope["manifest_creation"] is False
+        assert envelope["hashing_integrity_enforcement"] is False
+        assert envelope["runtime_capture"] is False
+        assert envelope["storage_finalization_immutability"] is False
+        assert envelope["evaluation_or_promotion"] is False
+        assert envelope["broker_api_authority"] is False
+        assert envelope["canonical_chronology"] == "event_jsonl"
+        assert "replay_package_authority" not in envelope
+        assert "finalized_immutable_replay_package_authority" not in envelope
+
+    assert (
+        complete_inputs_envelope["mapper_package"]["package_status"]["status"]
+        == "complete"
+    )
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert complete_inputs_envelope["mapper_package"]["authority_boundary"][
+        "non_authoritative"
+    ] is True
+
+    assert (
+        event_only_envelope["mapper_package"]["package_status"]["status"]
+        == "incomplete"
+    )
+    assert event_only_envelope["complete_replay_package_authority"] is False
+    assert event_only_envelope["mapper_package"]["run_identity"]["run_id"] == (
+        "run_2026-05-29T19:45:04Z_8b7033"
+    )
+
+    assert report_only_package["package_status"]["status"] == "incomplete"
+    assert report_only_package["event_order_references"] == {
+        "status": "absent",
+        "reason": "events_not_supplied",
+    }
+    assert report_only_package["configuration_references"]["run_report"] == _run_report()
+    assert report_only_package["authority_boundary"]["non_authoritative"] is True
+    assert report_only_package["out_of_scope"]["artifact_writer"] is True
+    assert report_only_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert report_only_package["out_of_scope"]["storage"] is True
+    assert report_only_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert report_only_package["out_of_scope"]["runtime_capture"] is True
+    assert report_only_package["out_of_scope"]["broker_live_api_work"] is True
+    assert report_only_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for module in (draft_envelope, offline_mapper, package_schema):
+        module_names = set(module.__dict__)
+        for forbidden_name in FORBIDDEN_PACKAGE_CREATION_NAMES:
+            assert forbidden_name not in module_names
+        for value in module.__dict__.values():
+            if isinstance(value, FunctionType):
+                assert set(FORBIDDEN_PACKAGE_CREATION_NAMES).isdisjoint(
+                    value.__code__.co_names
+                )
 
 
 def test_mapper_returns_documented_top_level_envelope_sections() -> None:
