@@ -12,6 +12,55 @@ of replay infrastructure, experiment tracking, promotion tooling, paper trading,
 shadow evaluation, AI-controlled evaluation, runtime mutation, execution
 activation, or autonomous optimization.
 
+## Evaluation/Promotion Contract Rebase
+
+Evaluation and promotion remain governance-only. Evaluation systems may produce
+reports, metrics, comparisons, and recommendations only. Promotion remains the
+explicit, governed, reviewable, and reversible movement of an approved version
+into production.
+
+Experiment, shadow, A/B, and paper-validation work remains non-authoritative
+evidence only. A favorable experiment, shadow output, paper result, metric, or
+AI recommendation cannot promote a strategy, mutate runtime state, create
+execution permission, or change production behavior.
+
+The offline replay mapper scaffold and tests now exist, but they remain
+offline, in-memory, evidence-only, non-authoritative, and incomplete unless all
+tracked sections are present and aligned. The current source-controlled replay
+fixture and mapper remain event-only, incomplete, evidence-only,
+non-authoritative, and not a complete replay package.
+
+Evaluation evidence cannot:
+
+- Change strategy or risk behavior.
+- Authorize broker/API/TWS/IBKR/Alpaca work.
+- Approve live trading.
+- Automatically promote a strategy.
+- Mutate runtime state.
+- Create execution permission.
+
+Authoritative evaluation requires separate future gates for:
+
+- Replay package creation and stable envelope/schema implementation.
+- Replay-grade input and state package contracts.
+- Portfolio/risk state contract.
+- Package integrity, hashing, storage, and immutability.
+- Attribution framework and metric definitions.
+- Experiment identifiers, package sets, inclusion and exclusion criteria, and
+  reproducibility rules.
+- As-of feature availability contract.
+- Strategy and parameter version governance.
+- Promotion workflow with approval, monitoring, rollback, and rejection
+  criteria.
+- Shadow, A/B, or paper-comparison design if used.
+- Risk review before cap, sizing, allocation, sell, hedge, short, trim, exit,
+  or rebalance behavior.
+
+As-of feature availability remains a major prerequisite before evaluation,
+backtest, or regime work can become credible. No feature may support strategy,
+replay, backtest, or regime classification unless future governance can prove
+that the feature was observable at the decision timestamp.
+
 ## System Distinctions
 
 Evaluation governance requires four systems to remain distinct.
@@ -35,18 +84,16 @@ Replay systems do not have production authority. They must not mutate live
 state, approve execution, change production parameters, or change production
 strategy logic.
 
-Initial replay package implementation planning is limited to a future pure
-offline mapper. That mapper may consume existing event JSONL, run reports,
-observation JSONL, order state JSON, and runtime visibility summaries by
-explicit artifact path or already-loaded dictionaries only. It must not import
-or call `main.py`, `config.py`, broker modules, Alpaca or IBKR modules, runtime
-writers, event log writers, observation appenders, report persisters, or state
-write functions.
+The current replay package implementation scaffold is limited to a pure offline
+mapper. That mapper consumes already-loaded dictionaries only. It must not
+import or call `main.py`, `config.py`, broker modules, Alpaca or IBKR modules,
+runtime writers, event log writers, observation appenders, report persisters,
+or state write functions.
 
-The offline mapper planning boundary does not approve implementation, tests,
-artifact writing, storage, runtime integration, broker/live/API work, strategy
-behavior changes, VPS validation, or promotion decisions. Sidecar artifact
-writing remains deferred until a separate storage and immutability gate.
+The offline mapper boundary does not approve artifact writing, storage, runtime
+integration, broker/live/API work, strategy behavior changes, VPS validation,
+or promotion decisions. Sidecar artifact writing remains deferred until a
+separate storage and immutability gate.
 
 ### Evaluation Systems
 
