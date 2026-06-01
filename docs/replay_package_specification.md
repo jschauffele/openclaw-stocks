@@ -854,6 +854,97 @@ Writer authority boundary:
 - A writer cannot mutate runtime state.
 - A writer cannot promote strategies or create execution permission.
 
+## Replay Writer Authority Contract
+
+Replay writer planning remains governance-only. This contract does not approve
+replay writer implementation, replay package creation, file ingestion, runtime
+capture, storage implementation, hashing or manifest implementation,
+evaluation, attribution, promotion, broker work, or live trading.
+
+A future writer may write only explicitly approved replay package artifacts
+under a separate implementation gate. It may write only to approved package
+output paths defined by a future package layout contract.
+
+A future writer must not:
+
+- Overwrite finalized package evidence.
+- Mutate runtime state.
+- Call `main.py`.
+- Call broker/API/TWS/Alpaca/IBKR.
+- Submit, cancel, flatten, sell, clean up, retry, remediate, or otherwise
+  affect broker state.
+- Create execution permission.
+- Promote strategies.
+- Create live trading authority.
+- Treat derived reports, observations, runtime visibility, or broker-visible
+  state as source-of-truth without explicit provenance and alignment rules.
+
+Allowed future source inputs, subject to later gates:
+
+- JSONL event streams.
+- `last_run_report.json`, only as derived evidence matched to JSONL `run_id`.
+- `order_state.json`, only as separate operational state evidence.
+- Observations, only when run-filtered and provenance-tagged.
+- Runtime visibility metadata, only as observed-only readiness evidence.
+- Configuration and code metadata.
+- Market input evidence.
+- Strategy input and output evidence.
+- Portfolio and risk state evidence.
+- Broker-visible state evidence, if used, only as observed evidence and not
+  broker authority.
+- Reconciliation and risk evidence.
+
+Required prerequisites before writer implementation:
+
+- Exact package layout.
+- Exact allowed output paths.
+- Exact source artifact rules.
+- Source path or source reference rules.
+- File ingestion rules, if any.
+- Package status lifecycle: `draft`, `finalized`, `invalidated`, and
+  `superseded`.
+- No-overwrite and finalization rules.
+- Manifest shape and required fields.
+- Section hash requirements.
+- Package hash requirements.
+- Provenance requirements.
+- Redaction and sanitization requirements.
+- Absent, not-applicable, disabled, unavailable, stale, redacted, untrusted,
+  and unknown semantics.
+- Correction and annotation rules.
+- Retention and discovery or index policy.
+- Storage and immutability gate.
+- Runtime capture gate, if runtime artifacts are used.
+- Evaluation and promotion gates, if output will later be evaluated.
+
+Writer stop conditions:
+
+- Unknown source path.
+- Missing source reference.
+- Missing provenance.
+- Missing redaction status.
+- Mixed `run_id`.
+- Missing terminal completion.
+- Stale report or stale JSONL.
+- Runtime visibility ambiguity.
+- Broker-visible state mistaken for broker authority.
+- Sensitive data exposure.
+- Attempted overwrite of finalized evidence.
+- Unknown package authority.
+- Implied evaluation authority.
+- Implied promotion authority.
+- Implied execution permission.
+- Implied live trading authority.
+- Hash or manifest mismatch once hashing exists.
+
+Writer output remains evidence only. It cannot authorize complete replay
+package status unless future schema, storage, and integrity gates define and
+validate that status. It cannot authorize evaluation, attribution, promotion,
+broker/API/TWS/IBKR/Alpaca work, execution permission, strategy or risk
+behavior changes, cleanup, flatten, sell, cancel, remediation, or live trading.
+Writer output cannot become runtime truth and cannot replace JSONL as canonical
+event chronology.
+
 Runtime capture prerequisites:
 
 - Storage and immutability contract.
