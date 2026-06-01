@@ -1085,6 +1085,120 @@ package completeness, runtime capture, storage, evaluation, attribution,
 promotion, broker work, execution permission, strategy or risk behavior changes,
 cleanup, flatten, sell, cancel, remediation, or live trading.
 
+## Replay Package Creation Authority Contract
+
+Replay package creation authority remains governance-only. This contract does
+not approve package creation implementation, filesystem writes, package
+directories, file ingestion, runtime capture, manifest generation, hashing,
+storage, evaluation, broker work, or live trading.
+
+Authority states remain distinct:
+
+- Draft envelope.
+- Mapper scaffold.
+- Replay package.
+- Complete replay package.
+- Finalized immutable replay package.
+
+Current `build_draft_replay_envelope(...)` output remains draft scaffold
+evidence only. Current `build_replay_package(...)` mapper scaffold output may
+indicate tracked in-memory bucket completeness, but it cannot create complete
+replay package authority. Event JSONL remains canonical event chronology.
+`last_run_report.json` remains a derived operational summary and cannot alone
+create package authority. `order_state.json`, observations, and runtime
+visibility remain separate evidence with provenance requirements.
+
+The first future package-creation lifecycle state, if later approved, must be
+`draft` only. Draft package creation must not imply finalized package
+authority, overwrite existing evidence, mutate runtime state, call `main.py`,
+call broker/API/TWS/Alpaca/IBKR, evaluate, attribute, promote, or approve
+strategies, create execution permission, or create live trading authority.
+
+Required prerequisites before any package creation implementation:
+
+- Exact package layout.
+- Exact approved output root and package paths.
+- Exact source artifact rules.
+- Exact source reference rules.
+- File ingestion rules, if any.
+- Manifest schema.
+- Deterministic manifest serialization.
+- Section status semantics.
+- Section hash rules.
+- Package or manifest hash rules.
+- Integrity validation rules.
+- Provenance requirements.
+- Redaction and sanitization requirements.
+- Absent, not-applicable, disabled, unavailable, stale, redacted, untrusted,
+  and unknown semantics.
+- Correction, annotation, invalidation, and supersession rules.
+- No-overwrite and finalization rules.
+- Storage, finalization, and immutability gate.
+- Retention, discovery, and index policy.
+- Runtime capture gate if runtime artifacts are used.
+- Evaluation, attribution, and promotion gates if output will later be
+  evaluated.
+
+Allowed future source inputs, subject to later gates:
+
+- JSONL event stream references.
+- Already-loaded event dictionaries.
+- `last_run_report.json`, only as derived evidence matched to JSONL `run_id`.
+- `order_state.json`, only as separate operational state evidence with
+  provenance.
+- Observations, only when run-filtered and provenance-tagged.
+- Runtime visibility metadata, only as observed-only readiness evidence.
+- Configuration and code metadata.
+- Market input evidence.
+- Strategy input and output evidence.
+- Portfolio and risk state evidence.
+- Broker-visible state evidence, only as observed evidence and not broker
+  authority.
+- Reconciliation and risk evidence.
+
+Forbidden or untrusted without later gates:
+
+- Unreferenced files.
+- Unknown source paths.
+- Mixed `run_id` sources.
+- Stale reports.
+- Stale JSONL.
+- Missing terminal completion.
+- Missing provenance.
+- Missing redaction status.
+- Runtime visibility ambiguity.
+- Broker-visible state treated as broker authority.
+- Any source implying execution permission.
+- Any source implying live trading authority.
+
+Package creation stop conditions:
+
+- Need to write package files before output-path authority exists.
+- Need to create package directories before layout authority exists.
+- Need to ingest file paths before file-ingestion rules exist.
+- Need to generate manifests before manifest schema exists.
+- Need to compute hashes before hash and integrity rules exist.
+- Need to finalize packages before storage and finalization rules exist.
+- Need to capture runtime artifacts before a runtime capture gate exists.
+- Need to evaluate, attribute, or promote strategies before evaluation and
+  promotion gates exist.
+- Missing canonical `run_id`.
+- Mixed `run_id`.
+- Missing terminal completion.
+- Missing source reference.
+- Missing provenance.
+- Missing redaction status.
+- Sensitive data exposure.
+- Implied broker authority.
+- Implied execution permission.
+- Implied live trading authority.
+
+This contract cannot authorize replay package creation, complete replay package
+status, finalized immutable replay package status, runtime capture, storage,
+evaluation, attribution, promotion, broker work, execution permission, strategy
+or risk behavior changes, cleanup, flatten, sell, cancel, remediation, or live
+trading.
+
 ## Replay Package Layout, Manifest, Hash, and Lifecycle Contract
 
 Package layout, manifest, hash, integrity, finalization, and lifecycle planning
