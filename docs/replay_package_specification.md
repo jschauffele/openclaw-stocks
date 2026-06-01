@@ -282,6 +282,97 @@ docs-only. It does not approve implementation, replay package writing, runtime
 changes, strategy behavior changes, broker/live/API work, VPS validation,
 execution activation, or portfolio mutation.
 
+Portfolio/risk state planning remains governance-only. Current production risk
+behavior remains hard-cap enforcement through reconciliation and risk checks.
+Broker-visible state is evidence only and does not create execution permission.
+
+State classifications must remain distinct:
+
+- Internal intended state: OpenClaw's local or proposed portfolio facts before
+  broker reconciliation.
+- Broker-observed state: observed broker facts such as positions, open orders,
+  buying power, fills, errors, and freshness.
+- Reconciled composite state: the explicit result of reconciling internal and
+  broker-observed evidence under approved rules.
+- Risk state: configured limits, evaluated values, risk decisions, and reasons.
+- Execution permission: downstream approval to proceed toward broker-facing
+  activity after all required gates pass.
+- Broker execution: actual broker-facing order activity.
+
+Required future state fields include:
+
+- Schema version.
+- Source classification.
+- Symbol universe.
+- Portfolio snapshot timestamp.
+- Decision timestamp.
+- As-of eligibility timestamp.
+- Position quantity.
+- Position side.
+- Market value or exposure value when available.
+- Existing position quantity.
+- Open order quantity.
+- Projected position quantity.
+- Maximum position size.
+- Remaining capacity.
+- Saturation state.
+- Cash or buying power when decision-relevant.
+- Broker observation timestamp.
+- Broker observation freshness.
+- Reconciliation status.
+- Ambiguity and manual-review flags.
+- Terminal risk decision.
+
+Required exposure definitions:
+
+- Symbol exposure.
+- Projected exposure.
+- Portfolio exposure.
+- Strategy exposure.
+- Regime exposure.
+- Sector or factor exposure, if later introduced.
+- Gross and net exposure, if later introduced.
+- Liquidity-adjusted exposure, if later introduced.
+- Risk-budget usage, if later introduced.
+
+Timestamp and as-of rules:
+
+- Portfolio state must be proven pre-decision before use.
+- Broker-visible state must include observation timestamp and freshness.
+- Stale, unknown, ambiguous, or post-decision state must fail closed.
+- Mixed-timestamp state must be explicitly classified and cannot silently become
+  authoritative.
+
+Provenance rules:
+
+- Every portfolio/risk field needs source identity.
+- Every broker-visible field needs broker or source observation metadata.
+- Every derived field needs transformation and version metadata.
+- Every decision-relevant field needs as-of eligibility evidence.
+
+Absent and not-applicable semantics:
+
+- Missing state must be explicit.
+- Not-applicable state must be explicit.
+- Absent sections cannot be treated as zero unless a future rule explicitly
+  allows it.
+
+Authority boundaries:
+
+- Signal demand is not allocation approval.
+- Allocation intent is not risk approval.
+- Risk approval is not broker execution.
+- Reconciliation evidence is not execution permission.
+- Broker-visible observation is not cleanup, flatten, sell, or remediation
+  authority.
+- Evaluation evidence is not strategy promotion.
+
+Future portfolio construction, allocation arbitration, dynamic sizing, trim,
+exit, rebalance, hedge, short, and adaptive optimization require separate
+gates. This contract does not approve replay package creation, runtime capture,
+portfolio state capture implementation, allocation logic, risk behavior
+changes, execution behavior changes, broker work, or live trading.
+
 Required portfolio-state snapshot fields:
 
 - Snapshot identifier.
