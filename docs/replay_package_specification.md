@@ -945,6 +945,98 @@ behavior changes, cleanup, flatten, sell, cancel, remediation, or live trading.
 Writer output cannot become runtime truth and cannot replace JSONL as canonical
 event chronology.
 
+## Replay Writer Implementation Scope Contract
+
+Replay writer implementation scoping remains governance-only. This contract
+does not approve implementation.
+
+The first future implementation, if later approved, must be test-only or pure
+in-memory only. It must not:
+
+- Write to the filesystem.
+- Create package directories.
+- Create manifest files.
+- Compute or enforce hashes.
+- Implement storage, finalization, immutability, retention, or discovery.
+- Read from runtime artifact paths directly.
+- Implement file path ingestion.
+- Call `main.py`.
+- Call broker/API/TWS/Alpaca/IBKR.
+- Mutate runtime state.
+- Use `.env`.
+- Create execution permission.
+- Evaluate, attribute, promote, or approve strategies.
+- Authorize live trading.
+
+Smallest safe future implementation shape:
+
+- Pure function only.
+- Accepts already-loaded dictionaries or an existing `ReplayInputBundle` only.
+- Returns a draft package dictionary or envelope only.
+- Reuses existing schema constants and current `build_replay_package(...)`
+  semantics where possible.
+- Preserves event JSONL as canonical `run_id` chronology.
+- Preserves evidence-only and non-authoritative flags.
+- Preserves event-only fixture incompleteness.
+- Preserves mapper scaffold completeness distinction from complete replay
+  package authority.
+- Does not alter existing mapper behavior unless a separate implementation gate
+  explicitly approves it.
+
+Future implementation test requirements:
+
+- Prove no filesystem writes.
+- Prove no package directories are created.
+- Prove no file path ingestion.
+- Prove no runtime capture.
+- Prove input objects are not mutated.
+- Prove output is draft, evidence-only, and non-authoritative.
+- Prove writer, storage, runtime, hash, evaluation, and promotion remain out of
+  scope.
+- Prove event JSONL remains canonical for `run_id`.
+- Prove event-only fixture remains incomplete.
+- Prove no complete package status is inferred from mapper scaffold
+  completeness.
+
+Naming constraints:
+
+- Avoid names that imply filesystem writer authority unless the module or test
+  names explicitly include draft, scaffold, in-memory, or test-only semantics.
+- Avoid names that imply package finalization, manifest generation, hashing,
+  storage, capture, or evaluation.
+
+Any future implementation gate must cite:
+
+- Replay writer authority contract.
+- Replay package layout, manifest, hash, and lifecycle contract.
+- Runtime capture prerequisite contract.
+- Mapper/schema governance rebase.
+- Observability/reporting evidence alignment.
+- Storage/immutability governance.
+- Replay package authority limitations.
+
+Implementation scope stop conditions:
+
+- Need to write files.
+- Need to read runtime paths.
+- Need to create package directories.
+- Need to create manifest files.
+- Need to compute hashes.
+- Need to inspect or mutate `.env`.
+- Need to call `main.py`.
+- Need to call broker/API/TWS/Alpaca/IBKR.
+- Need to mutate runtime state.
+- Need to change strategy, risk, or execution behavior.
+- Need to classify output as a complete replay package.
+- Need to evaluate, attribute, promote, or approve strategies.
+- Need to imply execution permission or live trading authority.
+
+Future in-memory draft output remains scaffold evidence only. It cannot
+authorize replay package completeness, runtime capture, writer behavior,
+storage, evaluation, attribution, promotion, broker work, execution permission,
+strategy or risk changes, cleanup, flatten, sell, cancel, remediation, or live
+trading. It cannot replace JSONL as canonical event chronology.
+
 ## Replay Package Layout, Manifest, Hash, and Lifecycle Contract
 
 Package layout, manifest, hash, integrity, finalization, and lifecycle planning
