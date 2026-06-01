@@ -35,6 +35,40 @@ RISK_BLOCKED_FIXTURE = (
 RISK_BLOCKED_FIXTURE_SHA256 = (
     "8c68bb94ea663997874b28c705820b78ca45808cd5fd4a36363582bdcc72aca4"
 )
+FUTURE_DRAFT_ENVELOPE_MODULE = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "draft_envelope.py"
+)
+FORBIDDEN_DRAFT_ENVELOPE_NAMES = (
+    "Path",
+    "os",
+    "subprocess",
+    "socket",
+    "hashlib",
+    "main",
+    "broker",
+    "alpaca",
+    "ibkr",
+    "reporting",
+    "state_manager",
+    "event_logger",
+    "observation_logger",
+    "runtime_visibility_writer",
+    "runtime_visibility_orchestrator",
+    "runtime_visibility_provider_composer",
+    "open",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "touch",
+    "replace",
+    "rename",
+    "unlink",
+    "rmdir",
+)
 
 
 def _event_payloads() -> list[dict]:
@@ -365,27 +399,73 @@ def test_test_only_draft_replay_envelope_scaffold_preserves_writer_boundaries() 
     else:
         raise AssertionError("expected TypeError")
 
-    for forbidden_name in (
-        "open",
-        "write",
-        "write_text",
-        "write_bytes",
-        "mkdir",
-        "touch",
-        "replace",
-        "rename",
-        "unlink",
-        "rmdir",
-        "hashlib",
-        "main",
-        "broker",
-        "alpaca",
-        "ibkr",
-    ):
+    for forbidden_name in FORBIDDEN_DRAFT_ENVELOPE_NAMES:
         assert (
             forbidden_name
             not in _build_test_only_draft_replay_envelope.__code__.co_names
         )
+
+
+def test_future_source_module_boundary_remains_test_only_and_in_memory() -> None:
+    assert not FUTURE_DRAFT_ENVELOPE_MODULE.exists()
+    assert "test_only" in _build_test_only_draft_replay_envelope.__name__
+    assert "draft" in _build_test_only_draft_replay_envelope.__name__
+
+    loaded_dict_envelope = _build_test_only_draft_replay_envelope(
+        _complete_replay_inputs()
+    )
+    bundle_envelope = _build_test_only_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+
+    assert loaded_dict_envelope["lifecycle_status"] == "draft"
+    assert bundle_envelope["lifecycle_status"] == "draft"
+    for envelope in (loaded_dict_envelope, bundle_envelope):
+        assert envelope["evidence_only"] is True
+        assert envelope["non_authoritative"] is True
+        assert envelope["complete_replay_package_authority"] is False
+        assert envelope["writer_authority"] is False
+        assert envelope["canonical_chronology"] == "event_jsonl"
+        assert envelope["filesystem_writes"] is False
+        assert envelope["package_directory_creation"] is False
+        assert envelope["file_path_ingestion"] is False
+        assert envelope["manifest_creation"] is False
+        assert envelope["hashing_integrity_enforcement"] is False
+        assert envelope["runtime_capture"] is False
+        assert envelope["storage_finalization_immutability"] is False
+        assert envelope["evaluation_or_promotion"] is False
+        assert envelope["broker_api_authority"] is False
+
+    event_only_envelope = _build_test_only_draft_replay_envelope(
+        {"events": _risk_blocked_fixture_events()}
+    )
+    assert (
+        event_only_envelope["mapper_package"]["package_status"]["status"]
+        == "incomplete"
+    )
+    assert event_only_envelope["complete_replay_package_authority"] is False
+
+    try:
+        _build_test_only_draft_replay_envelope(str(RISK_BLOCKED_FIXTURE))  # type: ignore[arg-type]
+    except TypeError as exc:
+        assert str(exc) == (
+            "draft envelope scaffold accepts loaded replay inputs only"
+        )
+    else:
+        raise AssertionError("expected TypeError")
+
+    assert (
+        loaded_dict_envelope["mapper_package"]["package_status"]["status"]
+        == "complete"
+    )
+    assert loaded_dict_envelope["complete_replay_package_authority"] is False
+    assert loaded_dict_envelope["mapper_package"]["authority_boundary"][
+        "non_authoritative"
+    ] is True
+
+    helper_names = _build_test_only_draft_replay_envelope.__code__.co_names
+    for forbidden_name in FORBIDDEN_DRAFT_ENVELOPE_NAMES:
+        assert forbidden_name not in helper_names
 
 
 def test_mapper_returns_documented_top_level_envelope_sections() -> None:
