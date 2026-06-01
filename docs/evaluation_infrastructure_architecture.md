@@ -61,6 +61,82 @@ backtest, or regime work can become credible. No feature may support strategy,
 replay, backtest, or regime classification unless future governance can prove
 that the feature was observable at the decision timestamp.
 
+## As-Of Feature Availability Contract
+
+No feature may support strategy, replay, backtest, regime classification,
+strategy routing, portfolio construction, or evaluation unless future
+governance can prove that the feature was observable at the decision timestamp.
+
+This contract is docs-only. It does not approve feature implementation, market
+data behavior changes, evaluation implementation, promotion logic, replay
+package creation, broker/API work, IBKR action, or live trading.
+
+Core timestamps and timing terms:
+
+- `source_timestamp`: the timestamp represented by the underlying source fact,
+  such as a candle timestamp, filing period, macro reference period, broker
+  observation time, or portfolio snapshot time.
+- `available_at_timestamp`: the earliest timestamp when that source fact was
+  available to OpenClaw for decision use after publication delay, provider
+  delay, ingestion delay, revision status, and market-session constraints.
+- `decision_timestamp`: the timestamp at which OpenClaw makes or reconstructs
+  the decision that would consume the feature.
+- `signal_timestamp`: the timestamp assigned to the strategy signal, regime
+  label, routing result, portfolio intent, or evaluation output produced from
+  eligible as-of inputs.
+- Aggregation window open/close semantics: each derived feature must define the
+  source window it aggregates, whether the close of that window is included,
+  and when the aggregated value becomes eligible for decision use.
+- Market-session and calendar context: feature eligibility must define the
+  session, holiday, after-hours, timezone, and calendar assumptions that affect
+  when a fact could have been observed.
+- Freshness limits: each feature class must define maximum staleness and must
+  fail closed when the input is older than the allowed freshness window.
+- Revised-data policy: cleaned, adjusted, corrected, restated, or vendor-revised
+  historical data requires revision provenance and must distinguish original
+  decision-time availability from later corrections.
+- Missing, late, or stale-data behavior: absent, delayed, ambiguous, or stale
+  facts must produce an explicit unavailable, stale, or unknown status rather
+  than being silently filled as eligible evidence.
+- Mixed-frequency alignment rules: combining intraday, daily, weekly, monthly,
+  macro, news, broker, and portfolio inputs requires explicit availability and
+  forward-fill rules for each source frequency.
+- Feature provenance and versioning: every future authoritative feature must
+  identify source provider, source version or revision status, transformation
+  version, aggregation logic, and eligibility rule version.
+- Replay and backtest eligibility checks: future replay, backtest, and
+  evaluation tooling must verify that every consumed feature has
+  `available_at_timestamp <= decision_timestamp` and satisfies freshness,
+  provenance, revision, and aggregation-window rules.
+- Fail-closed behavior: if feature availability is unknown, ambiguous, stale,
+  unversioned, unreconciled, or unprovable, the feature is ineligible for
+  authoritative strategy, replay, backtest, regime, routing, portfolio, or
+  evaluation use.
+
+Specific availability guards:
+
+- Market data cannot use incomplete or unavailable candles.
+- Derived indicators cannot use future bars, revised bars, or post-close
+  information unless decision-time availability is proven.
+- Regime labels cannot be computed from future outcome windows for
+  decision-time routing.
+- Macro, news, external, or slow-frequency data must use availability time, not
+  merely publication time or source-period time.
+- Portfolio, risk, and broker-state snapshots must be proven pre-decision
+  before they can influence strategy, replay, backtest, evaluation, routing, or
+  portfolio-construction evidence.
+- Mixed-frequency forward fill requires explicit availability rules and must
+  not carry a source fact past its approved freshness or validity window.
+- Revised or cleaned historical data requires revision provenance before it can
+  be compared to original decision-time evidence.
+
+Until this contract is implemented through separate future gates, future
+features, regime labels, derived indicators, portfolio inputs, broker-state
+snapshots, and evaluation or backtest outputs remain non-authoritative. They
+cannot approve strategy behavior changes, risk behavior changes, broker/API
+work, execution permission, replay package completeness, strategy promotion, or
+live trading.
+
 ## System Distinctions
 
 Evaluation governance requires four systems to remain distinct.
