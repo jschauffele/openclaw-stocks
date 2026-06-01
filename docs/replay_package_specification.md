@@ -70,6 +70,96 @@ promotion, runtime capture, artifact writer implementation, storage, broker/API
 work, live trading, production behavior changes, execution permission, broker
 authority, or strategy/risk behavior changes.
 
+## Runtime Capture Prerequisite Contract
+
+Runtime capture planning remains governance-only. This contract does not approve
+runtime capture implementation, replay package creation, artifact copying, file
+ingestion, writer behavior, storage implementation, hashing or manifest
+implementation, evaluation, attribution, promotion, broker work, or live
+trading.
+
+Current runtime artifacts are operational outputs only:
+
+- JSONL event stream.
+- `last_run_report.json`.
+- `order_state.json`.
+- Observations.
+- Runtime visibility metadata, when present.
+
+The JSONL event stream remains the canonical source of truth for event
+chronology and `run_id` alignment. `last_run_report.json`, `order_state.json`,
+observations, and runtime visibility metadata remain derived summaries or
+separate evidence.
+
+Runtime capture must not:
+
+- Mutate runtime state.
+- Call `main.py`.
+- Call broker/API/TWS/Alpaca/IBKR.
+- Create execution permission.
+- Promote strategies.
+- Authorize live trading.
+
+Required future capture scope:
+
+- Exact artifact list.
+- Exact source paths or source references.
+- Target package layout.
+- Allowed source classifications.
+- Required absent or not-applicable declarations.
+- `run_id` alignment rules.
+- Terminal completion requirement.
+- Report, state, observation, and runtime visibility alignment rules.
+- Source commit and runtime version capture.
+- Capture timestamp.
+- Decision timestamp where decision-relevant.
+- As-of eligibility where feature or input data is used.
+- Provenance per section.
+- Redaction and sanitization status per section.
+- Manifest, hash, and integrity prerequisites.
+- Storage and immutability prerequisites.
+- Operator evidence requirements.
+
+Required future complete package artifact set:
+
+- Aligned JSONL events.
+- Terminal completion event.
+- Aligned `last_run_report.json`.
+- Aligned or explicitly absent `order_state.json`.
+- Run-filtered observations, if present.
+- Runtime visibility evidence, if enabled, or explicit absent or not-applicable
+  status.
+- Configuration and code metadata.
+- Market input evidence.
+- Strategy input and output evidence.
+- Portfolio and risk state evidence.
+- Broker-visible state evidence, if used.
+- Reconciliation and risk evidence.
+- Manifest and integrity evidence once implemented.
+- Redaction and provenance evidence once implemented.
+
+Future runtime capture stop conditions:
+
+- Mixed `run_id`.
+- Missing terminal completion.
+- Stale or post-decision decision-relevant state.
+- Missing provenance.
+- Missing source path or source reference.
+- Missing redaction status.
+- Sensitive data exposure.
+- Unknown package authority.
+- Implied evaluation or promotion authority.
+- Missing as-of eligibility for decision-relevant inputs.
+- Ambiguous runtime visibility state.
+- Broker-visible state mistaken for broker authority.
+- Missing absent or not-applicable declaration.
+- Hash or manifest mismatch once hashing exists.
+
+Current outputs cannot authorize replay package completeness, evaluation,
+attribution, promotion, runtime capture implementation, writer behavior,
+storage, broker/API/TWS/IBKR/Alpaca work, execution permission, strategy or
+risk behavior changes, or live trading.
+
 ## Immutable Evidence Philosophy
 
 Replay packages should be immutable evidence artifacts.

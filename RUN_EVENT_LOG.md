@@ -100,15 +100,20 @@ It fits the current goals because:
 
 A single event record in the log should contain:
 
+- `schema_version`
 - `run_id`
 - `event_id`
 - `event_type`
-- `timestamp`
 - `stage`
+- `timestamp_utc`
+- `timestamp`
 - `status`
 - `payload`
 
 Required field meaning:
+
+- `schema_version`
+  Identifies the event envelope version.
 
 - `run_id`
   Identifies the run this event belongs to.
@@ -119,11 +124,16 @@ Required field meaning:
 - `event_type`
   Names the kind of event being recorded.
 
-- `timestamp`
-  Records when the event was captured.
-
 - `stage`
   Names the runtime stage associated with the event.
+
+- `timestamp_utc`
+  Records when the event was captured in UTC. This is the canonical timestamp
+  field for current JSONL event records.
+
+- `timestamp`
+  Records when the event was captured and is retained as a compatibility mirror
+  of `timestamp_utc` in current event records.
 
 - `status`
   Records the stage outcome at that point, such as pass, block, fail, skip, or complete.
