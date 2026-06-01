@@ -1037,6 +1037,54 @@ storage, evaluation, attribution, promotion, broker work, execution permission,
 strategy or risk changes, cleanup, flatten, sell, cancel, remediation, or live
 trading. It cannot replace JSONL as canonical event chronology.
 
+### Draft Envelope Source Module Closeout
+
+The first draft envelope source-module phase is complete. The module
+`tools/replay/draft_envelope.py` exists as a pure in-memory source module.
+`build_draft_replay_envelope(...)` accepts only `ReplayInputBundle` or
+already-loaded dictionaries, rejects path, string, and arbitrary object inputs,
+calls the existing `build_replay_package(...)`, and returns draft envelope
+evidence only.
+
+The draft envelope module remains non-authoritative. It does not:
+
+- Create replay packages.
+- Write files.
+- Create package directories.
+- Ingest file paths.
+- Generate manifests.
+- Compute or enforce hashes.
+- Capture runtime artifacts.
+- Implement storage, finalization, immutability, retention, or discovery.
+- Evaluate, attribute, promote, or approve strategies.
+- Call broker/API/TWS/Alpaca/IBKR.
+- Call `main.py`.
+- Create execution permission.
+- Authorize live trading.
+
+Event JSONL remains canonical event chronology. Mapper scaffold `complete`
+status remains distinct from complete replay package authority. Event-only
+fixtures remain incomplete.
+
+Remaining prerequisites before real replay package creation:
+
+- Package layout implementation.
+- Manifest schema and deterministic serialization.
+- Section and package hashing.
+- Integrity validation.
+- Storage, finalization, and immutability.
+- Retention, discovery, and indexing.
+- Runtime capture gate.
+- File ingestion rules, if any.
+- Provenance and redaction enforcement.
+- Absent and not-applicable semantics.
+- Evaluation, attribution, and promotion gates.
+
+Draft envelope output remains scaffold evidence only. It cannot authorize replay
+package completeness, runtime capture, storage, evaluation, attribution,
+promotion, broker work, execution permission, strategy or risk behavior changes,
+cleanup, flatten, sell, cancel, remediation, or live trading.
+
 ## Replay Package Layout, Manifest, Hash, and Lifecycle Contract
 
 Package layout, manifest, hash, integrity, finalization, and lifecycle planning
