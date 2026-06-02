@@ -77,6 +77,16 @@ FUTURE_MANIFEST_SCHEMA_MODULES = (
         / "canonical_serializer.py"
     ),
 )
+FUTURE_DETERMINISTIC_SERIALIZATION_MODULES = (
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "serialization_constants.py"
+    ),
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_json.py",
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_bytes.py",
+)
 FORBIDDEN_DRAFT_ENVELOPE_NAMES = (
     "Path",
     "os",
@@ -127,6 +137,18 @@ FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
     "canonical_serializer",
     "hash_manifest",
     "hash_package",
+)
+FORBIDDEN_SERIALIZATION_NAMES = (
+    *FORBIDDEN_MANIFEST_SCHEMA_NAMES,
+    "serialization_constants",
+    "canonical_json",
+    "canonical_bytes",
+    "serialize_manifest",
+    "serialize_package",
+    "manifest_hash_authority",
+    "package_hash_authority",
+    "canonical_byte_generation",
+    "deterministic_serialization_authority",
 )
 
 
@@ -632,6 +654,67 @@ def test_manifest_schema_boundary_remains_unimplemented() -> None:
         for value in module.__dict__.values():
             if isinstance(value, FunctionType):
                 assert set(FORBIDDEN_MANIFEST_SCHEMA_NAMES).isdisjoint(
+                    value.__code__.co_names
+                )
+
+
+def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
+    for module_path in FUTURE_DETERMINISTIC_SERIALIZATION_MODULES:
+        assert not module_path.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["canonical_chronology"] == "event_jsonl"
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
+
+    absent_authority_keys = (
+        "deterministic_serialization_authority",
+        "canonical_serialization_authority",
+        "canonical_byte_generation",
+        "canonical_json",
+        "canonical_bytes",
+        "serialize_manifest",
+        "serialize_package",
+        "manifest_hash_authority",
+        "package_hash_authority",
+        "integrity_validation_authority",
+        "storage_finalization_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for module in (draft_envelope, offline_mapper, package_schema):
+        module_names = set(module.__dict__)
+        for forbidden_name in FORBIDDEN_SERIALIZATION_NAMES:
+            assert forbidden_name not in module_names
+        for value in module.__dict__.values():
+            if isinstance(value, FunctionType):
+                assert set(FORBIDDEN_SERIALIZATION_NAMES).isdisjoint(
                     value.__code__.co_names
                 )
 
