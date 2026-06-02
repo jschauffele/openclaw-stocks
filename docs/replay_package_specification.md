@@ -2071,17 +2071,36 @@ Storage, finalization, and immutability stop conditions:
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
-This contract does not approve code implementation, tests, runtime artifact
-capture, source path ingestion, filesystem reads or writes, replay package
-creation, manifest generation, deterministic serialization, hashing or integrity
-enforcement, storage, finalization, evaluation, broker work, execution
-permission, or live trading.
+This contract does not approve tests, code, runtime capture constants, runtime
+capture types, runtime capture modules, source artifact discovery, source path
+ingestion, artifact copying, filesystem reads, filesystem writes, runtime
+artifact ingestion, replay package creation, manifest generation, canonical
+byte generation, hashing or integrity validation, storage, finalization,
+evaluation, broker work, execution permission, or live trading.
 
-No runtime artifact capture, source path ingestion, filesystem read/write, or
-package creation is approved by this contract. Runtime capture depends on
-package layout, package creation authority, manifest schema, deterministic
-serialization, hashing/integrity, redaction and provenance rules, and storage
-and finalization authority.
+Runtime capture rules must be source-controlled before implementation.
+Already-loaded dictionaries and `ReplayInputBundle` remain the only current
+accepted replay inputs. Path-like runtime artifact inputs remain forbidden
+until a separate implementation gate approves source path authority. No
+runtime artifact capture, source artifact discovery, source path ingestion,
+file path ingestion, artifact copying, filesystem read/write, manifest
+generation, package creation, storage, or finalization is approved by this
+contract.
+
+Required future source artifact authority:
+
+- Source artifact authority must be explicitly governed before capture.
+- Source reference authority must be explicitly governed before capture.
+- Source path authority must be explicitly governed before capture.
+- Runtime artifact discovery authority must be explicitly governed before
+  capture.
+- File path ingestion authority must be explicitly governed before capture.
+- Artifact copying authority must be explicitly governed before capture.
+- Eligible runtime artifact vocabulary must be explicitly governed before
+  capture.
+- Unknown source references, unknown source paths, unclear artifact ownership,
+  unapproved runtime locations, ungoverned discovery, and unapproved artifact
+  copying must fail closed.
 
 Eligible future runtime artifacts, subject to later gates:
 
@@ -2101,52 +2120,73 @@ Eligible future runtime artifacts, subject to later gates:
   authority.
 - Reconciliation/risk evidence.
 
-Source path and source reference authority must be approved before capture.
-Runtime capture cannot read arbitrary runtime paths, cannot perform ungoverned
-file ingestion, and cannot use unknown or ambiguous source paths. Unknown source
-paths, missing source references, unclear artifact ownership, or unapproved
-runtime locations must fail closed.
-
-Runtime artifact evidence boundaries:
+Required future runtime artifact evidence boundaries:
 
 - JSONL event streams remain canonical event chronology.
+- Terminal completion event requirements must be explicit before runtime
+  capture can treat a run as capture-eligible or authoritative.
 - `last_run_report.json` remains a derived operational summary and cannot
   alone create replay package authority.
-- Observations remain separate append-only evidence.
-- Runtime visibility remains observed/readiness evidence and cannot create
-  broker authority, execution authority, cleanup authority, submit readiness,
-  or live trading authority.
-- Runtime capture must not mutate runtime state.
-- Runtime capture must not call `main.py`.
-- Runtime capture must not call broker/API/TWS/Alpaca/IBKR.
-- Runtime capture must not submit, cancel, flatten, sell, cleanup, retry,
-  remediate, or otherwise affect broker state.
+- Observations remain separate append-only evidence and must be run-filtered
+  before future capture.
+- Runtime visibility remains observed/readiness evidence only and cannot
+  create broker authority, execution authority, cleanup authority, submit
+  readiness, or live trading authority.
+- Broker-visible state evidence remains observed evidence only and never broker
+  authority.
+
+Required future dependency rules:
+
+- Package layout authority must exist before runtime capture can target replay
+  package shape.
+- Package creation authority must exist before runtime capture can produce
+  replay package output.
+- Manifest schema authority must exist before runtime capture can populate
+  manifest-shaped metadata.
+- Deterministic serialization authority must exist before runtime capture can
+  rely on canonical bytes.
+- Hashing and integrity validation must exist before runtime capture can rely
+  on hash or integrity status.
+- Storage and finalization authority must exist before runtime capture can
+  persist captured artifacts.
+- Runtime capture must remain separate from manifest generation.
+- Runtime capture must remain separate from package creation.
+- Runtime capture must remain separate from storage and finalization.
+- Runtime capture must remain separate from evaluation and promotion.
 
 Required future capture eligibility rules:
 
-- Captured artifacts require strict `run_id` alignment.
+- Runtime capture inputs must have strict `run_id` alignment.
 - Terminal completion is required before runtime capture can treat a run as
   capture-eligible.
+- Missing `run_id` must fail closed.
+- Mixed-`run_id` artifacts must fail closed.
 - Stale artifacts must fail closed.
 - Missing artifacts must fail closed unless explicitly declared absent or not
   applicable.
-- Mixed `run_id` artifacts must fail closed.
 - Ambiguous artifacts must fail closed.
 - Malformed artifacts must fail closed.
 - Runtime visibility ambiguity must fail closed.
+- Missing absent or not-applicable declarations must fail closed.
 
 Required future provenance and redaction rules:
 
-- Provenance must be recorded per source artifact and package section.
+- Provenance must be explicit before runtime capture.
+- Provenance must be recorded per source artifact and package section when
+  capture is later approved.
 - Source path or source reference authority must be explicit before capture.
 - Capture timestamp must be recorded when capture is later approved.
 - Decision timestamp must be recorded for decision-relevant artifacts when
   applicable.
+- Redaction status must be explicit before runtime capture.
 - Redaction and sanitization status must be explicit before capture, storage,
   indexing, or package creation.
+- Missing provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
 - Broker/account-sensitive identifiers require explicit safe handling.
 - Sensitive data exposure must stop runtime capture, storage, indexing,
-  package creation, evaluation, or finalization.
+  package creation, evaluation, and finalization.
 
 Required absent and not-applicable declarations:
 
@@ -2155,28 +2195,48 @@ Required absent and not-applicable declarations:
 - Absent and not-applicable states must remain distinguishable.
 - Missing declarations must fail closed.
 
-Runtime capture cannot authorize replay package creation, complete replay
-package status, finalized immutable replay package status, manifest generation,
-deterministic serialization, hashing or integrity enforcement, storage,
-finalization, evaluation, attribution, promotion, broker work, execution
-permission, strategy or risk behavior changes, cleanup, flatten, sell, cancel,
-remediation, or live trading. `build_draft_replay_envelope(...)` remains draft
-scaffold evidence only. `build_replay_package(...)` mapper scaffold
-completeness remains distinct from complete replay package authority.
+Runtime capture execution boundaries:
 
-Runtime capture cannot become broker-visible truth, runtime truth, package
-truth, hash truth, storage truth, evaluation truth, promotion truth, execution
-permission, or live trading authority.
+- Runtime capture must not mutate runtime state.
+- Runtime capture must not call `main.py`.
+- Runtime capture must not stop or start timers.
+- Runtime capture must not call broker/API/TWS/Alpaca/IBKR.
+- Runtime capture must not respond to or remediate blocked buy/sell signals.
+- Runtime capture must not submit, cancel, flatten, sell, cleanup, retry,
+  remediate, or otherwise affect broker state.
+- Runtime capture must not approve live trading.
+
+Runtime capture cannot authorize manifest authority, manifest generation,
+replay package creation, package authority, package completeness, complete
+replay package status, finalized immutable replay package status, deterministic
+serialization, canonical byte generation, hashing or integrity validation,
+storage, finalization, evaluation, attribution, promotion, broker work,
+execution permission, strategy or risk behavior changes, cleanup, flatten,
+sell, cancel, remediation, or live trading.
+`build_draft_replay_envelope(...)` remains draft scaffold evidence only.
+`build_replay_package(...)` mapper scaffold completeness remains distinct from
+complete replay package authority. Runtime capture cannot become
+broker-visible truth, runtime truth, package truth, manifest truth, hash truth,
+storage truth, evaluation truth, promotion truth, execution permission, or live
+trading authority.
 
 Runtime capture stop conditions:
 
+- Need runtime capture constants.
+- Need runtime capture types.
 - Need runtime capture code.
+- Need runtime capture modules.
+- Need source artifact discovery.
 - Need source path ingestion.
+- Need file path ingestion.
+- Need artifact copying.
 - Need filesystem reads or writes.
+- Need runtime artifact ingestion.
 - Need replay package creation.
 - Need package directories.
 - Need storage paths.
 - Need manifest generation.
+- Need canonical byte generation.
 - Need deterministic serialization.
 - Need hashing or integrity validation.
 - Need storage, finalization, or immutability.
@@ -2189,19 +2249,32 @@ Runtime capture stop conditions:
 - Missing deterministic serialization authority.
 - Missing hashing or integrity authority.
 - Missing storage or finalization authority.
+- Missing source artifact authority.
 - Missing source path or source reference authority.
+- Missing runtime artifact discovery authority.
+- Missing file path ingestion authority.
+- Missing artifact copying authority.
+- Missing eligible runtime artifact vocabulary.
 - Missing canonical `run_id`.
+- Missing `run_id`.
 - Mixed `run_id`.
 - Missing terminal completion.
 - Stale artifact.
 - Missing artifact without absent or not-applicable declaration.
 - Ambiguous artifact.
 - Malformed artifact.
+- Unknown source reference.
 - Missing provenance.
 - Missing redaction status.
 - Invalid redaction state.
 - Sensitive data exposure.
 - Runtime visibility ambiguity.
+- Implied manifest authority.
+- Implied package creation authority.
+- Implied package completeness.
+- Implied hash or integrity authority.
+- Implied storage or finalization authority.
+- Implied evaluation or promotion authority.
 - Implied broker authority.
 - Implied execution permission.
 - Implied live trading authority.
