@@ -173,6 +173,31 @@ FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES = (
     "build_hash_manifest",
     "build_package_hash",
 )
+FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES = (
+    "STORAGE_ROOT",
+    "STORAGE_PATH",
+    "PACKAGE_ROOT",
+    "PACKAGE_DIR",
+    "PACKAGE_DIRECTORY",
+    "FINALIZATION_STATE",
+    "IMMUTABILITY_MARKER",
+    "RETENTION_INDEX",
+    "DISCOVERY_INDEX",
+    "build_storage_path",
+    "build_package_directory",
+    "write_replay_package",
+    "write_package_file",
+    "finalize_replay_package",
+    "mark_package_finalized",
+    "enforce_immutability",
+    "validate_storage_integrity",
+    "build_retention_index",
+    "build_discovery_index",
+    "StorageWriter",
+    "ReplayPackageWriter",
+    "FinalizationState",
+    "ImmutabilityEnforcer",
+)
 
 
 def _event_payloads() -> list[dict]:
@@ -797,6 +822,72 @@ def test_hashing_integrity_boundary_remains_unimplemented() -> None:
     for module_path in REPLAY_SOURCE_MODULES:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES:
+            assert forbidden_name not in module_text
+
+
+def test_storage_immutability_boundary_remains_unimplemented() -> None:
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert (
+        "## Storage, Finalization, and Immutability Authority Contract"
+        in spec_text
+    )
+    assert "governance-only and\nis not implemented yet" in spec_text
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["immutability"]["status"] == "absent"
+    assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "storage_root",
+        "storage_path",
+        "package_root",
+        "package_dir",
+        "package_directory",
+        "finalization_state",
+        "immutability_marker",
+        "retention_index",
+        "discovery_index",
+        "storage_authority",
+        "finalization_authority",
+        "immutability_authority",
+        "retention_authority",
+        "discovery_authority",
+        "index_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for forbidden_name in FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
 
 
