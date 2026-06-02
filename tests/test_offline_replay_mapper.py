@@ -146,6 +146,33 @@ FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
     "hash_manifest",
     "hash_package",
 )
+FORBIDDEN_MANIFEST_SCHEMA_IMPLEMENTATION_NAMES = (
+    "MANIFEST_SCHEMA_VERSION",
+    "MANIFEST_SCHEMA",
+    "MANIFEST_FIELDS",
+    "MANIFEST_REQUIRED_FIELDS",
+    "MANIFEST_OPTIONAL_FIELDS",
+    "MANIFEST_SECTION_STATUS",
+    "MANIFEST_LIFECYCLE_STATUS",
+    "MANIFEST_AUTHORITY_BOUNDARY",
+    "ManifestSchema",
+    "ManifestSchemaVersion",
+    "ManifestField",
+    "ManifestSection",
+    "ManifestSectionStatus",
+    "ManifestLifecycleStatus",
+    "ManifestAuthorityBoundary",
+    "ManifestBuilder",
+    "ManifestGeneration",
+    "build_manifest_schema",
+    "build_manifest",
+    "generate_manifest",
+    "validate_manifest_schema",
+    "validate_manifest",
+    "create_manifest",
+    "package_manifest",
+    "replay_manifest",
+)
 FORBIDDEN_SERIALIZATION_NAMES = (
     *FORBIDDEN_MANIFEST_SCHEMA_NAMES,
     "serialization_constants",
@@ -685,6 +712,15 @@ def test_replay_package_creation_boundary_remains_unimplemented() -> None:
 
 
 def test_manifest_schema_boundary_remains_unimplemented() -> None:
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Manifest Schema Authority Contract" in spec_text
+    assert "governance-only and is not implemented yet" in spec_text
+    assert "does not approve tests, code, manifest constants" in spec_text
+    assert "must remain separate from manifest generation" in spec_text
+    assert "remain separate from mapper completeness" in spec_text
+    assert "package_status == \"complete\"" in spec_text
+    assert "only in-memory bucket completeness" in spec_text
+
     for module_path in FUTURE_MANIFEST_SCHEMA_MODULES:
         assert not module_path.exists()
 
@@ -728,8 +764,15 @@ def test_manifest_schema_boundary_remains_unimplemented() -> None:
         "manifest_schema_implementation",
         "manifest_constants",
         "manifest_builder",
+        "manifest_generation_authority",
         "deterministic_serialization",
         "canonical_serialization",
+        "package_creation_authority",
+        "storage_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "broker_authority",
         "finalized_immutable_replay_package_authority",
         "invalidated_package_authority",
         "superseded_package_authority",
@@ -749,6 +792,11 @@ def test_manifest_schema_boundary_remains_unimplemented() -> None:
                 assert set(FORBIDDEN_MANIFEST_SCHEMA_NAMES).isdisjoint(
                     value.__code__.co_names
                 )
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for forbidden_name in FORBIDDEN_MANIFEST_SCHEMA_IMPLEMENTATION_NAMES:
+            assert forbidden_name not in module_text
 
 
 def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
