@@ -55,6 +55,28 @@ FUTURE_PACKAGE_CREATION_MODULES = (
         / "manifest_generator.py"
     ),
 )
+FUTURE_MANIFEST_SCHEMA_MODULES = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "manifest_schema.py",
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "manifest_constants.py"
+    ),
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "manifest_builder.py",
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "deterministic_serializer.py"
+    ),
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "canonical_serializer.py"
+    ),
+)
 FORBIDDEN_DRAFT_ENVELOPE_NAMES = (
     "Path",
     "os",
@@ -95,6 +117,16 @@ FORBIDDEN_PACKAGE_CREATION_NAMES = (
     "storage_writer",
     "runtime_capture",
     "file_ingestion",
+)
+FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
+    *FORBIDDEN_PACKAGE_CREATION_NAMES,
+    "manifest_schema",
+    "manifest_constants",
+    "manifest_builder",
+    "deterministic_serializer",
+    "canonical_serializer",
+    "hash_manifest",
+    "hash_package",
 )
 
 
@@ -533,6 +565,73 @@ def test_replay_package_creation_boundary_remains_unimplemented() -> None:
         for value in module.__dict__.values():
             if isinstance(value, FunctionType):
                 assert set(FORBIDDEN_PACKAGE_CREATION_NAMES).isdisjoint(
+                    value.__code__.co_names
+                )
+
+
+def test_manifest_schema_boundary_remains_unimplemented() -> None:
+    for module_path in FUTURE_MANIFEST_SCHEMA_MODULES:
+        assert not module_path.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+    event_only_envelope = build_draft_replay_envelope(
+        {"events": _risk_blocked_fixture_events()}
+    )
+
+    assert complete_inputs_envelope["lifecycle_status"] == "draft"
+    assert event_only_envelope["lifecycle_status"] == "draft"
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert event_only_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
+    assert (
+        event_only_envelope["mapper_package"]["package_status"]["status"]
+        == "incomplete"
+    )
+
+    absent_authority_keys = (
+        "manifest_schema_authority",
+        "manifest_authority",
+        "manifest_schema_implementation",
+        "manifest_constants",
+        "manifest_builder",
+        "deterministic_serialization",
+        "canonical_serialization",
+        "finalized_immutable_replay_package_authority",
+        "invalidated_package_authority",
+        "superseded_package_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for module in (draft_envelope, offline_mapper, package_schema):
+        module_names = set(module.__dict__)
+        for forbidden_name in FORBIDDEN_MANIFEST_SCHEMA_NAMES:
+            assert forbidden_name not in module_names
+        for value in module.__dict__.values():
+            if isinstance(value, FunctionType):
+                assert set(FORBIDDEN_MANIFEST_SCHEMA_NAMES).isdisjoint(
                     value.__code__.co_names
                 )
 
