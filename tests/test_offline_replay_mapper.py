@@ -312,29 +312,52 @@ FUTURE_RUNTIME_CAPTURE_MODULES = (
     ),
 )
 FORBIDDEN_RUNTIME_CAPTURE_IMPLEMENTATION_NAMES = (
-    "RUNTIME_CAPTURE_ROOT",
-    "RUNTIME_CAPTURE_PATH",
-    "RUNTIME_ARTIFACT_PATH",
-    "SOURCE_ARTIFACT_PATH",
+    "RUNTIME_CAPTURE",
+    "RUNTIME_CAPTURE_CONSTANTS",
+    "RUNTIME_CAPTURE_TYPES",
+    "RUNTIME_CAPTURE_MODULE",
+    "SOURCE_ARTIFACT",
     "SOURCE_REFERENCE",
+    "SOURCE_PATH",
+    "FILE_PATH_INGESTION",
+    "ARTIFACT_DISCOVERY",
+    "ARTIFACT_COPY",
+    "RUNTIME_ARTIFACT",
+    "RuntimeCapture",
+    "RuntimeCaptureInput",
+    "RuntimeCaptureOutput",
+    "RuntimeCaptureModule",
+    "SourceArtifact",
+    "SourceReference",
+    "SourcePath",
+    "ArtifactDiscovery",
+    "ArtifactCopy",
+    "RuntimeArtifact",
+    "capture_runtime_artifacts",
+    "discover_runtime_artifacts",
+    "ingest_runtime_artifact",
+    "ingest_source_path",
+    "copy_runtime_artifact",
+    "read_runtime_artifact",
+    "build_runtime_capture",
+    "validate_runtime_capture",
+    "build_source_reference",
+    "build_source_path",
+    "capture_jsonl",
+    "capture_last_run_report",
+    "capture_observations",
+    "capture_runtime_visibility",
+    "SOURCE_ARTIFACT_PATH",
     "CAPTURE_SOURCE",
     "CAPTURED_ARTIFACT",
     "JSONL_CAPTURE",
     "LAST_RUN_REPORT_CAPTURE",
     "OBSERVATION_CAPTURE",
     "RUNTIME_VISIBILITY_CAPTURE",
-    "build_runtime_capture",
-    "capture_runtime_artifacts",
     "capture_jsonl_event_stream",
-    "capture_last_run_report",
-    "capture_observations",
-    "capture_runtime_visibility",
     "ingest_runtime_file",
-    "ingest_source_path",
-    "read_runtime_artifact",
     "read_runtime_file",
     "build_capture_manifest",
-    "RuntimeCapture",
     "RuntimeCaptureResult",
     "RuntimeArtifactCapture",
     "RuntimeCaptureSource",
@@ -1149,6 +1172,47 @@ def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
     assert "governance-only and is not implemented yet" in spec_text
+    assert "does not approve tests, code, runtime capture constants" in spec_text
+    assert "source artifact discovery, source path\ningestion" in spec_text
+    assert "artifact copying, filesystem reads, filesystem writes" in spec_text
+    assert "Runtime capture rules must be source-controlled" in spec_text
+    assert "Already-loaded dictionaries and `ReplayInputBundle`" in spec_text
+    assert "Path-like runtime artifact inputs remain forbidden" in spec_text
+    assert "Source artifact authority must be explicitly governed" in spec_text
+    assert "Source reference authority must be explicitly governed" in spec_text
+    assert "Source path authority must be explicitly governed" in spec_text
+    assert "Runtime artifact discovery authority must be explicitly governed" in spec_text
+    assert "File path ingestion authority must be explicitly governed" in spec_text
+    assert "Artifact copying authority must be explicitly governed" in spec_text
+    assert "Eligible runtime artifact vocabulary must be explicitly governed" in spec_text
+    assert "JSONL event streams remain canonical event chronology" in spec_text
+    assert "Terminal completion event requirements must be explicit" in spec_text
+    assert "`last_run_report.json` remains a derived operational summary" in spec_text
+    assert "Observations remain separate append-only evidence" in spec_text
+    assert "must be run-filtered\n  before future capture" in spec_text
+    assert "Runtime visibility remains observed/readiness evidence only" in spec_text
+    assert "Runtime capture inputs must have strict `run_id` alignment" in spec_text
+    assert "Provenance must be explicit before runtime capture" in spec_text
+    assert "Redaction status must be explicit before runtime capture" in spec_text
+    assert "Missing `run_id` must fail closed" in spec_text
+    assert "Mixed-`run_id` artifacts must fail closed" in spec_text
+    assert "Stale artifacts must fail closed" in spec_text
+    assert "Malformed artifacts must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Storage and finalization authority must exist before runtime capture" in spec_text
+    assert "Package creation authority must exist before runtime capture" in spec_text
+    assert "Runtime capture must remain separate from manifest generation" in spec_text
+    assert "Runtime capture must remain separate from package creation" in spec_text
+    assert "Runtime capture must remain separate from storage and finalization" in spec_text
+    assert "Runtime capture must remain separate from evaluation and promotion" in spec_text
+    assert "Runtime capture must not call `main.py`" in spec_text
+    assert "Runtime capture must not stop or start timers" in spec_text
+    assert "Runtime capture must not call broker/API/TWS/Alpaca/IBKR" in spec_text
+    assert "must not respond to or remediate blocked buy/sell signals" in spec_text
+    assert "Runtime capture cannot authorize manifest authority" in spec_text
+    assert "replay package creation, package authority, package completeness" in spec_text
 
     for module_path in FUTURE_RUNTIME_CAPTURE_MODULES:
         assert not module_path.exists()
@@ -1185,11 +1249,26 @@ def test_runtime_capture_boundary_remains_unimplemented() -> None:
 
     absent_authority_keys = (
         "runtime_capture_authority",
+        "runtime_capture_constants",
+        "runtime_capture_types",
+        "runtime_capture_module",
         "runtime_artifact_ingestion",
+        "source_artifact_discovery",
         "source_path_ingestion",
+        "file_path_ingestion_authority",
+        "artifact_copying_authority",
+        "artifact_discovery_authority",
+        "source_artifact_authority",
+        "source_reference_authority",
         "source_artifact_path",
         "runtime_artifact_path",
         "capture_manifest",
+        "canonical_byte_generation_authority",
+        "package_creation_authority",
+        "package_completeness_authority",
+        "storage_authority",
+        "filesystem_read_authority",
+        "filesystem_write_authority",
         "manifest_generation_authority",
         "deterministic_serialization_authority",
         "hashing_integrity_authority",
