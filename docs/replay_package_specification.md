@@ -1343,63 +1343,79 @@ Stop conditions:
 
 ## Manifest Schema Authority Contract
 
-Manifest schema authority remains governance-only. This contract does not
-approve manifest implementation, manifest generation, deterministic
-serialization implementation, hashing, storage, package creation, runtime
-capture, evaluation, broker work, execution permission, or live trading.
+Manifest schema authority remains governance-only and is not implemented yet.
+This contract does not approve tests, code, manifest constants, manifest schema
+types, manifest builder code, manifest generation, package creation,
+deterministic serialization, hashing, storage, runtime capture, evaluation,
+broker work, execution permission, or live trading.
 
-Manifest schema must exist before any in-memory replay package object builder
-can claim package-shape semantics. Manifest schema must also exist before
-package creation, manifest generation, hash enforcement, storage,
-finalization, or evaluation authority.
+Manifest schema vocabulary must be source-controlled before use. Required,
+optional, placeholder, and future-only fields must be explicitly separated
+before implementation. A manifest schema may define vocabulary and field
+requirements only; it must remain separate from manifest generation, package
+creation, deterministic serialization, hashing/integrity enforcement, storage,
+runtime capture, evaluation, and broker authority. Manifest schema must also
+remain separate from mapper completeness: current `build_replay_package(...)`
+`package_status == "complete"` is only in-memory bucket completeness and cannot
+be treated as complete replay package authority.
 
-Required future manifest field groups:
+Required future field-group authority:
 
-- Identity: `package_id`, `canonical_run_id`, `package_schema_version`, and
-  `manifest_schema_version`.
-- Lifecycle: `lifecycle_status`, `lifecycle_reason`, `created_at`,
-  `finalized_at` only after future finalization authority, `invalidated_at`
-  only after future invalidation authority, and `superseded_by` only after
-  future supersession authority.
-- Source control and runtime provenance: `source_commit`, `source_branch` when
-  known, `source_runtime_version` when available, `generator_name`,
-  `generator_version`, and `generator_authority_boundary`.
-- Source artifacts: `source_artifact_references`, `source_artifact_type`,
-  `source_artifact_path_or_reference`, `source_artifact_run_id`,
-  `source_artifact_timestamp`, `source_artifact_provenance`, and
-  `source_artifact_redaction_status`.
-- Sections: `section_id`, `section_type`, `section_status`,
-  `section_authority`, `section_source_reference`, `section_run_id`,
-  `section_provenance`, `section_redaction_status`, and `section_hash` as a
-  placeholder only until hashing is approved.
-- Completeness: `completeness_status`, `completeness_reason`,
-  `missing_sections`, `not_applicable_sections`, `unavailable_sections`,
-  `stale_sections`, and `untrusted_sections`.
-- Integrity placeholders: `hash_algorithm`, `section_hashes`,
-  `manifest_hash`, and `package_hash` as placeholders only until hashing is
-  approved, plus `integrity_status` as non-authoritative until hashing and
-  integrity validation exist.
-- Authority boundary: `evidence_only`, `non_authoritative`,
-  `complete_replay_package_authority`,
+- Identity fields must include `canonical_run_id`, `package_id`,
+  `package_schema_version`, and `manifest_schema_version`.
+- `canonical_run_id` is required before any manifest can claim run alignment.
+- `package_id` may remain a governed placeholder for draft manifests until
+  future package identity rules define whether it is derived from
+  `canonical_run_id` or assigned separately.
+- Schema version fields must be stable, explicit, and source-controlled before
+  use.
+- Lifecycle fields must include `lifecycle_status`, `lifecycle_reason`, and
+  `created_at`.
+- `finalized_at`, `invalidated_at`, `superseded_by`, and supersession or
+  invalidation status fields remain future-only until storage/finalization and
+  immutability gates approve those lifecycle states.
+- Source control and generator provenance fields must include `source_commit`,
+  `source_branch` when known, `source_runtime_version` when available,
+  `generator_name`, `generator_version`, and
+  `generator_authority_boundary`.
+- Source artifact fields must include `source_artifact_references`,
+  `source_artifact_type`, `source_artifact_path_or_reference`,
+  `source_artifact_run_id`, `source_artifact_timestamp`,
+  `source_artifact_provenance`, and `source_artifact_redaction_status`.
+- Source artifact path or reference fields require explicit source reference
+  authority and cannot approve file path ingestion by themselves.
+- Section fields must include deterministic `section_id`, `section_type`,
+  `section_status`, `section_authority`, `section_source_reference`,
+  `section_run_id`, `section_provenance`, `section_redaction_status`, and
+  `section_hash` as a placeholder only until hashing is approved.
+- Completeness fields must include `completeness_status`,
+  `completeness_reason`, `missing_sections`, `not_applicable_sections`,
+  `unavailable_sections`, `stale_sections`, and `untrusted_sections`.
+- Integrity fields such as `hash_algorithm`, `section_hashes`,
+  `manifest_hash`, `package_hash`, and `integrity_status` remain placeholders
+  until hashing/integrity implementation is separately approved.
+- Authority-boundary fields must include `evidence_only`,
+  `non_authoritative`, `complete_replay_package_authority`,
   `finalized_immutable_replay_package_authority`,
-  `replay_based_evaluation_authority`, `replay_based_promotion_authority`,
-  `broker_api_authority`, `execution_permission`, and
-  `live_trading_authority`.
-- Correction lineage: `annotations`, `corrections`, `invalidation_references`,
-  `supersession_references`, and `reviewer_notes`.
+  `replay_based_evaluation_authority`,
+  `replay_based_promotion_authority`, `broker_api_authority`,
+  `execution_permission`, and `live_trading_authority`.
+- Correction and lineage fields must include `annotations`, `corrections`,
+  `invalidation_references`, `supersession_references`, and `reviewer_notes`.
 
-Lifecycle constraints:
+Draft-only lifecycle behavior:
 
 - The first allowed future lifecycle status must be `draft` only.
+- Draft schema fields must not imply finalized package authority.
 - Draft manifests are non-authoritative.
 - Draft manifests cannot imply complete replay package authority.
 - Draft manifests cannot imply finalized immutable replay package authority.
-- `finalized`, `invalidated`, and `superseded` states remain future-only until
-  storage, finalization, and immutability governance is implemented.
-- Corrections, annotations, invalidations, and supersessions must be append-only
-  when later approved.
+- `finalized`, `invalidated`, and `superseded` remain future-only lifecycle
+  states until storage/finalization and immutability gates are approved.
+- Corrections, annotations, invalidations, and supersessions must preserve
+  original facts and must not silently mutate finalized evidence.
 
-Future section status vocabulary must be defined before implementation:
+Future section status vocabulary must distinguish:
 
 - `present`.
 - `absent`.
@@ -1409,29 +1425,42 @@ Future section status vocabulary must be defined before implementation:
 - `stale`.
 - `redacted`.
 - `untrusted`.
+- `malformed`.
+- `invalidated`.
 - `unknown`.
+- Any future or placeholder state explicitly approved by a later governance
+  gate.
 
 Section status rules:
 
-- `unknown` must fail closed.
-- `stale` must fail closed for authoritative use.
-- `untrusted` must fail closed.
-- `redacted` must require explicit redaction provenance.
-- `absent` and `not_applicable` must be distinguishable.
-- `present` cannot imply authority unless provenance and `run_id` alignment are
-  valid.
+- `absent` and `not_applicable` must remain distinct.
+- `redacted` must preserve explicit redaction status without leaking sensitive
+  content.
+- `present` cannot imply authority unless provenance, redaction status,
+  source reference authority, and `run_id` alignment are valid.
+- `stale`, `untrusted`, `malformed`, mixed-`run_id`, missing provenance,
+  missing redaction status, unknown source references, and `unknown` section
+  status must fail closed.
+- Invalidated section or package state must preserve lineage and cannot erase
+  or rewrite original facts.
+
+Provenance and redaction requirements:
+
+- Provenance fields are required for every source artifact and every section
+  before authoritative package use.
+- Redaction status is required for every source artifact and every section
+  before capture, storage, indexing, package creation, or authoritative use.
+- Missing provenance must fail closed.
+- Missing redaction status must fail closed.
+- Sensitive data exposure must stop manifest generation, package creation,
+  storage, indexing, runtime capture, evaluation, and finalization.
 
 Deterministic serialization is required before manifest hashing or manifest
 authority. Future serialization rules must define canonical key ordering,
 timestamp format, null versus absent semantics, numeric precision, string
 encoding, list ordering, nested object ordering, whitespace policy, stable
-schema versioning, and deterministic treatment of `unavailable`,
-`not_applicable`, and `unknown` fields.
-
-Manifest schema must require provenance and redaction status for every source
-artifact and section before authoritative package use. Missing provenance must
-fail closed. Missing redaction status must fail closed. Sensitive data exposure
-must stop package creation or manifest generation.
+schema versioning, and deterministic treatment of unavailable,
+not-applicable, redacted, unknown, malformed, stale, and untrusted fields.
 
 Manifest schema cannot authorize replay package creation, complete replay
 package status, finalized immutable replay package status, runtime capture,
@@ -1447,27 +1476,37 @@ from complete replay package authority.
 Manifest schema stop conditions:
 
 - Need to implement manifest constants.
+- Need to implement manifest schema types.
 - Need to implement a manifest object builder.
 - Need to generate manifests.
 - Need deterministic serialization implementation.
 - Need hashing or integrity validation.
 - Need package creation.
-- Need filesystem writes.
+- Need filesystem reads or writes.
 - Need file path ingestion.
 - Need package directories.
 - Need runtime capture.
 - Need storage, finalization, or immutability.
 - Need retention, discovery, or index behavior.
-- Need evaluation, attribution, or promotion.
+- Need evaluation, attribution, experiment registry, or promotion.
 - Need broker/API/TWS/Alpaca/IBKR.
 - Need `main.py`.
+- Missing source-controlled schema vocabulary.
+- Missing required versus optional or future-only field separation.
 - Missing canonical `run_id`.
 - Mixed `run_id`.
 - Missing terminal completion.
+- Missing source reference authority.
 - Missing provenance.
 - Missing redaction status.
+- Unknown source reference.
 - Unknown section status.
+- Stale, untrusted, malformed, or invalidated evidence without governed
+  lineage handling.
 - Sensitive data exposure.
+- Implied package creation authority.
+- Implied manifest generation authority.
+- Implied complete replay package authority.
 - Implied broker authority.
 - Implied execution permission.
 - Implied live trading authority.
