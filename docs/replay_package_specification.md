@@ -1860,6 +1860,144 @@ Storage, finalization, and immutability stop conditions:
 - Implied execution permission.
 - Implied live trading authority.
 
+## Runtime Capture Authority Contract
+
+Runtime capture authority remains governance-only and is not implemented yet.
+This contract does not approve code implementation, tests, runtime artifact
+capture, source path ingestion, filesystem reads or writes, replay package
+creation, manifest generation, deterministic serialization, hashing or integrity
+enforcement, storage, finalization, evaluation, broker work, execution
+permission, or live trading.
+
+No runtime artifact capture, source path ingestion, filesystem read/write, or
+package creation is approved by this contract. Runtime capture depends on
+package layout, package creation authority, manifest schema, deterministic
+serialization, hashing/integrity, redaction and provenance rules, and storage
+and finalization authority.
+
+Eligible future runtime artifacts, subject to later gates:
+
+- JSONL event streams.
+- `last_run_report.json`, only as derived operational summary evidence matched
+  to JSONL `run_id`.
+- `order_state.json`, only as separate operational state evidence with explicit
+  provenance or explicit absence.
+- Observations, only when run-filtered, append-only, and provenance-tagged.
+- Runtime visibility evidence, only as observed/readiness evidence with
+  explicit provenance or explicit absence/not-applicable status.
+- Config or code metadata.
+- Market input evidence.
+- Strategy input/output evidence.
+- Portfolio/risk state evidence.
+- Broker-visible state evidence, only as observed evidence and never as broker
+  authority.
+- Reconciliation/risk evidence.
+
+Source path and source reference authority must be approved before capture.
+Runtime capture cannot read arbitrary runtime paths, cannot perform ungoverned
+file ingestion, and cannot use unknown or ambiguous source paths. Unknown source
+paths, missing source references, unclear artifact ownership, or unapproved
+runtime locations must fail closed.
+
+Runtime artifact evidence boundaries:
+
+- JSONL event streams remain canonical event chronology.
+- `last_run_report.json` remains a derived operational summary and cannot
+  alone create replay package authority.
+- Observations remain separate append-only evidence.
+- Runtime visibility remains observed/readiness evidence and cannot create
+  broker authority, execution authority, cleanup authority, submit readiness,
+  or live trading authority.
+- Runtime capture must not mutate runtime state.
+- Runtime capture must not call `main.py`.
+- Runtime capture must not call broker/API/TWS/Alpaca/IBKR.
+- Runtime capture must not submit, cancel, flatten, sell, cleanup, retry,
+  remediate, or otherwise affect broker state.
+
+Required future capture eligibility rules:
+
+- Captured artifacts require strict `run_id` alignment.
+- Terminal completion is required before runtime capture can treat a run as
+  capture-eligible.
+- Stale artifacts must fail closed.
+- Missing artifacts must fail closed unless explicitly declared absent or not
+  applicable.
+- Mixed `run_id` artifacts must fail closed.
+- Ambiguous artifacts must fail closed.
+- Malformed artifacts must fail closed.
+- Runtime visibility ambiguity must fail closed.
+
+Required future provenance and redaction rules:
+
+- Provenance must be recorded per source artifact and package section.
+- Source path or source reference authority must be explicit before capture.
+- Capture timestamp must be recorded when capture is later approved.
+- Decision timestamp must be recorded for decision-relevant artifacts when
+  applicable.
+- Redaction and sanitization status must be explicit before capture, storage,
+  indexing, or package creation.
+- Broker/account-sensitive identifiers require explicit safe handling.
+- Sensitive data exposure must stop runtime capture, storage, indexing,
+  package creation, evaluation, or finalization.
+
+Required absent and not-applicable declarations:
+
+- Absent artifacts require deterministic declarations.
+- Not-applicable artifacts require deterministic declarations.
+- Absent and not-applicable states must remain distinguishable.
+- Missing declarations must fail closed.
+
+Runtime capture cannot authorize replay package creation, complete replay
+package status, finalized immutable replay package status, manifest generation,
+deterministic serialization, hashing or integrity enforcement, storage,
+finalization, evaluation, attribution, promotion, broker work, execution
+permission, strategy or risk behavior changes, cleanup, flatten, sell, cancel,
+remediation, or live trading. `build_draft_replay_envelope(...)` remains draft
+scaffold evidence only. `build_replay_package(...)` mapper scaffold
+completeness remains distinct from complete replay package authority.
+
+Runtime capture cannot become broker-visible truth, runtime truth, package
+truth, hash truth, storage truth, evaluation truth, promotion truth, execution
+permission, or live trading authority.
+
+Runtime capture stop conditions:
+
+- Need runtime capture code.
+- Need source path ingestion.
+- Need filesystem reads or writes.
+- Need replay package creation.
+- Need package directories.
+- Need storage paths.
+- Need manifest generation.
+- Need deterministic serialization.
+- Need hashing or integrity validation.
+- Need storage, finalization, or immutability.
+- Need evaluation, attribution, or promotion.
+- Need broker/API/TWS/Alpaca/IBKR.
+- Need `main.py`.
+- Missing package layout authority.
+- Missing package creation authority.
+- Missing manifest schema authority.
+- Missing deterministic serialization authority.
+- Missing hashing or integrity authority.
+- Missing storage or finalization authority.
+- Missing source path or source reference authority.
+- Missing canonical `run_id`.
+- Mixed `run_id`.
+- Missing terminal completion.
+- Stale artifact.
+- Missing artifact without absent or not-applicable declaration.
+- Ambiguous artifact.
+- Malformed artifact.
+- Missing provenance.
+- Missing redaction status.
+- Invalid redaction state.
+- Sensitive data exposure.
+- Runtime visibility ambiguity.
+- Implied broker authority.
+- Implied execution permission.
+- Implied live trading authority.
+
 ## Replay Package Envelope Schema Planning
 
 The replay package envelope is a docs-only schema planning record. It is not
