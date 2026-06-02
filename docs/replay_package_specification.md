@@ -1341,6 +1341,137 @@ Stop conditions:
 - Missing redaction status.
 - Missing as-of eligibility for decision-relevant features.
 
+## Manifest Schema Authority Contract
+
+Manifest schema authority remains governance-only. This contract does not
+approve manifest implementation, manifest generation, deterministic
+serialization implementation, hashing, storage, package creation, runtime
+capture, evaluation, broker work, execution permission, or live trading.
+
+Manifest schema must exist before any in-memory replay package object builder
+can claim package-shape semantics. Manifest schema must also exist before
+package creation, manifest generation, hash enforcement, storage,
+finalization, or evaluation authority.
+
+Required future manifest field groups:
+
+- Identity: `package_id`, `canonical_run_id`, `package_schema_version`, and
+  `manifest_schema_version`.
+- Lifecycle: `lifecycle_status`, `lifecycle_reason`, `created_at`,
+  `finalized_at` only after future finalization authority, `invalidated_at`
+  only after future invalidation authority, and `superseded_by` only after
+  future supersession authority.
+- Source control and runtime provenance: `source_commit`, `source_branch` when
+  known, `source_runtime_version` when available, `generator_name`,
+  `generator_version`, and `generator_authority_boundary`.
+- Source artifacts: `source_artifact_references`, `source_artifact_type`,
+  `source_artifact_path_or_reference`, `source_artifact_run_id`,
+  `source_artifact_timestamp`, `source_artifact_provenance`, and
+  `source_artifact_redaction_status`.
+- Sections: `section_id`, `section_type`, `section_status`,
+  `section_authority`, `section_source_reference`, `section_run_id`,
+  `section_provenance`, `section_redaction_status`, and `section_hash` as a
+  placeholder only until hashing is approved.
+- Completeness: `completeness_status`, `completeness_reason`,
+  `missing_sections`, `not_applicable_sections`, `unavailable_sections`,
+  `stale_sections`, and `untrusted_sections`.
+- Integrity placeholders: `hash_algorithm`, `section_hashes`,
+  `manifest_hash`, and `package_hash` as placeholders only until hashing is
+  approved, plus `integrity_status` as non-authoritative until hashing and
+  integrity validation exist.
+- Authority boundary: `evidence_only`, `non_authoritative`,
+  `complete_replay_package_authority`,
+  `finalized_immutable_replay_package_authority`,
+  `replay_based_evaluation_authority`, `replay_based_promotion_authority`,
+  `broker_api_authority`, `execution_permission`, and
+  `live_trading_authority`.
+- Correction lineage: `annotations`, `corrections`, `invalidation_references`,
+  `supersession_references`, and `reviewer_notes`.
+
+Lifecycle constraints:
+
+- The first allowed future lifecycle status must be `draft` only.
+- Draft manifests are non-authoritative.
+- Draft manifests cannot imply complete replay package authority.
+- Draft manifests cannot imply finalized immutable replay package authority.
+- `finalized`, `invalidated`, and `superseded` states remain future-only until
+  storage, finalization, and immutability governance is implemented.
+- Corrections, annotations, invalidations, and supersessions must be append-only
+  when later approved.
+
+Future section status vocabulary must be defined before implementation:
+
+- `present`.
+- `absent`.
+- `not_applicable`.
+- `disabled`.
+- `unavailable`.
+- `stale`.
+- `redacted`.
+- `untrusted`.
+- `unknown`.
+
+Section status rules:
+
+- `unknown` must fail closed.
+- `stale` must fail closed for authoritative use.
+- `untrusted` must fail closed.
+- `redacted` must require explicit redaction provenance.
+- `absent` and `not_applicable` must be distinguishable.
+- `present` cannot imply authority unless provenance and `run_id` alignment are
+  valid.
+
+Deterministic serialization is required before manifest hashing or manifest
+authority. Future serialization rules must define canonical key ordering,
+timestamp format, null versus absent semantics, numeric precision, string
+encoding, list ordering, nested object ordering, whitespace policy, stable
+schema versioning, and deterministic treatment of `unavailable`,
+`not_applicable`, and `unknown` fields.
+
+Manifest schema must require provenance and redaction status for every source
+artifact and section before authoritative package use. Missing provenance must
+fail closed. Missing redaction status must fail closed. Sensitive data exposure
+must stop package creation or manifest generation.
+
+Manifest schema cannot authorize replay package creation, complete replay
+package status, finalized immutable replay package status, runtime capture,
+storage, finalization, hashing or integrity enforcement, evaluation,
+attribution, promotion, broker work, execution permission, strategy or risk
+behavior changes, cleanup, flatten, sell, cancel, remediation, or live trading.
+Event JSONL remains canonical chronology. `last_run_report.json` remains a
+derived operational summary and cannot alone create package or manifest
+authority. `build_draft_replay_envelope(...)` remains draft scaffold evidence
+only. `build_replay_package(...)` mapper scaffold completeness remains distinct
+from complete replay package authority.
+
+Manifest schema stop conditions:
+
+- Need to implement manifest constants.
+- Need to implement a manifest object builder.
+- Need to generate manifests.
+- Need deterministic serialization implementation.
+- Need hashing or integrity validation.
+- Need package creation.
+- Need filesystem writes.
+- Need file path ingestion.
+- Need package directories.
+- Need runtime capture.
+- Need storage, finalization, or immutability.
+- Need retention, discovery, or index behavior.
+- Need evaluation, attribution, or promotion.
+- Need broker/API/TWS/Alpaca/IBKR.
+- Need `main.py`.
+- Missing canonical `run_id`.
+- Mixed `run_id`.
+- Missing terminal completion.
+- Missing provenance.
+- Missing redaction status.
+- Unknown section status.
+- Sensitive data exposure.
+- Implied broker authority.
+- Implied execution permission.
+- Implied live trading authority.
+
 ## Replay Package Envelope Schema Planning
 
 The replay package envelope is a docs-only schema planning record. It is not
