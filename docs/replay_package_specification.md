@@ -1718,6 +1718,148 @@ Hashing and integrity stop conditions:
 - Implied execution permission.
 - Implied live trading authority.
 
+## Storage, Finalization, and Immutability Authority Contract
+
+Storage, finalization, and immutability authority remains governance-only and
+is not implemented yet. This contract does not approve storage path constants,
+package directory constants, filesystem writers, finalization state,
+immutability enforcement, retention, discovery, index behavior, runtime
+capture, manifest schema implementation, deterministic serialization
+implementation, hashing or integrity implementation, package creation,
+evaluation, broker work, execution permission, or live trading.
+
+No filesystem path, package directory, package file, storage root, index,
+finalized package state, or immutable package marker is authoritative until a
+separate implementation gate explicitly approves it. Approved storage roots,
+package paths, and package directory naming rules must be source-controlled
+before use.
+
+Storage and finalization depend on manifest schema, deterministic
+serialization, hashing and integrity validation, package layout, and package
+creation authority. Runtime capture remains blocked until storage and
+finalization authority is separately promoted and until package, manifest,
+serialization, hashing, integrity, redaction, and provenance rules are ready.
+
+Required future storage root and package path rules:
+
+- Approved storage roots must be explicitly named before implementation.
+- Approved package output paths must be explicitly named before implementation.
+- Package directory naming must be deterministic.
+- Package directory naming must use canonical `run_id` or a governed
+  `package_id`.
+- Package paths must separate immutable evidence packages from mutable
+  evaluation outputs.
+- Unknown storage root, unclear package path, or ambiguous package identity
+  must fail closed.
+
+Required future package lifecycle rules:
+
+- Package lifecycle states must be explicitly governed before use.
+- Minimum future lifecycle states are `draft`, `finalized`, `invalidated`, and
+  `superseded`.
+- Draft evidence may be incomplete and non-authoritative.
+- Draft evidence must not imply finalization authority.
+- Finalized evidence must be no-overwrite.
+- Finalized evidence must not be silently mutated.
+- Invalidated and superseded evidence must remain retained with lineage
+  references when later approved.
+- Missing or unknown lifecycle status must fail closed.
+
+Required future immutability semantics:
+
+- Immutable evidence packages must preserve original facts.
+- Original facts must not be rewritten.
+- Corrections, annotations, invalidations, supersessions, and reviewer notes
+  must be append-only and lineage-preserving.
+- Corrections must identify the affected package, manifest, section, source
+  reference, and hash lineage once hashing exists.
+- Immutable evidence must remain distinct from derived reports, comparisons,
+  recommendations, experiments, and other mutable evaluation artifacts.
+
+Required future retention, discovery, and index rules:
+
+- Retention rules for finalized packages must be approved before
+  implementation.
+- Retention rules for invalidated and superseded packages must be approved
+  before implementation.
+- Discovery or index behavior is non-authoritative until separately approved.
+- Index entries must not create package completeness, finalization, evaluation,
+  promotion, broker, execution, or live trading authority.
+- Disposable evaluation artifacts must not be mixed with retained immutable
+  evidence.
+
+Required future sensitive-data and redaction rules:
+
+- Raw credentials and secrets must never be stored.
+- Broker/account-sensitive identifiers require explicit safe handling.
+- Redaction status must be explicit before storage, finalization, indexing, or
+  runtime capture.
+- Invalid redaction state must fail closed.
+- Sensitive data exposure must stop storage, finalization, indexing, runtime
+  capture, package creation, or evaluation.
+
+Filesystem writer authority boundaries:
+
+- A future writer may write only approved package artifacts under an explicit
+  implementation gate.
+- A future writer may write only to approved storage roots and package paths.
+- A future writer must not overwrite finalized evidence.
+- A future writer must not mutate runtime state.
+- A future writer must not call `main.py`.
+- A future writer must not call broker/API/TWS/Alpaca/IBKR.
+- A future writer must not create execution permission, strategy promotion, or
+  live trading authority.
+
+Storage, finalization, and immutability cannot authorize replay package
+creation, complete replay package status, finalized immutable replay package
+status, manifest generation, deterministic serialization, hashing or integrity
+enforcement, runtime capture, evaluation, attribution, promotion, broker work,
+execution permission, strategy or risk behavior changes, cleanup, flatten,
+sell, cancel, remediation, or live trading. Event JSONL remains canonical
+chronology. `last_run_report.json` remains a derived operational summary and
+cannot alone create storage, finalization, immutability, package, index, or
+runtime capture authority. `build_draft_replay_envelope(...)` remains draft
+scaffold evidence only. `build_replay_package(...)` mapper scaffold
+completeness remains distinct from complete replay package authority.
+
+Storage, finalization, and immutability stop conditions:
+
+- Need to implement storage path constants.
+- Need to implement package directory constants.
+- Need filesystem writer implementation.
+- Need finalization state implementation.
+- Need immutability enforcement.
+- Need retention, discovery, or index behavior.
+- Need runtime capture.
+- Need manifest schema implementation.
+- Need deterministic serialization implementation.
+- Need hashing or integrity implementation.
+- Need package creation.
+- Need file ingestion.
+- Need package directories.
+- Need replay package files.
+- Need evaluation, attribution, or promotion.
+- Need broker/API/TWS/Alpaca/IBKR.
+- Need `main.py`.
+- Missing approved storage root.
+- Missing approved package path.
+- Missing canonical `run_id` or governed `package_id`.
+- Mixed `run_id`.
+- Missing manifest schema authority.
+- Missing deterministic serialization authority.
+- Missing hashing or integrity authority.
+- Missing package creation authority.
+- Missing lifecycle status.
+- Attempted overwrite of finalized evidence.
+- Unknown package authority.
+- Missing provenance.
+- Missing redaction status.
+- Invalid redaction state.
+- Sensitive data exposure.
+- Implied broker authority.
+- Implied execution permission.
+- Implied live trading authority.
+
 ## Replay Package Envelope Schema Planning
 
 The replay package envelope is a docs-only schema planning record. It is not
