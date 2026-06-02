@@ -1513,89 +1513,120 @@ Manifest schema stop conditions:
 
 ## Deterministic Serialization Authority Contract
 
-Deterministic serialization authority remains governance-only. This contract
-does not approve serialization implementation, canonical serializer code,
-manifest constants, manifest generation, hashing or integrity enforcement,
-package creation, storage, finalization, runtime capture, evaluation, broker
-work, execution permission, or live trading.
+Deterministic serialization authority remains governance-only and is not
+implemented yet. This contract does not approve tests, code, serializer
+constants, serialization types, canonical serializer code, canonical byte
+generation, manifest serialization, package serialization, hashing or integrity
+enforcement, storage, finalization, runtime capture, package creation,
+evaluation, broker work, execution permission, or live trading.
 
-Deterministic serialization must exist before manifest hashing, manifest
-authority, package hash authority, package finalization, or replay-based
-evaluation authority. Manifest schema must exist before serialization
-implementation. Serialization output remains non-authoritative until hashing,
-integrity, storage, and finalization gates are approved.
+Serialization rules must be source-controlled before implementation. Serializer
+input eligibility must be explicitly governed before implementation.
+Serialization input must not imply manifest generation, package creation,
+hashing, storage, runtime capture, evaluation, broker authority, execution
+permission, or live trading. Serialization output remains non-authoritative
+until manifest schema, hashing/integrity, storage, and finalization gates are
+separately approved and validated.
 
-Future canonical serialization rules:
+Canonical JSON scope:
 
-- Format must be JSON unless a later governance gate explicitly approves
-  another canonical format.
+- The future canonical format must be JSON unless a later governance gate
+  explicitly approves another canonical format.
+- The canonical JSON scope must define whether the input is a manifest-shaped
+  dictionary, a package-shaped dictionary, a section dictionary, metadata only,
+  or another explicitly governed object.
+- Manifest schema vocabulary must exist before any serializer can claim
+  manifest serialization semantics.
+- Serialization cannot generate a manifest, create a package, compute a hash,
+  validate integrity, write storage, capture runtime artifacts, evaluate
+  strategy output, or create broker/execution/live-trading authority.
+
+Required future ordering rules:
+
+- Object keys must use deterministic canonical ordering.
+- Recursive object ordering must apply the same deterministic ordering to
+  nested dictionaries.
+- Field ordering must be governed by the canonical object-key rule or by an
+  explicitly source-controlled schema order before implementation.
+- List ordering rules must distinguish chronology-preserving lists from
+  lexicographically sortable metadata lists.
+- Event JSONL chronology and other evidence-order-preserving lists must not be
+  accidentally sorted.
+- Metadata lists may be sorted only when their sorting keys and tie-breakers are
+  source-controlled.
+- Non-deterministic ordering must fail closed.
+
+Required future byte and text rules:
+
 - Serialization must produce stable bytes from semantically identical inputs.
-- Dictionary and object keys must use canonical lexicographic ordering.
-- Nested dictionaries must use the same canonical ordering recursively.
-- List ordering must be explicitly classified as
-  `evidence_order_preserving`, where source chronology or source order must not
-  be sorted, or `canonical_metadata_sorted`, where deterministic sorting is
-  allowed.
-- Event JSONL chronology must remain source-order-preserving.
-- Manifest metadata lists must define their sorting keys before
-  implementation.
-- Whitespace must be canonical and minimal.
 - String encoding must be UTF-8.
+- Whitespace policy must be minimal and deterministic.
 - Newline policy must be explicit and stable.
-- Numeric representation must be deterministic.
-- Float and decimal handling must be explicitly governed before authoritative
-  use.
-- Timestamps must use UTC.
-- Timestamp format must be ISO-8601/RFC3339-compatible.
-- Timestamp precision must be fixed before implementation.
-- Timezone offsets must be normalized.
-- `timestamp_utc` remains canonical for event chronology when available.
-- Null versus absent semantics must be explicit.
-- `unknown`, `unavailable`, and `not_applicable` fields must serialize
-  deterministically.
-- Schema version fields must be stable and explicit.
+- String escaping policy must be deterministic.
+- Unsupported string encodings must fail closed.
+- Sensitive or redacted fields must not leak original sensitive content through
+  escaped strings, metadata, placeholders, or error messages.
+
+Required future primitive value rules:
+
+- Number handling must be explicit.
+- Decimal handling must be explicit.
+- Ambiguous floats must fail closed unless separately governed.
+- Boolean handling must be deterministic.
+- `null`, absent fields, and `not_applicable` must remain distinct.
+- Absent-field handling must be explicit.
+- `not_applicable` handling must be explicit.
+- Redacted-field handling must preserve redaction status without leaking
+  original sensitive content.
 - Unsupported value types must fail closed.
 - Non-deterministic objects must fail closed.
-- Ambiguous timestamps must fail closed.
-- Unknown section status must fail closed.
-- Sensitive data exposure must stop serialization, manifest generation, or
-  package creation.
 
-Required value and status serialization rules:
+Required future status and section serialization rules:
 
-- `present` must require provenance and `run_id` alignment before
-  authoritative use.
+- `present` must require provenance, redaction status, source reference
+  authority, and `run_id` alignment before authoritative use.
 - `absent` and `not_applicable` must remain distinguishable.
 - `disabled` must remain distinguishable from `absent`.
 - `unavailable` must remain distinguishable from `unknown`.
-- `stale` must fail closed for authoritative use.
-- `redacted` must preserve redaction status without leaking sensitive content.
-- `untrusted` must fail closed.
-- `unknown` must fail closed.
-- Redaction status must serialize explicitly.
-- Provenance status must serialize explicitly.
+- `redacted` must serialize only redaction-safe content and explicit redaction
+  status.
+- `stale`, `malformed`, `untrusted`, and `invalidated` sections may serialize
+  only under governed status semantics and must fail closed for authoritative
+  use.
+- `unknown` section status must fail closed.
 - Missing provenance must fail closed.
 - Missing redaction status must fail closed.
+
+Required future timestamp rules:
+
+- Timestamps must be normalized to UTC.
+- Timestamp format must be ISO-8601/RFC3339-compatible.
+- Timestamp precision must be explicit and fixed before implementation.
+- Timezone offsets must be normalized.
+- `timestamp_utc` remains canonical for event chronology when available.
+- Ambiguous, missing, non-UTC, or unsupported timestamp formats must fail
+  closed when timestamp authority is required.
 
 Hashing boundary:
 
 - Serialization may be a prerequisite for hashing, but this contract does not
   approve hashing.
-- Future hashing must use canonical serialized bytes only.
+- Future hashing may use only canonical serialized bytes approved by a later
+  implementation gate.
 - Hash algorithm selection remains a later authority gate.
 - Section hash rules remain future-only.
 - Manifest hash rules remain future-only.
 - Package hash rules remain future-only.
 - Integrity validation remains future-only.
 
-Deterministic serialization cannot authorize replay package creation, complete
-replay package status, finalized immutable replay package status, manifest
-generation, hashing or integrity enforcement, storage, finalization, runtime
-capture, evaluation, attribution, promotion, broker work, execution permission,
-strategy or risk behavior changes, cleanup, flatten, sell, cancel,
-remediation, or live trading. Event JSONL remains canonical chronology.
-`last_run_report.json` remains a derived operational summary and cannot alone
-create serialization, manifest, package, or hash authority.
+Deterministic serialization cannot authorize manifest authority, manifest
+generation, replay package creation, complete replay package status, finalized
+immutable replay package status, hashing or integrity enforcement, storage,
+finalization, runtime capture, evaluation, attribution, promotion, broker work,
+execution permission, strategy or risk behavior changes, cleanup, flatten,
+sell, cancel, remediation, or live trading. Event JSONL remains canonical
+chronology. `last_run_report.json` remains a derived operational summary and
+cannot alone create serialization, manifest, package, or hash authority.
 `build_draft_replay_envelope(...)` remains draft scaffold evidence only.
 `build_replay_package(...)` mapper scaffold completeness remains distinct from
 complete replay package authority.
@@ -1603,31 +1634,52 @@ complete replay package authority.
 Deterministic serialization stop conditions:
 
 - Need to implement serialization constants.
+- Need to implement serialization types.
 - Need to implement canonical serializer code.
-- Need to generate manifests.
+- Need canonical byte generation.
+- Need manifest serialization.
+- Need package serialization.
+- Need manifest generation.
 - Need to compute hashes.
 - Need integrity validation.
 - Need package creation.
-- Need filesystem writes.
+- Need filesystem reads or writes.
 - Need file path ingestion.
 - Need package directories.
 - Need runtime capture.
 - Need storage, finalization, or immutability.
 - Need retention, discovery, or index behavior.
-- Need evaluation, attribution, or promotion.
+- Need evaluation, attribution, experiment registry, or promotion.
 - Need broker/API/TWS/Alpaca/IBKR.
 - Need `main.py`.
 - Missing manifest schema authority.
+- Missing governed serializer input eligibility.
+- Missing canonical JSON scope.
+- Missing canonical ordering rules.
+- Missing list ordering category.
+- Missing timestamp format or precision.
+- Missing number or decimal handling.
+- Missing `null`, absent, or `not_applicable` semantics.
+- Missing redaction-safe serialization rules.
 - Missing canonical `run_id`.
 - Mixed `run_id`.
 - Missing terminal completion.
 - Missing provenance.
 - Missing redaction status.
 - Unknown section status.
+- Stale, malformed, untrusted, or invalidated evidence without governed status
+  semantics.
 - Ambiguous timestamp.
 - Unsupported value type.
 - Non-deterministic ordering.
 - Sensitive data exposure.
+- Implied manifest authority.
+- Implied manifest generation authority.
+- Implied package creation authority.
+- Implied hash or integrity authority.
+- Implied storage or finalization authority.
+- Implied runtime capture authority.
+- Implied evaluation or promotion authority.
 - Implied broker authority.
 - Implied execution permission.
 - Implied live trading authority.
