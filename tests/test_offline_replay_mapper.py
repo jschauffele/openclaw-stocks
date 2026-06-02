@@ -198,6 +198,51 @@ FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES = (
     "FinalizationState",
     "ImmutabilityEnforcer",
 )
+FUTURE_RUNTIME_CAPTURE_MODULES = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "runtime_artifacts.py"
+    ),
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "source_path_ingestion.py"
+    ),
+)
+FORBIDDEN_RUNTIME_CAPTURE_IMPLEMENTATION_NAMES = (
+    "RUNTIME_CAPTURE_ROOT",
+    "RUNTIME_CAPTURE_PATH",
+    "RUNTIME_ARTIFACT_PATH",
+    "SOURCE_ARTIFACT_PATH",
+    "SOURCE_REFERENCE",
+    "CAPTURE_SOURCE",
+    "CAPTURED_ARTIFACT",
+    "JSONL_CAPTURE",
+    "LAST_RUN_REPORT_CAPTURE",
+    "OBSERVATION_CAPTURE",
+    "RUNTIME_VISIBILITY_CAPTURE",
+    "build_runtime_capture",
+    "capture_runtime_artifacts",
+    "capture_jsonl_event_stream",
+    "capture_last_run_report",
+    "capture_observations",
+    "capture_runtime_visibility",
+    "ingest_runtime_file",
+    "ingest_source_path",
+    "read_runtime_artifact",
+    "read_runtime_file",
+    "build_capture_manifest",
+    "RuntimeCapture",
+    "RuntimeCaptureResult",
+    "RuntimeArtifactCapture",
+    "RuntimeCaptureSource",
+    "RuntimeCaptureWriter",
+    "SourcePathIngestion",
+)
 
 
 def _event_payloads() -> list[dict]:
@@ -888,6 +933,80 @@ def test_storage_immutability_boundary_remains_unimplemented() -> None:
     for module_path in REPLAY_SOURCE_MODULES:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES:
+            assert forbidden_name not in module_text
+
+
+def test_runtime_capture_boundary_remains_unimplemented() -> None:
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Runtime Capture Authority Contract" in spec_text
+    assert "governance-only and is not implemented yet" in spec_text
+
+    for module_path in FUTURE_RUNTIME_CAPTURE_MODULES:
+        assert not module_path.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert complete_inputs_envelope["canonical_chronology"] == "event_jsonl"
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_runtime_mutation"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "runtime_capture_authority",
+        "runtime_artifact_ingestion",
+        "source_path_ingestion",
+        "source_artifact_path",
+        "runtime_artifact_path",
+        "capture_manifest",
+        "manifest_generation_authority",
+        "deterministic_serialization_authority",
+        "hashing_integrity_authority",
+        "storage_finalization_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "broker_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    try:
+        build_draft_replay_envelope(RISK_BLOCKED_FIXTURE)  # type: ignore[arg-type]
+    except TypeError as exc:
+        assert str(exc) == (
+            "draft envelope scaffold accepts loaded replay inputs only"
+        )
+    else:
+        raise AssertionError("expected TypeError")
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for forbidden_name in FORBIDDEN_RUNTIME_CAPTURE_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
 
 
