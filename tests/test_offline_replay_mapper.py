@@ -185,6 +185,40 @@ FORBIDDEN_SERIALIZATION_NAMES = (
     "canonical_byte_generation",
     "deterministic_serialization_authority",
 )
+FORBIDDEN_SERIALIZATION_IMPLEMENTATION_NAMES = (
+    "SERIALIZATION_SCHEMA",
+    "SERIALIZATION_VERSION",
+    "SERIALIZATION_CONSTANTS",
+    "CANONICAL_JSON",
+    "CANONICAL_BYTES",
+    "CANONICAL_SERIALIZATION",
+    "CANONICAL_SERIALIZER",
+    "SERIALIZER_INPUT",
+    "SERIALIZER_OUTPUT",
+    "SERIALIZATION_TYPES",
+    "MANIFEST_SERIALIZATION",
+    "PACKAGE_SERIALIZATION",
+    "SerializationSchema",
+    "SerializationVersion",
+    "CanonicalJson",
+    "CanonicalBytes",
+    "CanonicalSerializer",
+    "SerializationInput",
+    "SerializationOutput",
+    "ManifestSerialization",
+    "PackageSerialization",
+    "build_canonical_json",
+    "build_canonical_bytes",
+    "serialize_manifest",
+    "serialize_package",
+    "serialize_section",
+    "canonicalize_json",
+    "canonicalize_manifest",
+    "canonicalize_package",
+    "generate_canonical_bytes",
+    "validate_serialization",
+    "validate_canonical_bytes",
+)
 FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES = (
     "HASH_ALGORITHM",
     "HASH_VERSION",
@@ -800,6 +834,20 @@ def test_manifest_schema_boundary_remains_unimplemented() -> None:
 
 
 def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Deterministic Serialization Authority Contract" in spec_text
+    assert "governance-only and is not\nimplemented yet" in spec_text
+    assert "does not approve tests, code, serializer" in spec_text
+    assert "Serializer\ninput eligibility must be explicitly governed" in spec_text
+    assert "Canonical JSON scope" in spec_text
+    assert "Event JSONL chronology" in spec_text
+    assert "String encoding must be UTF-8" in spec_text
+    assert "`null`, absent fields, and `not_applicable`" in spec_text
+    assert "`stale`, `malformed`, `untrusted`, and `invalidated`" in spec_text
+    assert "Timestamp precision must be explicit" in spec_text
+    assert "Unsupported value types must fail closed" in spec_text
+    assert "cannot authorize manifest authority" in spec_text
+
     for module_path in FUTURE_DETERMINISTIC_SERIALIZATION_MODULES:
         assert not module_path.exists()
 
@@ -833,6 +881,13 @@ def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
         "canonical_byte_generation",
         "canonical_json",
         "canonical_bytes",
+        "canonical_serializer",
+        "serializer_constants",
+        "serialization_types",
+        "serializer_input",
+        "serializer_output",
+        "manifest_serialization_authority",
+        "package_serialization_authority",
         "serialize_manifest",
         "serialize_package",
         "manifest_hash_authority",
@@ -858,6 +913,11 @@ def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
                 assert set(FORBIDDEN_SERIALIZATION_NAMES).isdisjoint(
                     value.__code__.co_names
                 )
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for forbidden_name in FORBIDDEN_SERIALIZATION_IMPLEMENTATION_NAMES:
+            assert forbidden_name not in module_text
 
 
 def test_hashing_integrity_boundary_remains_unimplemented() -> None:
