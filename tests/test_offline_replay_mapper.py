@@ -222,17 +222,37 @@ FORBIDDEN_SERIALIZATION_IMPLEMENTATION_NAMES = (
 FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES = (
     "HASH_ALGORITHM",
     "HASH_VERSION",
+    "HASH_CONSTANTS",
+    "HASH_HELPER",
+    "HASH_HELPERS",
     "SECTION_HASH",
     "MANIFEST_HASH",
     "PACKAGE_HASH",
+    "INTEGRITY_STATUS",
+    "INTEGRITY_VALIDATION",
+    "CANONICAL_HASH_INPUT",
+    "HashAlgorithm",
+    "HashVersion",
+    "SectionHash",
+    "ManifestHash",
+    "PackageHash",
+    "IntegrityStatus",
+    "IntegrityValidation",
+    "IntegrityValidator",
+    "HashInput",
+    "CanonicalHashInput",
+    "build_section_hash",
+    "build_manifest_hash",
+    "build_package_hash",
+    "compute_hash",
     "compute_section_hash",
     "compute_manifest_hash",
     "compute_package_hash",
     "validate_integrity",
-    "IntegrityValidator",
-    "IntegrityValidationResult",
-    "build_hash_manifest",
-    "build_package_hash",
+    "validate_hash",
+    "hash_manifest",
+    "hash_package",
+    "hash_section",
 )
 FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES = (
     "STORAGE_ROOT",
@@ -924,6 +944,21 @@ def test_hashing_integrity_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Hashing and Integrity Authority Contract" in spec_text
     assert "governance-only and is not implemented" in spec_text
+    assert "does not approve tests, code, hash constants" in spec_text
+    assert "Hash algorithm\nand hash version authority" in spec_text
+    assert "approved canonical byte input" in spec_text
+    assert "Canonical byte input depends\non deterministic serialization authority" in spec_text
+    assert "Manifest hash scope depends on\nmanifest schema authority" in spec_text
+    assert "Placeholder hash fields must not imply computed hash authority" in spec_text
+    assert "Section hash scope must define" in spec_text
+    assert "Manifest hash scope must define" in spec_text
+    assert "Package hash scope must define" in spec_text
+    assert "integrity status vocabulary" in spec_text
+    assert "Hash mismatch must fail closed" in spec_text
+    assert "Mixed-`run_id` hash inputs must fail closed" in spec_text
+    assert "Unknown source references must fail closed" in spec_text
+    assert "Correction, invalidation, and supersession lineage" in spec_text
+    assert "cannot authorize replay package creation" in spec_text
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -957,6 +992,14 @@ def test_hashing_integrity_boundary_remains_unimplemented() -> None:
         "section_hash",
         "manifest_hash",
         "package_hash",
+        "canonical_hash_input",
+        "hash_computation_authority",
+        "canonical_byte_authority",
+        "canonical_byte_generation",
+        "manifest_serialization_authority",
+        "package_serialization_authority",
+        "hash_authority",
+        "integrity_authority",
         "manifest_hash_authority",
         "package_hash_authority",
         "integrity_validation_authority",
