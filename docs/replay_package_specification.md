@@ -1087,10 +1087,19 @@ cleanup, flatten, sell, cancel, remediation, or live trading.
 
 ## Replay Package Creation Authority Contract
 
-Replay package creation authority remains governance-only. This contract does
-not approve package creation implementation, filesystem writes, package
-directories, file ingestion, runtime capture, manifest generation, hashing,
-storage, evaluation, broker work, or live trading.
+Replay package creation authority remains governance-only and is not
+implemented yet. This contract does not approve tests, code, package creation
+constants, package builder types, package creation modules, package layout
+constants, manifest generation, canonical byte generation, hash computation,
+integrity validation, storage, finalization, runtime capture, evaluation,
+broker work, execution permission, or live trading.
+
+Replay package creation rules must be source-controlled before
+implementation. No package builder, package constants, package types, package
+creation module, package layout constant, package directory, package file,
+manifest output, canonical byte output, hash output, integrity output, storage
+output, runtime capture output, evaluation output, or promotion output is
+authoritative until a separate implementation gate explicitly approves it.
 
 Authority states remain distinct:
 
@@ -1100,6 +1109,20 @@ Authority states remain distinct:
 - Complete replay package.
 - Finalized immutable replay package.
 
+Required future package layout and identity authority:
+
+- Package layout authority must be explicitly governed before implementation.
+- Package identity authority must be explicitly governed before
+  implementation.
+- `canonical_run_id` and governed `package_id` rules must remain distinct.
+- A governed `package_id` must define whether it is derived from
+  `canonical_run_id`, assigned independently, or created by another
+  source-controlled rule.
+- Package layout constants cannot be introduced before layout authority exists.
+- Package directories and package paths cannot be introduced before package
+  layout and storage path authority exist.
+- Ambiguous package identity must fail closed.
+
 Current `build_draft_replay_envelope(...)` output remains draft scaffold
 evidence only. Current `build_replay_package(...)` mapper scaffold output may
 indicate tracked in-memory bucket completeness, but it cannot create complete
@@ -1108,21 +1131,60 @@ replay package authority. Event JSONL remains canonical event chronology.
 create package authority. `order_state.json`, observations, and runtime
 visibility remain separate evidence with provenance requirements.
 
-The first future package-creation lifecycle state, if later approved, must be
-`draft` only. Draft package creation must not imply finalized package
-authority, overwrite existing evidence, mutate runtime state, call `main.py`,
-call broker/API/TWS/Alpaca/IBKR, evaluate, attribute, promote, or approve
-strategies, create execution permission, or create live trading authority.
+Required future input authority:
+
+- Already-loaded envelope dictionaries may remain draft-only evidence inputs,
+  but they do not create package authority.
+- Future manifest inputs require manifest generation authority before package
+  creation can consume them as package-shaped output.
+- Future source references require source-reference authority before package
+  creation can consume them.
+- Future approved source paths require source path authority before package
+  creation can consume them.
+- Future copied artifacts require artifact copying authority before package
+  creation can consume them.
+- Future runtime-captured artifacts require runtime capture authority before
+  package creation can consume them.
+- Path-like inputs, unreferenced files, unknown source paths, copied artifacts,
+  and runtime-captured artifacts remain forbidden until separate gates approve
+  those input models.
+
+Required future lifecycle and completeness rules:
+
+- The first future package-creation lifecycle state, if later approved, must be
+  `draft` only.
+- Draft-only package assembly, if later approved, must remain non-finalized and
+  non-authoritative.
+- Draft package creation must not imply finalized package authority.
+- Draft package creation must not overwrite existing evidence.
+- Current `build_replay_package(...)` `package_status == "complete"` remains
+  mapper bucket completeness only and cannot create complete replay package
+  authority.
+- Complete replay package authority must require explicit package creation,
+  manifest, serialization, integrity, and storage/finalization gates.
 
 Required prerequisites before any package creation implementation:
 
-- Exact package layout.
-- Exact approved output root and package paths.
-- Exact source artifact rules.
-- Exact source reference rules.
-- File ingestion rules, if any.
-- Manifest schema.
-- Deterministic manifest serialization.
+- Source-controlled package creation rules.
+- Exact package layout authority.
+- Exact package identity authority.
+- Exact approved output root and package path authority.
+- Exact source artifact authority.
+- Exact source reference authority.
+- File path ingestion authority, if any.
+- Manifest schema authority.
+- Manifest generation authority before package creation can produce
+  manifest-shaped package output.
+- Deterministic serialization authority before package creation can rely on
+  canonical bytes.
+- Canonical byte authority before package creation can rely on canonical byte
+  output.
+- Hashing and integrity validation before package creation can claim
+  integrity.
+- Storage and finalization authority before package creation can persist
+  finalized packages.
+- Runtime capture authority before package creation can use live runtime
+  artifacts.
 - Section status semantics.
 - Section hash rules.
 - Package or manifest hash rules.
@@ -1133,9 +1195,7 @@ Required prerequisites before any package creation implementation:
   and unknown semantics.
 - Correction, annotation, invalidation, and supersession rules.
 - No-overwrite and finalization rules.
-- Storage, finalization, and immutability gate.
 - Retention, discovery, and index policy.
-- Runtime capture gate if runtime artifacts are used.
 - Evaluation, attribution, and promotion gates if output will later be
   evaluated.
 
@@ -1156,6 +1216,28 @@ Allowed future source inputs, subject to later gates:
   authority.
 - Reconciliation and risk evidence.
 
+Required future evidence and fail-closed rules:
+
+- Provenance must be explicit before package creation.
+- Redaction status must be explicit before package creation.
+- Source-reference authority must be explicit before package creation.
+- Runtime terminal completion requirements must be explicit before
+  runtime-derived package inputs are accepted.
+- Missing `run_id` must fail closed.
+- Mixed `run_id` must fail closed.
+- Stale artifacts must fail closed.
+- Malformed artifacts must fail closed.
+- Missing terminal completion must fail closed for runtime-derived package
+  inputs.
+- Missing provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Unknown source references must fail closed.
+- Sensitive data exposure must stop package creation, manifest generation,
+  hashing, integrity validation, storage, indexing, runtime capture,
+  evaluation, and finalization.
+- Ambiguous package identity must fail closed.
+
 Forbidden or untrusted without later gates:
 
 - Unreferenced files.
@@ -1171,33 +1253,76 @@ Forbidden or untrusted without later gates:
 - Any source implying execution permission.
 - Any source implying live trading authority.
 
+Package creation execution boundaries:
+
+- Package creation must remain separate from runtime capture.
+- Package creation must remain separate from storage and finalization.
+- Package creation must remain separate from evaluation and promotion.
+- Package creation must not mutate runtime state.
+- Package creation must not call `main.py`.
+- Package creation must not stop or start timers.
+- Package creation must not call broker/API/TWS/Alpaca/IBKR.
+- Package creation must not respond to or remediate blocked buy/sell signals.
+- Package creation must not submit, cancel, flatten, sell, cleanup, retry,
+  remediate, or otherwise affect broker state.
+- Package creation must not approve live trading.
+
 Package creation stop conditions:
 
+- Need package creation constants.
+- Need package builder types.
+- Need package creation modules.
+- Need package layout constants.
 - Need to write package files before output-path authority exists.
 - Need to create package directories before layout authority exists.
 - Need to ingest file paths before file-ingestion rules exist.
 - Need to generate manifests before manifest schema exists.
+- Need canonical byte generation.
 - Need to compute hashes before hash and integrity rules exist.
+- Need integrity validation.
 - Need to finalize packages before storage and finalization rules exist.
 - Need to capture runtime artifacts before a runtime capture gate exists.
 - Need to evaluate, attribute, or promote strategies before evaluation and
   promotion gates exist.
+- Missing source-controlled package creation rules.
+- Missing package layout authority.
+- Missing package identity authority.
 - Missing canonical `run_id`.
+- Missing `run_id`.
+- Missing governed `package_id` when package identity requires one.
 - Mixed `run_id`.
 - Missing terminal completion.
-- Missing source reference.
+- Stale artifact.
+- Malformed artifact.
+- Missing source reference authority.
+- Unknown source reference.
 - Missing provenance.
 - Missing redaction status.
+- Invalid redaction status.
+- Ambiguous package identity.
 - Sensitive data exposure.
+- Implied manifest authority.
+- Implied package completeness.
+- Implied hash or integrity authority.
+- Implied storage or finalization authority.
+- Implied runtime capture authority.
+- Implied evaluation or promotion authority.
 - Implied broker authority.
 - Implied execution permission.
 - Implied live trading authority.
 
-This contract cannot authorize replay package creation, complete replay package
-status, finalized immutable replay package status, runtime capture, storage,
-evaluation, attribution, promotion, broker work, execution permission, strategy
-or risk behavior changes, cleanup, flatten, sell, cancel, remediation, or live
-trading.
+Replay package creation cannot authorize manifest authority, manifest
+generation, canonical byte generation, hash computation, integrity validation,
+package completeness, complete replay package status, finalized immutable
+replay package status, storage, finalization, runtime capture, evaluation,
+attribution, promotion, broker work, execution permission, strategy or risk
+behavior changes, cleanup, flatten, sell, cancel, remediation, or live trading.
+`build_draft_replay_envelope(...)` remains draft scaffold evidence only.
+`build_replay_package(...)` mapper scaffold completeness remains distinct from
+complete replay package authority. Package creation output cannot become
+manifest truth, package completeness truth, hash truth, storage truth,
+finalization truth, runtime capture truth, evaluation truth, promotion truth,
+broker truth, execution permission, or live trading authority.
 
 ## Replay Package Layout, Manifest, Hash, and Lifecycle Contract
 
