@@ -87,6 +87,14 @@ FUTURE_DETERMINISTIC_SERIALIZATION_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_json.py",
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_bytes.py",
 )
+REPLAY_PACKAGE_SPECIFICATION = (
+    Path(__file__).resolve().parents[1] / "docs" / "replay_package_specification.md"
+)
+REPLAY_SOURCE_MODULES = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "draft_envelope.py",
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "offline_mapper.py",
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_schema.py",
+)
 FORBIDDEN_DRAFT_ENVELOPE_NAMES = (
     "Path",
     "os",
@@ -149,6 +157,21 @@ FORBIDDEN_SERIALIZATION_NAMES = (
     "package_hash_authority",
     "canonical_byte_generation",
     "deterministic_serialization_authority",
+)
+FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES = (
+    "HASH_ALGORITHM",
+    "HASH_VERSION",
+    "SECTION_HASH",
+    "MANIFEST_HASH",
+    "PACKAGE_HASH",
+    "compute_section_hash",
+    "compute_manifest_hash",
+    "compute_package_hash",
+    "validate_integrity",
+    "IntegrityValidator",
+    "IntegrityValidationResult",
+    "build_hash_manifest",
+    "build_package_hash",
 )
 
 
@@ -717,6 +740,64 @@ def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
                 assert set(FORBIDDEN_SERIALIZATION_NAMES).isdisjoint(
                     value.__code__.co_names
                 )
+
+
+def test_hashing_integrity_boundary_remains_unimplemented() -> None:
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Hashing and Integrity Authority Contract" in spec_text
+    assert "governance-only and is not implemented" in spec_text
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["integrity"]["status"] == "absent"
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["immutability"]["status"] == "absent"
+    assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "hash_algorithm",
+        "hash_version",
+        "section_hash",
+        "manifest_hash",
+        "package_hash",
+        "manifest_hash_authority",
+        "package_hash_authority",
+        "integrity_validation_authority",
+        "integrity_validator",
+        "storage_finalization_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for forbidden_name in FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES:
+            assert forbidden_name not in module_text
 
 
 def test_mapper_returns_documented_top_level_envelope_sections() -> None:
