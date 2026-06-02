@@ -257,27 +257,44 @@ FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES = (
 FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES = (
     "STORAGE_ROOT",
     "STORAGE_PATH",
-    "PACKAGE_ROOT",
-    "PACKAGE_DIR",
+    "STORAGE_CONSTANTS",
     "PACKAGE_DIRECTORY",
+    "PACKAGE_DIRECTORIES",
+    "PACKAGE_PATH",
+    "PACKAGE_LAYOUT",
     "FINALIZATION_STATE",
-    "IMMUTABILITY_MARKER",
+    "FINALIZED_PACKAGE",
+    "IMMUTABILITY_ENFORCEMENT",
+    "IMMUTABLE_PACKAGE",
     "RETENTION_INDEX",
     "DISCOVERY_INDEX",
+    "STORAGE_INDEX",
+    "StorageRoot",
+    "StoragePath",
+    "PackageDirectory",
+    "PackagePath",
+    "PackageLayout",
+    "FinalizationState",
+    "FinalizedPackage",
+    "ImmutablePackage",
+    "ImmutabilityEnforcement",
+    "RetentionIndex",
+    "DiscoveryIndex",
+    "StorageIndex",
     "build_storage_path",
     "build_package_directory",
+    "create_package_directory",
     "write_replay_package",
+    "write_manifest",
     "write_package_file",
-    "finalize_replay_package",
-    "mark_package_finalized",
+    "finalize_package",
+    "mark_finalized",
     "enforce_immutability",
-    "validate_storage_integrity",
+    "validate_storage_root",
+    "validate_package_path",
     "build_retention_index",
     "build_discovery_index",
-    "StorageWriter",
-    "ReplayPackageWriter",
-    "FinalizationState",
-    "ImmutabilityEnforcer",
+    "build_storage_index",
 )
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
@@ -1028,6 +1045,38 @@ def test_storage_immutability_boundary_remains_unimplemented() -> None:
         in spec_text
     )
     assert "governance-only and\nis not implemented yet" in spec_text
+    assert "does not approve tests, code, storage\nconstants" in spec_text
+    assert "filesystem reads, filesystem\nwrites" in spec_text
+    assert "Storage rules must be source-controlled before implementation" in spec_text
+    assert "Storage root authority must be explicitly governed" in spec_text
+    assert "Package path authority must be explicitly governed" in spec_text
+    assert "Package directory naming authority must be explicitly governed" in spec_text
+    assert "`canonical_run_id` and `package_id` naming rules" in spec_text
+    assert "Package layout authority must exist before storage paths" in spec_text
+    assert "Package creation authority must exist before finalized package storage" in spec_text
+    assert "Manifest schema authority must exist before finalized package metadata" in spec_text
+    assert "Deterministic serialization authority must exist before storage" in spec_text
+    assert "Hashing and integrity validation must exist before finalization" in spec_text
+    assert "Finalization preconditions must be explicit" in spec_text
+    assert "Minimum future lifecycle states are `draft`, `finalized`, `invalidated`" in spec_text
+    assert "Finalized evidence must be immutable and no-overwrite" in spec_text
+    assert "Invalidated and superseded packages must remain discoverable" in spec_text
+    assert "append-only and lineage-preserving" in spec_text
+    assert "Retention authority remains future-only" in spec_text
+    assert "Discovery authority remains future-only" in spec_text
+    assert "Index authority remains future-only" in spec_text
+    assert "Immutable evidence must remain distinct from derived reports" in spec_text
+    assert "Provenance must be explicit before storage" in spec_text
+    assert "Source-reference authority must be explicit before storage" in spec_text
+    assert "`run_id` alignment must be explicit before storage" in spec_text
+    assert "Mixed-`run_id` storage inputs must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Sensitive data exposure must stop storage" in spec_text
+    assert "Attempted overwrite of finalized evidence must fail closed" in spec_text
+    assert "cannot authorize manifest authority" in spec_text
+    assert "replay package creation, package authority, package\ncompleteness" in spec_text
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -1058,19 +1107,28 @@ def test_storage_immutability_boundary_remains_unimplemented() -> None:
     absent_authority_keys = (
         "storage_root",
         "storage_path",
+        "storage_constants",
         "package_root",
         "package_dir",
         "package_directory",
+        "package_path",
+        "package_layout",
         "finalization_state",
+        "finalized_package",
         "immutability_marker",
+        "immutability_enforcement",
+        "immutable_package",
         "retention_index",
         "discovery_index",
+        "storage_index",
         "storage_authority",
         "finalization_authority",
         "immutability_authority",
         "retention_authority",
         "discovery_authority",
         "index_authority",
+        "package_creation_authority",
+        "package_completeness_authority",
         "runtime_capture_authority",
         "evaluation_authority",
         "promotion_authority",
