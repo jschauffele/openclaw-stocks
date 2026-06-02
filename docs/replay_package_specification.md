@@ -1472,6 +1472,127 @@ Manifest schema stop conditions:
 - Implied execution permission.
 - Implied live trading authority.
 
+## Deterministic Serialization Authority Contract
+
+Deterministic serialization authority remains governance-only. This contract
+does not approve serialization implementation, canonical serializer code,
+manifest constants, manifest generation, hashing or integrity enforcement,
+package creation, storage, finalization, runtime capture, evaluation, broker
+work, execution permission, or live trading.
+
+Deterministic serialization must exist before manifest hashing, manifest
+authority, package hash authority, package finalization, or replay-based
+evaluation authority. Manifest schema must exist before serialization
+implementation. Serialization output remains non-authoritative until hashing,
+integrity, storage, and finalization gates are approved.
+
+Future canonical serialization rules:
+
+- Format must be JSON unless a later governance gate explicitly approves
+  another canonical format.
+- Serialization must produce stable bytes from semantically identical inputs.
+- Dictionary and object keys must use canonical lexicographic ordering.
+- Nested dictionaries must use the same canonical ordering recursively.
+- List ordering must be explicitly classified as
+  `evidence_order_preserving`, where source chronology or source order must not
+  be sorted, or `canonical_metadata_sorted`, where deterministic sorting is
+  allowed.
+- Event JSONL chronology must remain source-order-preserving.
+- Manifest metadata lists must define their sorting keys before
+  implementation.
+- Whitespace must be canonical and minimal.
+- String encoding must be UTF-8.
+- Newline policy must be explicit and stable.
+- Numeric representation must be deterministic.
+- Float and decimal handling must be explicitly governed before authoritative
+  use.
+- Timestamps must use UTC.
+- Timestamp format must be ISO-8601/RFC3339-compatible.
+- Timestamp precision must be fixed before implementation.
+- Timezone offsets must be normalized.
+- `timestamp_utc` remains canonical for event chronology when available.
+- Null versus absent semantics must be explicit.
+- `unknown`, `unavailable`, and `not_applicable` fields must serialize
+  deterministically.
+- Schema version fields must be stable and explicit.
+- Unsupported value types must fail closed.
+- Non-deterministic objects must fail closed.
+- Ambiguous timestamps must fail closed.
+- Unknown section status must fail closed.
+- Sensitive data exposure must stop serialization, manifest generation, or
+  package creation.
+
+Required value and status serialization rules:
+
+- `present` must require provenance and `run_id` alignment before
+  authoritative use.
+- `absent` and `not_applicable` must remain distinguishable.
+- `disabled` must remain distinguishable from `absent`.
+- `unavailable` must remain distinguishable from `unknown`.
+- `stale` must fail closed for authoritative use.
+- `redacted` must preserve redaction status without leaking sensitive content.
+- `untrusted` must fail closed.
+- `unknown` must fail closed.
+- Redaction status must serialize explicitly.
+- Provenance status must serialize explicitly.
+- Missing provenance must fail closed.
+- Missing redaction status must fail closed.
+
+Hashing boundary:
+
+- Serialization may be a prerequisite for hashing, but this contract does not
+  approve hashing.
+- Future hashing must use canonical serialized bytes only.
+- Hash algorithm selection remains a later authority gate.
+- Section hash rules remain future-only.
+- Manifest hash rules remain future-only.
+- Package hash rules remain future-only.
+- Integrity validation remains future-only.
+
+Deterministic serialization cannot authorize replay package creation, complete
+replay package status, finalized immutable replay package status, manifest
+generation, hashing or integrity enforcement, storage, finalization, runtime
+capture, evaluation, attribution, promotion, broker work, execution permission,
+strategy or risk behavior changes, cleanup, flatten, sell, cancel,
+remediation, or live trading. Event JSONL remains canonical chronology.
+`last_run_report.json` remains a derived operational summary and cannot alone
+create serialization, manifest, package, or hash authority.
+`build_draft_replay_envelope(...)` remains draft scaffold evidence only.
+`build_replay_package(...)` mapper scaffold completeness remains distinct from
+complete replay package authority.
+
+Deterministic serialization stop conditions:
+
+- Need to implement serialization constants.
+- Need to implement canonical serializer code.
+- Need to generate manifests.
+- Need to compute hashes.
+- Need integrity validation.
+- Need package creation.
+- Need filesystem writes.
+- Need file path ingestion.
+- Need package directories.
+- Need runtime capture.
+- Need storage, finalization, or immutability.
+- Need retention, discovery, or index behavior.
+- Need evaluation, attribution, or promotion.
+- Need broker/API/TWS/Alpaca/IBKR.
+- Need `main.py`.
+- Missing manifest schema authority.
+- Missing canonical `run_id`.
+- Mixed `run_id`.
+- Missing terminal completion.
+- Missing provenance.
+- Missing redaction status.
+- Unknown section status.
+- Ambiguous timestamp.
+- Unsupported value type.
+- Non-deterministic ordering.
+- Sensitive data exposure.
+- Implied broker authority.
+- Implied execution permission.
+- Implied live trading authority.
+
 ## Replay Package Envelope Schema Planning
 
 The replay package envelope is a docs-only schema planning record. It is not
