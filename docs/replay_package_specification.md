@@ -1877,111 +1877,150 @@ Hashing and integrity stop conditions:
 ## Storage, Finalization, and Immutability Authority Contract
 
 Storage, finalization, and immutability authority remains governance-only and
-is not implemented yet. This contract does not approve storage path constants,
-package directory constants, filesystem writers, finalization state,
-immutability enforcement, retention, discovery, index behavior, runtime
-capture, manifest schema implementation, deterministic serialization
-implementation, hashing or integrity implementation, package creation,
-evaluation, broker work, execution permission, or live trading.
+is not implemented yet. This contract does not approve tests, code, storage
+constants, storage paths, package directories, filesystem reads, filesystem
+writes, retention, discovery, index behavior, finalization state,
+immutability enforcement, runtime capture, package creation, evaluation,
+broker work, execution permission, or live trading.
 
-No filesystem path, package directory, package file, storage root, index,
-finalized package state, or immutable package marker is authoritative until a
-separate implementation gate explicitly approves it. Approved storage roots,
-package paths, and package directory naming rules must be source-controlled
-before use.
+Storage rules must be source-controlled before implementation. No filesystem
+path, package directory, package file, storage root, index, finalized package
+state, or immutable package marker is authoritative until a separate
+implementation gate explicitly approves it. Storage output remains
+non-authoritative until package layout, package creation, manifest schema,
+deterministic serialization, hashing/integrity validation, storage, and
+finalization gates are separately approved and validated.
 
-Storage and finalization depend on manifest schema, deterministic
-serialization, hashing and integrity validation, package layout, and package
-creation authority. Runtime capture remains blocked until storage and
-finalization authority is separately promoted and until package, manifest,
-serialization, hashing, integrity, redaction, and provenance rules are ready.
+Required future storage root, path, and package directory authority:
 
-Required future storage root and package path rules:
-
-- Approved storage roots must be explicitly named before implementation.
-- Approved package output paths must be explicitly named before implementation.
-- Package directory naming must be deterministic.
-- Package directory naming must use canonical `run_id` or a governed
-  `package_id`.
+- Storage root authority must be explicitly governed before implementation.
+- Package path authority must be explicitly governed before implementation.
+- Package directory naming authority must be explicitly governed before
+  implementation.
+- Approved storage roots, package paths, and package directory naming rules
+  must be source-controlled before use.
+- Package layout authority must exist before storage paths or package
+  directories can be implemented.
+- Package creation authority must exist before finalized package storage can
+  be implemented.
+- `canonical_run_id` and `package_id` naming rules must be explicitly
+  separated.
+- Package directory naming must use `canonical_run_id`, a governed
+  `package_id`, or another source-controlled rule approved by a later gate.
 - Package paths must separate immutable evidence packages from mutable
   evaluation outputs.
-- Unknown storage root, unclear package path, or ambiguous package identity
-  must fail closed.
+- Missing paths, unknown storage roots, unclear package paths, ambiguous
+  package identity, and unknown source references must fail closed.
+
+Required future dependency rules:
+
+- Manifest schema authority must exist before finalized package metadata can
+  be implemented.
+- Deterministic serialization authority must exist before storage can rely on
+  canonical bytes.
+- Hashing and integrity validation must exist before finalization.
+- Finalization preconditions must be explicit before any finalized lifecycle
+  state can be implemented.
+- Runtime capture remains blocked until package layout, package creation,
+  manifest schema, deterministic serialization, hashing/integrity, redaction,
+  provenance, storage, and finalization authority are separately promoted.
 
 Required future package lifecycle rules:
 
-- Package lifecycle states must be explicitly governed before use.
+- Package lifecycle states must be explicitly governed before implementation.
 - Minimum future lifecycle states are `draft`, `finalized`, `invalidated`, and
   `superseded`.
 - Draft evidence may be incomplete and non-authoritative.
 - Draft evidence must not imply finalization authority.
-- Finalized evidence must be no-overwrite.
+- Finalized evidence must be immutable and no-overwrite.
 - Finalized evidence must not be silently mutated.
+- Invalidated and superseded packages must remain discoverable without
+  becoming mutable.
 - Invalidated and superseded evidence must remain retained with lineage
   references when later approved.
-- Missing or unknown lifecycle status must fail closed.
+- Missing, unknown, or malformed lifecycle status must fail closed.
 
-Required future immutability semantics:
+Required future immutability and lineage semantics:
 
 - Immutable evidence packages must preserve original facts.
 - Original facts must not be rewritten.
 - Corrections, annotations, invalidations, supersessions, and reviewer notes
   must be append-only and lineage-preserving.
-- Corrections must identify the affected package, manifest, section, source
-  reference, and hash lineage once hashing exists.
+- Corrections, invalidations, and supersessions must identify the affected
+  package, manifest, section, source reference, and hash lineage once hashing
+  exists.
+- Attempted overwrite of finalized evidence must fail closed.
 - Immutable evidence must remain distinct from derived reports, comparisons,
   recommendations, experiments, and other mutable evaluation artifacts.
 
 Required future retention, discovery, and index rules:
 
+- Retention authority remains future-only until separately approved.
+- Discovery authority remains future-only until separately approved.
+- Index authority remains future-only until separately approved.
 - Retention rules for finalized packages must be approved before
   implementation.
 - Retention rules for invalidated and superseded packages must be approved
   before implementation.
 - Discovery or index behavior is non-authoritative until separately approved.
-- Index entries must not create package completeness, finalization, evaluation,
-  promotion, broker, execution, or live trading authority.
+- Index or discovery entries must not imply completeness, package authority,
+  finalization, evaluation authority, promotion, broker authority, execution
+  permission, or live trading authority.
 - Disposable evaluation artifacts must not be mixed with retained immutable
   evidence.
 
-Required future sensitive-data and redaction rules:
+Required future provenance, source-reference, and redaction rules:
 
+- Provenance must be explicit before storage, finalization, indexing, or
+  runtime capture.
+- Source-reference authority must be explicit before storage, finalization,
+  indexing, or runtime capture.
+- `run_id` alignment must be explicit before storage or finalization.
+- Mixed-`run_id` storage inputs must fail closed.
+- Missing provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
 - Raw credentials and secrets must never be stored.
 - Broker/account-sensitive identifiers require explicit safe handling.
-- Redaction status must be explicit before storage, finalization, indexing, or
-  runtime capture.
-- Invalid redaction state must fail closed.
-- Sensitive data exposure must stop storage, finalization, indexing, runtime
-  capture, package creation, or evaluation.
+- Sensitive data exposure must stop storage, indexing, package creation,
+  runtime capture, evaluation, and finalization.
 
 Filesystem writer authority boundaries:
 
+- This contract does not approve filesystem reads or filesystem writes.
 - A future writer may write only approved package artifacts under an explicit
   implementation gate.
 - A future writer may write only to approved storage roots and package paths.
+- A future writer must not create package authority or package completeness.
 - A future writer must not overwrite finalized evidence.
 - A future writer must not mutate runtime state.
 - A future writer must not call `main.py`.
 - A future writer must not call broker/API/TWS/Alpaca/IBKR.
-- A future writer must not create execution permission, strategy promotion, or
-  live trading authority.
+- A future writer must not create evaluation authority, broker authority,
+  execution permission, strategy promotion, or live trading authority.
 
-Storage, finalization, and immutability cannot authorize replay package
-creation, complete replay package status, finalized immutable replay package
-status, manifest generation, deterministic serialization, hashing or integrity
-enforcement, runtime capture, evaluation, attribution, promotion, broker work,
-execution permission, strategy or risk behavior changes, cleanup, flatten,
-sell, cancel, remediation, or live trading. Event JSONL remains canonical
-chronology. `last_run_report.json` remains a derived operational summary and
-cannot alone create storage, finalization, immutability, package, index, or
-runtime capture authority. `build_draft_replay_envelope(...)` remains draft
-scaffold evidence only. `build_replay_package(...)` mapper scaffold
-completeness remains distinct from complete replay package authority.
+Storage, finalization, and immutability cannot authorize manifest authority,
+manifest generation, replay package creation, package authority, package
+completeness, complete replay package status, finalized immutable replay
+package status, deterministic serialization, canonical byte generation,
+hashing or integrity enforcement, runtime capture, evaluation, attribution,
+promotion, broker work, execution permission, strategy or risk behavior
+changes, cleanup, flatten, sell, cancel, remediation, or live trading. Event
+JSONL remains canonical chronology. `last_run_report.json` remains a derived
+operational summary and cannot alone create storage, finalization,
+immutability, package, index, or runtime capture authority.
+`build_draft_replay_envelope(...)` remains draft scaffold evidence only.
+`build_replay_package(...)` mapper scaffold completeness remains distinct from
+complete replay package authority.
 
 Storage, finalization, and immutability stop conditions:
 
+- Need to implement storage constants.
 - Need to implement storage path constants.
 - Need to implement package directory constants.
+- Need storage paths.
+- Need package directories.
+- Need filesystem reads or writes.
 - Need filesystem writer implementation.
 - Need finalization state implementation.
 - Need immutability enforcement.
@@ -1992,26 +2031,39 @@ Storage, finalization, and immutability stop conditions:
 - Need hashing or integrity implementation.
 - Need package creation.
 - Need file ingestion.
-- Need package directories.
 - Need replay package files.
 - Need evaluation, attribution, or promotion.
 - Need broker/API/TWS/Alpaca/IBKR.
 - Need `main.py`.
+- Missing source-controlled storage rules.
 - Missing approved storage root.
 - Missing approved package path.
-- Missing canonical `run_id` or governed `package_id`.
+- Missing package directory naming authority.
+- Missing package layout authority.
+- Missing package creation authority.
+- Missing canonical `run_id`.
+- Missing governed `package_id` when package identity requires one.
 - Mixed `run_id`.
 - Missing manifest schema authority.
 - Missing deterministic serialization authority.
 - Missing hashing or integrity authority.
-- Missing package creation authority.
+- Missing hash or integrity validation before finalization.
+- Missing finalization preconditions.
 - Missing lifecycle status.
+- Missing source reference authority.
+- Unknown source reference.
 - Attempted overwrite of finalized evidence.
 - Unknown package authority.
 - Missing provenance.
 - Missing redaction status.
 - Invalid redaction state.
 - Sensitive data exposure.
+- Implied manifest authority.
+- Implied package creation authority.
+- Implied package completeness.
+- Implied hash or integrity authority.
+- Implied runtime capture authority.
+- Implied evaluation or promotion authority.
 - Implied broker authority.
 - Implied execution permission.
 - Implied live trading authority.
