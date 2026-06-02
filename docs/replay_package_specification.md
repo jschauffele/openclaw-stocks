@@ -1687,114 +1687,170 @@ Deterministic serialization stop conditions:
 ## Hashing and Integrity Authority Contract
 
 Hashing and integrity authority remains governance-only and is not implemented
-yet. This contract does not approve hash constants, hash helper code, manifest
-hash implementation, package hash implementation, integrity validators,
-deterministic serialization implementation, manifest schema implementation,
-package creation, storage, finalization, runtime capture, evaluation, broker
-work, execution permission, or live trading.
+yet. This contract does not approve tests, code, hash constants, hash
+algorithm constants, hash helper functions, hash computation, canonical byte
+generation, manifest serialization, package serialization, integrity
+validation, storage, finalization, runtime capture, package creation,
+evaluation, broker work, execution permission, or live trading.
 
-No hash value is authoritative until deterministic serialization and manifest
-schema implementation are approved through their own gates. Hash algorithm
-selection must be source-controlled and versioned before use. Canonical
-serialized bytes are the only valid input to authoritative hashes.
+Hashing rules must be source-controlled before implementation. Hash algorithm
+and hash version authority must be explicitly governed before implementation.
+Hashing depends on approved canonical byte input. Canonical byte input depends
+on deterministic serialization authority. Manifest hash scope depends on
+manifest schema authority. No hash value is authoritative until manifest schema,
+deterministic serialization, hashing/integrity, storage, and finalization
+authorities are separately approved and validated.
 
-Hashing and integrity semantics must be defined before storage or finalization
-can become authoritative. Runtime capture remains blocked until package,
-manifest, serialization, hashing, and storage contracts are promoted through
-their own gates.
+Hash authority boundaries:
+
+- Placeholder hash fields must not imply computed hash authority.
+- Hash output must not create manifest authority.
+- Hash output must not create package authority.
+- Hash output must not create package completeness.
+- Hash output must not create storage authority.
+- Hash output must not create finalization authority.
+- Hash output must not create runtime capture authority.
+- Hash output must not create evaluation or promotion authority.
+- Hash output must not create broker authority, execution permission, or live
+  trading authority.
+
+Required future hash algorithm and version rules:
+
+- Hash algorithm selection must be source-controlled before use.
+- Hash version naming must be source-controlled before use.
+- Algorithm migrations must preserve lineage and must not silently reinterpret
+  older hashes.
+- Unknown, missing, deprecated, or ambiguous hash algorithm/version values must
+  fail closed for authoritative use.
 
 Required future section hash rules:
 
-- Section hashes require explicit inclusion and exclusion rules.
-- Section hash inputs must be canonical serialized bytes.
-- Section identity, section status, provenance, redaction status, and source
-  references must be covered or explicitly excluded by governed rule.
-- Absent, not-applicable, and redacted sections require deterministic
-  representation before hashing.
+- Section hashes require explicit inclusion and exclusion rules before
+  implementation.
+- Section hash inputs must be approved canonical serialized bytes only.
+- Section hash scope must define whether it covers section identity, section
+  type, section status, section authority, source reference, `section_run_id`,
+  provenance, redaction status, section payload, and section lineage fields.
+- `present`, `absent`, `not_applicable`, `redacted`, `stale`, `malformed`,
+  `untrusted`, and `invalidated` sections require governed hash/integrity
+  semantics before implementation.
 - Missing required section hash must fail closed once hashing exists.
 - Section hash presence cannot imply section authority unless provenance,
-  redaction, `run_id` alignment, and completeness rules are independently
-  satisfied.
+  redaction status, source reference authority, `run_id` alignment,
+  serialization rules, and completeness rules are independently satisfied.
 
 Required future manifest hash rules:
 
 - Manifest hash authority is separate from section hash authority.
-- Manifest hash inputs must be canonical serialized manifest bytes.
-- Manifest hash rules must define whether section hashes, section metadata,
-  lifecycle status, provenance summaries, redaction status, correction
-  references, invalidation references, and authority boundary fields are
-  included.
+- Manifest hash inputs must be approved canonical serialized manifest bytes
+  only.
+- Manifest hash scope must define whether it covers identity fields, lifecycle
+  fields, source artifact references, section metadata, section hashes,
+  completeness fields, authority-boundary fields, provenance summaries,
+  redaction status, correction references, invalidation references, and
+  supersession references.
+- Manifest hash presence cannot imply manifest generation authority.
 - Manifest hash presence cannot imply package completeness unless package
   completeness rules are independently satisfied.
 
 Required future package hash rules:
 
-- Package hash authority is separate from manifest hash authority.
-- Package hash rules must define whether package hash covers only the manifest,
-  all section hashes, source artifact references, package layout metadata, or
-  some explicitly governed combination.
-- Package hash must not imply completeness unless package completeness rules
-  are independently satisfied.
+- Package hash authority is separate from section hash authority and manifest
+  hash authority.
+- Package hash inputs must be approved canonical serialized bytes only.
+- Package hash scope must define whether it covers only the manifest, all
+  section hashes, source artifact references, package layout metadata, package
+  lifecycle metadata, or another explicitly governed combination.
+- Package hash must not imply package creation.
+- Package hash must not imply package completeness unless package completeness
+  rules are independently satisfied.
 - Package hash must not imply finalization unless storage and finalization
   gates are separately approved.
+
+Required future integrity status vocabulary must be explicitly governed before
+implementation and must distinguish at minimum:
+
+- `not_implemented`.
+- `not_applicable`.
+- `pending`.
+- `valid`.
+- `invalid`.
+- `missing_hash`.
+- `mismatch`.
+- `unknown`.
 
 Required future integrity validation rules:
 
 - Hash mismatch must fail closed.
-- Missing required hash must fail closed.
-- Mixed `run_id` must fail closed.
+- Missing required hash must fail closed for authoritative use.
+- Mixed-`run_id` hash inputs must fail closed.
 - Malformed provenance must fail closed.
 - Missing provenance must fail closed.
-- Invalid or missing redaction state must fail closed.
-- Unknown source path or source reference must fail closed.
-- Sensitive data exposure must stop hashing, validation, package creation, or
-  finalization.
+- Missing redaction status must fail closed.
+- Invalid redaction state must fail closed.
+- Unknown source references must fail closed.
+- Stale, malformed, untrusted, redacted, not-applicable, absent, and
+  invalidated sections must have governed hash/integrity semantics before
+  implementation.
+- Sensitive data exposure must stop hashing, integrity validation, storage,
+  indexing, package creation, runtime capture, evaluation, and finalization.
 - Integrity validation output remains non-authoritative until hashing,
-  manifest, serialization, storage, and finalization gates define and validate
-  authority.
+  manifest schema, serialization, storage, and finalization gates define and
+  validate authority.
 
-Correction, invalidation, and lineage behavior:
+Correction, invalidation, and supersession lineage behavior:
 
-- Corrections must preserve lineage and must not silently mutate finalized
-  evidence.
+- Corrections must preserve original facts and must not silently mutate
+  finalized evidence.
 - Original facts must not be rewritten.
 - Corrections, annotations, invalidations, supersessions, and reviewer notes
   must be append-only records when later approved.
 - Corrected or invalidated evidence must reference the affected package,
-  manifest, section, and hash lineage when hashing exists.
+  manifest, section, source reference, hash algorithm/version, and hash lineage
+  when hashing exists.
 
 Hashing and integrity cannot authorize replay package creation, complete replay
 package status, finalized immutable replay package status, manifest generation,
-deterministic serialization, storage, finalization, runtime capture,
-evaluation, attribution, promotion, broker work, execution permission, strategy
-or risk behavior changes, cleanup, flatten, sell, cancel, remediation, or live
-trading. Event JSONL remains canonical chronology. `last_run_report.json`
-remains a derived operational summary and cannot alone create hash, integrity,
-manifest, package, or storage authority. `build_draft_replay_envelope(...)`
-remains draft scaffold evidence only. `build_replay_package(...)` mapper
-scaffold completeness remains distinct from complete replay package authority.
+manifest authority, deterministic serialization, canonical byte generation,
+storage, finalization, runtime capture, evaluation, attribution, promotion,
+broker work, execution permission, strategy or risk behavior changes, cleanup,
+flatten, sell, cancel, remediation, or live trading. Event JSONL remains
+canonical chronology. `last_run_report.json` remains a derived operational
+summary and cannot alone create hash, integrity, manifest, package, or storage
+authority. `build_draft_replay_envelope(...)` remains draft scaffold evidence
+only. `build_replay_package(...)` mapper scaffold completeness remains distinct
+from complete replay package authority.
 
 Hashing and integrity stop conditions:
 
 - Need to implement hash constants.
-- Need to implement hash helper code.
-- Need manifest hash implementation.
-- Need package hash implementation.
-- Need integrity validator implementation.
-- Need deterministic serialization implementation.
-- Need manifest schema implementation.
-- Need package creation.
-- Need filesystem writes.
-- Need file path ingestion.
-- Need package directories.
+- Need to implement hash algorithm constants.
+- Need to implement hash helper functions.
+- Need hash computation.
+- Need canonical byte generation.
+- Need manifest serialization.
+- Need package serialization.
+- Need integrity validation.
 - Need storage, finalization, or immutability.
 - Need runtime capture.
+- Need package creation.
+- Need filesystem reads or writes.
+- Need file path ingestion.
+- Need package directories.
 - Need retention, discovery, or index behavior.
-- Need evaluation, attribution, or promotion.
+- Need evaluation, attribution, experiment registry, or promotion.
 - Need broker/API/TWS/Alpaca/IBKR.
 - Need `main.py`.
-- Missing canonical serialized bytes.
+- Missing source-controlled hashing rules.
+- Missing governed hash algorithm or version authority.
+- Missing approved canonical byte input.
+- Missing deterministic serialization authority.
 - Missing manifest schema authority.
+- Missing section hash scope.
+- Missing manifest hash scope.
+- Missing package hash scope.
+- Missing hash inclusion or exclusion rules.
+- Missing integrity status vocabulary.
 - Missing canonical `run_id`.
 - Mixed `run_id`.
 - Missing terminal completion.
@@ -1802,9 +1858,18 @@ Hashing and integrity stop conditions:
 - Hash mismatch once hashing exists.
 - Malformed provenance.
 - Missing provenance.
-- Invalid or missing redaction state.
-- Unknown source path or source reference.
+- Missing redaction status.
+- Invalid redaction state.
+- Unknown source reference.
+- Stale, malformed, untrusted, redacted, not-applicable, absent, or
+  invalidated section without governed hash/integrity semantics.
 - Sensitive data exposure.
+- Implied manifest authority.
+- Implied package authority.
+- Implied package completeness.
+- Implied storage or finalization authority.
+- Implied runtime capture authority.
+- Implied evaluation or promotion authority.
 - Implied broker authority.
 - Implied execution permission.
 - Implied live trading authority.
