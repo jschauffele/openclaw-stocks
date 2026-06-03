@@ -170,6 +170,53 @@ After push:
 - verify `origin/main` HEAD
 - report final `git status --short`
 
+## Source-Of-Truth Diff Requirement
+
+Future nontrivial Codex gates must declare the approved source-of-truth diff
+before editing and verify the actual diff before commit or final
+classification. This requirement applies to docs-only, test-only, code-only,
+code-and-test, sync-only, runtime-evidence-only, and preflight-only gates.
+
+Use this pre-edit form:
+
+```text
+PRE-EDIT SOURCE-OF-TRUTH DIFF:
+
+* Starting HEAD:
+* Expected target HEAD, if applicable:
+* Lane class:
+* Approved changed files:
+* Forbidden changed files:
+* Expected diff class:
+* Required validation commands:
+* Required final git status:
+```
+
+Use this pre-commit or final form:
+
+```text
+PRE-COMMIT / FINAL SOURCE-OF-TRUTH DIFF:
+
+* Actual changed files:
+* Actual staged files:
+* Commit created, if applicable:
+* Final HEAD:
+* Final git status:
+* Whether actual diff matches approved scope:
+```
+
+If actual changed files differ from the approved file scope, Codex must stop
+and classify `BLOCKED_SCOPE_UNSAFE`. If the lane class changes, Codex must stop
+and classify `BLOCKED_SCOPE_UNSAFE` or request a new gate. If required
+validation is not run or fails, Codex must not commit. If final git status is
+not clean after a commit, Codex must report the dirty state and must not claim
+clean closeout.
+
+Source-of-truth diff verification does not replace Gate 0, adversarial review,
+tests, runtime evidence freshness, or broker/runtime controls. Payload hashes
+may be used as optional integrity aids for high-risk handoffs only; they are
+not mandatory and do not replace Git or source-of-truth diff verification.
+
 ## Classification Discipline
 
 Every gate response should end with the requested classification token.
