@@ -120,6 +120,12 @@ Inspect both `last_run_report.json` and the latest `logs/*.jsonl` before
 deciding whether the run was expected timer behavior or unexpected runtime
 drift.
 
+For deploy, sync, or timer-restore gates, record the baseline `run_id` from
+`last_run_report.json` before restore or fresh settle recapture. After
+restore/capture, runtime evidence is valid for the target commit only when
+`last_run_report.json` and the latest JSONL show a fresh `run_id` created after
+the target commit became active.
+
 Do not classify VPS runtime from `last_run_report.json` unless all of these
 settle checks pass:
 
@@ -128,7 +134,21 @@ settle checks pass:
 - the VPS root filesystem is mounted read-write
 - repo `HEAD` is aligned with `origin/main`
 - the latest JSONL `run_id` matches `last_run_report.json` `run_id`
+- `last_run_report.json` `run_id` differs from the pre-restore/pre-capture
+  baseline `run_id`
 - `openclaw.service` remains inactive after report and JSONL capture
+
+If the `run_id` remains unchanged from the pre-restore/pre-capture baseline,
+classify the gate as:
+
+```text
+TIMER_BASELINE_RESTORED / REPO_ALIGNED / STALE_RUNTIME_EVIDENCE_FOR_TARGET
+```
+
+Do not classify `DETERMINISTIC_SETTLE_CAPTURED` unless fresh `run_id` evidence
+exists for the target commit. Target-already-present repo states remain valid
+sync states when branch, `HEAD`, origin alignment, and clean-worktree evidence
+match, but they do not by themselves prove fresh runtime evidence.
 
 Replace fixed sleep-only classification with service-settle polling. If
 `openclaw.service` is active or activating during capture, or becomes active
@@ -158,11 +178,18 @@ Required settle-capture checks:
 - `openclaw.service` must be inactive before final classification.
 - `openclaw.timer` must be active for restored-baseline classification.
 - Do not classify from `last_run_report.json` alone.
+- Before timer restore or fresh settle recapture, record the baseline `run_id`
+  from `last_run_report.json`.
+- After restore/capture, `last_run_report.json` `run_id` must differ from the
+  baseline `run_id`.
 - The latest JSONL `run_id` must match `last_run_report.json` `run_id`.
 - The latest JSONL completion event must be checked for `stage`, `status`, and
   `reason`.
 - Stale report or stale JSONL evidence must be explicitly classified and must
   not close a deploy gate.
+- If the `run_id` did not change, classify
+  `TIMER_BASELINE_RESTORED / REPO_ALIGNED / STALE_RUNTIME_EVIDENCE_FOR_TARGET`
+  and do not classify `DETERMINISTIC_SETTLE_CAPTURED`.
 - If `openclaw.service` is active or activating during capture, or becomes
   active or activating after capture, classify the evidence as
   `RUNTIME_STATE_UNSETTLED`, wait for the service to settle inactive, and
