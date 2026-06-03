@@ -175,3 +175,18 @@ After push:
 Every gate response should end with the requested classification token.
 
 If evidence is incomplete, use the blocked or uncertain classification rather than overstating success.
+
+### Prompt Classification Neutrality
+
+Future Codex prompts must not include expected, likely, preferred, or
+preselected classifications. Prompts may include classification options only.
+
+Codex final classifications must be evidence-derived from Gate 0 facts and
+inspected-file evidence. Classification must not be inferred from option order,
+lane name, prior assistant expectation, user framing, or assistant framing.
+
+Prompt text should require the assistant to justify the final classification
+from verified repo state, approved scope, validation results, and inspected
+source-controlled evidence. If the evidence does not support one of the
+available success classifications, the assistant must choose a blocked,
+uncertain, no-action, or remediation classification as appropriate.

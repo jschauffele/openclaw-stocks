@@ -12,6 +12,26 @@ Use this checklist for small OpenClaw hotfixes and normal deployments.
 - Prefer clean git deploys on the VPS.
 - If the local repo is dirty with unrelated work, use a clean clone for hotfixes.
 
+## VPS Safe-Shell Gate Pattern
+
+Direct hard-assertion gates in a live SSH shell can close the session when a
+failed assertion runs under `set -e`. Do not paste live-shell gate blocks that
+can terminate the operator session before reporting which assertion failed.
+
+VPS gates should use one of these safer patterns:
+
+- A child `bash` heredoc whose failure exits only the child process.
+- A soft-gate command sequence that records each check result and prints a
+  final pass/fail summary without closing the interactive shell.
+
+Prompts and runbooks that ask an assistant or operator to execute VPS gates
+must explicitly state whether the shell should remain open after the gate. If
+the shell should remain open, avoid live-shell `set -e` assertions.
+
+Target-already-present commit states are valid verification states when branch,
+`HEAD`, `origin/main` alignment, and clean-worktree evidence match the target.
+Do not treat an already-correct target state as an unexplained failure.
+
 ## 1. Confirm You Are On The Right Machine
 
 On Mac:
