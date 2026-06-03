@@ -12,49 +12,115 @@ of replay infrastructure, experiment tracking, promotion tooling, paper trading,
 shadow evaluation, AI-controlled evaluation, runtime mutation, execution
 activation, or autonomous optimization.
 
-## Evaluation/Promotion Contract Rebase
+## Evaluation and Promotion Authority Contract
 
-Evaluation and promotion remain governance-only. Evaluation systems may produce
-reports, metrics, comparisons, and recommendations only. Promotion remains the
+Evaluation and promotion authority remains governance-only and is not
+implemented yet. This contract does not approve tests, code, evaluation
+engines, attribution logic, experiment registries, scoring metrics, replay
+package scoring, backtest or replay runners, strategy promotion gates, broker
+work, execution permission, or live trading.
+
+Evaluation and promotion rules must be source-controlled before
+implementation. Evaluation systems may eventually produce reports, metrics,
+comparisons, and recommendations only. Promotion remains the separate,
 explicit, governed, reviewable, and reversible movement of an approved version
-into production.
+into production through its own approval gate.
 
-Experiment, shadow, A/B, and paper-validation work remains non-authoritative
-evidence only. A favorable experiment, shadow output, paper result, metric, or
-AI recommendation cannot promote a strategy, mutate runtime state, create
-execution permission, or change production behavior.
+Required future replay package prerequisites:
 
-The offline replay mapper scaffold and tests now exist, but they remain
-offline, in-memory, evidence-only, non-authoritative, and incomplete unless all
-tracked sections are present and aligned. The current source-controlled replay
-fixture and mapper remain event-only, incomplete, evidence-only,
-non-authoritative, and not a complete replay package.
+- Evaluation cannot consume evidence as authoritative until replay package
+  authority exists.
+- Trusted scoring requires complete replay package authority.
+- Governance-grade evaluation requires finalized and immutable replay
+  packages.
+- Draft or incomplete packages may support only exploratory,
+  non-authoritative reports if a later gate explicitly approves that use.
+- Incomplete, mutable, stale, untrusted, mixed-run, unhashable, unfinalized,
+  non-authoritative, provenance-defective, redaction-defective, or invalidated
+  replay packages must fail closed for authoritative evaluation.
 
-Evaluation evidence cannot:
+Required future evaluation vocabulary and versioning:
 
-- Change strategy or risk behavior.
-- Authorize broker/API/TWS/IBKR/Alpaca work.
-- Approve live trading.
-- Automatically promote a strategy.
-- Mutate runtime state.
-- Create execution permission.
+- Metric vocabulary must be governed before scoring.
+- Metric versioning must be governed before scoring.
+- Attribution vocabulary must be governed before attribution.
+- Attribution versioning must be governed before attribution.
+- Experiment identifiers must be governed before experiments.
+- Experiment registry authority must be governed before experiments.
+- Package-set inclusion and exclusion rules must be governed before
+  evaluation.
+- Reproducibility rules must be governed before evaluation.
+- Candidate strategy identity and versioning must be governed before
+  evaluation.
+- Candidate parameter identity and versioning must be governed before
+  evaluation.
+- Baseline versus candidate comparison rules must be governed before
+  evaluation.
+- As-of feature availability and decision-time evidence rules must be governed
+  before evaluation.
 
-Authoritative evaluation requires separate future gates for:
+Evaluation output boundaries:
 
-- Replay package creation and stable envelope/schema implementation.
-- Replay-grade input and state package contracts.
-- Portfolio/risk state contract.
-- Package integrity, hashing, storage, and immutability.
-- Attribution framework and metric definitions.
-- Experiment identifiers, package sets, inclusion and exclusion criteria, and
-  reproducibility rules.
-- As-of feature availability contract.
-- Strategy and parameter version governance.
-- Promotion workflow with approval, monitoring, rollback, and rejection
-  criteria.
-- Shadow, A/B, or paper-comparison design if used.
-- Risk review before cap, sizing, allocation, sell, hedge, short, trim, exit,
-  or rebalance behavior.
+- Evaluation reports, metrics, comparisons, and recommendations must not create
+  promotion authority.
+- Evaluation output must remain separate from strategy promotion.
+- Evaluation output must not mutate runtime state.
+- Evaluation output must not change strategy, risk, allocation, sizing,
+  sell, trim, rebalance, hedge, short, order, broker, or execution behavior.
+- Evaluation output must not create broker authority, execution permission, or
+  live trading authority.
+- AI recommendations, shadow outputs, paper validation, and metrics cannot
+  mutate runtime, promote strategies, submit orders, cancel orders, flatten
+  positions, sell, remediate signals, or approve live trading.
+
+Promotion authority boundaries:
+
+- Strategy promotion must require a separate explicit promotion gate.
+- Promotion workflow must define approval, monitoring, rollback, rejection, and
+  production deployment gates before implementation.
+- Promotion output must not create broker authority.
+- Promotion output must not create execution permission.
+- Promotion output must not create live trading authority.
+- Promotion cannot be automatic from an experiment, AI recommendation,
+  favorable shadow output, paper result, metric, score, or report.
+
+Evaluation and promotion stop conditions:
+
+- Need evaluation engine implementation.
+- Need attribution logic implementation.
+- Need experiment registry implementation.
+- Need scoring metrics implementation.
+- Need replay package scoring implementation.
+- Need backtest or replay runner behavior.
+- Need strategy promotion gate implementation.
+- Need broker/API/TWS/IBKR/Alpaca work.
+- Need execution permission.
+- Need live trading approval.
+- Missing replay package authority.
+- Missing complete replay package authority for trusted scoring.
+- Missing finalized and immutable package authority for governance-grade
+  evaluation.
+- Missing metric vocabulary or metric versioning.
+- Missing attribution vocabulary or attribution versioning.
+- Missing experiment identifier or registry authority.
+- Missing package-set inclusion or exclusion rules.
+- Missing reproducibility rules.
+- Missing candidate strategy identity or versioning.
+- Missing candidate parameter identity or versioning.
+- Missing baseline versus candidate comparison rules.
+- Missing as-of feature availability or decision-time evidence rules.
+- Incomplete, mutable, stale, untrusted, mixed-run, unhashable, unfinalized,
+  non-authoritative, provenance-defective, redaction-defective, or invalidated
+  replay package input.
+- Implied promotion authority.
+- Implied broker authority.
+- Implied execution permission.
+- Implied live trading authority.
+
+Evaluation and promotion output cannot become runtime truth, broker truth,
+execution truth, or live trading authority. This docs contract does not approve
+tests, code, replay package scoring, evaluation implementation, promotion
+implementation, broker work, execution permission, or live trading.
 
 As-of feature availability remains a major prerequisite before evaluation,
 backtest, or regime work can become credible. No feature may support strategy,
