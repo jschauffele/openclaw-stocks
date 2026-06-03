@@ -8,6 +8,7 @@ from pathlib import Path
 from types import FunctionType
 
 import tools.replay.draft_envelope as draft_envelope
+import tools.replay.canonical_json as canonical_json
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
 import tools.replay.package_schema as package_schema
@@ -87,8 +88,10 @@ FUTURE_DETERMINISTIC_SERIALIZATION_MODULES = (
         / "replay"
         / "serialization_constants.py"
     ),
-    Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_json.py",
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_bytes.py",
+)
+CANONICAL_JSON_MODULE = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_json.py"
 )
 REPLAY_PACKAGE_SPECIFICATION = (
     Path(__file__).resolve().parents[1] / "docs" / "replay_package_specification.md"
@@ -323,6 +326,25 @@ FUTURE_SERIALIZATION_SCOPE_RELAXABLE_NAMES = (
     "SerializationVersion",
     "CanonicalJson",
     "CanonicalBytes",
+    "CanonicalSerializer",
+    "SerializationInput",
+    "SerializationOutput",
+    "canonicalize_json",
+    "validate_serialization",
+)
+CANONICAL_JSON_IMPLEMENTED_NAMES = (
+    "SERIALIZATION_SCHEMA",
+    "SERIALIZATION_VERSION",
+    "SERIALIZATION_CONSTANTS",
+    "CANONICAL_JSON",
+    "CANONICAL_SERIALIZATION",
+    "CANONICAL_SERIALIZER",
+    "SERIALIZER_INPUT",
+    "SERIALIZER_OUTPUT",
+    "SERIALIZATION_TYPES",
+    "SerializationSchema",
+    "SerializationVersion",
+    "CanonicalJson",
     "CanonicalSerializer",
     "SerializationInput",
     "SerializationOutput",
@@ -1313,6 +1335,7 @@ def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
 
     for module_path in FUTURE_DETERMINISTIC_SERIALIZATION_MODULES:
         assert not module_path.exists()
+    assert CANONICAL_JSON_MODULE.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -1472,6 +1495,120 @@ def test_deterministic_serialization_scope_guard_remains_test_only() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for downstream_name in SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
             assert downstream_name not in module_text
+
+
+def test_canonical_json_text_helper_is_deterministic_and_in_memory_only() -> None:
+    left = {
+        "z": "last",
+        "nested": {"b": 2, "a": 1},
+        "events": [{"seq": 2}, {"seq": 1}],
+        "text": "München",
+        "flag": True,
+        "missing": None,
+    }
+    right = {
+        "text": "München",
+        "missing": None,
+        "events": [{"seq": 2}, {"seq": 1}],
+        "nested": {"a": 1, "b": 2},
+        "flag": True,
+        "z": "last",
+    }
+
+    canonical_text = canonical_json.canonicalize_json(left)
+
+    assert canonical_text == canonical_json.canonicalize_json(right)
+    assert canonical_text == (
+        '{"events":[{"seq":2},{"seq":1}],"flag":true,"missing":null,'
+        '"nested":{"a":1,"b":2},"text":"München","z":"last"}'
+    )
+    assert " " not in canonical_text
+    assert "\n" not in canonical_text
+    assert '[{"seq":2},{"seq":1}]' in canonical_text
+    assert "\\u00" not in canonical_text
+
+    schema = canonical_json.SerializationSchema()
+    version = canonical_json.SerializationVersion()
+    formatter = canonical_json.CanonicalJson()
+    serializer = canonical_json.CanonicalSerializer()
+    output = canonical_json.SerializationOutput(text=canonical_text)
+    input_model = canonical_json.SerializationInput(value=left)
+
+    assert schema.version == canonical_json.SERIALIZATION_VERSION
+    assert schema.output_model == "canonical_json_text"
+    assert version.value == canonical_json.SERIALIZATION_VERSION
+    assert formatter.format_name == "json"
+    assert serializer.name == "canonicalize_json"
+    assert output.text == canonical_text
+    assert input_model.value is left
+
+
+def test_canonical_json_fails_closed_for_unsupported_or_ambiguous_values() -> None:
+    unsupported_values = (
+        {"float": 1.25},
+        {"object": object()},
+        {1: "non_string_key"},
+        {"tuple": (1, 2)},
+    )
+
+    for value in unsupported_values:
+        try:
+            canonical_json.canonicalize_json(value)
+        except TypeError:
+            pass
+        else:
+            raise AssertionError(f"expected TypeError for {value!r}")
+
+
+def test_canonical_json_does_not_introduce_downstream_authority() -> None:
+    module_names = set(canonical_json.__dict__)
+    for allowed_name in CANONICAL_JSON_IMPLEMENTED_NAMES:
+        assert allowed_name in module_names
+    for downstream_name in SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        assert downstream_name not in module_names
+    assert "CANONICAL_BYTES" not in module_names
+    assert "CanonicalBytes" not in module_names
+
+    module_text = CANONICAL_JSON_MODULE.read_text(encoding="utf-8")
+    for downstream_name in SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        assert downstream_name not in module_text
+    for forbidden_name in (
+        "CANONICAL_BYTES",
+        "canonical_bytes",
+        "encode",
+        "hashlib",
+        "open(",
+        "write_text",
+        "write_bytes",
+        "mkdir",
+        "Path(",
+        "main.py",
+        "broker",
+        "alpaca",
+        "ibkr",
+    ):
+        assert forbidden_name not in module_text
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
 
 
 def test_hashing_integrity_boundary_remains_unimplemented() -> None:
