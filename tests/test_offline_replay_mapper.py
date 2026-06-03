@@ -8,6 +8,7 @@ from pathlib import Path
 from types import FunctionType
 
 import tools.replay.draft_envelope as draft_envelope
+import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
 import tools.replay.package_schema as package_schema
 from tools.replay.draft_envelope import build_draft_replay_envelope
@@ -56,7 +57,6 @@ FUTURE_PACKAGE_CREATION_MODULES = (
     ),
 )
 FUTURE_MANIFEST_SCHEMA_MODULES = (
-    Path(__file__).resolve().parents[1] / "tools" / "replay" / "manifest_schema.py",
     (
         Path(__file__).resolve().parents[1]
         / "tools"
@@ -76,6 +76,9 @@ FUTURE_MANIFEST_SCHEMA_MODULES = (
         / "replay"
         / "canonical_serializer.py"
     ),
+)
+MANIFEST_SCHEMA_MODULE = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "manifest_schema.py"
 )
 FUTURE_DETERMINISTIC_SERIALIZATION_MODULES = (
     (
@@ -1012,8 +1015,6 @@ def test_replay_package_creation_boundary_remains_unimplemented() -> None:
 def test_manifest_schema_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Manifest Schema Authority Contract" in spec_text
-    assert "governance-only and is not implemented yet" in spec_text
-    assert "does not approve tests, code, manifest constants" in spec_text
     assert "must remain separate from manifest generation" in spec_text
     assert "remain separate from mapper completeness" in spec_text
     assert "package_status == \"complete\"" in spec_text
@@ -1021,6 +1022,7 @@ def test_manifest_schema_boundary_remains_unimplemented() -> None:
 
     for module_path in FUTURE_MANIFEST_SCHEMA_MODULES:
         assert not module_path.exists()
+    assert MANIFEST_SCHEMA_MODULE.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -1095,6 +1097,72 @@ def test_manifest_schema_boundary_remains_unimplemented() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_MANIFEST_SCHEMA_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
+
+
+def test_manifest_schema_vocabulary_types_are_in_memory_only() -> None:
+    assert manifest_schema.MANIFEST_SCHEMA_VERSION == "0.1-vocabulary"
+    assert manifest_schema.MANIFEST_SCHEMA == "manifest_schema_vocabulary_only"
+    assert "canonical_run_id" in manifest_schema.MANIFEST_REQUIRED_FIELDS
+    assert "section_provenance" in manifest_schema.MANIFEST_REQUIRED_FIELDS
+    assert "section_redaction_status" in manifest_schema.MANIFEST_REQUIRED_FIELDS
+    assert "package_id" in manifest_schema.MANIFEST_OPTIONAL_FIELDS
+    assert "generator_authority_boundary" in manifest_schema.MANIFEST_OPTIONAL_FIELDS
+    assert "finalized_at" in manifest_schema.MANIFEST_FUTURE_ONLY_FIELDS
+    assert "manifest_hash" in manifest_schema.MANIFEST_FUTURE_ONLY_FIELDS
+    assert "live_trading_authority" in manifest_schema.MANIFEST_FUTURE_ONLY_FIELDS
+    assert set(manifest_schema.MANIFEST_REQUIRED_FIELDS).isdisjoint(
+        manifest_schema.MANIFEST_OPTIONAL_FIELDS
+    )
+    assert set(manifest_schema.MANIFEST_REQUIRED_FIELDS).isdisjoint(
+        manifest_schema.MANIFEST_FUTURE_ONLY_FIELDS
+    )
+    assert set(manifest_schema.MANIFEST_OPTIONAL_FIELDS).isdisjoint(
+        manifest_schema.MANIFEST_FUTURE_ONLY_FIELDS
+    )
+    assert manifest_schema.MANIFEST_LIFECYCLE_STATUS == ("draft",)
+    assert manifest_schema.MANIFEST_FUTURE_LIFECYCLE_STATUS == (
+        "finalized",
+        "invalidated",
+        "superseded",
+    )
+    assert set(manifest_schema.MANIFEST_SECTION_STATUS) == {
+        "present",
+        "absent",
+        "not_applicable",
+        "disabled",
+        "unavailable",
+        "stale",
+        "redacted",
+        "untrusted",
+        "malformed",
+        "invalidated",
+        "unknown",
+    }
+    assert "absent" in manifest_schema.MANIFEST_SECTION_STATUS
+    assert "not_applicable" in manifest_schema.MANIFEST_SECTION_STATUS
+    assert "broker_api_authority" in manifest_schema.MANIFEST_AUTHORITY_BOUNDARY
+    assert "execution_permission" in manifest_schema.MANIFEST_AUTHORITY_BOUNDARY
+    assert "live_trading_authority" in manifest_schema.MANIFEST_AUTHORITY_BOUNDARY
+
+    schema = manifest_schema.ManifestSchema()
+    field = manifest_schema.ManifestField(name="canonical_run_id", required=True)
+    section_status = manifest_schema.ManifestSectionStatus()
+
+    assert schema.schema_version == manifest_schema.MANIFEST_SCHEMA_VERSION
+    assert schema.required_fields == manifest_schema.MANIFEST_REQUIRED_FIELDS
+    assert schema.optional_fields == manifest_schema.MANIFEST_OPTIONAL_FIELDS
+    assert schema.future_only_fields == manifest_schema.MANIFEST_FUTURE_ONLY_FIELDS
+    assert schema.lifecycle_statuses == ("draft",)
+    assert field.name == "canonical_run_id"
+    assert field.required is True
+    assert field.future_only is False
+    assert section_status.values == manifest_schema.MANIFEST_SECTION_STATUS
+
+    module_names = set(manifest_schema.__dict__)
+    for allowed_name in FUTURE_MANIFEST_SCHEMA_SCOPE_RELAXABLE_NAMES:
+        assert allowed_name in module_names
+    for downstream_name in MANIFEST_SCHEMA_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        assert downstream_name not in module_names
 
 
 def test_manifest_schema_implementation_scope_guard_remains_test_only() -> None:
@@ -1175,6 +1243,10 @@ def test_manifest_schema_implementation_scope_guard_remains_test_only() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for downstream_name in MANIFEST_SCHEMA_SCOPE_DOWNSTREAM_DENIED_NAMES:
             assert downstream_name not in module_text
+
+    module_text = MANIFEST_SCHEMA_MODULE.read_text(encoding="utf-8")
+    for downstream_name in MANIFEST_SCHEMA_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        assert downstream_name not in module_text
 
 
 def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
