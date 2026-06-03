@@ -308,6 +308,53 @@ FORBIDDEN_SERIALIZATION_IMPLEMENTATION_NAMES = (
     "validate_serialization",
     "validate_canonical_bytes",
 )
+FUTURE_SERIALIZATION_SCOPE_RELAXABLE_NAMES = (
+    "SERIALIZATION_SCHEMA",
+    "SERIALIZATION_VERSION",
+    "SERIALIZATION_CONSTANTS",
+    "CANONICAL_JSON",
+    "CANONICAL_BYTES",
+    "CANONICAL_SERIALIZATION",
+    "CANONICAL_SERIALIZER",
+    "SERIALIZER_INPUT",
+    "SERIALIZER_OUTPUT",
+    "SERIALIZATION_TYPES",
+    "SerializationSchema",
+    "SerializationVersion",
+    "CanonicalJson",
+    "CanonicalBytes",
+    "CanonicalSerializer",
+    "SerializationInput",
+    "SerializationOutput",
+    "canonicalize_json",
+    "validate_serialization",
+)
+SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "MANIFEST_SERIALIZATION",
+    "PACKAGE_SERIALIZATION",
+    "ManifestSerialization",
+    "PackageSerialization",
+    "build_canonical_bytes",
+    "serialize_manifest",
+    "serialize_package",
+    "serialize_section",
+    "canonicalize_manifest",
+    "canonicalize_package",
+    "generate_canonical_bytes",
+    "validate_canonical_bytes",
+    "HashComputation",
+    "IntegrityValidation",
+    "PackageLayout",
+    "PackageIdentity",
+    "ReplayPackageCreation",
+    "StorageFinalization",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES = (
     "HASH_ALGORITHM",
     "HASH_VERSION",
@@ -1334,6 +1381,97 @@ def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_SERIALIZATION_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
+
+
+def test_deterministic_serialization_scope_guard_remains_test_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Unit 2: Deterministic Serialization And Canonical Bytes" in map_text
+    assert "manifest vocabulary and serializer\n  input model are stable" in map_text
+    assert "canonical ordering, chronology preservation" in map_text
+    assert "unsupported type\n  fail-closed behavior" in map_text
+    assert "Filesystem access allowed: no." in map_text
+    assert "Runtime artifact access allowed: no." in map_text
+    assert "Broker/API access allowed: no." in map_text
+    assert "Execution/live trading authority allowed: no." in map_text
+
+    assert "## Deterministic Serialization Authority Contract" in spec_text
+    assert "Serializer\ninput eligibility must be explicitly governed" in spec_text
+    assert "Canonical JSON scope" in spec_text
+    assert "manifest-shaped\n  dictionary" in spec_text
+    assert "Object keys must use deterministic canonical ordering" in spec_text
+    assert "Recursive object ordering" in spec_text
+    assert "chronology-preserving lists" in spec_text
+    assert "must not be\n  accidentally sorted" in spec_text
+    assert "Unsupported value types must fail closed" in spec_text
+    assert "Ambiguous floats must fail closed" in spec_text
+    assert "Ambiguous, missing, non-UTC, or unsupported timestamp" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Sensitive or redacted fields must not leak" in spec_text
+    assert "does not\n  approve hashing" in spec_text
+
+    assert set(FUTURE_SERIALIZATION_SCOPE_RELAXABLE_NAMES).issubset(
+        FORBIDDEN_SERIALIZATION_IMPLEMENTATION_NAMES
+    )
+    assert set(FUTURE_SERIALIZATION_SCOPE_RELAXABLE_NAMES).isdisjoint(
+        SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES
+    )
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["canonical_chronology"] == "event_jsonl"
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_runtime_mutation"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "manifest_generation_authority",
+        "manifest_serialization_authority",
+        "package_serialization_authority",
+        "canonical_byte_generation",
+        "hash_computation_authority",
+        "integrity_validation_authority",
+        "package_layout_authority",
+        "package_identity_authority",
+        "package_creation_authority",
+        "filesystem_read_authority",
+        "filesystem_write_authority",
+        "storage_finalization_authority",
+        "runtime_artifact_access_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "broker_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    guarded_source_modules = (*REPLAY_SOURCE_MODULES, MANIFEST_SCHEMA_MODULE)
+    for module_path in guarded_source_modules:
+        module_text = module_path.read_text(encoding="utf-8")
+        for downstream_name in SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert downstream_name not in module_text
 
 
 def test_hashing_integrity_boundary_remains_unimplemented() -> None:
