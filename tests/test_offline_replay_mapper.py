@@ -90,6 +90,11 @@ FUTURE_DETERMINISTIC_SERIALIZATION_MODULES = (
 REPLAY_PACKAGE_SPECIFICATION = (
     Path(__file__).resolve().parents[1] / "docs" / "replay_package_specification.md"
 )
+IMPLEMENTATION_PREREQUISITE_MAP = (
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "replay_evaluation_implementation_prerequisite_map.md"
+)
 EVALUATION_INFRASTRUCTURE_ARCHITECTURE = (
     Path(__file__).resolve().parents[1]
     / "docs"
@@ -221,6 +226,38 @@ FORBIDDEN_MANIFEST_SCHEMA_IMPLEMENTATION_NAMES = (
     "create_manifest",
     "package_manifest",
     "replay_manifest",
+)
+FUTURE_MANIFEST_SCHEMA_SCOPE_RELAXABLE_NAMES = (
+    "MANIFEST_SCHEMA_VERSION",
+    "MANIFEST_SCHEMA",
+    "MANIFEST_FIELDS",
+    "MANIFEST_REQUIRED_FIELDS",
+    "MANIFEST_OPTIONAL_FIELDS",
+    "MANIFEST_SECTION_STATUS",
+    "MANIFEST_LIFECYCLE_STATUS",
+    "ManifestSchema",
+    "ManifestField",
+    "ManifestSectionStatus",
+)
+MANIFEST_SCHEMA_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "ManifestBuilder",
+    "ManifestGeneration",
+    "build_manifest",
+    "generate_manifest",
+    "validate_manifest",
+    "create_manifest",
+    "package_manifest",
+    "replay_manifest",
+    "CanonicalBytes",
+    "HashComputation",
+    "IntegrityValidation",
+    "PackageLayout",
+    "PackageIdentity",
+    "StorageFinalization",
+    "RuntimeCapture",
+    "ReplayPackageCreation",
+    "EvaluationEngine",
+    "PromotionGate",
 )
 FORBIDDEN_SERIALIZATION_NAMES = (
     *FORBIDDEN_MANIFEST_SCHEMA_NAMES,
@@ -1058,6 +1095,86 @@ def test_manifest_schema_boundary_remains_unimplemented() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_MANIFEST_SCHEMA_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
+
+
+def test_manifest_schema_implementation_scope_guard_remains_test_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Unit 1: Manifest Schema Vocabulary/Types" in map_text
+    assert "first eventual code candidate only after this map" in map_text
+    assert "is recorded and guarded" in map_text
+    assert "pure in-memory vocabulary/types only" in map_text
+    assert "Filesystem access allowed: no." in map_text
+    assert "Runtime artifact access allowed: no." in map_text
+    assert "Broker/API access allowed: no." in map_text
+    assert "Execution/live trading authority allowed: no." in map_text
+    assert "no manifest generation, package creation, serialization" in map_text
+    assert "hashing,\n  storage, runtime capture, evaluation, promotion" in map_text
+    assert "## Manifest Schema Authority Contract" in spec_text
+    assert "Manifest schema authority remains governance-only" in spec_text
+    assert "must remain separate from manifest generation" in spec_text
+    assert "must also\nremain separate from mapper completeness" in spec_text
+    assert "cannot\nbe treated as complete replay package authority" in spec_text
+
+    assert set(FUTURE_MANIFEST_SCHEMA_SCOPE_RELAXABLE_NAMES).issubset(
+        FORBIDDEN_MANIFEST_SCHEMA_IMPLEMENTATION_NAMES
+    )
+    assert set(FUTURE_MANIFEST_SCHEMA_SCOPE_RELAXABLE_NAMES).isdisjoint(
+        MANIFEST_SCHEMA_SCOPE_DOWNSTREAM_DENIED_NAMES
+    )
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_runtime_mutation"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "manifest_generation_authority",
+        "deterministic_serialization_authority",
+        "canonical_byte_generation",
+        "hash_computation_authority",
+        "integrity_validation_authority",
+        "package_layout_authority",
+        "package_identity_authority",
+        "package_creation_authority",
+        "filesystem_read_authority",
+        "filesystem_write_authority",
+        "storage_finalization_authority",
+        "runtime_artifact_access_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "broker_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for downstream_name in MANIFEST_SCHEMA_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert downstream_name not in module_text
 
 
 def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
