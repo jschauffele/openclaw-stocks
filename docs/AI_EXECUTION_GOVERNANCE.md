@@ -190,3 +190,36 @@ from verified repo state, approved scope, validation results, and inspected
 source-controlled evidence. If the evidence does not support one of the
 available success classifications, the assistant must choose a blocked,
 uncertain, no-action, or remediation classification as appropriate.
+
+### Adversarial Handoff Review
+
+Future nontrivial Codex prompts, AI-to-AI handoffs, and ChatGPT-to-Codex
+handoffs must include a compact adversarial review before file edits or final
+classification.
+
+Use this compact form:
+
+```text
+ADVERSARIAL REVIEW:
+
+* Unproven assumptions:
+* Scope expansion risks:
+* Hidden dependency / stale evidence risks:
+* Narrower safer lane, if any:
+* Evidence required before classification:
+```
+
+If the adversarial review identifies a lane-boundary violation, Codex must stop
+before editing. If a narrower safer lane exists, Codex must recommend that lane
+instead of continuing into broader work. If evidence is insufficient, Codex must
+classify the lane as blocked or uncertain rather than infer success.
+
+Classifications must remain evidence-derived and must not be inferred from
+prompt wording, lane name, option order, prior assistant or user framing, or a
+desired outcome. The adversarial review is not a license to expand scope; it is
+a fail-closed circuit breaker.
+
+Keep the review compact and operational, not a long essay. It is required for
+nontrivial docs, test, code, runtime, and preflight gates. It may be omitted for
+pure mechanical terminal push or sync commands only when no Codex editing or
+classification is involved.
