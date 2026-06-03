@@ -351,6 +351,38 @@ CANONICAL_JSON_IMPLEMENTED_NAMES = (
     "canonicalize_json",
     "validate_serialization",
 )
+FUTURE_CANONICAL_BYTES_SCOPE_RELAXABLE_NAMES = (
+    "CANONICAL_BYTES",
+    "CanonicalBytes",
+    "build_canonical_bytes",
+    "validate_canonical_bytes",
+)
+CANONICAL_BYTES_SCOPE_INPUT_MODEL = "canonical_json_text_only"
+CANONICAL_BYTES_SCOPE_ENCODING = "utf-8"
+CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "MANIFEST_SERIALIZATION",
+    "PACKAGE_SERIALIZATION",
+    "ManifestSerialization",
+    "PackageSerialization",
+    "serialize_manifest",
+    "serialize_package",
+    "serialize_section",
+    "canonicalize_manifest",
+    "canonicalize_package",
+    "generate_canonical_bytes",
+    "HashComputation",
+    "IntegrityValidation",
+    "PackageLayout",
+    "PackageIdentity",
+    "ReplayPackageCreation",
+    "StorageFinalization",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "MANIFEST_SERIALIZATION",
     "PACKAGE_SERIALIZATION",
@@ -1609,6 +1641,98 @@ def test_canonical_json_does_not_introduce_downstream_authority() -> None:
     assert mapper_package["out_of_scope"]["storage"] is True
     assert mapper_package["out_of_scope"]["runtime_capture"] is True
     assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+
+def test_canonical_bytes_scope_guard_remains_test_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Unit 2: Deterministic Serialization And Canonical Bytes" in map_text
+    assert "Candidate files: future `tools/replay/canonical_json.py`" in map_text
+    assert "`tools/replay/canonical_bytes.py`" in map_text
+    assert "no manifest generation, package creation, hash" in map_text
+    assert "Filesystem access allowed: no." in map_text
+    assert "Runtime artifact access allowed: no." in map_text
+    assert "Broker/API access allowed: no." in map_text
+    assert "Execution/live trading authority allowed: no." in map_text
+
+    assert "Required future byte and text rules" in spec_text
+    assert "String encoding must be UTF-8" in spec_text
+    assert "Serialization must produce stable bytes" in spec_text
+    assert "Serialization may be a prerequisite for hashing" in spec_text
+    assert "this contract does not\n  approve hashing" in spec_text
+    assert "Future hashing may use only canonical serialized bytes" in spec_text
+
+    assert CANONICAL_BYTES_SCOPE_INPUT_MODEL == "canonical_json_text_only"
+    assert CANONICAL_BYTES_SCOPE_ENCODING == "utf-8"
+    assert set(FUTURE_CANONICAL_BYTES_SCOPE_RELAXABLE_NAMES).issubset(
+        FORBIDDEN_SERIALIZATION_IMPLEMENTATION_NAMES
+    )
+    assert set(FUTURE_CANONICAL_BYTES_SCOPE_RELAXABLE_NAMES).isdisjoint(
+        CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES
+    )
+    assert "generate_canonical_bytes" not in FUTURE_CANONICAL_BYTES_SCOPE_RELAXABLE_NAMES
+    assert not (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "canonical_bytes.py"
+    ).exists()
+
+    module_text = CANONICAL_JSON_MODULE.read_text(encoding="utf-8")
+    for downstream_name in CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        assert downstream_name not in module_text
+    assert "CANONICAL_BYTES" not in module_text
+    assert "CanonicalBytes" not in module_text
+    assert "build_canonical_bytes" not in module_text
+    assert "validate_canonical_bytes" not in module_text
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["canonical_chronology"] == "event_jsonl"
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_runtime_mutation"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "canonical_byte_generation",
+        "manifest_serialization_authority",
+        "package_serialization_authority",
+        "hash_computation_authority",
+        "integrity_validation_authority",
+        "package_layout_authority",
+        "package_identity_authority",
+        "package_creation_authority",
+        "filesystem_read_authority",
+        "filesystem_write_authority",
+        "storage_finalization_authority",
+        "runtime_artifact_access_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "broker_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
 
 
 def test_hashing_integrity_boundary_remains_unimplemented() -> None:
