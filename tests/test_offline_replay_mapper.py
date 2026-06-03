@@ -136,6 +136,50 @@ FORBIDDEN_PACKAGE_CREATION_NAMES = (
     "runtime_capture",
     "file_ingestion",
 )
+FORBIDDEN_PACKAGE_CREATION_IMPLEMENTATION_NAMES = (
+    "PACKAGE_CREATION",
+    "PACKAGE_CREATION_CONSTANTS",
+    "PACKAGE_BUILDER_TYPES",
+    "PACKAGE_CREATION_MODULE",
+    "PACKAGE_LAYOUT_CONSTANTS",
+    "PACKAGE_LAYOUT",
+    "PACKAGE_ID",
+    "CANONICAL_RUN_ID",
+    "REPLAY_PACKAGE_BUILDER",
+    "COMPLETE_REPLAY_PACKAGE",
+    "PACKAGE_COMPLETENESS",
+    "MANIFEST_GENERATION",
+    "CANONICAL_BYTE_OUTPUT",
+    "PackageCreation",
+    "PackageBuilder",
+    "PackageBuilderInput",
+    "PackageBuilderOutput",
+    "PackageCreationModule",
+    "PackageLayout",
+    "PackageIdentity",
+    "PackageId",
+    "CanonicalRunId",
+    "ReplayPackageBuilder",
+    "CompleteReplayPackage",
+    "PackageCompleteness",
+    "ManifestGeneration",
+    "build_replay_package_file",
+    "build_package_layout",
+    "build_package_identity",
+    "build_package_id",
+    "build_package_manifest",
+    "generate_manifest",
+    "generate_replay_package",
+    "create_replay_package",
+    "create_package",
+    "assemble_replay_package",
+    "assemble_package",
+    "validate_package_creation",
+    "validate_package_layout",
+    "validate_package_identity",
+    "write_package",
+    "write_replay_package",
+)
 FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
     *FORBIDDEN_PACKAGE_CREATION_NAMES,
     "manifest_schema",
@@ -728,6 +772,60 @@ def test_draft_envelope_source_module_remains_pure_in_memory() -> None:
 
 
 def test_replay_package_creation_boundary_remains_unimplemented() -> None:
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Replay Package Creation Authority Contract" in spec_text
+    assert "governance-only and is not\nimplemented yet" in spec_text
+    assert "does not approve tests, code, package creation\nconstants" in spec_text
+    assert "package builder types, package creation modules" in spec_text
+    assert "package layout\nconstants" in spec_text
+    assert "canonical byte generation, hash computation" in spec_text
+    assert "Replay package creation rules must be source-controlled" in spec_text
+    assert "Package layout authority must be explicitly governed" in spec_text
+    assert "Package identity authority must be explicitly governed" in spec_text
+    assert "`canonical_run_id` and governed `package_id` rules" in spec_text
+    assert "Already-loaded envelope dictionaries may remain draft-only" in spec_text
+    assert "Future manifest inputs require manifest generation authority" in spec_text
+    assert "Future source references require source-reference authority" in spec_text
+    assert "Future approved source paths require source path authority" in spec_text
+    assert "Future copied artifacts require artifact copying authority" in spec_text
+    assert "Future runtime-captured artifacts require runtime capture authority" in spec_text
+    assert "The first future package-creation lifecycle state" in spec_text
+    assert "`draft` only" in spec_text
+    assert "Draft-only package assembly" in spec_text
+    assert '`package_status == "complete"` remains' in spec_text
+    assert "mapper bucket completeness only" in spec_text
+    assert "Complete replay package authority must require explicit package creation" in spec_text
+    assert "Manifest generation authority before package creation" in spec_text
+    assert "Deterministic serialization authority before package creation" in spec_text
+    assert "Canonical byte authority before package creation" in spec_text
+    assert "Hashing and integrity validation before package creation" in spec_text
+    assert "Storage and finalization authority before package creation" in spec_text
+    assert "Runtime capture authority before package creation" in spec_text
+    assert "Provenance must be explicit before package creation" in spec_text
+    assert "Redaction status must be explicit before package creation" in spec_text
+    assert "Source-reference authority must be explicit before package creation" in spec_text
+    assert "Runtime terminal completion requirements must be explicit" in spec_text
+    assert "Missing `run_id` must fail closed" in spec_text
+    assert "Mixed `run_id` must fail closed" in spec_text
+    assert "Stale artifacts must fail closed" in spec_text
+    assert "Malformed artifacts must fail closed" in spec_text
+    assert "Missing terminal completion must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Unknown source references must fail closed" in spec_text
+    assert "Sensitive data exposure must stop package creation" in spec_text
+    assert "Ambiguous package identity must fail closed" in spec_text
+    assert "Package creation must remain separate from runtime capture" in spec_text
+    assert "Package creation must remain separate from storage and finalization" in spec_text
+    assert "Package creation must remain separate from evaluation and promotion" in spec_text
+    assert "Package creation must not call `main.py`" in spec_text
+    assert "Package creation must not stop or start timers" in spec_text
+    assert "Package creation must not call broker/API/TWS/Alpaca/IBKR" in spec_text
+    assert "must not respond to or remediate blocked buy/sell signals" in spec_text
+    assert "Replay package creation cannot authorize manifest authority" in spec_text
+    assert "Package creation output cannot become\nmanifest truth" in spec_text
+
     for module_path in FUTURE_PACKAGE_CREATION_MODULES:
         assert not module_path.exists()
 
@@ -759,6 +857,16 @@ def test_replay_package_creation_boundary_remains_unimplemented() -> None:
         assert envelope["broker_api_authority"] is False
         assert envelope["canonical_chronology"] == "event_jsonl"
         assert "replay_package_authority" not in envelope
+        assert "package_creation_authority" not in envelope
+        assert "manifest_authority" not in envelope
+        assert "canonical_byte_authority" not in envelope
+        assert "hash_integrity_authority" not in envelope
+        assert "storage_finalization_authority" not in envelope
+        assert "runtime_capture_authority" not in envelope
+        assert "evaluation_authority" not in envelope
+        assert "promotion_authority" not in envelope
+        assert "execution_permission" not in envelope
+        assert "live_trading_authority" not in envelope
         assert "finalized_immutable_replay_package_authority" not in envelope
 
     assert (
@@ -803,6 +911,11 @@ def test_replay_package_creation_boundary_remains_unimplemented() -> None:
                 assert set(FORBIDDEN_PACKAGE_CREATION_NAMES).isdisjoint(
                     value.__code__.co_names
                 )
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for forbidden_name in FORBIDDEN_PACKAGE_CREATION_IMPLEMENTATION_NAMES:
+            assert forbidden_name not in module_text
 
 
 def test_manifest_schema_boundary_remains_unimplemented() -> None:
