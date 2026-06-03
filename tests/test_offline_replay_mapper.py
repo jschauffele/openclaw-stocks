@@ -8,6 +8,7 @@ from pathlib import Path
 from types import FunctionType
 
 import tools.replay.draft_envelope as draft_envelope
+import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
@@ -88,10 +89,12 @@ FUTURE_DETERMINISTIC_SERIALIZATION_MODULES = (
         / "replay"
         / "serialization_constants.py"
     ),
-    Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_bytes.py",
 )
 CANONICAL_JSON_MODULE = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_json.py"
+)
+CANONICAL_BYTES_MODULE = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "canonical_bytes.py"
 )
 REPLAY_PACKAGE_SPECIFICATION = (
     Path(__file__).resolve().parents[1] / "docs" / "replay_package_specification.md"
@@ -1368,6 +1371,7 @@ def test_deterministic_serialization_boundary_remains_unimplemented() -> None:
     for module_path in FUTURE_DETERMINISTIC_SERIALIZATION_MODULES:
         assert not module_path.exists()
     assert CANONICAL_JSON_MODULE.exists()
+    assert CANONICAL_BYTES_MODULE.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -1671,12 +1675,7 @@ def test_canonical_bytes_scope_guard_remains_test_only() -> None:
         CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES
     )
     assert "generate_canonical_bytes" not in FUTURE_CANONICAL_BYTES_SCOPE_RELAXABLE_NAMES
-    assert not (
-        Path(__file__).resolve().parents[1]
-        / "tools"
-        / "replay"
-        / "canonical_bytes.py"
-    ).exists()
+    assert CANONICAL_BYTES_MODULE.exists()
 
     module_text = CANONICAL_JSON_MODULE.read_text(encoding="utf-8")
     for downstream_name in CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES:
@@ -1733,6 +1732,89 @@ def test_canonical_bytes_scope_guard_remains_test_only() -> None:
     for key in absent_authority_keys:
         assert key not in complete_inputs_envelope
         assert key not in mapper_package
+
+
+def test_canonical_bytes_helper_encodes_canonical_json_text_only() -> None:
+    canonical_text = canonical_json.canonicalize_json(
+        {"text": "München", "events": [{"seq": 2}, {"seq": 1}]}
+    )
+    canonical_output = canonical_bytes.build_canonical_bytes(canonical_text)
+    vocabulary = canonical_bytes.CanonicalBytes()
+
+    assert isinstance(canonical_output, bytes)
+    assert canonical_output == canonical_text.encode("utf-8")
+    assert canonical_output.decode("utf-8") == canonical_text
+    assert vocabulary.input_model == "canonical_json_text"
+    assert vocabulary.output_model == "canonical_json_utf8_bytes"
+    assert vocabulary.encoding == "utf-8"
+    assert canonical_bytes.CANONICAL_BYTES == "utf8_canonical_json_bytes"
+    assert canonical_bytes.CANONICAL_BYTES_ENCODING == "utf-8"
+
+
+def test_canonical_bytes_fails_closed_for_non_string_input() -> None:
+    non_string_inputs = (
+        {"already": "object"},
+        ["already", "array"],
+        b'{"already":"bytes"}',
+        123,
+        None,
+    )
+
+    for value in non_string_inputs:
+        try:
+            canonical_bytes.build_canonical_bytes(value)  # type: ignore[arg-type]
+        except TypeError:
+            pass
+        else:
+            raise AssertionError(f"expected TypeError for {value!r}")
+
+
+def test_canonical_bytes_does_not_introduce_downstream_authority() -> None:
+    module_names = set(canonical_bytes.__dict__)
+    for allowed_name in FUTURE_CANONICAL_BYTES_SCOPE_RELAXABLE_NAMES:
+        assert allowed_name in module_names
+    for downstream_name in CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        assert downstream_name not in module_names
+
+    module_text = CANONICAL_BYTES_MODULE.read_text(encoding="utf-8")
+    for downstream_name in CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        assert downstream_name not in module_text
+    for forbidden_name in (
+        "json.dumps",
+        "canonicalize_json",
+        "hashlib",
+        "open(",
+        "write_text",
+        "write_bytes",
+        "mkdir",
+        "Path(",
+        "main.py",
+        "broker",
+        "alpaca",
+        "ibkr",
+    ):
+        assert forbidden_name not in module_text
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
 
 
 def test_hashing_integrity_boundary_remains_unimplemented() -> None:
