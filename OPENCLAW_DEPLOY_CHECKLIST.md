@@ -32,6 +32,41 @@ Target-already-present commit states are valid verification states when branch,
 `HEAD`, `origin/main` alignment, and clean-worktree evidence match the target.
 Do not treat an already-correct target state as an unexplained failure.
 
+## VPS Precondition Fail-Closed Pattern
+
+VPS shell gates must fail closed on precondition failures. Do not rely on bare
+`test` commands under `set -u` for critical gate assertions, because a failed
+`test` does not stop the script unless the shell is also configured to exit on
+errors or the result is handled explicitly.
+
+Use explicit precondition checks for critical runtime state:
+
+```bash
+if [ "$TIMER_STATE" != "inactive" ]; then
+  echo "TIMER_ALREADY_ACTIVE / RESTORE_GATE_NOT_APPLICABLE"
+  exit 1
+fi
+```
+
+Alternatively, use `set -euo pipefail` inside a child `bash <<'EOF'` block when
+hard assertions are intentional and the parent shell must remain open.
+
+Restore/capture gates that require `openclaw.timer` to be inactive must stop if
+the timer is already active. Re-running a restore/capture gate while the timer
+is already active must not start a new polling loop. If the timer is already
+active and `openclaw.service` is inactive, classify:
+
+```text
+TIMER_ALREADY_ACTIVE / RESTORE_GATE_NOT_APPLICABLE / CAPTURE_ONLY_OR_WAIT_FOR_NEXT_TIMER_RUN
+```
+
+If fresh runtime evidence is still needed while the timer is already active,
+use a capture-only gate that records the baseline `run_id` and waits for a new
+`run_id`, without stopping or starting the timer.
+
+This rule does not change bot runtime behavior, broker behavior, strategy
+behavior, or execution authority.
+
 ## 1. Confirm You Are On The Right Machine
 
 On Mac:
