@@ -90,6 +90,11 @@ FUTURE_DETERMINISTIC_SERIALIZATION_MODULES = (
 REPLAY_PACKAGE_SPECIFICATION = (
     Path(__file__).resolve().parents[1] / "docs" / "replay_package_specification.md"
 )
+EVALUATION_INFRASTRUCTURE_ARCHITECTURE = (
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "evaluation_infrastructure_architecture.md"
+)
 REPLAY_SOURCE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "draft_envelope.py",
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "offline_mapper.py",
@@ -407,6 +412,55 @@ FORBIDDEN_RUNTIME_CAPTURE_IMPLEMENTATION_NAMES = (
     "RuntimeCaptureSource",
     "RuntimeCaptureWriter",
     "SourcePathIngestion",
+)
+FORBIDDEN_EVALUATION_PROMOTION_IMPLEMENTATION_NAMES = (
+    "EVALUATION_ENGINE",
+    "EVALUATION_AUTHORITY",
+    "PROMOTION_AUTHORITY",
+    "PROMOTION_GATE",
+    "ATTRIBUTION_LOGIC",
+    "ATTRIBUTION_ENGINE",
+    "EXPERIMENT_REGISTRY",
+    "SCORING_METRICS",
+    "REPLAY_PACKAGE_SCORING",
+    "BACKTEST_RUNNER",
+    "REPLAY_RUNNER",
+    "STRATEGY_PROMOTION",
+    "STRATEGY_PROMOTION_GATE",
+    "METRIC_VOCABULARY",
+    "ATTRIBUTION_VOCABULARY",
+    "EXPERIMENT_ID",
+    "PACKAGE_SET",
+    "EvaluationEngine",
+    "EvaluationAuthority",
+    "PromotionAuthority",
+    "PromotionGate",
+    "AttributionLogic",
+    "AttributionEngine",
+    "ExperimentRegistry",
+    "ScoringMetrics",
+    "ReplayPackageScoring",
+    "BacktestRunner",
+    "ReplayRunner",
+    "StrategyPromotion",
+    "StrategyPromotionGate",
+    "MetricVocabulary",
+    "AttributionVocabulary",
+    "ExperimentId",
+    "PackageSet",
+    "build_evaluation_engine",
+    "build_attribution_logic",
+    "build_experiment_registry",
+    "build_scoring_metrics",
+    "score_replay_package",
+    "evaluate_replay_package",
+    "evaluate_strategy_candidate",
+    "compare_strategy_candidate",
+    "promote_strategy",
+    "approve_promotion",
+    "create_promotion_gate",
+    "run_backtest",
+    "run_replay_evaluation",
 )
 
 
@@ -1408,6 +1462,103 @@ def test_runtime_capture_boundary_remains_unimplemented() -> None:
     for module_path in REPLAY_SOURCE_MODULES:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_RUNTIME_CAPTURE_IMPLEMENTATION_NAMES:
+            assert forbidden_name not in module_text
+
+
+def test_evaluation_promotion_boundary_remains_unimplemented() -> None:
+    architecture_text = EVALUATION_INFRASTRUCTURE_ARCHITECTURE.read_text(
+        encoding="utf-8"
+    )
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Evaluation and Promotion Authority Contract" in architecture_text
+    assert "governance-only and is not\nimplemented yet" in architecture_text
+    assert "does not approve tests, code, evaluation\nengines" in architecture_text
+    assert "attribution logic, experiment registries, scoring metrics" in architecture_text
+    assert "replay\npackage scoring" in architecture_text
+    assert "backtest or replay runners" in architecture_text
+    assert "strategy promotion gates" in architecture_text
+    assert "Evaluation and promotion rules must be source-controlled" in architecture_text
+    assert "Evaluation cannot consume evidence as authoritative" in architecture_text
+    assert "Trusted scoring requires complete replay package authority" in architecture_text
+    assert "Governance-grade evaluation requires finalized and immutable" in architecture_text
+    assert "Draft or incomplete packages may support only exploratory" in architecture_text
+    assert "Metric vocabulary must be governed before scoring" in architecture_text
+    assert "Metric versioning must be governed before scoring" in architecture_text
+    assert "Attribution vocabulary must be governed before attribution" in architecture_text
+    assert "Attribution versioning must be governed before attribution" in architecture_text
+    assert "Experiment identifiers must be governed before experiments" in architecture_text
+    assert "Experiment registry authority must be governed before experiments" in architecture_text
+    assert "Package-set inclusion and exclusion rules must be governed" in architecture_text
+    assert "Reproducibility rules must be governed before evaluation" in architecture_text
+    assert "Candidate strategy identity and versioning" in architecture_text
+    assert "Candidate parameter identity and versioning" in architecture_text
+    assert "Baseline versus candidate comparison rules" in architecture_text
+    assert "As-of feature availability and decision-time evidence rules" in architecture_text
+    assert "Incomplete, mutable, stale, untrusted, mixed-run, unhashable" in architecture_text
+    assert "provenance-defective, redaction-defective" in architecture_text
+    assert "Evaluation reports, metrics, comparisons, and recommendations" in architecture_text
+    assert "must not create\n  promotion authority" in architecture_text
+    assert "Evaluation output must remain separate from strategy promotion" in architecture_text
+    assert "Strategy promotion must require a separate explicit promotion gate" in architecture_text
+    assert "approval, monitoring, rollback, rejection" in architecture_text
+    assert "Promotion output must not create broker authority" in architecture_text
+    assert "AI recommendations, shadow outputs, paper validation, and metrics" in architecture_text
+    assert "submit orders, cancel orders, flatten\n  positions" in architecture_text
+    assert "Evaluation and promotion output cannot become runtime truth" in architecture_text
+    assert "This docs contract does not approve\ntests, code, replay package scoring" in architecture_text
+    assert "Replay package output does not authorize strategy evaluation" in spec_text
+    assert "Replay-based promotion decisions" in spec_text
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_runtime_mutation"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "evaluation_authority",
+        "promotion_authority",
+        "scoring_authority",
+        "attribution_authority",
+        "experiment_registry_authority",
+        "replay_package_scoring_authority",
+        "backtest_runner_authority",
+        "replay_runner_authority",
+        "strategy_promotion_gate",
+        "promotion_gate_authority",
+        "package_set_authority",
+        "metric_vocabulary_authority",
+        "attribution_vocabulary_authority",
+        "experiment_identifier_authority",
+        "strategy_promotion_authority",
+        "broker_authority",
+        "execution_permission",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for forbidden_name in FORBIDDEN_EVALUATION_PROMOTION_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
 
 
