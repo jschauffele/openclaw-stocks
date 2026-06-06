@@ -12,6 +12,7 @@ import pytest
 import tools.replay.draft_envelope as draft_envelope
 import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
+import tools.replay.filesystem_storage_authority as filesystem_storage_authority
 import tools.replay.hash_computation as hash_computation
 import tools.replay.hashing as hashing
 import tools.replay.integrity as integrity
@@ -873,6 +874,12 @@ FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES = (
 FUTURE_STORAGE_FINALIZATION_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "storage.py",
 )
+FILESYSTEM_STORAGE_AUTHORITY_MODULE = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "filesystem_storage_authority.py"
+)
 FUTURE_STORAGE_FINALIZATION_SCOPE_RELAXABLE_NAMES = (
     "STORAGE_ROOT",
     "STORAGE_PATH",
@@ -1277,6 +1284,30 @@ def _draft_package_creation_input(**overrides: object) -> dict:
     }
     package_input.update(overrides)
     return package_input
+
+
+def _filesystem_storage_authority_input(**overrides: object) -> dict:
+    authority_input = {
+        "canonical_run_id": "run_unit8_storage_authority",
+        "storage_root": "replay_packages",
+        "approved_storage_roots": ("replay_packages",),
+        "package_path": "replay_packages/run_unit8_storage_authority",
+        "approved_package_paths": ("replay_packages/run_unit8_storage_authority",),
+        "package_directory": "run_unit8_storage_authority",
+        "approved_package_directories": ("run_unit8_storage_authority",),
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "source_reference": "draft_package",
+        "known_source_references": ("draft_package",),
+        "input_run_ids": ("run_unit8_storage_authority",),
+        "read_authority": True,
+        "write_authority": True,
+        "storage_writer_authority": True,
+        "path_resolver_authority": True,
+        "package_directory_resolver_authority": True,
+    }
+    authority_input.update(overrides)
+    return authority_input
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -4417,6 +4448,154 @@ def test_filesystem_storage_authority_scope_guard_records_boundary_only() -> Non
         module_text = module_path.read_text(encoding="utf-8")
         for denied_name in FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES:
             assert denied_name not in module_text
+
+
+def test_filesystem_storage_authority_helper_validates_metadata_only() -> None:
+    assert FILESYSTEM_STORAGE_AUTHORITY_MODULE.exists()
+    assert filesystem_storage_authority.STORAGE_ROOT == "storage_root_authority"
+    assert filesystem_storage_authority.PACKAGE_PATH == "package_path_authority"
+    assert (
+        filesystem_storage_authority.PACKAGE_DIRECTORY
+        == "package_directory_authority"
+    )
+    assert filesystem_storage_authority.FILESYSTEM_READ_AUTHORITY == (
+        "filesystem_read_authority_metadata_only"
+    )
+    assert filesystem_storage_authority.FILESYSTEM_WRITE_AUTHORITY == (
+        "filesystem_write_authority_metadata_only"
+    )
+    assert filesystem_storage_authority.STORAGE_WRITER_AUTHORITY == (
+        "storage_writer_authority_metadata_only"
+    )
+    assert filesystem_storage_authority.PATH_RESOLVER_AUTHORITY == (
+        "path_resolver_authority_metadata_only"
+    )
+    assert filesystem_storage_authority.PACKAGE_DIRECTORY_RESOLVER_AUTHORITY == (
+        "package_directory_resolver_authority_metadata_only"
+    )
+    assert filesystem_storage_authority.FilesystemStorageAuthority().authority_boundary == (
+        filesystem_storage_authority.FILESYSTEM_STORAGE_AUTHORITY_BOUNDARY
+    )
+    assert filesystem_storage_authority.FilesystemStorageAuthorityResult().result_type == (
+        filesystem_storage_authority.FILESYSTEM_STORAGE_AUTHORITY_RESULT
+    )
+
+    authority_input = _filesystem_storage_authority_input()
+    result = filesystem_storage_authority.validate_filesystem_storage_authority(
+        authority_input
+    )
+
+    assert result == filesystem_storage_authority.resolve_package_path_authority(
+        authority_input
+    )
+    assert result == filesystem_storage_authority.resolve_package_directory_authority(
+        authority_input
+    )
+    assert result["result_type"] == (
+        filesystem_storage_authority.FILESYSTEM_STORAGE_AUTHORITY_RESULT
+    )
+    assert result["canonical_run_id"] == "run_unit8_storage_authority"
+    assert result["storage_root"] == "replay_packages"
+    assert result["package_path"] == "replay_packages/run_unit8_storage_authority"
+    assert result["package_directory"] == "run_unit8_storage_authority"
+    assert result["filesystem_read_authority"] is True
+    assert result["filesystem_write_authority"] is True
+    assert result["storage_writer_authority"] is True
+    assert result["path_resolver_authority"] is True
+    assert result["package_directory_resolver_authority"] is True
+    assert result["evidence_only"] is True
+    assert result["non_authoritative"] is True
+    assert result["actual_filesystem_reads"] is False
+    assert result["actual_filesystem_writes"] is False
+    assert result["package_directory_creation"] is False
+    assert result["finalized_storage"] is False
+    assert result["immutability_enforcement"] is False
+    assert result["package_completeness"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["execution_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert result["authority_boundary"] == (
+        filesystem_storage_authority.FILESYSTEM_STORAGE_AUTHORITY_BOUNDARY
+    )
+    assert "no_actual_filesystem_reads" in result["authority_boundary"]
+    assert "no_actual_filesystem_writes" in result["authority_boundary"]
+    assert "no_package_directory_creation" in result["authority_boundary"]
+    assert "no_finalized_storage" in result["authority_boundary"]
+    assert "no_immutability_enforcement" in result["authority_boundary"]
+    assert "no_package_completeness" in result["authority_boundary"]
+    assert "no_runtime_capture" in result["authority_boundary"]
+    assert "no_evaluation_or_promotion" in result["authority_boundary"]
+    assert "no_broker_authority" in result["authority_boundary"]
+    assert "no_execution_authority" in result["authority_boundary"]
+    assert "no_live_trading_authority" in result["authority_boundary"]
+
+    module_names = set(filesystem_storage_authority.__dict__)
+    for relaxable_name in FILESYSTEM_STORAGE_AUTHORITY_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+    for denied_name in (
+        "StorageFinalization",
+        "FinalizedPackage",
+        "ImmutabilityEnforcement",
+        "PackageCompleteness",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name not in module_names
+
+
+def test_filesystem_storage_authority_helper_fails_closed() -> None:
+    base_input = _filesystem_storage_authority_input()
+
+    bad_cases = (
+        ({**base_input, "storage_root": ""}, ValueError),
+        ({**base_input, "storage_root": "other"}, ValueError),
+        ({**base_input, "package_path": ""}, ValueError),
+        ({**base_input, "package_path": "other"}, ValueError),
+        ({**base_input, "package_directory": ""}, ValueError),
+        ({**base_input, "package_directory": "other"}, ValueError),
+        ({**base_input, "overwrite_attempt": True}, ValueError),
+        ({**base_input, "package_path": "../escape"}, ValueError),
+        ({**base_input, "package_path": "/tmp/package"}, ValueError),
+        ({**base_input, "symlink_status": "unknown"}, ValueError),
+        ({**base_input, "repo_relative": False}, ValueError),
+        (
+            {
+                **base_input,
+                "input_run_ids": ("run_unit8_storage_authority", "other"),
+            },
+            ValueError,
+        ),
+        ({**base_input, "provenance": ""}, ValueError),
+        ({**base_input, "provenance": object()}, ValueError),
+        ({**base_input, "redaction_status": ""}, ValueError),
+        ({**base_input, "redaction_status": "unknown"}, ValueError),
+        ({**base_input, "source_reference": "unknown"}, ValueError),
+        ({**base_input, "sensitive_data_status": "exposed"}, ValueError),
+        ({**base_input, "runtime_dependent": True}, ValueError),
+        ({**base_input, "evaluation_dependent": True}, ValueError),
+        ({**base_input, "broker_dependent": True}, ValueError),
+        (object(), TypeError),
+    )
+    for bad_input, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            filesystem_storage_authority.validate_filesystem_storage_authority(
+                bad_input
+            )
+
+    module_text = FILESYSTEM_STORAGE_AUTHORITY_MODULE.read_text(encoding="utf-8")
+    assert "from pathlib" not in module_text
+    assert "import os" not in module_text
+    assert "open(" not in module_text
+    assert ".read(" not in module_text
+    assert ".write(" not in module_text
+    assert "write_text(" not in module_text
+    assert "write_bytes(" not in module_text
+    assert "mkdir(" not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
