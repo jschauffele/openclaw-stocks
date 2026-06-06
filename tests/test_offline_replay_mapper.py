@@ -12,6 +12,7 @@ import pytest
 import tools.replay.draft_envelope as draft_envelope
 import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
+import tools.replay.hash_computation as hash_computation
 import tools.replay.hashing as hashing
 import tools.replay.integrity as integrity
 import tools.replay.manifest_builder as manifest_builder
@@ -1013,6 +1014,23 @@ def _draft_manifest_input_dict(**overrides: object) -> dict:
 
 def _draft_manifest_input() -> manifest_builder.ManifestInput:
     return manifest_builder.ManifestInput(**_draft_manifest_input_dict())
+
+
+def _hash_metadata(**overrides: object) -> dict:
+    metadata = {
+        "hash_algorithm": hashing.HASH_ALGORITHM,
+        "hash_version": hashing.HASH_VERSION,
+        "canonical_run_id": "run_unit6",
+        "run_ids": ("run_unit6",),
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "sensitive_data_status": "clear",
+        "source_reference": "event_jsonl",
+        "known_source_references": ("event_jsonl",),
+        "section_scope": "package_identity",
+    }
+    metadata.update(overrides)
+    return metadata
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -2779,7 +2797,95 @@ def test_hash_computation_scope_guard_records_unit6_only() -> None:
     )
 
     for future_module in FUTURE_HASH_COMPUTATION_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+
+    assert hash_computation.SECTION_HASH == "section_hash"
+    assert hash_computation.MANIFEST_HASH == "manifest_hash"
+    assert hash_computation.PACKAGE_HASH == "package_hash"
+    assert (
+        hash_computation.HASH_COMPUTATION
+        == "sha256_canonical_bytes_hash_computation"
+    )
+    assert hash_computation.HashInputEligibility().input_model == (
+        hash_computation.CANONICAL_HASH_INPUT
+    )
+    assert hash_computation.HashInputEligibility().algorithm == hashing.HASH_ALGORITHM
+    assert hash_computation.HashInputEligibility().version == hashing.HASH_VERSION
+    assert hash_computation.HashComputation().authority_boundary == (
+        hash_computation.HASH_COMPUTATION_AUTHORITY_BOUNDARY
+    )
+    assert hash_computation.SectionHash().hash_type == hash_computation.SECTION_HASH
+    assert hash_computation.ManifestHash().hash_type == hash_computation.MANIFEST_HASH
+    assert hash_computation.PackageHash().hash_type == hash_computation.PACKAGE_HASH
+    assert hash_computation.SectionHashScope().name == (
+        hash_computation.SECTION_HASH_SCOPE
+    )
+    assert hash_computation.ManifestHashScope().name == (
+        hash_computation.MANIFEST_HASH_SCOPE
+    )
+    assert hash_computation.PackageHashScope().name == (
+        hash_computation.PACKAGE_HASH_SCOPE
+    )
+
+    canonical_payload = canonical_json.canonicalize_json({"section": "identity"})
+    canonical_input = canonical_bytes.build_canonical_bytes(canonical_payload)
+    section_metadata = _hash_metadata(section_scope="package_identity")
+    manifest_metadata = _hash_metadata(manifest_scope="draft_manifest")
+    package_metadata = _hash_metadata(package_scope="draft_package")
+
+    section_hash = hash_computation.build_section_hash(
+        canonical_input,
+        section_metadata,
+    )
+    manifest_hash = hash_computation.build_manifest_hash(
+        canonical_input,
+        manifest_metadata,
+    )
+    package_hash = hash_computation.build_package_hash(
+        canonical_input,
+        package_metadata,
+    )
+
+    assert section_hash["hash_type"] == hash_computation.SECTION_HASH
+    assert manifest_hash["hash_type"] == hash_computation.MANIFEST_HASH
+    assert package_hash["hash_type"] == hash_computation.PACKAGE_HASH
+    assert section_hash["digest"] == manifest_hash["digest"] == package_hash["digest"]
+    assert section_hash["hash_algorithm"] == hashing.HASH_ALGORITHM
+    assert section_hash["hash_version"] == hashing.HASH_VERSION
+    assert section_hash["evidence_only"] is True
+    assert section_hash["non_authoritative"] is True
+    assert "no_integrity_validation" in section_hash["authority_boundary"]
+    assert "no_package_completeness" in section_hash["authority_boundary"]
+    assert "no_package_creation" in section_hash["authority_boundary"]
+    assert "no_filesystem_access" in section_hash["authority_boundary"]
+    assert "no_storage_finalization" in section_hash["authority_boundary"]
+    assert "no_runtime_capture" in section_hash["authority_boundary"]
+    assert "no_broker_authority" in section_hash["authority_boundary"]
+    assert "no_execution_authority" in section_hash["authority_boundary"]
+    assert "no_live_trading_authority" in section_hash["authority_boundary"]
+
+    assert hash_computation.build_section_hash(canonical_input, section_metadata) == (
+        section_hash
+    )
+
+    for bad_input, bad_metadata, expected_error in (
+        (canonical_payload, section_metadata, TypeError),
+        (canonical_input, _hash_metadata(run_ids=("run_unit6", "other")), ValueError),
+        (canonical_input, _hash_metadata(provenance=""), ValueError),
+        (canonical_input, _hash_metadata(redaction_status=""), ValueError),
+        (
+            canonical_input,
+            _hash_metadata(source_reference="unknown_source"),
+            ValueError,
+        ),
+        (canonical_input, _hash_metadata(sensitive_data_status="unknown"), ValueError),
+        (canonical_input, _hash_metadata(section_scope=""), ValueError),
+        (canonical_input, _hash_metadata(source_path="/tmp/run.jsonl"), ValueError),
+        (canonical_input, _hash_metadata(hash_algorithm="unknown"), ValueError),
+        (canonical_input, _hash_metadata(hash_version="unknown"), ValueError),
+    ):
+        with pytest.raises(expected_error):
+            hash_computation.build_section_hash(bad_input, bad_metadata)
 
     for denied_name in (
         "INTEGRITY_VALIDATION",
@@ -2865,6 +2971,14 @@ def test_hash_computation_scope_guard_records_unit6_only() -> None:
         *FUTURE_MANIFEST_GENERATION_MODULES,
     ):
         module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
+
+    for module_path in FUTURE_HASH_COMPUTATION_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        assert "hashlib" in module_text
         for denied_name in HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
             if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
