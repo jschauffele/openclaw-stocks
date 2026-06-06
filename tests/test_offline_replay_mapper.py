@@ -346,6 +346,69 @@ MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FUTURE_HASH_COMPUTATION_MODULES = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "hash_computation.py",
+)
+FUTURE_HASH_COMPUTATION_SCOPE_RELAXABLE_NAMES = (
+    "SECTION_HASH",
+    "MANIFEST_HASH",
+    "PACKAGE_HASH",
+    "HASH_COMPUTATION",
+    "HASH_INPUT_ELIGIBILITY",
+    "HASH_SCOPE",
+    "SECTION_HASH_SCOPE",
+    "MANIFEST_HASH_SCOPE",
+    "PACKAGE_HASH_SCOPE",
+    "CANONICAL_HASH_INPUT",
+    "HashComputation",
+    "HashInputEligibility",
+    "HashScope",
+    "SectionHash",
+    "ManifestHash",
+    "PackageHash",
+    "SectionHashScope",
+    "ManifestHashScope",
+    "PackageHashScope",
+    "CanonicalHashInput",
+    "build_section_hash",
+    "build_manifest_hash",
+    "build_package_hash",
+)
+HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "INTEGRITY_VALIDATION",
+    "PACKAGE_COMPLETENESS",
+    "PACKAGE_CREATION",
+    "PACKAGE_DIRECTORY",
+    "PACKAGE_PATH",
+    "IntegrityValidation",
+    "IntegrityValidator",
+    "PackageCompleteness",
+    "PackageCreation",
+    "PackageDirectory",
+    "PackagePath",
+    "ReplayPackageCreation",
+    "CompleteReplayPackage",
+    "validate_hash",
+    "validate_integrity",
+    "verify_integrity",
+    "create_replay_package",
+    "create_package",
+    "open",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "StorageFinalization",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
     *FORBIDDEN_PACKAGE_CREATION_NAMES,
     "manifest_schema",
@@ -2621,6 +2684,188 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         assert "hashlib" not in module_text
         for denied_name in MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
+
+
+def test_hash_computation_scope_guard_records_unit6_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 6: Section/Package Hash Computation" in map_text
+    assert "blocked until canonical bytes, hash" in map_text
+    assert "algorithm/version, manifest generation, and section scopes exist" in (
+        map_text
+    )
+    assert "Prerequisite dependencies: units 2, 3, and 5." in map_text
+    assert "future hash computation module" in map_text
+    assert "hash computation tests" in map_text
+    assert "section hash, manifest hash, package hash distinction" in map_text
+    assert "mixed\n  run_id fail-closed behavior" in map_text
+    assert "missing provenance/redaction fail-closed" in map_text
+    assert "no package completeness authority" in map_text
+    assert "missing canonical bytes" in map_text
+    assert "missing section scope" in map_text
+    assert "unknown hash\n  version" in map_text
+    assert "sensitive data exposure" in map_text
+    assert "undefined redaction state" in map_text
+    assert "hash output cannot create manifest authority" in map_text
+    assert "package completeness" in map_text
+    assert "Filesystem access allowed: no." in map_text
+    assert "Runtime artifact access allowed: no." in map_text
+    assert "Broker/API access allowed: no." in map_text
+    assert "Execution/live trading authority allowed: no." in map_text
+
+    assert "Required future section hash rules" in spec_text
+    assert "Section hash inputs must be approved canonical serialized bytes only" in (
+        spec_text
+    )
+    assert "Section hash scope must define whether it covers" in spec_text
+    assert "Required future manifest hash rules" in spec_text
+    assert "Manifest hash authority is separate from section hash authority" in (
+        spec_text
+    )
+    assert "Manifest hash inputs must be approved canonical serialized manifest bytes" in (
+        spec_text
+    )
+    assert "Required future package hash rules" in spec_text
+    assert "Package hash authority is separate from section hash authority" in (
+        spec_text
+    )
+    assert "Package hash inputs must be approved canonical serialized bytes only" in (
+        spec_text
+    )
+    assert "Package hash must not imply package creation" in spec_text
+    assert "Package hash must not imply package completeness" in spec_text
+    assert "Mixed-`run_id` hash inputs must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Unknown source references must fail closed" in spec_text
+    assert "Sensitive data exposure must stop hashing" in spec_text
+    assert "Need filesystem reads or writes" in spec_text
+
+    assert canonical_bytes.CANONICAL_BYTES_OUTPUT == "canonical_json_utf8_bytes"
+    assert hashing.HASH_ALGORITHM == "sha256"
+    assert hashing.HASH_VERSION == "v1"
+    assert FUTURE_HASH_COMPUTATION_SCOPE_RELAXABLE_NAMES == (
+        "SECTION_HASH",
+        "MANIFEST_HASH",
+        "PACKAGE_HASH",
+        "HASH_COMPUTATION",
+        "HASH_INPUT_ELIGIBILITY",
+        "HASH_SCOPE",
+        "SECTION_HASH_SCOPE",
+        "MANIFEST_HASH_SCOPE",
+        "PACKAGE_HASH_SCOPE",
+        "CANONICAL_HASH_INPUT",
+        "HashComputation",
+        "HashInputEligibility",
+        "HashScope",
+        "SectionHash",
+        "ManifestHash",
+        "PackageHash",
+        "SectionHashScope",
+        "ManifestHashScope",
+        "PackageHashScope",
+        "CanonicalHashInput",
+        "build_section_hash",
+        "build_manifest_hash",
+        "build_package_hash",
+    )
+    assert not (
+        set(FUTURE_HASH_COMPUTATION_SCOPE_RELAXABLE_NAMES)
+        & set(HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    for future_module in FUTURE_HASH_COMPUTATION_MODULES:
+        assert not future_module.exists()
+
+    for denied_name in (
+        "INTEGRITY_VALIDATION",
+        "PACKAGE_COMPLETENESS",
+        "PACKAGE_CREATION",
+        "PACKAGE_DIRECTORY",
+        "validate_hash",
+        "validate_integrity",
+        "verify_integrity",
+        "create_replay_package",
+        "open",
+        "write_text",
+        "write_bytes",
+        "mkdir",
+        "StorageFinalization",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name in HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FUTURE_HASH_COMPUTATION_SCOPE_RELAXABLE_NAMES
+
+    hash_scope_stop_conditions = (
+        "mixed_run_id",
+        "missing_provenance",
+        "missing_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_ambiguity",
+        "undefined_section_scope",
+        "filesystem_dependent_inputs",
+        "non_canonical_bytes_input",
+        "missing_algorithm_version_metadata",
+    )
+    assert hash_scope_stop_conditions == (
+        "mixed_run_id",
+        "missing_provenance",
+        "missing_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_ambiguity",
+        "undefined_section_scope",
+        "filesystem_dependent_inputs",
+        "non_canonical_bytes_input",
+        "missing_algorithm_version_metadata",
+    )
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["integrity"]["status"] == "absent"
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
+
+    for module_path in (
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
             if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
             assert denied_name not in module_text
