@@ -7,11 +7,14 @@ import sys
 from pathlib import Path
 from types import FunctionType
 
+import pytest
+
 import tools.replay.draft_envelope as draft_envelope
 import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
 import tools.replay.hashing as hashing
 import tools.replay.integrity as integrity
+import tools.replay.manifest_builder as manifest_builder
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
 import tools.replay.package_layout as package_layout
@@ -68,7 +71,6 @@ FUTURE_MANIFEST_SCHEMA_MODULES = (
         / "replay"
         / "manifest_constants.py"
     ),
-    Path(__file__).resolve().parents[1] / "tools" / "replay" / "manifest_builder.py",
     (
         Path(__file__).resolve().parents[1]
         / "tools"
@@ -923,6 +925,31 @@ def _complete_replay_inputs() -> dict:
         "order_state": _order_state(),
         "runtime_visibility": _runtime_visibility(),
     }
+
+
+def _draft_manifest_input_dict(**overrides: object) -> dict:
+    manifest_input = {
+        "canonical_run_id": "run_unit5",
+        "created_at": "2026-06-06T00:00:00Z",
+        "source_artifact_references": (
+            {
+                "source_reference": "event_jsonl",
+                "run_id": "run_unit5",
+                "provenance": "recorded",
+                "redaction_status": "not_required",
+            },
+        ),
+        "section_status": {"package_identity": "present"},
+        "section_provenance": {"package_identity": "recorded"},
+        "section_redaction_status": {"package_identity": "not_required"},
+        "section_source_reference": {"package_identity": "event_jsonl"},
+    }
+    manifest_input.update(overrides)
+    return manifest_input
+
+
+def _draft_manifest_input() -> manifest_builder.ManifestInput:
+    return manifest_builder.ManifestInput(**_draft_manifest_input_dict())
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -2424,7 +2451,114 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
     )
 
     for future_module in FUTURE_MANIFEST_GENERATION_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+
+    assert (
+        manifest_builder.MANIFEST_GENERATION
+        == "draft_manifest_generation_in_memory_only"
+    )
+    assert manifest_builder.MANIFEST_BUILDER == "draft_manifest_builder_in_memory_only"
+    assert manifest_builder.DRAFT_MANIFEST == "draft_manifest"
+    assert manifest_builder.MANIFEST_INPUT == "manifest_input"
+    assert manifest_builder.ManifestGeneration().authority_boundary == (
+        manifest_builder.MANIFEST_GENERATION_AUTHORITY_BOUNDARY
+    )
+    assert manifest_builder.ManifestBuilder().output_model == (
+        manifest_builder.DRAFT_MANIFEST
+    )
+    assert (
+        manifest_builder.ManifestFieldEligibility().required_fields
+        == manifest_schema.MANIFEST_REQUIRED_FIELDS
+    )
+    assert manifest_builder.ManifestProvenanceEligibility().required is True
+    assert manifest_builder.ManifestRedactionEligibility().required is True
+    assert manifest_builder.ManifestRunIdAlignment().required is True
+    assert (
+        manifest_builder.ManifestSourceReferenceEligibility()
+        .known_references_required
+        is True
+    )
+
+    manifest_input = _draft_manifest_input()
+    draft_manifest = manifest_builder.build_draft_manifest(manifest_input)
+    in_memory_manifest = manifest_builder.build_in_memory_manifest(manifest_input)
+
+    assert draft_manifest == in_memory_manifest
+    assert draft_manifest["canonical_run_id"] == manifest_input.canonical_run_id
+    assert draft_manifest["package_id"] is None
+    assert draft_manifest["manifest_schema_version"] == (
+        manifest_schema.MANIFEST_SCHEMA_VERSION
+    )
+    assert draft_manifest["lifecycle_status"] == "draft"
+    assert draft_manifest["evidence_only"] is True
+    assert draft_manifest["non_authoritative"] is True
+    assert draft_manifest["authority_boundary"] == (
+        manifest_builder.MANIFEST_GENERATION_AUTHORITY_BOUNDARY
+    )
+    assert "no_package_creation" in draft_manifest["authority_boundary"]
+    assert "no_filesystem_access" in draft_manifest["authority_boundary"]
+    assert "no_hash_computation" in draft_manifest["authority_boundary"]
+    assert "no_integrity_validation" in draft_manifest["authority_boundary"]
+    assert "no_storage_finalization" in draft_manifest["authority_boundary"]
+    assert "no_runtime_capture" in draft_manifest["authority_boundary"]
+    assert "no_evaluation_or_promotion" in draft_manifest["authority_boundary"]
+    assert "no_broker_authority" in draft_manifest["authority_boundary"]
+    assert "no_execution_authority" in draft_manifest["authority_boundary"]
+    assert "no_live_trading_authority" in draft_manifest["authority_boundary"]
+
+    module_names = set(manifest_builder.__dict__)
+    for relaxable_name in FUTURE_MANIFEST_GENERATION_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+
+    for malformed_input in (
+        object(),
+        {},
+        _draft_manifest_input_dict(canonical_run_id=""),
+    ):
+        with pytest.raises((TypeError, ValueError)):
+            manifest_builder.build_draft_manifest(malformed_input)
+
+    with pytest.raises(ValueError, match="mixed run_id"):
+        manifest_builder.build_draft_manifest(
+            _draft_manifest_input_dict(
+                source_artifact_references=(
+                    {
+                        "source_reference": "event_jsonl",
+                        "run_id": "other_run",
+                        "provenance": "recorded",
+                        "redaction_status": "not_required",
+                    },
+                )
+            )
+        )
+    with pytest.raises(ValueError, match="provenance"):
+        manifest_builder.build_draft_manifest(
+            _draft_manifest_input_dict(section_provenance={})
+        )
+    with pytest.raises(ValueError, match="redaction"):
+        manifest_builder.build_draft_manifest(
+            _draft_manifest_input_dict(section_redaction_status={})
+        )
+    with pytest.raises(ValueError, match="known"):
+        manifest_builder.build_draft_manifest(
+            _draft_manifest_input_dict(
+                section_source_reference={"package_identity": "unknown_source"}
+            )
+        )
+    with pytest.raises(ValueError, match="filesystem"):
+        manifest_builder.build_draft_manifest(
+            _draft_manifest_input_dict(
+                source_artifact_references=(
+                    {
+                        "source_reference": "event_jsonl",
+                        "run_id": "run_unit5",
+                        "provenance": "recorded",
+                        "redaction_status": "not_required",
+                        "source_path": "/tmp/run.jsonl",
+                    },
+                )
+            )
+        )
 
     for denied_name in (
         "PACKAGE_CREATION",
@@ -2478,6 +2612,14 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
 
     for module_path in REPLAY_SOURCE_MODULES:
         module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
+
+    for module_path in FUTURE_MANIFEST_GENERATION_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        assert "hashlib" not in module_text
         for denied_name in MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
             if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
