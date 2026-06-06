@@ -923,6 +923,45 @@ STORAGE_FINALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FILESYSTEM_STORAGE_AUTHORITY_SCOPE_RELAXABLE_NAMES = (
+    "STORAGE_ROOT",
+    "PACKAGE_PATH",
+    "PACKAGE_DIRECTORY",
+    "FILESYSTEM_READ_AUTHORITY",
+    "FILESYSTEM_WRITE_AUTHORITY",
+    "STORAGE_WRITER_AUTHORITY",
+    "PATH_RESOLVER_AUTHORITY",
+    "PACKAGE_DIRECTORY_RESOLVER_AUTHORITY",
+    "StorageRoot",
+    "PackagePath",
+    "PackageDirectory",
+    "FilesystemReadAuthority",
+    "FilesystemWriteAuthority",
+    "StorageWriterAuthority",
+    "PathResolverAuthority",
+    "PackageDirectoryResolverAuthority",
+)
+FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "STORAGE_FINALIZATION",
+    "FINALIZED_PACKAGE",
+    "IMMUTABILITY_ENFORCEMENT",
+    "PACKAGE_COMPLETENESS",
+    "RUNTIME_CAPTURE",
+    "EVALUATION_PROMOTION",
+    "BROKER_API_AUTHORITY",
+    "EXECUTION_PERMISSION",
+    "LIVE_TRADING_AUTHORITY",
+    "StorageFinalization",
+    "FinalizedPackage",
+    "ImmutabilityEnforcement",
+    "PackageCompleteness",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
     (
@@ -4198,6 +4237,185 @@ def test_storage_finalization_scope_guard_records_unit8_only() -> None:
     ):
         module_text = module_path.read_text(encoding="utf-8")
         for denied_name in STORAGE_FINALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert denied_name not in module_text
+
+
+def test_filesystem_storage_authority_scope_guard_records_boundary_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "Any unit requiring filesystem reads or writes must wait for a" in (
+        map_text
+    )
+    assert "separate filesystem/storage authority gate" in map_text
+    assert "Candidate files: future storage lifecycle module and storage tests, only" in (
+        map_text
+    )
+    assert "after a separate filesystem/storage gate" in map_text
+    assert "no filesystem reads or writes before that separate" in map_text
+    assert "no package directories" in map_text
+    assert "Filesystem access allowed: no until a separate filesystem/storage" in (
+        map_text
+    )
+
+    assert "Filesystem writer authority boundaries" in spec_text
+    assert "This contract does not approve filesystem reads or filesystem writes" in (
+        spec_text
+    )
+    assert "A future writer may write only approved package artifacts" in spec_text
+    assert "A future writer may write only to approved storage roots" in spec_text
+    assert "and package paths" in spec_text
+    assert "A future writer must not create package authority or package completeness" in (
+        spec_text
+    )
+    assert "A future writer must not overwrite finalized evidence" in spec_text
+    assert "A future writer must not mutate runtime state" in spec_text
+    assert "A future writer must not call `main.py`" in spec_text
+    assert "A future writer must not call broker/API/TWS/Alpaca/IBKR" in spec_text
+    assert "execution permission, strategy promotion, or live trading authority" in (
+        spec_text
+    )
+
+    assert FILESYSTEM_STORAGE_AUTHORITY_SCOPE_RELAXABLE_NAMES == (
+        "STORAGE_ROOT",
+        "PACKAGE_PATH",
+        "PACKAGE_DIRECTORY",
+        "FILESYSTEM_READ_AUTHORITY",
+        "FILESYSTEM_WRITE_AUTHORITY",
+        "STORAGE_WRITER_AUTHORITY",
+        "PATH_RESOLVER_AUTHORITY",
+        "PACKAGE_DIRECTORY_RESOLVER_AUTHORITY",
+        "StorageRoot",
+        "PackagePath",
+        "PackageDirectory",
+        "FilesystemReadAuthority",
+        "FilesystemWriteAuthority",
+        "StorageWriterAuthority",
+        "PathResolverAuthority",
+        "PackageDirectoryResolverAuthority",
+    )
+    assert not (
+        set(FILESYSTEM_STORAGE_AUTHORITY_SCOPE_RELAXABLE_NAMES)
+        & set(FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    filesystem_storage_authority_boundaries = (
+        "filesystem_storage_authority_required_before_unit8_implementation",
+        "filesystem_storage_authority_is_not_finalized_storage_implementation",
+        "filesystem_storage_authority_is_not_package_completeness",
+        "filesystem_storage_authority_is_not_evaluation_or_promotion",
+        "path_authority_is_not_runtime_artifact_capture",
+        "runtime_logs_require_later_runtime_capture_gate",
+        "no_broker_api_authority",
+        "no_execution_or_live_trading_authority",
+    )
+    assert filesystem_storage_authority_boundaries == (
+        "filesystem_storage_authority_required_before_unit8_implementation",
+        "filesystem_storage_authority_is_not_finalized_storage_implementation",
+        "filesystem_storage_authority_is_not_package_completeness",
+        "filesystem_storage_authority_is_not_evaluation_or_promotion",
+        "path_authority_is_not_runtime_artifact_capture",
+        "runtime_logs_require_later_runtime_capture_gate",
+        "no_broker_api_authority",
+        "no_execution_or_live_trading_authority",
+    )
+
+    filesystem_storage_stop_conditions = (
+        "unknown_storage_root",
+        "unapproved_storage_root",
+        "unknown_package_path",
+        "unapproved_package_path",
+        "unknown_package_directory",
+        "unapproved_package_directory",
+        "attempted_overwrite",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "mixed_run_id",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+    )
+    assert filesystem_storage_stop_conditions == (
+        "unknown_storage_root",
+        "unapproved_storage_root",
+        "unknown_package_path",
+        "unapproved_package_path",
+        "unknown_package_directory",
+        "unapproved_package_directory",
+        "attempted_overwrite",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "mixed_run_id",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+    )
+
+    for future_module in FUTURE_STORAGE_FINALIZATION_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for denied_name in (
+        "STORAGE_FINALIZATION",
+        "FINALIZED_PACKAGE",
+        "IMMUTABILITY_ENFORCEMENT",
+        "PACKAGE_COMPLETENESS",
+        "RUNTIME_CAPTURE",
+        "EVALUATION_PROMOTION",
+        "BROKER_API_AUTHORITY",
+        "EXECUTION_PERMISSION",
+        "LIVE_TRADING_AUTHORITY",
+    ):
+        assert denied_name in FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FILESYSTEM_STORAGE_AUTHORITY_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+        PACKAGE_CREATION_MODULE,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES:
             assert denied_name not in module_text
 
 
