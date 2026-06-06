@@ -66,6 +66,55 @@ FUTURE_PACKAGE_CREATION_MODULES = (
         / "manifest_generator.py"
     ),
 )
+FUTURE_PACKAGE_CREATION_SCOPE_RELAXABLE_NAMES = (
+    "PACKAGE_CREATION",
+    "PACKAGE_BUILDER_TYPES",
+    "PACKAGE_CREATION_MODULE",
+    "DRAFT_REPLAY_PACKAGE",
+    "DRAFT_PACKAGE_ASSEMBLY",
+    "PACKAGE_CREATION_INPUT",
+    "PACKAGE_CREATION_RESULT",
+    "PackageCreation",
+    "PackageBuilder",
+    "PackageBuilderInput",
+    "PackageBuilderOutput",
+    "DraftReplayPackage",
+    "DraftPackageAssembly",
+    "PackageCreationInput",
+    "PackageCreationResult",
+    "build_draft_package",
+    "assemble_draft_package",
+    "create_draft_package",
+)
+PACKAGE_CREATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "PACKAGE_COMPLETENESS",
+    "COMPLETE_REPLAY_PACKAGE",
+    "FINALIZED_PACKAGE",
+    "STORAGE_ROOT",
+    "STORAGE_PATH",
+    "PACKAGE_DIRECTORY",
+    "PACKAGE_PATH",
+    "FILESYSTEM_READ",
+    "FILESYSTEM_WRITE",
+    "PackageCompleteness",
+    "CompleteReplayPackage",
+    "FinalizedPackage",
+    "StorageRoot",
+    "StoragePath",
+    "PackageDirectory",
+    "PackagePath",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+    "open",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+)
 FUTURE_MANIFEST_SCHEMA_MODULES = (
     (
         Path(__file__).resolve().parents[1]
@@ -1538,6 +1587,237 @@ def test_replay_package_creation_boundary_remains_unimplemented() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_PACKAGE_CREATION_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
+
+
+def test_package_creation_scope_guard_records_unit11_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 11: Replay Package Creation" in map_text
+    assert "blocked until manifest generation, serialization" in map_text
+    assert "hashing/integrity, package layout, and storage/finalization contracts" in (
+        map_text
+    )
+    assert "Prerequisite dependencies: units 4, 5, 6, 7" in map_text
+    assert "storage/finalization scope\n  for persisted/finalized packages" in (
+        map_text
+    )
+    assert "draft-only assembly if approved" in map_text
+    assert "package identity alignment" in map_text
+    assert "provenance/redaction checks" in map_text
+    assert "completeness prerequisites" in map_text
+    assert "missing run_id" in map_text
+    assert "mixed run_id" in map_text
+    assert "stale/malformed artifacts" in map_text
+    assert "implied runtime capture/storage" in map_text
+
+    assert "## Replay Package Creation Authority Contract" in spec_text
+    assert "Replay package creation authority remains governance-only" in spec_text
+    assert "The first future package-creation lifecycle state" in spec_text
+    assert "`draft` only" in spec_text
+    assert "Draft-only package assembly" in spec_text
+    assert "must remain non-finalized and\n  non-authoritative" in spec_text
+    assert "Draft package creation must not imply finalized package authority" in (
+        spec_text
+    )
+    assert "Draft package creation must not overwrite existing evidence" in spec_text
+    assert "mapper bucket completeness only" in spec_text
+    assert "Complete replay package authority must require explicit package creation" in (
+        spec_text
+    )
+    assert "Manifest generation authority before package creation" in spec_text
+    assert "Deterministic serialization authority before package creation" in spec_text
+    assert "Canonical byte authority before package creation" in spec_text
+    assert "Hashing and integrity validation before package creation" in spec_text
+    assert "Storage and finalization authority before package creation" in spec_text
+    assert "Runtime capture authority before package creation" in spec_text
+    assert "Provenance must be explicit before package creation" in spec_text
+    assert "Redaction status must be explicit before package creation" in spec_text
+    assert "Source-reference authority must be explicit before package creation" in (
+        spec_text
+    )
+    assert "Missing `run_id` must fail closed" in spec_text
+    assert "Mixed `run_id` must fail closed" in spec_text
+    assert "Stale artifacts must fail closed" in spec_text
+    assert "Malformed artifacts must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Unknown source references must fail closed" in spec_text
+    assert "Sensitive data exposure must stop package creation" in spec_text
+    assert "Package creation must remain separate from storage and finalization" in (
+        spec_text
+    )
+    assert "Package creation must remain separate from evaluation and promotion" in (
+        spec_text
+    )
+
+    assert FUTURE_PACKAGE_CREATION_SCOPE_RELAXABLE_NAMES == (
+        "PACKAGE_CREATION",
+        "PACKAGE_BUILDER_TYPES",
+        "PACKAGE_CREATION_MODULE",
+        "DRAFT_REPLAY_PACKAGE",
+        "DRAFT_PACKAGE_ASSEMBLY",
+        "PACKAGE_CREATION_INPUT",
+        "PACKAGE_CREATION_RESULT",
+        "PackageCreation",
+        "PackageBuilder",
+        "PackageBuilderInput",
+        "PackageBuilderOutput",
+        "DraftReplayPackage",
+        "DraftPackageAssembly",
+        "PackageCreationInput",
+        "PackageCreationResult",
+        "build_draft_package",
+        "assemble_draft_package",
+        "create_draft_package",
+    )
+    assert not (
+        set(FUTURE_PACKAGE_CREATION_SCOPE_RELAXABLE_NAMES)
+        & set(PACKAGE_CREATION_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    package_creation_dependencies = (
+        "package_layout_vocabulary",
+        "manifest_generation",
+        "canonical_serialization",
+        "canonical_bytes",
+        "hash_computation",
+        "integrity_validation",
+        "provenance",
+        "redaction_status",
+        "source_references",
+        "run_id_alignment",
+    )
+    assert package_creation_dependencies == (
+        "package_layout_vocabulary",
+        "manifest_generation",
+        "canonical_serialization",
+        "canonical_bytes",
+        "hash_computation",
+        "integrity_validation",
+        "provenance",
+        "redaction_status",
+        "source_references",
+        "run_id_alignment",
+    )
+
+    package_creation_boundaries = (
+        "draft_package_creation_is_not_finalized_storage",
+        "package_creation_is_not_package_completeness",
+        "in_memory_assembly_is_not_package_directories",
+        "package_creation_is_not_evaluation_or_promotion",
+        "no_filesystem_access_without_storage_gate",
+    )
+    assert package_creation_boundaries == (
+        "draft_package_creation_is_not_finalized_storage",
+        "package_creation_is_not_package_completeness",
+        "in_memory_assembly_is_not_package_directories",
+        "package_creation_is_not_evaluation_or_promotion",
+        "no_filesystem_access_without_storage_gate",
+    )
+
+    package_creation_stop_conditions = (
+        "missing_canonical_run_id",
+        "mixed_run_id",
+        "missing_package_identity",
+        "missing_manifest",
+        "missing_canonical_bytes",
+        "missing_hash_records",
+        "missing_integrity_validation_result",
+        "failed_integrity_validation_result",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "stale_inputs",
+        "malformed_inputs",
+        "runtime_dependent_inputs",
+        "filesystem_dependent_inputs_before_storage_authority",
+        "evaluation_dependent_inputs",
+    )
+    assert package_creation_stop_conditions == (
+        "missing_canonical_run_id",
+        "mixed_run_id",
+        "missing_package_identity",
+        "missing_manifest",
+        "missing_canonical_bytes",
+        "missing_hash_records",
+        "missing_integrity_validation_result",
+        "failed_integrity_validation_result",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "stale_inputs",
+        "malformed_inputs",
+        "runtime_dependent_inputs",
+        "filesystem_dependent_inputs_before_storage_authority",
+        "evaluation_dependent_inputs",
+    )
+
+    for module_path in FUTURE_PACKAGE_CREATION_MODULES:
+        assert not module_path.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["lifecycle_status"] == "draft"
+    assert complete_inputs_envelope["evidence_only"] is True
+    assert complete_inputs_envelope["non_authoritative"] is True
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert complete_inputs_envelope["writer_authority"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for denied_name in (
+        "PACKAGE_COMPLETENESS",
+        "FINALIZED_PACKAGE",
+        "STORAGE_ROOT",
+        "FILESYSTEM_READ",
+        "FILESYSTEM_WRITE",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name in PACKAGE_CREATION_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FUTURE_PACKAGE_CREATION_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in PACKAGE_CREATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
 
 
 def test_manifest_schema_boundary_remains_unimplemented() -> None:
