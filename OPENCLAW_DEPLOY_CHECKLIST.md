@@ -67,6 +67,43 @@ use a capture-only gate that records the baseline `run_id` and waits for a new
 This rule does not change bot runtime behavior, broker behavior, strategy
 behavior, or execution authority.
 
+## VPS Wrong-Context Paste Guard
+
+VPS terminal commands must be pasted as command-only blocks. Do not paste
+assistant prose, Codex prompts, prior terminal output, transcript text,
+expected output, classification text, or Markdown into the VPS shell.
+
+Assistant text and runbooks must clearly identify the execution context before
+the command block. The command block itself must contain shell commands only.
+Expected output must never be included inside the command block.
+
+For high-risk VPS gates, prefer child-shell heredoc blocks that begin with
+`bash <<'EOF'` and end with `EOF`, so command boundaries are explicit and
+operator prose stays outside the shell input.
+
+If wrong-context paste or shell-output contamination occurs:
+
+- stop immediately
+- do not continue to timer restore, sync, tests, Python, broker/API calls, or
+  runtime evidence classification
+- run a read-only state verification
+- classify
+  `SHELL_OUTPUT_PASTE_CONTAMINATION / READ_ONLY_STATE_VERIFY_REQUIRED`
+
+If the worktree becomes dirty from an untracked contamination artifact:
+
+- identify the exact path
+- verify it is untracked
+- verify it is the only dirty path
+- remove only that explicitly verified contamination artifact
+- re-run state verification
+
+Do not use broad cleanup commands such as `git clean -fd` during recovery
+unless separately approved.
+
+This rule does not change bot runtime behavior, broker behavior, strategy
+behavior, execution authority, or live trading authority.
+
 ## 1. Confirm You Are On The Right Machine
 
 On Mac:
