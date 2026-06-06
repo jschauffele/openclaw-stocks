@@ -818,6 +818,59 @@ FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES = (
     "build_discovery_index",
     "build_storage_index",
 )
+FUTURE_STORAGE_FINALIZATION_MODULES = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "storage.py",
+)
+FUTURE_STORAGE_FINALIZATION_SCOPE_RELAXABLE_NAMES = (
+    "STORAGE_ROOT",
+    "STORAGE_PATH",
+    "PACKAGE_DIRECTORY",
+    "PACKAGE_PATH",
+    "PACKAGE_LIFECYCLE_STATE",
+    "FINALIZATION_STATE",
+    "FINALIZED_PACKAGE",
+    "INVALIDATED_PACKAGE",
+    "SUPERSEDED_PACKAGE",
+    "IMMUTABILITY_MARKER",
+    "LINEAGE_REFERENCE",
+    "CORRECTION_REFERENCE",
+    "INVALIDATION_REFERENCE",
+    "SUPERSESSION_REFERENCE",
+    "StorageRoot",
+    "StoragePath",
+    "PackageDirectory",
+    "PackagePath",
+    "PackageLifecycleState",
+    "FinalizationState",
+    "FinalizedPackage",
+    "InvalidatedPackage",
+    "SupersededPackage",
+    "ImmutabilityMarker",
+    "LineageReference",
+    "CorrectionReference",
+    "InvalidationReference",
+    "SupersessionReference",
+)
+STORAGE_FINALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "PACKAGE_CREATION",
+    "PACKAGE_COMPLETENESS",
+    "PackageCreation",
+    "PackageCompleteness",
+    "ReplayPackageCreation",
+    "CompleteReplayPackage",
+    "create_replay_package",
+    "create_package",
+    "assemble_replay_package",
+    "validate_package_completeness",
+    "assert_package_complete",
+    "RUNTIME_CAPTURE",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
     (
@@ -3467,6 +3520,220 @@ def test_storage_immutability_boundary_remains_unimplemented() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
+
+
+def test_storage_finalization_scope_guard_records_unit8_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 8: Storage Root/Path/Lifecycle/Finalization/Immutability" in (
+        map_text
+    )
+    assert "blocked until integrity validation, package layout" in map_text
+    assert "and package creation authority exist" in map_text
+    assert "Prerequisite dependencies: units 4, 7, and 11" in map_text
+    assert "future storage lifecycle module and storage tests" in map_text
+    assert "separate filesystem/storage gate" in map_text
+    assert "root/path authority" in map_text
+    assert "lifecycle states" in map_text
+    assert "no-overwrite finalized\n  evidence" in map_text
+    assert "correction/invalidation/supersession lineage" in map_text
+    assert "unknown root" in map_text
+    assert "missing path authority" in map_text
+    assert "attempted overwrite" in map_text
+    assert "missing integrity validation" in map_text
+    assert "mixed run_id" in map_text
+    assert "missing provenance" in map_text
+    assert "missing or\n  invalid redaction status" in map_text
+    assert "unknown source references" in map_text
+    assert "sensitive data\n  exposure" in map_text
+    assert "storage output cannot create package completeness" in map_text
+    assert "Filesystem access allowed: no until a separate filesystem/storage" in (
+        map_text
+    )
+
+    assert "## Storage, Finalization, and Immutability Authority Contract" in (
+        spec_text
+    )
+    assert "does not approve tests, code, storage\nconstants" in spec_text
+    assert "filesystem reads, filesystem\nwrites" in spec_text
+    assert "Storage root authority must be explicitly governed" in spec_text
+    assert "Package path authority must be explicitly governed" in spec_text
+    assert "Package directory naming authority must be explicitly governed" in (
+        spec_text
+    )
+    assert "Package creation authority must exist before finalized package storage" in (
+        spec_text
+    )
+    assert "Minimum future lifecycle states are `draft`, `finalized`, `invalidated`" in (
+        spec_text
+    )
+    assert "and\n  `superseded`" in spec_text
+    assert "Finalized evidence must be immutable and no-overwrite" in spec_text
+    assert "append-only and lineage-preserving" in spec_text
+    assert "Corrections, invalidations, and supersessions must identify" in spec_text
+    assert "Attempted overwrite of finalized evidence must fail closed" in spec_text
+    assert "Immutable evidence must remain distinct from derived reports" in (
+        spec_text
+    )
+    assert "Missing paths, unknown storage roots" in spec_text
+    assert "Mixed-`run_id` storage inputs must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Sensitive data exposure must stop storage" in spec_text
+    assert "A future writer must not create package authority or package completeness" in (
+        spec_text
+    )
+    assert "Storage, finalization, and immutability cannot authorize" in spec_text
+    assert "runtime capture, evaluation, attribution,\npromotion" in spec_text
+
+    assert FUTURE_STORAGE_FINALIZATION_SCOPE_RELAXABLE_NAMES == (
+        "STORAGE_ROOT",
+        "STORAGE_PATH",
+        "PACKAGE_DIRECTORY",
+        "PACKAGE_PATH",
+        "PACKAGE_LIFECYCLE_STATE",
+        "FINALIZATION_STATE",
+        "FINALIZED_PACKAGE",
+        "INVALIDATED_PACKAGE",
+        "SUPERSEDED_PACKAGE",
+        "IMMUTABILITY_MARKER",
+        "LINEAGE_REFERENCE",
+        "CORRECTION_REFERENCE",
+        "INVALIDATION_REFERENCE",
+        "SUPERSESSION_REFERENCE",
+        "StorageRoot",
+        "StoragePath",
+        "PackageDirectory",
+        "PackagePath",
+        "PackageLifecycleState",
+        "FinalizationState",
+        "FinalizedPackage",
+        "InvalidatedPackage",
+        "SupersededPackage",
+        "ImmutabilityMarker",
+        "LineageReference",
+        "CorrectionReference",
+        "InvalidationReference",
+        "SupersessionReference",
+    )
+    assert not (
+        set(FUTURE_STORAGE_FINALIZATION_SCOPE_RELAXABLE_NAMES)
+        & set(STORAGE_FINALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    lifecycle_states = ("draft", "finalized", "invalidated", "superseded")
+    assert lifecycle_states == ("draft", "finalized", "invalidated", "superseded")
+
+    storage_scope_boundaries = (
+        "storage_root_authority_required",
+        "package_path_authority_required",
+        "package_directory_authority_required",
+        "finalized_no_overwrite_required",
+        "immutability_semantics_required",
+        "lineage_semantics_required",
+        "correction_invalidation_supersession_boundaries_required",
+        "storage_is_not_package_creation",
+        "finalization_is_not_package_completeness",
+        "persistence_is_not_evaluation_or_promotion",
+    )
+    assert storage_scope_boundaries == (
+        "storage_root_authority_required",
+        "package_path_authority_required",
+        "package_directory_authority_required",
+        "finalized_no_overwrite_required",
+        "immutability_semantics_required",
+        "lineage_semantics_required",
+        "correction_invalidation_supersession_boundaries_required",
+        "storage_is_not_package_creation",
+        "finalization_is_not_package_completeness",
+        "persistence_is_not_evaluation_or_promotion",
+    )
+
+    storage_scope_stop_conditions = (
+        "unknown_storage_root",
+        "unknown_package_path",
+        "missing_package_creation_authority",
+        "missing_package_completeness_authority",
+        "overwrite_attempt",
+        "mixed_run_id",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_reference",
+        "sensitive_data_exposure",
+        "filesystem_dependent_inputs_before_storage_authority",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+    )
+    assert storage_scope_stop_conditions == (
+        "unknown_storage_root",
+        "unknown_package_path",
+        "missing_package_creation_authority",
+        "missing_package_completeness_authority",
+        "overwrite_attempt",
+        "mixed_run_id",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_reference",
+        "sensitive_data_exposure",
+        "filesystem_dependent_inputs_before_storage_authority",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+    )
+
+    for future_module in FUTURE_STORAGE_FINALIZATION_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["immutability"]["status"] == "absent"
+    assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for denied_name in (
+        "PACKAGE_CREATION",
+        "PACKAGE_COMPLETENESS",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name in STORAGE_FINALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FUTURE_STORAGE_FINALIZATION_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in STORAGE_FINALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert denied_name not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
