@@ -386,6 +386,68 @@ CANONICAL_BYTES_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FUTURE_HASHING_INTEGRITY_MODULES = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "hashing.py",
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "integrity.py",
+)
+FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES = (
+    "HASH_ALGORITHM",
+    "HASH_VERSION",
+    "INTEGRITY_STATUS",
+    "HashAlgorithm",
+    "HashVersion",
+    "IntegrityStatus",
+)
+HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "HASH_CONSTANTS",
+    "HASH_HELPER",
+    "HASH_HELPERS",
+    "SECTION_HASH",
+    "MANIFEST_HASH",
+    "PACKAGE_HASH",
+    "INTEGRITY_VALIDATION",
+    "CANONICAL_HASH_INPUT",
+    "SectionHash",
+    "ManifestHash",
+    "PackageHash",
+    "IntegrityValidation",
+    "IntegrityValidator",
+    "HashInput",
+    "CanonicalHashInput",
+    "compute_hash",
+    "calculate_hash",
+    "build_hash",
+    "build_section_hash",
+    "build_manifest_hash",
+    "build_package_hash",
+    "compute_section_hash",
+    "compute_manifest_hash",
+    "compute_package_hash",
+    "validate_integrity",
+    "verify_integrity",
+    "validate_hash",
+    "hash_manifest",
+    "hash_package",
+    "hash_section",
+    "hashlib",
+    "sha256",
+    "MANIFEST_SERIALIZATION",
+    "PACKAGE_SERIALIZATION",
+    "ManifestSerialization",
+    "PackageSerialization",
+    "serialize_manifest",
+    "serialize_package",
+    "PackageLayout",
+    "PackageIdentity",
+    "ReplayPackageCreation",
+    "StorageFinalization",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 SERIALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "MANIFEST_SERIALIZATION",
     "PACKAGE_SERIALIZATION",
@@ -1896,6 +1958,97 @@ def test_hashing_integrity_boundary_remains_unimplemented() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         for forbidden_name in FORBIDDEN_HASHING_INTEGRITY_IMPLEMENTATION_NAMES:
             assert forbidden_name not in module_text
+
+
+def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 3: Hash Algorithm/Version And Integrity Status Vocabulary" in (
+        map_text
+    )
+    assert "blocked until canonical byte authority exists" in map_text
+    assert "`tools/replay/hashing.py`" in map_text
+    assert "`tools/replay/integrity.py`" in map_text
+    assert "no hash computation if the scope is vocabulary only" in map_text
+    assert "no integrity validation, no package creation, no storage" in map_text
+    assert "placeholder hash fields cannot imply computed hash" in map_text
+
+    assert CANONICAL_BYTES_MODULE.exists()
+    assert "Hash algorithm\nand hash version authority" in spec_text
+    assert "integrity status vocabulary" in spec_text
+    assert "Hashing depends on approved canonical byte input" in spec_text
+    assert "Hash output must not create package completeness" in spec_text
+    assert "Required future integrity status vocabulary" in spec_text
+
+    assert FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES == (
+        "HASH_ALGORITHM",
+        "HASH_VERSION",
+        "INTEGRITY_STATUS",
+        "HashAlgorithm",
+        "HashVersion",
+        "IntegrityStatus",
+    )
+    assert not (
+        set(FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES)
+        & set(HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    for future_module in FUTURE_HASHING_INTEGRITY_MODULES:
+        assert not future_module.exists()
+
+    for denied_name in (
+        "compute_hash",
+        "calculate_hash",
+        "build_hash",
+        "build_section_hash",
+        "build_manifest_hash",
+        "build_package_hash",
+        "validate_hash",
+        "validate_integrity",
+        "verify_integrity",
+        "hashlib",
+        "sha256",
+        "ManifestSerialization",
+        "PackageLayout",
+        "ReplayPackageCreation",
+        "StorageFinalization",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name in HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["integrity"]["status"] == "absent"
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert denied_name not in module_text
 
 
 def test_storage_immutability_boundary_remains_unimplemented() -> None:
