@@ -14,6 +14,7 @@ import tools.replay.hashing as hashing
 import tools.replay.integrity as integrity
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
+import tools.replay.package_layout as package_layout
 import tools.replay.package_schema as package_schema
 from tools.replay.draft_envelope import build_draft_replay_envelope
 from tools.replay.offline_mapper import build_replay_package
@@ -2188,7 +2189,49 @@ def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
     )
 
     for future_module in FUTURE_PACKAGE_IDENTITY_LAYOUT_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+
+    assert package_layout.PACKAGE_IDENTITY == "package_identity_vocabulary_only"
+    assert package_layout.PACKAGE_LAYOUT == "package_layout_vocabulary_only"
+    assert package_layout.PACKAGE_ID == "package_id"
+    assert package_layout.CANONICAL_RUN_ID == "canonical_run_id"
+    assert package_layout.PACKAGE_IDENTITY_FIELDS == (
+        package_layout.CANONICAL_RUN_ID,
+        package_layout.PACKAGE_ID,
+    )
+    assert package_layout.PACKAGE_LAYOUT_SECTIONS == (
+        "package_identity",
+        "manifest",
+        "source_artifact_references",
+        "integrity",
+        "authority_boundary",
+    )
+    assert package_layout.PackageId().field_name == package_layout.PACKAGE_ID
+    assert (
+        package_layout.CanonicalRunId().field_name
+        == package_layout.CANONICAL_RUN_ID
+    )
+    assert package_layout.PackageIdentity().fields == (
+        package_layout.CANONICAL_RUN_ID,
+        package_layout.PACKAGE_ID,
+    )
+    assert (
+        package_layout.PackageLayout().sections
+        == package_layout.PACKAGE_LAYOUT_SECTIONS
+    )
+    assert "no_package_creation" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_filesystem_access" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_manifest_generation" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_hash_computation" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_integrity_validation" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_storage_finalization" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_runtime_capture" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_broker_authority" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+    assert "no_execution_authority" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
+
+    module_names = set(package_layout.__dict__)
+    for relaxable_name in FUTURE_PACKAGE_IDENTITY_LAYOUT_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
 
     for denied_name in (
         "PACKAGE_CREATION",
@@ -2241,6 +2284,14 @@ def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
 
     for module_path in REPLAY_SOURCE_MODULES:
         module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
+
+    for module_path in FUTURE_PACKAGE_IDENTITY_LAYOUT_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        assert "hashlib" not in module_text
         for denied_name in PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES:
             if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
