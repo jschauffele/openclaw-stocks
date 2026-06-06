@@ -410,6 +410,62 @@ HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FUTURE_INTEGRITY_VALIDATION_MODULES = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "integrity_validation.py",
+)
+FUTURE_INTEGRITY_VALIDATION_SCOPE_RELAXABLE_NAMES = (
+    "INTEGRITY_VALIDATION",
+    "INTEGRITY_VALIDATOR",
+    "EXPECTED_HASH_RECORD",
+    "OBSERVED_HASH_RECORD",
+    "INTEGRITY_VALIDATION_RESULT",
+    "IntegrityValidation",
+    "IntegrityValidator",
+    "IntegrityValidationInput",
+    "IntegrityValidationResult",
+    "ExpectedHashRecord",
+    "ObservedHashRecord",
+    "validate_integrity",
+    "verify_integrity",
+    "validate_hash",
+)
+INTEGRITY_VALIDATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "PACKAGE_COMPLETENESS",
+    "PACKAGE_CREATION",
+    "PACKAGE_DIRECTORY",
+    "PACKAGE_PATH",
+    "CompleteReplayPackage",
+    "PackageCompleteness",
+    "PackageCreation",
+    "PackageDirectory",
+    "PackagePath",
+    "ReplayPackageCreation",
+    "assert_package_complete",
+    "validate_package_completeness",
+    "create_replay_package",
+    "create_package",
+    "build_package_directory",
+    "create_package_directory",
+    "open",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "StorageFinalization",
+    "StorageRoot",
+    "StoragePath",
+    "FinalizedPackage",
+    "ImmutabilityEnforcement",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
     *FORBIDDEN_PACKAGE_CREATION_NAMES,
     "manifest_schema",
@@ -2980,6 +3036,194 @@ def test_hash_computation_scope_guard_records_unit6_only() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         assert "hashlib" in module_text
         for denied_name in HASH_COMPUTATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
+
+
+def test_integrity_validation_scope_guard_records_unit7_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 7: Integrity Validation" in map_text
+    assert "blocked until hash computation, provenance" in map_text
+    assert "redaction, source references, and run_id alignment rules exist" in (
+        map_text
+    )
+    assert "Prerequisite dependencies: units 3 and 6 plus source/provenance" in (
+        map_text
+    )
+    assert "future integrity validation module" in map_text
+    assert "integrity validation\n  tests" in map_text
+    assert "mismatch fail-closed behavior" in map_text
+    assert "missing hash fail-closed\n  behavior" in map_text
+    assert "provenance/redaction/source-reference failure cases" in map_text
+    assert "missing hashes, mismatches, mixed run_id" in map_text
+    assert "missing/invalid redaction status" in map_text
+    assert "unknown source references" in map_text
+    assert "sensitive data exposure" in map_text
+    assert "validation result is not storage authority" in map_text
+    assert "package creation authority" in map_text
+    assert "Filesystem access allowed: no." in map_text
+    assert "Runtime artifact access allowed: no." in map_text
+    assert "Broker/API access allowed: no." in map_text
+    assert "Execution/live trading authority allowed: no." in map_text
+
+    assert "Required future integrity validation rules" in spec_text
+    assert "Hash mismatch must fail closed" in spec_text
+    assert "Missing required hash must fail closed" in spec_text
+    assert "Mixed-`run_id` hash inputs must fail closed" in spec_text
+    assert "Malformed provenance must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction state must fail closed" in spec_text
+    assert "Unknown source references must fail closed" in spec_text
+    assert "Sensitive data exposure must stop hashing, integrity validation" in (
+        spec_text
+    )
+    assert "Integrity validation output remains non-authoritative" in spec_text
+    assert "Hashing and integrity cannot authorize replay package creation" in (
+        spec_text
+    )
+    assert "Need storage, finalization, or immutability" in spec_text
+    assert "Need package creation" in spec_text
+    assert "Need filesystem reads or writes" in spec_text
+
+    assert integrity.INTEGRITY_STATUS == (
+        "missing",
+        "present",
+        "unavailable",
+        "not_validated",
+    )
+    assert integrity.IntegrityStatus().values == integrity.INTEGRITY_STATUS
+    assert hash_computation.HASH_COMPUTATION_AUTHORITY_BOUNDARY.count(
+        "no_integrity_validation"
+    ) == 1
+    assert FUTURE_INTEGRITY_VALIDATION_SCOPE_RELAXABLE_NAMES == (
+        "INTEGRITY_VALIDATION",
+        "INTEGRITY_VALIDATOR",
+        "EXPECTED_HASH_RECORD",
+        "OBSERVED_HASH_RECORD",
+        "INTEGRITY_VALIDATION_RESULT",
+        "IntegrityValidation",
+        "IntegrityValidator",
+        "IntegrityValidationInput",
+        "IntegrityValidationResult",
+        "ExpectedHashRecord",
+        "ObservedHashRecord",
+        "validate_integrity",
+        "verify_integrity",
+        "validate_hash",
+    )
+    assert not (
+        set(FUTURE_INTEGRITY_VALIDATION_SCOPE_RELAXABLE_NAMES)
+        & set(INTEGRITY_VALIDATION_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    integrity_scope_stop_conditions = (
+        "hash_mismatch",
+        "missing_hash",
+        "mixed_run_id",
+        "malformed_provenance",
+        "missing_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+    )
+    assert integrity_scope_stop_conditions == (
+        "hash_mismatch",
+        "missing_hash",
+        "mixed_run_id",
+        "malformed_provenance",
+        "missing_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+    )
+
+    validation_boundary = (
+        "non_authoritative_until_later_package_gates",
+        "no_package_completeness",
+        "no_package_creation",
+        "no_filesystem_access",
+        "no_storage_finalization",
+        "no_runtime_capture",
+        "no_evaluation_or_promotion",
+        "no_broker_authority",
+        "no_execution_authority",
+        "no_live_trading_authority",
+    )
+    assert validation_boundary == (
+        "non_authoritative_until_later_package_gates",
+        "no_package_completeness",
+        "no_package_creation",
+        "no_filesystem_access",
+        "no_storage_finalization",
+        "no_runtime_capture",
+        "no_evaluation_or_promotion",
+        "no_broker_authority",
+        "no_execution_authority",
+        "no_live_trading_authority",
+    )
+
+    for future_module in FUTURE_INTEGRITY_VALIDATION_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["integrity"]["status"] == "absent"
+    assert mapper_package["integrity"]["reason"] == "deferred_until_integrity_gate"
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["hashing_integrity_enforcement"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for denied_name in (
+        "PACKAGE_COMPLETENESS",
+        "PACKAGE_CREATION",
+        "PACKAGE_DIRECTORY",
+        "create_replay_package",
+        "open",
+        "write_text",
+        "write_bytes",
+        "mkdir",
+        "StorageFinalization",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name in INTEGRITY_VALIDATION_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FUTURE_INTEGRITY_VALIDATION_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in INTEGRITY_VALIDATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
             if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
             assert denied_name not in module_text
