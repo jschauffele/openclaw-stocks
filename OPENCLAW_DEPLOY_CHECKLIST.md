@@ -67,6 +67,43 @@ use a capture-only gate that records the baseline `run_id` and waits for a new
 This rule does not change bot runtime behavior, broker behavior, strategy
 behavior, or execution authority.
 
+## VPS Timer Due-Time Capture Guard
+
+If `openclaw.timer` is already active and `openclaw.service` is inactive, do
+not run restore again. If fresh runtime evidence is needed while the timer is
+already active, first inspect the next scheduled timer due time before starting
+any capture-only polling loop.
+
+Use read-only timer inspection commands such as:
+
+```bash
+systemctl list-timers openclaw.timer --no-pager
+systemctl status openclaw.timer --no-pager -l
+```
+
+Do not start a capture-only polling loop unless the next scheduled timer run is
+imminent or the gate explicitly approves waiting for the next run. If the next
+timer run is not imminent, classify:
+
+```text
+TIMER_ACTIVE / NEXT_TIMER_DUE_TIME_REVIEW_REQUIRED / NO_CAPTURE_STARTED
+```
+
+If the next timer run is imminent and capture-only is approved, use a bounded
+capture-only poll that:
+
+- records the baseline `run_id`
+- does not stop or start the timer
+- waits only for a fresh `run_id`
+- verifies report and JSONL alignment
+- exits stale if no new `run_id` appears within the bounded window
+
+Capture-only polling must not be used as a substitute for checking the timer
+schedule.
+
+This rule does not change bot runtime behavior, broker behavior, strategy
+behavior, execution authority, or live trading authority.
+
 ## VPS Wrong-Context Paste Guard
 
 VPS terminal commands must be pasted as command-only blocks. Do not paste
