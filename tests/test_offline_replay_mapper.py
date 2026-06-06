@@ -201,6 +201,81 @@ FORBIDDEN_PACKAGE_CREATION_IMPLEMENTATION_NAMES = (
     "write_package",
     "write_replay_package",
 )
+FUTURE_PACKAGE_IDENTITY_LAYOUT_MODULES = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "package_layout.py",
+)
+FUTURE_PACKAGE_IDENTITY_LAYOUT_SCOPE_RELAXABLE_NAMES = (
+    "PACKAGE_IDENTITY",
+    "PACKAGE_LAYOUT",
+    "PACKAGE_ID",
+    "CANONICAL_RUN_ID",
+    "PackageIdentity",
+    "PackageLayout",
+    "PackageId",
+    "CanonicalRunId",
+)
+PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "PACKAGE_CREATION",
+    "PACKAGE_CREATION_CONSTANTS",
+    "PACKAGE_BUILDER_TYPES",
+    "PACKAGE_CREATION_MODULE",
+    "PACKAGE_DIRECTORY",
+    "PACKAGE_DIRECTORIES",
+    "PACKAGE_PATH",
+    "REPLAY_PACKAGE_BUILDER",
+    "COMPLETE_REPLAY_PACKAGE",
+    "PACKAGE_COMPLETENESS",
+    "MANIFEST_GENERATION",
+    "PackageCreation",
+    "PackageBuilder",
+    "PackageBuilderInput",
+    "PackageBuilderOutput",
+    "PackageCreationModule",
+    "PackageDirectory",
+    "PackagePath",
+    "ReplayPackageBuilder",
+    "CompleteReplayPackage",
+    "PackageCompleteness",
+    "ManifestGeneration",
+    "build_replay_package_file",
+    "build_package_directory",
+    "create_package_directory",
+    "build_package_manifest",
+    "generate_manifest",
+    "generate_replay_package",
+    "create_replay_package",
+    "create_package",
+    "assemble_replay_package",
+    "assemble_package",
+    "validate_package_creation",
+    "write_package",
+    "write_replay_package",
+    "open",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "hashlib",
+    "compute_hash",
+    "calculate_hash",
+    "build_hash",
+    "build_section_hash",
+    "build_manifest_hash",
+    "build_package_hash",
+    "validate_hash",
+    "validate_integrity",
+    "verify_integrity",
+    "StorageFinalization",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
     *FORBIDDEN_PACKAGE_CREATION_NAMES,
     "manifest_schema",
@@ -2075,6 +2150,100 @@ def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
         assert "hashlib" not in module_text
         assert "sha256(" not in module_text
         for denied_name in HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert denied_name not in module_text
+
+
+def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 4: Package Identity And Package Layout Rules" in map_text
+    assert "blocked until manifest vocabulary and section\n  status semantics" in (
+        map_text
+    )
+    assert "`tools/replay/package_layout.py`" in map_text
+    assert "package-identity tests" in map_text
+    assert "no package directories, filesystem writes" in map_text
+    assert "no directories or packages are created" in map_text
+    assert "layout rules are not package creation authority" in map_text
+
+    assert "Package layout authority must be explicitly governed" in spec_text
+    assert "Package identity authority must be explicitly governed" in spec_text
+    assert "`canonical_run_id` and governed `package_id` rules" in spec_text
+    assert "Ambiguous package identity must fail closed" in spec_text
+
+    assert FUTURE_PACKAGE_IDENTITY_LAYOUT_SCOPE_RELAXABLE_NAMES == (
+        "PACKAGE_IDENTITY",
+        "PACKAGE_LAYOUT",
+        "PACKAGE_ID",
+        "CANONICAL_RUN_ID",
+        "PackageIdentity",
+        "PackageLayout",
+        "PackageId",
+        "CanonicalRunId",
+    )
+    assert not (
+        set(FUTURE_PACKAGE_IDENTITY_LAYOUT_SCOPE_RELAXABLE_NAMES)
+        & set(PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    for future_module in FUTURE_PACKAGE_IDENTITY_LAYOUT_MODULES:
+        assert not future_module.exists()
+
+    for denied_name in (
+        "PACKAGE_CREATION",
+        "PACKAGE_DIRECTORY",
+        "PACKAGE_PATH",
+        "ManifestGeneration",
+        "create_replay_package",
+        "create_package_directory",
+        "write_package",
+        "open",
+        "write_text",
+        "write_bytes",
+        "mkdir",
+        "hashlib",
+        "compute_hash",
+        "validate_integrity",
+        "StorageFinalization",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name in PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FUTURE_PACKAGE_IDENTITY_LAYOUT_SCOPE_RELAXABLE_NAMES
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
             assert denied_name not in module_text
 
 
