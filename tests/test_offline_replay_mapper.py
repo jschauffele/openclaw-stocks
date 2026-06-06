@@ -19,6 +19,7 @@ import tools.replay.integrity_validation as integrity_validation
 import tools.replay.manifest_builder as manifest_builder
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
+import tools.replay.package_creation as package_creation
 import tools.replay.package_layout as package_layout
 import tools.replay.package_schema as package_schema
 from tools.replay.draft_envelope import build_draft_replay_envelope
@@ -57,7 +58,6 @@ FUTURE_DRAFT_ENVELOPE_MODULE = (
 FUTURE_PACKAGE_CREATION_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_writer.py",
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_creator.py",
-    Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_creation.py",
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "manifest_writer.py",
     (
         Path(__file__).resolve().parents[1]
@@ -65,6 +65,9 @@ FUTURE_PACKAGE_CREATION_MODULES = (
         / "replay"
         / "manifest_generator.py"
     ),
+)
+PACKAGE_CREATION_MODULE = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "package_creation.py"
 )
 FUTURE_PACKAGE_CREATION_SCOPE_RELAXABLE_NAMES = (
     "PACKAGE_CREATION",
@@ -1192,6 +1195,51 @@ def _hash_metadata(**overrides: object) -> dict:
     return metadata
 
 
+def _draft_package_creation_input(**overrides: object) -> dict:
+    canonical_payload = canonical_json.canonicalize_json({"section": "package"})
+    canonical_input = canonical_bytes.build_canonical_bytes(canonical_payload)
+    package_hash = hash_computation.build_package_hash(
+        canonical_input,
+        _hash_metadata(
+            canonical_run_id="run_unit11",
+            run_ids=("run_unit11",),
+            package_scope="draft_package",
+            section_scope=None,
+        ),
+    )
+    integrity_result = integrity_validation.validate_integrity(package_hash, package_hash)
+    package_input = {
+        "canonical_run_id": "run_unit11",
+        "package_identity": {
+            "canonical_run_id": "run_unit11",
+            "package_id": "package_run_unit11",
+        },
+        "manifest": manifest_builder.build_draft_manifest(
+            _draft_manifest_input_dict(
+                canonical_run_id="run_unit11",
+                source_artifact_references=(
+                    {
+                        "source_reference": "event_jsonl",
+                        "run_id": "run_unit11",
+                        "provenance": "recorded",
+                        "redaction_status": "not_required",
+                    },
+                ),
+            )
+        ),
+        "canonical_bytes": canonical_input,
+        "hash_records": (package_hash,),
+        "integrity_validation_result": integrity_result,
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "source_references": ("event_jsonl",),
+        "known_source_references": ("event_jsonl",),
+        "input_run_ids": ("run_unit11",),
+    }
+    package_input.update(overrides)
+    return package_input
+
+
 def _committed_candidate_artifacts() -> list[dict]:
     return [
         json.loads(path.read_text(encoding="utf-8"))
@@ -1818,6 +1866,143 @@ def test_package_creation_scope_guard_records_unit11_only() -> None:
             if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
             assert denied_name not in module_text
+
+
+def test_package_creation_helper_builds_draft_in_memory_only() -> None:
+    assert PACKAGE_CREATION_MODULE.exists()
+    assert package_creation.PACKAGE_CREATION == "draft_package_creation_in_memory_only"
+    assert package_creation.PACKAGE_BUILDER_TYPES == "draft_package_builder_types"
+    assert package_creation.PACKAGE_CREATION_MODULE == "package_creation"
+    assert package_creation.DRAFT_REPLAY_PACKAGE == "draft_replay_package"
+    assert package_creation.DRAFT_PACKAGE_ASSEMBLY == "draft_package_assembly"
+    assert package_creation.PACKAGE_CREATION_INPUT == "package_creation_input"
+    assert package_creation.PACKAGE_CREATION_RESULT == "package_creation_result"
+    assert package_creation.PackageCreation().authority_boundary == (
+        package_creation.PACKAGE_CREATION_AUTHORITY_BOUNDARY
+    )
+    assert package_creation.PackageBuilder().input_model == (
+        package_creation.PACKAGE_CREATION_INPUT
+    )
+    assert package_creation.PackageBuilder().output_model == (
+        package_creation.DRAFT_REPLAY_PACKAGE
+    )
+    assert package_creation.PackageBuilderOutput().authority_boundary == (
+        package_creation.PACKAGE_CREATION_AUTHORITY_BOUNDARY
+    )
+    assert package_creation.PackageCreationResult().authority_boundary == (
+        package_creation.PACKAGE_CREATION_AUTHORITY_BOUNDARY
+    )
+
+    package_input = _draft_package_creation_input()
+    draft_package = package_creation.build_draft_package(package_input)
+
+    assert draft_package == package_creation.assemble_draft_package(package_input)
+    assert draft_package == package_creation.create_draft_package(package_input)
+    assert draft_package["package_type"] == package_creation.DRAFT_REPLAY_PACKAGE
+    assert draft_package["assembly_type"] == package_creation.DRAFT_PACKAGE_ASSEMBLY
+    assert draft_package["lifecycle_status"] == "draft"
+    assert draft_package["canonical_run_id"] == "run_unit11"
+    assert draft_package["package_identity"]["package_id"] == "package_run_unit11"
+    assert draft_package["manifest"]["canonical_run_id"] == "run_unit11"
+    assert draft_package["canonical_bytes"] == package_input["canonical_bytes"]
+    assert draft_package["hash_records"] == package_input["hash_records"]
+    assert draft_package["integrity_validation_result"] == (
+        package_input["integrity_validation_result"]
+    )
+    assert draft_package["evidence_only"] is True
+    assert draft_package["non_authoritative"] is True
+    assert draft_package["package_completeness"] is False
+    assert draft_package["finalized_storage"] is False
+    assert draft_package["filesystem_reads"] is False
+    assert draft_package["filesystem_writes"] is False
+    assert draft_package["package_directories"] is False
+    assert draft_package["storage_finalization_immutability"] is False
+    assert draft_package["runtime_capture"] is False
+    assert draft_package["evaluation_or_promotion"] is False
+    assert draft_package["broker_api_authority"] is False
+    assert draft_package["execution_authority"] is False
+    assert draft_package["live_trading_authority"] is False
+    assert draft_package["authority_boundary"] == (
+        package_creation.PACKAGE_CREATION_AUTHORITY_BOUNDARY
+    )
+    assert "no_package_completeness" in draft_package["authority_boundary"]
+    assert "no_finalized_storage" in draft_package["authority_boundary"]
+    assert "no_filesystem_reads" in draft_package["authority_boundary"]
+    assert "no_filesystem_writes" in draft_package["authority_boundary"]
+    assert "no_package_directories" in draft_package["authority_boundary"]
+    assert "no_storage_finalization_immutability" in (
+        draft_package["authority_boundary"]
+    )
+    assert "no_runtime_capture" in draft_package["authority_boundary"]
+    assert "no_evaluation_or_promotion" in draft_package["authority_boundary"]
+    assert "no_broker_authority" in draft_package["authority_boundary"]
+    assert "no_execution_authority" in draft_package["authority_boundary"]
+    assert "no_live_trading_authority" in draft_package["authority_boundary"]
+
+    module_names = set(package_creation.__dict__)
+    for relaxable_name in FUTURE_PACKAGE_CREATION_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+
+    for denied_name in (
+        "PACKAGE_COMPLETENESS",
+        "FINALIZED_PACKAGE",
+        "STORAGE_ROOT",
+        "FILESYSTEM_READ",
+        "FILESYSTEM_WRITE",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name not in module_names
+
+
+def test_package_creation_helper_fails_closed_without_downstream_authority() -> None:
+    base_input = _draft_package_creation_input()
+
+    bad_cases = (
+        ({**base_input, "canonical_run_id": ""}, ValueError),
+        ({**base_input, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**base_input, "package_identity": {}}, ValueError),
+        ({**base_input, "manifest": {}}, ValueError),
+        ({**base_input, "canonical_bytes": b""}, ValueError),
+        ({**base_input, "hash_records": ()}, ValueError),
+        ({**base_input, "integrity_validation_result": {}}, ValueError),
+        (
+            {
+                **base_input,
+                "integrity_validation_result": {
+                    **base_input["integrity_validation_result"],
+                    "integrity_status": "mismatch",
+                    "hash_match": False,
+                },
+            },
+            ValueError,
+        ),
+        ({**base_input, "provenance": ""}, ValueError),
+        ({**base_input, "provenance": object()}, ValueError),
+        ({**base_input, "redaction_status": ""}, ValueError),
+        ({**base_input, "redaction_status": "unknown"}, ValueError),
+        ({**base_input, "source_references": ("unknown",)}, ValueError),
+        ({**base_input, "sensitive_data_status": "exposed"}, ValueError),
+        ({**base_input, "stale_input": True}, ValueError),
+        ({**base_input, "malformed_input": True}, ValueError),
+        ({**base_input, "runtime_dependent": True}, ValueError),
+        ({**base_input, "filesystem_dependent": True}, ValueError),
+        ({**base_input, "evaluation_dependent": True}, ValueError),
+        (object(), TypeError),
+    )
+    for bad_input, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            package_creation.build_draft_package(bad_input)
+
+    module_text = PACKAGE_CREATION_MODULE.read_text(encoding="utf-8")
+    assert "hashlib" not in module_text
+    for denied_name in PACKAGE_CREATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+        if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+            continue
+        assert denied_name not in module_text
 
 
 def test_manifest_schema_boundary_remains_unimplemented() -> None:
