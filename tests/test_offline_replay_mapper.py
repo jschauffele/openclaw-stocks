@@ -277,6 +277,73 @@ PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FUTURE_MANIFEST_GENERATION_MODULES = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "manifest_builder.py",
+)
+FUTURE_MANIFEST_GENERATION_SCOPE_RELAXABLE_NAMES = (
+    "MANIFEST_GENERATION",
+    "MANIFEST_BUILDER",
+    "DRAFT_MANIFEST",
+    "MANIFEST_INPUT",
+    "MANIFEST_FIELD_ELIGIBILITY",
+    "MANIFEST_PROVENANCE_ELIGIBILITY",
+    "MANIFEST_REDACTION_ELIGIBILITY",
+    "MANIFEST_RUN_ID_ALIGNMENT",
+    "MANIFEST_SOURCE_REFERENCE_ELIGIBILITY",
+    "ManifestGeneration",
+    "ManifestBuilder",
+    "DraftManifest",
+    "ManifestInput",
+    "ManifestFieldEligibility",
+    "ManifestProvenanceEligibility",
+    "ManifestRedactionEligibility",
+    "ManifestRunIdAlignment",
+    "ManifestSourceReferenceEligibility",
+    "build_draft_manifest",
+    "build_in_memory_manifest",
+)
+MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "PACKAGE_CREATION",
+    "PACKAGE_DIRECTORY",
+    "PACKAGE_PATH",
+    "PackageCreation",
+    "PackageDirectory",
+    "PackagePath",
+    "ReplayPackageCreation",
+    "CompleteReplayPackage",
+    "PackageCompleteness",
+    "generate_manifest",
+    "create_manifest",
+    "write_manifest",
+    "serialize_manifest",
+    "package_manifest",
+    "replay_manifest",
+    "open",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "hashlib",
+    "compute_hash",
+    "calculate_hash",
+    "build_hash",
+    "build_section_hash",
+    "build_manifest_hash",
+    "build_package_hash",
+    "validate_hash",
+    "validate_integrity",
+    "verify_integrity",
+    "StorageFinalization",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FORBIDDEN_MANIFEST_SCHEMA_NAMES = (
     *FORBIDDEN_PACKAGE_CREATION_NAMES,
     "manifest_schema",
@@ -2293,6 +2360,125 @@ def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
         module_text = module_path.read_text(encoding="utf-8")
         assert "hashlib" not in module_text
         for denied_name in PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
+
+
+def test_manifest_generation_scope_guard_records_unit5_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 5: Manifest Generation" in map_text
+    assert "Prerequisite dependencies: manifest schema vocabulary/types" in map_text
+    assert "package identity\n  rules" in map_text
+    assert "section status semantics, provenance/redaction fields" in map_text
+    assert "`tools/replay/manifest_builder.py`" in map_text
+    assert "manifest-generation tests" in map_text
+    assert "in-memory manifest object generation" in map_text
+    assert "required/optional field\n  handling" in map_text
+    assert "fail-closed malformed inputs" in map_text
+    assert "missing provenance/redaction\n  status" in map_text
+    assert "mixed run_id" in map_text
+    assert "unknown source references" in map_text
+    assert "need to write files" in map_text
+    assert "manifest output is not package creation" in map_text
+    assert "Filesystem access allowed: no." in map_text
+    assert "Runtime artifact access allowed: no." in map_text
+    assert "Broker/API access allowed: no." in map_text
+    assert "Execution/live trading authority allowed: no." in map_text
+
+    assert "Future manifest inputs require manifest generation authority" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Unknown source references must fail closed" in spec_text
+    assert "Mixed `run_id` must fail closed" in spec_text
+    assert "Need filesystem reads or writes" in spec_text
+    assert "Implied manifest generation authority" in spec_text
+
+    assert FUTURE_MANIFEST_GENERATION_SCOPE_RELAXABLE_NAMES == (
+        "MANIFEST_GENERATION",
+        "MANIFEST_BUILDER",
+        "DRAFT_MANIFEST",
+        "MANIFEST_INPUT",
+        "MANIFEST_FIELD_ELIGIBILITY",
+        "MANIFEST_PROVENANCE_ELIGIBILITY",
+        "MANIFEST_REDACTION_ELIGIBILITY",
+        "MANIFEST_RUN_ID_ALIGNMENT",
+        "MANIFEST_SOURCE_REFERENCE_ELIGIBILITY",
+        "ManifestGeneration",
+        "ManifestBuilder",
+        "DraftManifest",
+        "ManifestInput",
+        "ManifestFieldEligibility",
+        "ManifestProvenanceEligibility",
+        "ManifestRedactionEligibility",
+        "ManifestRunIdAlignment",
+        "ManifestSourceReferenceEligibility",
+        "build_draft_manifest",
+        "build_in_memory_manifest",
+    )
+    assert not (
+        set(FUTURE_MANIFEST_GENERATION_SCOPE_RELAXABLE_NAMES)
+        & set(MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    for future_module in FUTURE_MANIFEST_GENERATION_MODULES:
+        assert not future_module.exists()
+
+    for denied_name in (
+        "PACKAGE_CREATION",
+        "PACKAGE_DIRECTORY",
+        "ReplayPackageCreation",
+        "generate_manifest",
+        "create_manifest",
+        "write_manifest",
+        "serialize_manifest",
+        "package_manifest",
+        "open",
+        "write_text",
+        "write_bytes",
+        "mkdir",
+        "hashlib",
+        "compute_hash",
+        "build_manifest_hash",
+        "validate_integrity",
+        "StorageFinalization",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name in MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FUTURE_MANIFEST_GENERATION_SCOPE_RELAXABLE_NAMES
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["manifest_creation"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["hashing_integrity_enforcement"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for module_path in REPLAY_SOURCE_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in MANIFEST_GENERATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
             if denied_name in {"open", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
             assert denied_name not in module_text
