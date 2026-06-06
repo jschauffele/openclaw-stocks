@@ -1028,6 +1028,69 @@ STORAGE_IMPLEMENTATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FUTURE_PACKAGE_COMPLETENESS_MODULES = (
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "package_completeness.py"
+    ),
+)
+PACKAGE_COMPLETENESS_SCOPE_RELAXABLE_NAMES = (
+    "PACKAGE_COMPLETENESS",
+    "COMPLETE_REPLAY_PACKAGE",
+    "PACKAGE_COMPLETENESS_AUTHORITY",
+    "PACKAGE_COMPLETENESS_RESULT",
+    "PACKAGE_COMPLETENESS_VALIDATION",
+    "COMPLETE_PACKAGE_EVIDENCE",
+    "COMPLETE_PACKAGE_ELIGIBILITY",
+    "COMPLETE_REPLAY_PACKAGE_AUTHORITY",
+    "COMPLETENESS_MANIFEST_CHECK",
+    "COMPLETENESS_HASH_CHECK",
+    "COMPLETENESS_INTEGRITY_CHECK",
+    "COMPLETENESS_STORAGE_CHECK",
+    "COMPLETENESS_PROVENANCE_CHECK",
+    "COMPLETENESS_REDACTION_CHECK",
+    "COMPLETENESS_SOURCE_REFERENCE_CHECK",
+    "PackageCompleteness",
+    "CompleteReplayPackage",
+    "PackageCompletenessAuthority",
+    "PackageCompletenessResult",
+    "PackageCompletenessValidation",
+    "CompletePackageEvidence",
+    "CompletePackageEligibility",
+    "CompleteReplayPackageAuthority",
+    "CompletenessManifestCheck",
+    "CompletenessHashCheck",
+    "CompletenessIntegrityCheck",
+    "CompletenessStorageCheck",
+    "CompletenessProvenanceCheck",
+    "CompletenessRedactionCheck",
+    "CompletenessSourceReferenceCheck",
+)
+PACKAGE_COMPLETENESS_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "PACKAGE_COMPLETENESS_IMPLEMENTATION",
+    "ACTUAL_FILESYSTEM_READ",
+    "ACTUAL_FILESYSTEM_WRITE",
+    "PACKAGE_DIRECTORY_CREATION",
+    "RUNTIME_CAPTURE",
+    "EVALUATION_PROMOTION",
+    "BROKER_API_AUTHORITY",
+    "EXECUTION_PERMISSION",
+    "LIVE_TRADING_AUTHORITY",
+    "open",
+    "read",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
     (
@@ -5154,6 +5217,257 @@ def test_storage_implementation_helper_fails_closed() -> None:
     assert "BrokerAuthority" not in module_text
     assert "ExecutionPermission" not in module_text
     assert "LiveTradingAuthority" not in module_text
+
+
+def test_package_completeness_scope_guard_records_boundary_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    architecture_text = EVALUATION_INFRASTRUCTURE_ARCHITECTURE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "Mapper completeness is not equivalent to a complete replay package" in (
+        spec_text
+    )
+    assert "Future complete replay packages still require implemented section schemas" in (
+        spec_text
+    )
+    assert "remain separate from mapper completeness" in spec_text
+    assert "cannot\nbe treated as complete replay package authority" in spec_text
+    assert "Package hash must not imply package completeness unless package completeness" in (
+        spec_text
+    )
+    assert "storage output cannot create package completeness" in map_text
+    assert "Trusted scoring requires complete replay package authority" in (
+        architecture_text
+    )
+    assert "Missing complete replay package authority for trusted scoring" in (
+        architecture_text
+    )
+
+    assert PACKAGE_COMPLETENESS_SCOPE_RELAXABLE_NAMES == (
+        "PACKAGE_COMPLETENESS",
+        "COMPLETE_REPLAY_PACKAGE",
+        "PACKAGE_COMPLETENESS_AUTHORITY",
+        "PACKAGE_COMPLETENESS_RESULT",
+        "PACKAGE_COMPLETENESS_VALIDATION",
+        "COMPLETE_PACKAGE_EVIDENCE",
+        "COMPLETE_PACKAGE_ELIGIBILITY",
+        "COMPLETE_REPLAY_PACKAGE_AUTHORITY",
+        "COMPLETENESS_MANIFEST_CHECK",
+        "COMPLETENESS_HASH_CHECK",
+        "COMPLETENESS_INTEGRITY_CHECK",
+        "COMPLETENESS_STORAGE_CHECK",
+        "COMPLETENESS_PROVENANCE_CHECK",
+        "COMPLETENESS_REDACTION_CHECK",
+        "COMPLETENESS_SOURCE_REFERENCE_CHECK",
+        "PackageCompleteness",
+        "CompleteReplayPackage",
+        "PackageCompletenessAuthority",
+        "PackageCompletenessResult",
+        "PackageCompletenessValidation",
+        "CompletePackageEvidence",
+        "CompletePackageEligibility",
+        "CompleteReplayPackageAuthority",
+        "CompletenessManifestCheck",
+        "CompletenessHashCheck",
+        "CompletenessIntegrityCheck",
+        "CompletenessStorageCheck",
+        "CompletenessProvenanceCheck",
+        "CompletenessRedactionCheck",
+        "CompletenessSourceReferenceCheck",
+    )
+    assert not (
+        set(PACKAGE_COMPLETENESS_SCOPE_RELAXABLE_NAMES)
+        & set(PACKAGE_COMPLETENESS_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    completeness_scope_boundaries = (
+        "package_completeness_after_package_creation_storage_authority_and_storage",
+        "code_and_test_lane_required_before_behavior_exists",
+        "mapper_scaffold_completeness_is_not_complete_replay_package_authority",
+        "draft_package_creation_is_not_package_completeness",
+        "storage_finalization_metadata_is_not_package_completeness",
+        "package_completeness_is_not_actual_filesystem_writer_authority",
+        "package_completeness_is_not_runtime_capture",
+        "package_completeness_is_not_evaluation_or_promotion",
+        "complete_replay_package_authority_is_not_runtime_broker_or_live_authority",
+    )
+    assert completeness_scope_boundaries == (
+        "package_completeness_after_package_creation_storage_authority_and_storage",
+        "code_and_test_lane_required_before_behavior_exists",
+        "mapper_scaffold_completeness_is_not_complete_replay_package_authority",
+        "draft_package_creation_is_not_package_completeness",
+        "storage_finalization_metadata_is_not_package_completeness",
+        "package_completeness_is_not_actual_filesystem_writer_authority",
+        "package_completeness_is_not_runtime_capture",
+        "package_completeness_is_not_evaluation_or_promotion",
+        "complete_replay_package_authority_is_not_runtime_broker_or_live_authority",
+    )
+
+    completeness_prerequisites = (
+        "canonical_run_id_alignment",
+        "package_identity_present",
+        "draft_package_creation_result_present",
+        "manifest_present",
+        "canonical_bytes_present",
+        "hash_records_present",
+        "integrity_validation_result_present_and_valid",
+        "storage_implementation_result_present",
+        "storage_lifecycle_state_acceptable_for_completeness_review",
+        "provenance_present_and_valid",
+        "redaction_status_present_and_valid",
+        "source_references_present_and_known",
+        "no_sensitive_data_exposure",
+        "no_stale_inputs",
+        "no_mixed_run_id_evidence",
+        "no_malformed_package_evidence",
+    )
+    assert completeness_prerequisites == (
+        "canonical_run_id_alignment",
+        "package_identity_present",
+        "draft_package_creation_result_present",
+        "manifest_present",
+        "canonical_bytes_present",
+        "hash_records_present",
+        "integrity_validation_result_present_and_valid",
+        "storage_implementation_result_present",
+        "storage_lifecycle_state_acceptable_for_completeness_review",
+        "provenance_present_and_valid",
+        "redaction_status_present_and_valid",
+        "source_references_present_and_known",
+        "no_sensitive_data_exposure",
+        "no_stale_inputs",
+        "no_mixed_run_id_evidence",
+        "no_malformed_package_evidence",
+    )
+
+    completeness_stop_conditions = (
+        "missing_package_identity",
+        "missing_package_creation_result",
+        "missing_manifest",
+        "missing_canonical_bytes",
+        "missing_hash_records",
+        "missing_integrity_validation_result",
+        "failed_integrity_validation_result",
+        "missing_storage_implementation_result",
+        "failed_storage_implementation_result",
+        "missing_storage_lifecycle_state",
+        "invalid_storage_lifecycle_state",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "missing_source_references",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "stale_inputs",
+        "malformed_inputs",
+        "mixed_run_id",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+        "actual_filesystem_writer_dependency_before_explicit_writer_authority",
+        "package_completeness_as_evaluation_approval",
+        "package_completeness_as_execution_permission",
+        "package_completeness_as_live_trading_authority",
+    )
+    assert completeness_stop_conditions == (
+        "missing_package_identity",
+        "missing_package_creation_result",
+        "missing_manifest",
+        "missing_canonical_bytes",
+        "missing_hash_records",
+        "missing_integrity_validation_result",
+        "failed_integrity_validation_result",
+        "missing_storage_implementation_result",
+        "failed_storage_implementation_result",
+        "missing_storage_lifecycle_state",
+        "invalid_storage_lifecycle_state",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "missing_source_references",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "stale_inputs",
+        "malformed_inputs",
+        "mixed_run_id",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+        "actual_filesystem_writer_dependency_before_explicit_writer_authority",
+        "package_completeness_as_evaluation_approval",
+        "package_completeness_as_execution_permission",
+        "package_completeness_as_live_trading_authority",
+    )
+
+    for future_module in FUTURE_PACKAGE_COMPLETENESS_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert mapper_package["package_status"]["status"] == "complete"
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert mapper_package["authority_boundary"]["evidence_only"] is True
+    assert mapper_package["authority_boundary"]["non_authoritative"] is True
+    assert mapper_package["authority_boundary"]["no_runtime_mutation"] is True
+    assert mapper_package["authority_boundary"]["no_execution_authority"] is True
+    assert mapper_package["authority_boundary"]["no_broker_authority"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for denied_name in (
+        "PACKAGE_COMPLETENESS_IMPLEMENTATION",
+        "ACTUAL_FILESYSTEM_READ",
+        "ACTUAL_FILESYSTEM_WRITE",
+        "PACKAGE_DIRECTORY_CREATION",
+        "RUNTIME_CAPTURE",
+        "EVALUATION_PROMOTION",
+        "BROKER_API_AUTHORITY",
+        "EXECUTION_PERMISSION",
+        "LIVE_TRADING_AUTHORITY",
+    ):
+        assert denied_name in PACKAGE_COMPLETENESS_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in PACKAGE_COMPLETENESS_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+        PACKAGE_CREATION_MODULE,
+        FILESYSTEM_STORAGE_AUTHORITY_MODULE,
+        STORAGE_IMPLEMENTATION_MODULE,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in (
+            "PACKAGE_COMPLETENESS_IMPLEMENTATION",
+            "validate_package_completeness",
+            "assert_package_complete",
+            "RuntimeCapture",
+            "EvaluationEngine",
+            "PromotionGate",
+            "BrokerAuthority",
+            "ExecutionPermission",
+            "LiveTradingAuthority",
+        ):
+            assert denied_name not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
