@@ -969,6 +969,58 @@ FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+STORAGE_IMPLEMENTATION_SCOPE_RELAXABLE_NAMES = (
+    "STORAGE_IMPLEMENTATION",
+    "STORAGE_LIFECYCLE_IMPLEMENTATION",
+    "DRAFT_STORAGE_RECORD",
+    "FINALIZED_STORAGE_RECORD",
+    "STORAGE_FINALIZATION_RESULT",
+    "IMMUTABILITY_MARKER",
+    "LINEAGE_REFERENCE",
+    "INVALIDATION_REFERENCE",
+    "SUPERSESSION_REFERENCE",
+    "NO_OVERWRITE_ENFORCEMENT_VOCABULARY",
+    "STORAGE_WRITER_METADATA_INPUT",
+    "STORAGE_WRITER_METADATA_RESULT",
+    "StorageImplementation",
+    "StorageLifecycleImplementation",
+    "DraftStorageRecord",
+    "FinalizedStorageRecord",
+    "StorageFinalizationResult",
+    "ImmutabilityMarker",
+    "LineageReference",
+    "InvalidationReference",
+    "SupersessionReference",
+    "NoOverwriteEnforcementVocabulary",
+    "StorageWriterMetadataInput",
+    "StorageWriterMetadataResult",
+)
+STORAGE_IMPLEMENTATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "ACTUAL_FILESYSTEM_READ",
+    "ACTUAL_FILESYSTEM_WRITE",
+    "PACKAGE_DIRECTORY_CREATION",
+    "FINALIZED_STORAGE_BEHAVIOR",
+    "IMMUTABILITY_ENFORCEMENT_BEHAVIOR",
+    "PACKAGE_COMPLETENESS",
+    "RUNTIME_CAPTURE",
+    "EVALUATION_PROMOTION",
+    "BROKER_API_AUTHORITY",
+    "EXECUTION_PERMISSION",
+    "LIVE_TRADING_AUTHORITY",
+    "open",
+    "read",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "PackageCompleteness",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
     (
@@ -4596,6 +4648,230 @@ def test_filesystem_storage_authority_helper_fails_closed() -> None:
     assert "write_text(" not in module_text
     assert "write_bytes(" not in module_text
     assert "mkdir(" not in module_text
+
+
+def test_storage_implementation_scope_guard_records_unit8_code_boundary() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+
+    assert "## Unit 8: Storage Root/Path/Lifecycle/Finalization/Immutability" in (
+        map_text
+    )
+    assert "future storage lifecycle module and storage tests" in map_text
+    assert "Filesystem access allowed: no until a separate filesystem/storage" in (
+        map_text
+    )
+    assert "storage output cannot create package completeness" in map_text
+    assert "This contract does not approve filesystem reads or filesystem writes" in (
+        spec_text
+    )
+    assert "No filesystem\npath, package directory, package file" in spec_text
+    assert "finalized package\nstate, or immutable package marker is authoritative" in (
+        spec_text
+    )
+    assert "No filesystem\npath, package directory, package file" in spec_text
+    assert "Finalized evidence must be immutable and no-overwrite" in spec_text
+    assert "Corrections, annotations, invalidations, supersessions" in spec_text
+    assert "append-only and lineage-preserving" in spec_text
+    assert "Immutable evidence must remain distinct from derived reports" in (
+        spec_text
+    )
+    assert "A future writer must not create package authority or package completeness" in (
+        spec_text
+    )
+
+    assert STORAGE_IMPLEMENTATION_SCOPE_RELAXABLE_NAMES == (
+        "STORAGE_IMPLEMENTATION",
+        "STORAGE_LIFECYCLE_IMPLEMENTATION",
+        "DRAFT_STORAGE_RECORD",
+        "FINALIZED_STORAGE_RECORD",
+        "STORAGE_FINALIZATION_RESULT",
+        "IMMUTABILITY_MARKER",
+        "LINEAGE_REFERENCE",
+        "INVALIDATION_REFERENCE",
+        "SUPERSESSION_REFERENCE",
+        "NO_OVERWRITE_ENFORCEMENT_VOCABULARY",
+        "STORAGE_WRITER_METADATA_INPUT",
+        "STORAGE_WRITER_METADATA_RESULT",
+        "StorageImplementation",
+        "StorageLifecycleImplementation",
+        "DraftStorageRecord",
+        "FinalizedStorageRecord",
+        "StorageFinalizationResult",
+        "ImmutabilityMarker",
+        "LineageReference",
+        "InvalidationReference",
+        "SupersessionReference",
+        "NoOverwriteEnforcementVocabulary",
+        "StorageWriterMetadataInput",
+        "StorageWriterMetadataResult",
+    )
+    assert not (
+        set(STORAGE_IMPLEMENTATION_SCOPE_RELAXABLE_NAMES)
+        & set(STORAGE_IMPLEMENTATION_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    implementation_scope_boundaries = (
+        "unit8_storage_implementation_after_package_creation_and_storage_authority",
+        "code_and_test_lane_required_before_behavior_exists",
+        "storage_scope_is_not_actual_filesystem_io",
+        "storage_scope_is_not_package_completeness",
+        "storage_scope_is_not_runtime_capture",
+        "storage_scope_is_not_evaluation_or_promotion",
+        "metadata_authority_is_not_executable_filesystem_write",
+    )
+    assert implementation_scope_boundaries == (
+        "unit8_storage_implementation_after_package_creation_and_storage_authority",
+        "code_and_test_lane_required_before_behavior_exists",
+        "storage_scope_is_not_actual_filesystem_io",
+        "storage_scope_is_not_package_completeness",
+        "storage_scope_is_not_runtime_capture",
+        "storage_scope_is_not_evaluation_or_promotion",
+        "metadata_authority_is_not_executable_filesystem_write",
+    )
+
+    lifecycle_finalization_boundaries = (
+        "draft",
+        "finalized",
+        "invalidated",
+        "superseded",
+        "append_only_lineage",
+        "correction_lineage",
+        "invalidation_lineage",
+        "supersession_lineage",
+        "no_overwrite_finalized_evidence",
+        "derived_reports_distinct_from_immutable_evidence",
+    )
+    assert lifecycle_finalization_boundaries == (
+        "draft",
+        "finalized",
+        "invalidated",
+        "superseded",
+        "append_only_lineage",
+        "correction_lineage",
+        "invalidation_lineage",
+        "supersession_lineage",
+        "no_overwrite_finalized_evidence",
+        "derived_reports_distinct_from_immutable_evidence",
+    )
+
+    storage_implementation_stop_conditions = (
+        "missing_filesystem_storage_authority_result",
+        "failed_filesystem_storage_authority_result",
+        "missing_package_creation_result",
+        "missing_package_identity",
+        "missing_storage_root",
+        "missing_package_path",
+        "missing_package_directory",
+        "unknown_storage_root",
+        "unapproved_storage_root",
+        "unknown_package_path",
+        "unapproved_package_path",
+        "unknown_package_directory",
+        "unapproved_package_directory",
+        "attempted_overwrite",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "mixed_run_id",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+        "missing_package_completeness_authority",
+        "storage_output_as_complete_replay_package_authority",
+    )
+    assert storage_implementation_stop_conditions == (
+        "missing_filesystem_storage_authority_result",
+        "failed_filesystem_storage_authority_result",
+        "missing_package_creation_result",
+        "missing_package_identity",
+        "missing_storage_root",
+        "missing_package_path",
+        "missing_package_directory",
+        "unknown_storage_root",
+        "unapproved_storage_root",
+        "unknown_package_path",
+        "unapproved_package_path",
+        "unknown_package_directory",
+        "unapproved_package_directory",
+        "attempted_overwrite",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "mixed_run_id",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+        "missing_package_completeness_authority",
+        "storage_output_as_complete_replay_package_authority",
+    )
+
+    for future_module in FUTURE_STORAGE_FINALIZATION_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["storage_finalization_immutability"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["immutability"]["status"] == "absent"
+    assert mapper_package["immutability"]["reason"] == "deferred_until_storage_gate"
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for denied_name in (
+        "ACTUAL_FILESYSTEM_READ",
+        "ACTUAL_FILESYSTEM_WRITE",
+        "PACKAGE_DIRECTORY_CREATION",
+        "PACKAGE_COMPLETENESS",
+        "RUNTIME_CAPTURE",
+        "EVALUATION_PROMOTION",
+        "BROKER_API_AUTHORITY",
+        "EXECUTION_PERMISSION",
+        "LIVE_TRADING_AUTHORITY",
+    ):
+        assert denied_name in STORAGE_IMPLEMENTATION_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in STORAGE_IMPLEMENTATION_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+        PACKAGE_CREATION_MODULE,
+        FILESYSTEM_STORAGE_AUTHORITY_MODULE,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in STORAGE_IMPLEMENTATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            if denied_name in {"open", "read", "write", "write_text", "write_bytes", "mkdir"}:
+                continue
+            assert denied_name not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
