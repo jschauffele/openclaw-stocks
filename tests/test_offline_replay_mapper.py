@@ -10,6 +10,8 @@ from types import FunctionType
 import tools.replay.draft_envelope as draft_envelope
 import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
+import tools.replay.hashing as hashing
+import tools.replay.integrity as integrity
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
 import tools.replay.package_schema as package_schema
@@ -430,7 +432,6 @@ HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "hash_package",
     "hash_section",
     "hashlib",
-    "sha256",
     "MANIFEST_SERIALIZATION",
     "PACKAGE_SERIALIZATION",
     "ManifestSerialization",
@@ -1995,7 +1996,23 @@ def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
     )
 
     for future_module in FUTURE_HASHING_INTEGRITY_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+
+    assert hashing.HASH_ALGORITHM == "sha256"
+    assert hashing.HASH_VERSION == "v1"
+    assert hashing.HashAlgorithm().name == hashing.HASH_ALGORITHM
+    assert hashing.HashVersion().value == hashing.HASH_VERSION
+    assert integrity.INTEGRITY_STATUS == (
+        "missing",
+        "present",
+        "unavailable",
+        "not_validated",
+    )
+    assert integrity.IntegrityStatus().values == integrity.INTEGRITY_STATUS
+
+    module_names = set(hashing.__dict__) | set(integrity.__dict__)
+    for relaxable_name in FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
 
     for denied_name in (
         "compute_hash",
@@ -2008,6 +2025,7 @@ def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
         "validate_integrity",
         "verify_integrity",
         "hashlib",
+        "SECTION_HASH",
         "sha256",
         "ManifestSerialization",
         "PackageLayout",
@@ -2019,8 +2037,10 @@ def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
         "ExecutionPermission",
         "LiveTradingAuthority",
     ):
-        assert denied_name in HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES
-        assert denied_name not in FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES
+        if denied_name != "sha256":
+            assert denied_name in HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES
+            assert denied_name not in FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES
+        assert denied_name not in module_names
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -2047,6 +2067,13 @@ def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
 
     for module_path in REPLAY_SOURCE_MODULES:
         module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert denied_name not in module_text
+
+    for module_path in FUTURE_HASHING_INTEGRITY_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        assert "hashlib" not in module_text
+        assert "sha256(" not in module_text
         for denied_name in HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES:
             assert denied_name not in module_text
 
