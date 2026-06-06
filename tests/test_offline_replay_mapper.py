@@ -23,6 +23,7 @@ import tools.replay.offline_mapper as offline_mapper
 import tools.replay.package_creation as package_creation
 import tools.replay.package_layout as package_layout
 import tools.replay.package_schema as package_schema
+import tools.replay.storage_implementation as storage_implementation
 from tools.replay.draft_envelope import build_draft_replay_envelope
 from tools.replay.offline_mapper import build_replay_package
 from tools.replay.package_schema import (
@@ -874,6 +875,12 @@ FORBIDDEN_STORAGE_IMMUTABILITY_IMPLEMENTATION_NAMES = (
 FUTURE_STORAGE_FINALIZATION_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "storage.py",
 )
+STORAGE_IMPLEMENTATION_MODULE = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "storage_implementation.py"
+)
 FILESYSTEM_STORAGE_AUTHORITY_MODULE = (
     Path(__file__).resolve().parents[1]
     / "tools"
@@ -1360,6 +1367,45 @@ def _filesystem_storage_authority_input(**overrides: object) -> dict:
     }
     authority_input.update(overrides)
     return authority_input
+
+
+def _storage_writer_metadata_input(**overrides: object) -> dict:
+    package_creation_result = package_creation.build_draft_package(
+        _draft_package_creation_input()
+    )
+    filesystem_storage_authority_result = (
+        filesystem_storage_authority.validate_filesystem_storage_authority(
+            _filesystem_storage_authority_input(
+                canonical_run_id="run_unit11",
+                package_path="replay_packages/run_unit11",
+                approved_package_paths=("replay_packages/run_unit11",),
+                package_directory="run_unit11",
+                approved_package_directories=("run_unit11",),
+                input_run_ids=("run_unit11",),
+            )
+        )
+    )
+    storage_input = {
+        "canonical_run_id": "run_unit11",
+        "package_creation_result": package_creation_result,
+        "filesystem_storage_authority_result": filesystem_storage_authority_result,
+        "package_identity": {
+            "canonical_run_id": "run_unit11",
+            "package_id": "package_run_unit11",
+        },
+        "storage_root": "replay_packages",
+        "package_path": "replay_packages/run_unit11",
+        "package_directory": "run_unit11",
+        "lifecycle_status": "draft",
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "source_reference": "draft_package",
+        "known_source_references": ("draft_package",),
+        "input_run_ids": ("run_unit11",),
+        "package_completeness_authority": False,
+    }
+    storage_input.update(overrides)
+    return storage_input
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -4872,6 +4918,242 @@ def test_storage_implementation_scope_guard_records_unit8_code_boundary() -> Non
             if denied_name in {"open", "read", "write", "write_text", "write_bytes", "mkdir"}:
                 continue
             assert denied_name not in module_text
+
+
+def test_storage_implementation_helper_builds_metadata_only_records() -> None:
+    assert STORAGE_IMPLEMENTATION_MODULE.exists()
+    assert (
+        storage_implementation.STORAGE_IMPLEMENTATION
+        == "storage_implementation_metadata_only"
+    )
+    assert storage_implementation.STORAGE_LIFECYCLE_STATES == (
+        "draft",
+        "finalized",
+        "invalidated",
+        "superseded",
+    )
+    assert storage_implementation.StorageImplementation().authority_boundary == (
+        storage_implementation.STORAGE_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    )
+    assert storage_implementation.StorageLifecycleImplementation().states == (
+        storage_implementation.STORAGE_LIFECYCLE_STATES
+    )
+    assert storage_implementation.StorageWriterMetadataResult().result_type == (
+        storage_implementation.STORAGE_WRITER_METADATA_RESULT
+    )
+
+    draft_record = storage_implementation.build_draft_storage_record(
+        _storage_writer_metadata_input()
+    )
+    finalized_record = storage_implementation.build_finalized_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    finalization_result = storage_implementation.build_storage_finalization_result(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    invalidated_record = storage_implementation.invalidate_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="invalidated")
+    )
+    superseded_record = storage_implementation.supersede_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="superseded")
+    )
+
+    assert draft_record["record_type"] == storage_implementation.DRAFT_STORAGE_RECORD
+    assert draft_record["lifecycle_status"] == "draft"
+    assert finalized_record["record_type"] == (
+        storage_implementation.FINALIZED_STORAGE_RECORD
+    )
+    assert finalized_record["lifecycle_status"] == "finalized"
+    assert finalization_result == finalized_record
+    assert invalidated_record["record_type"] == (
+        storage_implementation.INVALIDATION_REFERENCE
+    )
+    assert invalidated_record["lifecycle_status"] == "invalidated"
+    assert invalidated_record["invalidation_lineage"] is True
+    assert superseded_record["record_type"] == (
+        storage_implementation.SUPERSESSION_REFERENCE
+    )
+    assert superseded_record["lifecycle_status"] == "superseded"
+    assert superseded_record["supersession_lineage"] is True
+
+    for record in (
+        draft_record,
+        finalized_record,
+        finalization_result,
+        invalidated_record,
+        superseded_record,
+    ):
+        assert record["canonical_run_id"] == "run_unit11"
+        assert record["result_type"] == (
+            storage_implementation.STORAGE_WRITER_METADATA_RESULT
+        )
+        assert record["storage_root"] == "replay_packages"
+        assert record["package_path"] == "replay_packages/run_unit11"
+        assert record["package_directory"] == "run_unit11"
+        assert record["immutability_marker"] == storage_implementation.IMMUTABILITY_MARKER
+        assert record["lineage_reference"] == storage_implementation.LINEAGE_REFERENCE
+        assert record["no_overwrite_rule"] == (
+            storage_implementation.NO_OVERWRITE_ENFORCEMENT_VOCABULARY
+        )
+        assert record["append_only_lineage"] is True
+        assert record["correction_lineage"] is True
+        assert record["derived_reports_distinct_from_immutable_evidence"] is True
+        assert record["evidence_only"] is True
+        assert record["non_authoritative"] is True
+        assert record["actual_filesystem_reads"] is False
+        assert record["actual_filesystem_writes"] is False
+        assert record["package_directory_creation"] is False
+        assert record["package_completeness"] is False
+        assert record["runtime_capture"] is False
+        assert record["evaluation_or_promotion"] is False
+        assert record["broker_api_authority"] is False
+        assert record["execution_authority"] is False
+        assert record["live_trading_authority"] is False
+        assert record["authority_boundary"] == (
+            storage_implementation.STORAGE_IMPLEMENTATION_AUTHORITY_BOUNDARY
+        )
+        assert "no_actual_filesystem_reads" in record["authority_boundary"]
+        assert "no_actual_filesystem_writes" in record["authority_boundary"]
+        assert "no_package_directory_creation" in record["authority_boundary"]
+        assert "no_package_completeness" in record["authority_boundary"]
+        assert "no_runtime_capture" in record["authority_boundary"]
+        assert "no_evaluation_or_promotion" in record["authority_boundary"]
+        assert "no_broker_authority" in record["authority_boundary"]
+        assert "no_execution_authority" in record["authority_boundary"]
+        assert "no_live_trading_authority" in record["authority_boundary"]
+
+    module_names = set(storage_implementation.__dict__)
+    for relaxable_name in STORAGE_IMPLEMENTATION_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+    for denied_name in (
+        "ActualFilesystemRead",
+        "ActualFilesystemWrite",
+        "PackageDirectoryCreation",
+        "PackageCompleteness",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "PromotionGate",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name not in module_names
+
+
+def test_storage_implementation_helper_fails_closed() -> None:
+    base_input = _storage_writer_metadata_input()
+
+    bad_cases = (
+        ({**base_input, "filesystem_storage_authority_result": {}}, ValueError),
+        (
+            {
+                **base_input,
+                "filesystem_storage_authority_result": {
+                    **base_input["filesystem_storage_authority_result"],
+                    "evidence_only": False,
+                },
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "filesystem_storage_authority_result": {
+                    **base_input["filesystem_storage_authority_result"],
+                    "actual_filesystem_writes": True,
+                },
+            },
+            ValueError,
+        ),
+        ({**base_input, "package_creation_result": {}}, ValueError),
+        (
+            {
+                **base_input,
+                "package_creation_result": {
+                    **base_input["package_creation_result"],
+                    "package_completeness": True,
+                },
+            },
+            ValueError,
+        ),
+        ({**base_input, "package_identity": {}}, ValueError),
+        ({**base_input, "canonical_run_id": ""}, ValueError),
+        ({**base_input, "storage_root": ""}, ValueError),
+        ({**base_input, "storage_root": "other"}, ValueError),
+        ({**base_input, "package_path": ""}, ValueError),
+        ({**base_input, "package_path": "other"}, ValueError),
+        ({**base_input, "package_directory": ""}, ValueError),
+        ({**base_input, "package_directory": "other"}, ValueError),
+        ({**base_input, "lifecycle_status": "unknown"}, ValueError),
+        ({**base_input, "overwrite_attempt": True}, ValueError),
+        ({**base_input, "package_path": "../escape"}, ValueError),
+        ({**base_input, "package_path": "/tmp/package"}, ValueError),
+        ({**base_input, "symlink_status": "unknown"}, ValueError),
+        ({**base_input, "repo_relative": False}, ValueError),
+        (
+            {
+                **base_input,
+                "input_run_ids": ("run_unit11", "other"),
+            },
+            ValueError,
+        ),
+        ({**base_input, "provenance": ""}, ValueError),
+        ({**base_input, "provenance": object()}, ValueError),
+        ({**base_input, "redaction_status": ""}, ValueError),
+        ({**base_input, "redaction_status": "unknown"}, ValueError),
+        ({**base_input, "source_reference": "unknown"}, ValueError),
+        ({**base_input, "sensitive_data_status": "exposed"}, ValueError),
+        ({**base_input, "runtime_dependent": True}, ValueError),
+        ({**base_input, "evaluation_dependent": True}, ValueError),
+        ({**base_input, "broker_dependent": True}, ValueError),
+        ({**base_input, "package_completeness_authority": True}, ValueError),
+        (
+            {**base_input, "attempted_complete_replay_package_authority": True},
+            ValueError,
+        ),
+        (object(), TypeError),
+    )
+    for bad_input, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            storage_implementation.build_draft_storage_record(bad_input)
+
+    lifecycle_mismatch_cases = (
+        (
+            storage_implementation.build_draft_storage_record,
+            {**base_input, "lifecycle_status": "finalized"},
+        ),
+        (
+            storage_implementation.build_finalized_storage_record,
+            {**base_input, "lifecycle_status": "draft"},
+        ),
+        (
+            storage_implementation.invalidate_storage_record,
+            {**base_input, "lifecycle_status": "draft"},
+        ),
+        (
+            storage_implementation.supersede_storage_record,
+            {**base_input, "lifecycle_status": "draft"},
+        ),
+    )
+    for builder, bad_input in lifecycle_mismatch_cases:
+        with pytest.raises(ValueError):
+            builder(bad_input)
+
+    module_text = STORAGE_IMPLEMENTATION_MODULE.read_text(encoding="utf-8")
+    assert "from pathlib" not in module_text
+    assert "import os" not in module_text
+    assert "open(" not in module_text
+    assert ".read(" not in module_text
+    assert ".write(" not in module_text
+    assert "write_text(" not in module_text
+    assert "write_bytes(" not in module_text
+    assert "mkdir(" not in module_text
+    assert "PackageCompleteness" not in module_text
+    assert "RuntimeCapture" not in module_text
+    assert "EvaluationEngine" not in module_text
+    assert "BrokerAuthority" not in module_text
+    assert "ExecutionPermission" not in module_text
+    assert "LiveTradingAuthority" not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
