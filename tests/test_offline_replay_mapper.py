@@ -15,6 +15,7 @@ import tools.replay.canonical_json as canonical_json
 import tools.replay.hash_computation as hash_computation
 import tools.replay.hashing as hashing
 import tools.replay.integrity as integrity
+import tools.replay.integrity_validation as integrity_validation
 import tools.replay.manifest_builder as manifest_builder
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
@@ -3169,7 +3170,138 @@ def test_integrity_validation_scope_guard_records_unit7_only() -> None:
     )
 
     for future_module in FUTURE_INTEGRITY_VALIDATION_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+
+    assert (
+        integrity_validation.INTEGRITY_VALIDATION
+        == "in_memory_hash_record_integrity_validation"
+    )
+    assert integrity_validation.INTEGRITY_VALIDATOR == "hash_record_integrity_validator"
+    assert integrity_validation.EXPECTED_HASH_RECORD == "expected_hash_record"
+    assert integrity_validation.OBSERVED_HASH_RECORD == "observed_hash_record"
+    assert (
+        integrity_validation.INTEGRITY_VALIDATION_RESULT
+        == "integrity_validation_result"
+    )
+    assert integrity_validation.IntegrityValidation().authority_boundary == (
+        integrity_validation.INTEGRITY_VALIDATION_AUTHORITY_BOUNDARY
+    )
+    assert integrity_validation.IntegrityValidator().input_model == (
+        "expected_hash_record:observed_hash_record"
+    )
+    assert integrity_validation.IntegrityValidationResult().authority_boundary == (
+        integrity_validation.INTEGRITY_VALIDATION_AUTHORITY_BOUNDARY
+    )
+
+    canonical_payload = canonical_json.canonicalize_json({"section": "integrity"})
+    canonical_input = canonical_bytes.build_canonical_bytes(canonical_payload)
+    expected_hash = hash_computation.build_section_hash(
+        canonical_input,
+        _hash_metadata(section_scope="integrity"),
+    )
+    observed_hash = hash_computation.build_section_hash(
+        canonical_input,
+        _hash_metadata(section_scope="integrity"),
+    )
+    validation = integrity_validation.validate_integrity(
+        expected_hash,
+        observed_hash,
+    )
+
+    assert validation["result_type"] == (
+        integrity_validation.INTEGRITY_VALIDATION_RESULT
+    )
+    assert validation["integrity_status"] == "valid"
+    assert validation["reason"] == "hash_match"
+    assert validation["hash_match"] is True
+    assert validation["evidence_only"] is True
+    assert validation["non_authoritative"] is True
+    assert validation["package_completeness"] is False
+    assert "no_package_completeness" in validation["authority_boundary"]
+    assert "no_package_creation" in validation["authority_boundary"]
+    assert "no_filesystem_access" in validation["authority_boundary"]
+    assert "no_storage_finalization" in validation["authority_boundary"]
+    assert "no_runtime_capture" in validation["authority_boundary"]
+    assert "no_evaluation_or_promotion" in validation["authority_boundary"]
+    assert "no_broker_authority" in validation["authority_boundary"]
+    assert "no_execution_authority" in validation["authority_boundary"]
+    assert "no_live_trading_authority" in validation["authority_boundary"]
+    assert integrity_validation.verify_integrity(expected_hash, observed_hash) == (
+        validation
+    )
+    assert integrity_validation.validate_hash(expected_hash, observed_hash) == (
+        validation
+    )
+
+    mismatched_hash = {
+        **observed_hash,
+        "digest": "0" * 64,
+    }
+    mismatch_result = integrity_validation.validate_integrity(
+        expected_hash,
+        mismatched_hash,
+    )
+    assert mismatch_result["integrity_status"] == "mismatch"
+    assert mismatch_result["reason"] == "hash_mismatch"
+    assert mismatch_result["hash_match"] is False
+    assert mismatch_result["evidence_only"] is True
+    assert mismatch_result["non_authoritative"] is True
+    assert mismatch_result["package_completeness"] is False
+
+    bad_cases = (
+        ({**expected_hash, "digest": ""}, observed_hash, ValueError),
+        (expected_hash, {**observed_hash, "digest": ""}, ValueError),
+        (
+            expected_hash,
+            {
+                **observed_hash,
+                "metadata": _hash_metadata(run_ids=("run_unit6", "other")),
+            },
+            ValueError,
+        ),
+        (
+            expected_hash,
+            {**observed_hash, "metadata": {"provenance": object()}},
+            ValueError,
+        ),
+        (
+            expected_hash,
+            {**observed_hash, "metadata": _hash_metadata(provenance="")},
+            ValueError,
+        ),
+        (
+            expected_hash,
+            {**observed_hash, "metadata": _hash_metadata(redaction_status="")},
+            ValueError,
+        ),
+        (
+            expected_hash,
+            {
+                **observed_hash,
+                "metadata": _hash_metadata(redaction_status="unknown"),
+            },
+            ValueError,
+        ),
+        (
+            expected_hash,
+            {
+                **observed_hash,
+                "metadata": _hash_metadata(source_reference="unknown_source"),
+            },
+            ValueError,
+        ),
+        (
+            expected_hash,
+            {
+                **observed_hash,
+                "metadata": _hash_metadata(sensitive_data_status="exposed"),
+            },
+            ValueError,
+        ),
+    )
+    for bad_expected, bad_observed, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            integrity_validation.validate_integrity(bad_expected, bad_observed)
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -3221,6 +3353,7 @@ def test_integrity_validation_scope_guard_records_unit7_only() -> None:
         *FUTURE_HASHING_INTEGRITY_MODULES,
         *FUTURE_MANIFEST_GENERATION_MODULES,
         *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
     ):
         module_text = module_path.read_text(encoding="utf-8")
         for denied_name in INTEGRITY_VALIDATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
