@@ -8450,6 +8450,69 @@ def test_file_read_helper_fails_closed_for_downstream_authority(
     assert "LiveTradingAuthority" not in module_text
 
 
+def test_file_read_helper_rejects_runtime_log_scope_without_reading(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _file_read_request(tmp_path)
+    runtime_log_relative_path = "runtime_logs/run_unit11/openclaw.log"
+    runtime_log_payload = b"synthetic runtime log evidence must not be read\n"
+    runtime_log_path = Path(request["artifact_root_path"]) / runtime_log_relative_path
+    runtime_log_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_log_path.write_bytes(runtime_log_payload)
+    read_attempts: list[str] = []
+    original_read_bytes = Path.read_bytes
+
+    def fail_if_runtime_log_path_is_read(path: Path) -> bytes:
+        if path == runtime_log_path:
+            read_attempts.append(str(path))
+            raise AssertionError("runtime log path was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_if_runtime_log_path_is_read)
+
+    runtime_log_path_request = {
+        **request,
+        "source_references": ("runtime_log",),
+        "file_relative_path": runtime_log_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": runtime_log_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(runtime_log_payload).hexdigest(),
+        "max_size_bytes": len(runtime_log_payload),
+    }
+    runtime_log_scope_requests = (
+        {**request, "runtime_log_dependent": True},
+        {**request, "attempted_runtime_log_access": True},
+        runtime_log_path_request,
+    )
+
+    for bad_request in runtime_log_scope_requests:
+        with pytest.raises(ValueError):
+            file_reader.read_approved_replay_file(bad_request)
+
+    assert read_attempts == []
+
+    prerequisite = file_reader.RuntimeLogAccessPrerequisite()
+    assert prerequisite.name == file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE
+    assert not hasattr(prerequisite, "authority_boundary")
+    assert file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+
+    result = file_reader.read_approved_replay_file(request)
+    assert result["runtime_log_access"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert "no_runtime_log_access" in result["authority_boundary"]
+    assert "runtime_log_dependency" in result["fail_closed_boundaries"]
+    assert "file_read_authority_as_runtime_log_access" in (
+        result["fail_closed_boundaries"]
+    )
+
+
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
