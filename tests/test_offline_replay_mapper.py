@@ -1090,6 +1090,79 @@ PACKAGE_COMPLETENESS_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FUTURE_FILESYSTEM_WRITER_MODULES = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "filesystem_writer.py",
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "package_writer.py",
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "package_persistence.py",
+)
+FILESYSTEM_WRITER_SCOPE_RELAXABLE_NAMES = (
+    "FILESYSTEM_WRITER_AUTHORITY",
+    "REPLAY_PACKAGE_WRITER",
+    "PACKAGE_PERSISTENCE_WRITER",
+    "PACKAGE_DIRECTORY_WRITER",
+    "PACKAGE_FILE_WRITER",
+    "PACKAGE_ARTIFACT_WRITER",
+    "WRITER_PREFLIGHT_RESULT",
+    "WRITER_FINALIZATION_RESULT",
+    "WRITER_NO_OVERWRITE_RESULT",
+    "WRITER_PATH_RESOLUTION_RESULT",
+    "WRITER_ATOMIC_WRITE_VOCABULARY",
+    "WRITER_FSYNC_VOCABULARY",
+    "WRITER_CHECKSUM_VERIFICATION",
+    "WRITER_ROLLBACK_MARKER",
+    "WRITER_DRY_RUN_RESULT",
+    "FilesystemWriterAuthority",
+    "ReplayPackageWriter",
+    "PackagePersistenceWriter",
+    "PackageDirectoryWriter",
+    "PackageFileWriter",
+    "PackageArtifactWriter",
+    "WriterPreflightResult",
+    "WriterFinalizationResult",
+    "WriterNoOverwriteResult",
+    "WriterPathResolutionResult",
+    "WriterAtomicWriteVocabulary",
+    "WriterFsyncVocabulary",
+    "WriterChecksumVerification",
+    "WriterRollbackMarker",
+    "WriterDryRunResult",
+)
+FILESYSTEM_WRITER_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "FILESYSTEM_WRITER_IMPLEMENTATION",
+    "ACTUAL_FILESYSTEM_READ",
+    "ACTUAL_FILESYSTEM_WRITE",
+    "PACKAGE_DIRECTORY_CREATION_BEHAVIOR",
+    "RUNTIME_CAPTURE",
+    "EVALUATION_PROMOTION",
+    "STRATEGY_RISK_EXECUTION_BEHAVIOR",
+    "BROKER_API_AUTHORITY",
+    "EXECUTION_PERMISSION",
+    "LIVE_TRADING_AUTHORITY",
+    "open",
+    "read",
+    "write",
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "StrategyBehavior",
+    "RiskBehavior",
+    "ExecutionBehavior",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "LiveTradingAuthority",
+)
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
     (
@@ -5642,6 +5715,277 @@ def test_package_completeness_helper_fails_closed() -> None:
             "RuntimeCapture",
             "EvaluationEngine",
             "PromotionGate",
+            "BrokerAuthority",
+            "ExecutionPermission",
+            "LiveTradingAuthority",
+        ):
+            assert denied_name not in module_text
+
+
+def test_filesystem_writer_scope_guard_records_boundary_only() -> None:
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    architecture_text = EVALUATION_INFRASTRUCTURE_ARCHITECTURE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "Filesystem writer authority boundaries" in spec_text
+    assert "This contract does not approve filesystem reads or filesystem writes" in (
+        spec_text
+    )
+    assert "A future writer may write only approved package artifacts" in spec_text
+    assert "A future writer may write only to approved storage roots" in spec_text
+    assert "A future writer must not create package authority or package completeness" in (
+        spec_text
+    )
+    assert "A future writer must not overwrite finalized evidence" in spec_text
+    assert "A future writer must not mutate runtime state" in spec_text
+    assert "A future writer must not call `main.py`" in spec_text
+    assert "A future writer must not call broker/API/TWS/Alpaca/IBKR" in spec_text
+    assert "Need filesystem writer implementation" in spec_text
+    assert "Need runtime capture" in spec_text
+    assert "Runtime capture remains blocked until package layout" in spec_text
+    assert "Any unit requiring filesystem reads or writes must wait for a" in map_text
+    assert "separate filesystem/storage authority gate" in map_text
+    assert "Trusted scoring requires complete replay package authority" in (
+        architecture_text
+    )
+
+    assert FILESYSTEM_WRITER_SCOPE_RELAXABLE_NAMES == (
+        "FILESYSTEM_WRITER_AUTHORITY",
+        "REPLAY_PACKAGE_WRITER",
+        "PACKAGE_PERSISTENCE_WRITER",
+        "PACKAGE_DIRECTORY_WRITER",
+        "PACKAGE_FILE_WRITER",
+        "PACKAGE_ARTIFACT_WRITER",
+        "WRITER_PREFLIGHT_RESULT",
+        "WRITER_FINALIZATION_RESULT",
+        "WRITER_NO_OVERWRITE_RESULT",
+        "WRITER_PATH_RESOLUTION_RESULT",
+        "WRITER_ATOMIC_WRITE_VOCABULARY",
+        "WRITER_FSYNC_VOCABULARY",
+        "WRITER_CHECKSUM_VERIFICATION",
+        "WRITER_ROLLBACK_MARKER",
+        "WRITER_DRY_RUN_RESULT",
+        "FilesystemWriterAuthority",
+        "ReplayPackageWriter",
+        "PackagePersistenceWriter",
+        "PackageDirectoryWriter",
+        "PackageFileWriter",
+        "PackageArtifactWriter",
+        "WriterPreflightResult",
+        "WriterFinalizationResult",
+        "WriterNoOverwriteResult",
+        "WriterPathResolutionResult",
+        "WriterAtomicWriteVocabulary",
+        "WriterFsyncVocabulary",
+        "WriterChecksumVerification",
+        "WriterRollbackMarker",
+        "WriterDryRunResult",
+    )
+    assert not (
+        set(FILESYSTEM_WRITER_SCOPE_RELAXABLE_NAMES)
+        & set(FILESYSTEM_WRITER_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    writer_scope_boundaries = (
+        "filesystem_writer_authority_after_package_completeness_helper",
+        "code_and_test_lane_required_before_behavior_exists",
+        "metadata_filesystem_storage_authority_is_not_executable_writer_authority",
+        "package_completeness_is_not_filesystem_writer_authority",
+        "filesystem_writer_authority_is_not_runtime_capture",
+        "filesystem_writer_authority_is_not_evaluation_or_promotion",
+        "filesystem_writer_authority_is_not_strategy_risk_execution_behavior",
+        "filesystem_writer_authority_is_not_broker_or_live_authority",
+    )
+    assert writer_scope_boundaries == (
+        "filesystem_writer_authority_after_package_completeness_helper",
+        "code_and_test_lane_required_before_behavior_exists",
+        "metadata_filesystem_storage_authority_is_not_executable_writer_authority",
+        "package_completeness_is_not_filesystem_writer_authority",
+        "filesystem_writer_authority_is_not_runtime_capture",
+        "filesystem_writer_authority_is_not_evaluation_or_promotion",
+        "filesystem_writer_authority_is_not_strategy_risk_execution_behavior",
+        "filesystem_writer_authority_is_not_broker_or_live_authority",
+    )
+
+    writer_prerequisites = (
+        "approved_storage_root_identity",
+        "approved_package_path_identity",
+        "approved_package_directory_identity",
+        "complete_replay_package_authority_present",
+        "package_completeness_result_present_and_valid",
+        "storage_implementation_result_present",
+        "acceptable_lifecycle_metadata_present",
+        "provenance_present_and_valid",
+        "redaction_status_present_and_valid",
+        "source_references_present_and_known",
+        "canonical_run_id_alignment",
+        "no_sensitive_data_exposure",
+        "no_stale_inputs",
+        "no_mixed_run_id_evidence",
+        "no_malformed_package_evidence",
+        "no_runtime_dependent_inputs",
+        "no_evaluation_dependent_inputs",
+        "no_broker_dependent_inputs",
+    )
+    assert writer_prerequisites == (
+        "approved_storage_root_identity",
+        "approved_package_path_identity",
+        "approved_package_directory_identity",
+        "complete_replay_package_authority_present",
+        "package_completeness_result_present_and_valid",
+        "storage_implementation_result_present",
+        "acceptable_lifecycle_metadata_present",
+        "provenance_present_and_valid",
+        "redaction_status_present_and_valid",
+        "source_references_present_and_known",
+        "canonical_run_id_alignment",
+        "no_sensitive_data_exposure",
+        "no_stale_inputs",
+        "no_mixed_run_id_evidence",
+        "no_malformed_package_evidence",
+        "no_runtime_dependent_inputs",
+        "no_evaluation_dependent_inputs",
+        "no_broker_dependent_inputs",
+    )
+
+    writer_stop_conditions = (
+        "missing_filesystem_storage_authority_result",
+        "failed_filesystem_storage_authority_result",
+        "missing_package_completeness_result",
+        "failed_package_completeness_result",
+        "missing_complete_replay_package_authority",
+        "missing_storage_root",
+        "unapproved_storage_root",
+        "missing_package_path",
+        "unapproved_package_path",
+        "missing_package_directory",
+        "unapproved_package_directory",
+        "attempted_overwrite",
+        "no_overwrite_violation",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "non_atomic_write_path",
+        "missing_rollback_marker",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "missing_source_references",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "stale_inputs",
+        "malformed_inputs",
+        "mixed_run_id",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+        "writer_success_as_runtime_capture",
+        "writer_success_as_evaluation_approval",
+        "writer_success_as_execution_permission",
+        "writer_success_as_live_trading_authority",
+    )
+    assert writer_stop_conditions == (
+        "missing_filesystem_storage_authority_result",
+        "failed_filesystem_storage_authority_result",
+        "missing_package_completeness_result",
+        "failed_package_completeness_result",
+        "missing_complete_replay_package_authority",
+        "missing_storage_root",
+        "unapproved_storage_root",
+        "missing_package_path",
+        "unapproved_package_path",
+        "missing_package_directory",
+        "unapproved_package_directory",
+        "attempted_overwrite",
+        "no_overwrite_violation",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "non_atomic_write_path",
+        "missing_rollback_marker",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "missing_source_references",
+        "unknown_source_references",
+        "sensitive_data_exposure",
+        "stale_inputs",
+        "malformed_inputs",
+        "mixed_run_id",
+        "runtime_dependent_inputs",
+        "evaluation_dependent_inputs",
+        "broker_dependent_inputs",
+        "writer_success_as_runtime_capture",
+        "writer_success_as_evaluation_approval",
+        "writer_success_as_execution_permission",
+        "writer_success_as_live_trading_authority",
+    )
+
+    for future_module in FUTURE_FILESYSTEM_WRITER_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["package_directory_creation"] is False
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert complete_inputs_envelope["complete_replay_package_authority"] is False
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["storage"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    for denied_name in (
+        "FILESYSTEM_WRITER_IMPLEMENTATION",
+        "ACTUAL_FILESYSTEM_READ",
+        "ACTUAL_FILESYSTEM_WRITE",
+        "PACKAGE_DIRECTORY_CREATION_BEHAVIOR",
+        "RUNTIME_CAPTURE",
+        "EVALUATION_PROMOTION",
+        "STRATEGY_RISK_EXECUTION_BEHAVIOR",
+        "BROKER_API_AUTHORITY",
+        "EXECUTION_PERMISSION",
+        "LIVE_TRADING_AUTHORITY",
+    ):
+        assert denied_name in FILESYSTEM_WRITER_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FILESYSTEM_WRITER_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+        PACKAGE_CREATION_MODULE,
+        FILESYSTEM_STORAGE_AUTHORITY_MODULE,
+        STORAGE_IMPLEMENTATION_MODULE,
+        PACKAGE_COMPLETENESS_MODULE,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in (
+            "FILESYSTEM_WRITER_IMPLEMENTATION",
+            "ReplayPackageWriter",
+            "PackagePersistenceWriter",
+            "RuntimeCapture",
+            "EvaluationEngine",
+            "PromotionGate",
+            "StrategyBehavior",
+            "RiskBehavior",
+            "ExecutionBehavior",
             "BrokerAuthority",
             "ExecutionPermission",
             "LiveTradingAuthority",
