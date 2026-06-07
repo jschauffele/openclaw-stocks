@@ -2552,6 +2552,201 @@ test-only and must not inspect runtime logs, inspect runtime artifacts, edit
 production code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
 scheduler/systemd, approve paper trading, or approve live trading.
 
+## Runtime Artifact Discovery Authority Contract
+
+Runtime artifact discovery authority remains governance-only and is not
+implemented yet. This contract defines metadata-only discovery authority after
+source reference and source artifact authority and provenance/redaction
+authority, before source path authority, file path ingestion, artifact
+copying, package creation, immutable package evidence, runtime capture, or
+evaluation implementation can be considered.
+
+This contract does not approve tests, code, runtime artifact discovery
+modules, runtime log inspection, runtime artifact content inspection, source
+path authority, file path ingestion, file reads, artifact copying, runtime
+capture, replay package creation, manifest generation, hashing or integrity
+validation, storage, finalization, immutability, immutable package evidence,
+evaluation, promotion, broker work, paper trading, or live trading.
+
+Runtime artifact discovery scope:
+
+- Runtime artifact discovery means metadata-only identification of future
+  runtime evidence candidates that may be relevant to a replay package.
+- Discovery may identify candidate artifact classes, candidate artifact
+  reference identifiers, declared absence, not-applicable states, discovery
+  status, provenance status, redaction status, and eligibility metadata
+  conceptually.
+- Discovery does not read artifact content.
+- Discovery does not inspect runtime logs.
+- Discovery does not copy artifacts.
+- Discovery does not create packages.
+- Discovery does not approve runtime capture.
+- Discovery metadata may describe that a candidate is present, absent, not
+  applicable, stale, malformed, mixed-run, blocked by sensitive data, or
+  unknown, but those states do not grant downstream authority.
+
+Runtime artifact discovery dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before runtime
+  artifact discovery can bind candidate metadata to governed source
+  references.
+- Provenance and Redaction Authority must be defined before runtime artifact
+  discovery can treat candidate metadata as eligible for downstream planning.
+- Terminal completion and run eligibility authority must be defined before
+  runtime artifact discovery can support capture eligibility.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Runtime log inspection.
+- Runtime artifact content inspection.
+- Source path authority.
+- File path ingestion.
+- File reads.
+- Artifact copying.
+- Runtime capture.
+- Replay package creation.
+- Manifest generation.
+- Hashing or integrity validation.
+- Storage, finalization, or immutability.
+- Immutable package evidence.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual runtime artifact discovery vocabulary:
+
+- `artifact_class`.
+- `artifact_reference_id`.
+- `run_id`.
+- `discovery_status`.
+- `absent`.
+- `not_applicable`.
+- `discovered`.
+- `stale`.
+- `malformed`.
+- `mixed_run`.
+- `provenance_status`.
+- `redaction_status`.
+- `eligibility_status`.
+- Candidate artifact metadata.
+- Explicit absence declaration.
+- Explicit not-applicable declaration.
+- Metadata-only discovery result.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, runtime log access, runtime artifact content access, source paths,
+file paths, artifact reads, artifact copies, runtime capture, package
+sections, manifests, hashes, storage, immutable evidence, evaluation inputs,
+broker authority, or trading authority.
+
+Required future discovery statuses:
+
+- `discovered` means candidate metadata exists for a governed artifact class,
+  but content access and capture remain unauthorized.
+- `absent` means the artifact class was explicitly declared absent under later
+  governed terminal completion and run eligibility rules.
+- `not_applicable` means the artifact class is explicitly not applicable to
+  the run or package section under later governed rules.
+- `stale` means candidate metadata is not current enough for downstream use.
+- `malformed` means candidate metadata is structurally invalid.
+- `mixed_run` means candidate metadata spans or conflicts with more than one
+  run identity.
+- `blocked_sensitive` means candidate metadata or associated evidence is
+  blocked by sensitive data exposure.
+- `unknown` means discovery status is unresolved and is not acceptable for
+  downstream authority.
+
+Unknown, missing, malformed, stale, mixed-run, or sensitive discovery status
+must fail closed for downstream authority.
+
+Fail-closed handling:
+
+- Missing discovery result must fail closed.
+- Unknown artifact class must fail closed.
+- Unknown discovery status must fail closed.
+- Stale artifact metadata must fail closed.
+- Malformed artifact metadata must fail closed.
+- Mixed-run artifact metadata must fail closed.
+- Missing provenance must fail closed.
+- Invalid provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive-data markers must fail closed.
+- Absence declarations must be explicit and non-authorizing.
+- Not-applicable declarations must be explicit and non-authorizing.
+- Discovery metadata that implies runtime log inspection, runtime artifact
+  content inspection, path resolution, file reads, artifact copying, runtime
+  capture, package creation, immutable evidence, evaluation, broker/API work,
+  paper trading, or live trading must fail closed.
+
+Required future test-only guards:
+
+- Discovery vocabulary remains metadata-only.
+- Discovery cannot inspect runtime logs.
+- Discovery cannot inspect runtime artifact content.
+- Discovery cannot imply source path authority.
+- Discovery cannot imply file path ingestion.
+- Discovery cannot imply approved file reads.
+- Discovery cannot imply artifact copying.
+- Discovery cannot imply runtime capture.
+- Discovery cannot imply package creation.
+- Discovery cannot imply immutable package evidence.
+- Discovery cannot imply evaluation, scoring, reporting, or promotion.
+- Discovery cannot imply broker/API, execution, paper trading, or live trading
+  authority.
+- Absent declarations remain explicit and non-authorizing.
+- Not-applicable declarations remain explicit and non-authorizing.
+- Stale metadata fails closed.
+- Malformed metadata fails closed.
+- Mixed-run metadata fails closed.
+- Missing or invalid provenance fails closed.
+- Missing or invalid redaction status fails closed.
+- Sensitive-data markers block downstream authority.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need real runtime artifact content.
+- Need secrets.
+- Need `.env` access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need uncontrolled filesystem reads.
+- Need filesystem writes.
+- Need source path resolution.
+- Need file path ingestion.
+- Need file reads.
+- Need artifact copying.
+- Need runtime capture.
+- Need package creation.
+- Need manifest generation.
+- Need hashing or integrity validation.
+- Need storage, finalization, or immutability.
+- Need immutable package evidence.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Runtime artifact discovery authority is not runtime log access authority,
+runtime artifact content access, source path authority, file path ingestion,
+file-read authority, artifact copying, runtime capture, package creation,
+manifest authority, hashing or integrity authority,
+storage/finalization/immutability authority, immutable package evidence,
+evaluation, promotion, broker authority, execution permission, paper trading
+approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_RUNTIME_ARTIFACT_DISCOVERY_AUTHORITY_GUARD`. That future gate must
+be test-only and must not inspect runtime logs, inspect runtime artifacts,
+edit production code, edit docs, touch VPS, call broker APIs, inspect `.env`,
+change scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
