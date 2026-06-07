@@ -20,6 +20,7 @@ import tools.replay.integrity_validation as integrity_validation
 import tools.replay.manifest_builder as manifest_builder
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
+import tools.replay.filesystem_writer as filesystem_writer
 import tools.replay.package_completeness as package_completeness
 import tools.replay.package_creation as package_creation
 import tools.replay.package_layout as package_layout
@@ -1090,11 +1091,10 @@ PACKAGE_COMPLETENESS_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FILESYSTEM_WRITER_MODULE = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "filesystem_writer.py"
+)
 FUTURE_FILESYSTEM_WRITER_MODULES = (
-    Path(__file__).resolve().parents[1]
-    / "tools"
-    / "replay"
-    / "filesystem_writer.py",
     Path(__file__).resolve().parents[1]
     / "tools"
     / "replay"
@@ -1571,6 +1571,46 @@ def _package_completeness_evidence(**overrides: object) -> dict:
     }
     completeness_evidence.update(overrides)
     return completeness_evidence
+
+
+def _filesystem_writer_input(tmp_path: Path, **overrides: object) -> dict:
+    package_directory = "run_unit11"
+    storage_root_path = tmp_path / "replay_packages"
+    package_directory_path = storage_root_path / package_directory
+    package_directory_path.mkdir(parents=True)
+    package_completeness_result = package_completeness.validate_package_completeness(
+        _package_completeness_evidence()
+    )
+    storage_implementation_result = package_completeness_result[
+        "storage_implementation_result"
+    ]
+    writer_input = {
+        "canonical_run_id": "run_unit11",
+        "filesystem_storage_authority_result": storage_implementation_result[
+            "filesystem_storage_authority_result"
+        ],
+        "package_completeness_result": package_completeness_result,
+        "storage_implementation_result": storage_implementation_result,
+        "storage_root": "replay_packages",
+        "approved_storage_roots": ("replay_packages",),
+        "package_path": "replay_packages/run_unit11",
+        "approved_package_paths": ("replay_packages/run_unit11",),
+        "package_directory": package_directory,
+        "approved_package_directories": (package_directory,),
+        "storage_root_path": str(storage_root_path),
+        "approved_storage_root_paths": (str(storage_root_path),),
+        "artifact_relative_path": f"{package_directory}/manifest.json",
+        "artifact_bytes": b'{"canonical_run_id":"run_unit11"}',
+        "lifecycle_status": "finalized",
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "source_references": ("event_jsonl", "draft_package"),
+        "known_source_references": ("event_jsonl", "draft_package"),
+        "input_run_ids": ("run_unit11",),
+        "allow_absolute_storage_root": True,
+    }
+    writer_input.update(overrides)
+    return writer_input
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -5927,6 +5967,7 @@ def test_filesystem_writer_scope_guard_records_boundary_only() -> None:
         "writer_success_as_live_trading_authority",
     )
 
+    assert FILESYSTEM_WRITER_MODULE.exists()
     for future_module in FUTURE_FILESYSTEM_WRITER_MODULES:
         assert not future_module.exists()
 
@@ -5991,6 +6032,193 @@ def test_filesystem_writer_scope_guard_records_boundary_only() -> None:
             "LiveTradingAuthority",
         ):
             assert denied_name not in module_text
+
+
+def test_filesystem_writer_helper_dry_run_and_write_tmp_path_only(
+    tmp_path: Path,
+) -> None:
+    writer_input = _filesystem_writer_input(tmp_path)
+
+    assert filesystem_writer.FilesystemWriterAuthority().authority_boundary == (
+        filesystem_writer.FILESYSTEM_WRITER_AUTHORITY_BOUNDARY
+    )
+    assert filesystem_writer.WriterPreflightResult().result_type == (
+        filesystem_writer.WRITER_PREFLIGHT_RESULT
+    )
+    assert filesystem_writer.WriterDryRunResult().result_type == (
+        filesystem_writer.WRITER_DRY_RUN_RESULT
+    )
+
+    preflight = filesystem_writer.build_writer_preflight_result(writer_input)
+    dry_run = filesystem_writer.dry_run_replay_package_write(writer_input)
+    path_resolution = filesystem_writer.resolve_writer_path(writer_input)
+    target_path = Path(dry_run["artifact_path"])
+
+    assert preflight["result_type"] == filesystem_writer.WRITER_RESULT
+    assert dry_run["result_type"] == filesystem_writer.WRITER_DRY_RUN_RESULT
+    assert path_resolution["result_type"] == (
+        filesystem_writer.WRITER_PATH_RESOLUTION_RESULT
+    )
+    assert dry_run["dry_run"] is True
+    assert dry_run["write_performed"] is False
+    assert dry_run["artifact_sha256"] == hashlib.sha256(
+        writer_input["artifact_bytes"]
+    ).hexdigest()
+    assert not target_path.exists()
+    assert str(target_path).startswith(str(tmp_path))
+
+    written = filesystem_writer.write_replay_package_artifact(writer_input)
+
+    assert written["result_type"] == filesystem_writer.WRITER_FINALIZATION_RESULT
+    assert written["dry_run"] is False
+    assert written["write_performed"] is True
+    assert written["checksum_verified"] is True
+    assert written["artifact_sha256"] == written["observed_sha256"]
+    assert target_path.read_bytes() == writer_input["artifact_bytes"]
+    assert written["atomic_write"] is True
+    assert written["no_overwrite"] is True
+    assert written["runtime_capture"] is False
+    assert written["evaluation_or_promotion"] is False
+    assert written["strategy_risk_execution_behavior"] is False
+    assert written["broker_api_authority"] is False
+    assert written["execution_authority"] is False
+    assert written["paper_trading_authority"] is False
+    assert written["live_trading_authority"] is False
+    assert written["authority_boundary"] == (
+        filesystem_writer.FILESYSTEM_WRITER_AUTHORITY_BOUNDARY
+    )
+    assert "no_runtime_capture" in written["authority_boundary"]
+    assert "no_evaluation_or_promotion" in written["authority_boundary"]
+    assert "no_strategy_risk_execution_behavior" in written["authority_boundary"]
+    assert "no_broker_api_authority" in written["authority_boundary"]
+    assert "no_execution_authority" in written["authority_boundary"]
+    assert "no_paper_trading_authority" in written["authority_boundary"]
+    assert "no_live_trading_authority" in written["authority_boundary"]
+
+    module_names = set(filesystem_writer.__dict__)
+    for relaxable_name in FILESYSTEM_WRITER_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+    for denied_name in (
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "PromotionGate",
+        "StrategyBehavior",
+        "RiskBehavior",
+        "ExecutionBehavior",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name not in module_names
+
+
+def test_filesystem_writer_helper_fails_closed(tmp_path: Path) -> None:
+    base_input = _filesystem_writer_input(tmp_path)
+
+    existing_target = Path(base_input["storage_root_path"]) / base_input[
+        "artifact_relative_path"
+    ]
+    filesystem_writer.write_replay_package_artifact(base_input)
+    with pytest.raises(ValueError):
+        filesystem_writer.write_replay_package_artifact(base_input)
+
+    bad_completeness = {
+        **base_input["package_completeness_result"],
+        "package_completeness": False,
+    }
+    missing_complete_authority = {
+        **base_input["package_completeness_result"],
+        "complete_replay_package_authority": False,
+    }
+    bad_storage_authority = {
+        **base_input["filesystem_storage_authority_result"],
+        "evidence_only": False,
+    }
+    bad_storage_result = {
+        **base_input["storage_implementation_result"],
+        "evidence_only": False,
+    }
+    bad_cases = (
+        ({**base_input, "artifact_relative_path": "run_unit11/../escape"}, ValueError),
+        ({**base_input, "artifact_relative_path": "/tmp/escape"}, ValueError),
+        ({**base_input, "storage_root": "other"}, ValueError),
+        ({**base_input, "package_path": "other"}, ValueError),
+        ({**base_input, "package_directory": "other"}, ValueError),
+        ({**base_input, "filesystem_storage_authority_result": {}}, ValueError),
+        (
+            {
+                **base_input,
+                "filesystem_storage_authority_result": bad_storage_authority,
+            },
+            ValueError,
+        ),
+        ({**base_input, "package_completeness_result": {}}, ValueError),
+        ({**base_input, "package_completeness_result": bad_completeness}, ValueError),
+        (
+            {
+                **base_input,
+                "package_completeness_result": missing_complete_authority,
+            },
+            ValueError,
+        ),
+        ({**base_input, "storage_implementation_result": {}}, ValueError),
+        ({**base_input, "storage_implementation_result": bad_storage_result}, ValueError),
+        ({**base_input, "lifecycle_status": "draft"}, ValueError),
+        ({**base_input, "rollback_marker": ""}, ValueError),
+        ({**base_input, "provenance": ""}, ValueError),
+        ({**base_input, "provenance": object()}, ValueError),
+        ({**base_input, "redaction_status": ""}, ValueError),
+        ({**base_input, "redaction_status": "unknown"}, ValueError),
+        ({**base_input, "source_references": ()}, ValueError),
+        ({**base_input, "source_references": ("unknown",)}, ValueError),
+        ({**base_input, "sensitive_data_status": "exposed"}, ValueError),
+        ({**base_input, "stale_input": True}, ValueError),
+        ({**base_input, "malformed_input": True}, ValueError),
+        ({**base_input, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**base_input, "runtime_dependent": True}, ValueError),
+        ({**base_input, "attempted_runtime_capture": True}, ValueError),
+        ({**base_input, "evaluation_dependent": True}, ValueError),
+        ({**base_input, "attempted_evaluation_approval": True}, ValueError),
+        ({**base_input, "broker_dependent": True}, ValueError),
+        ({**base_input, "attempted_execution_permission": True}, ValueError),
+        ({**base_input, "attempted_live_trading_authority": True}, ValueError),
+        ({**base_input, "symlink_status": "unknown"}, ValueError),
+        ({**base_input, "repo_relative": False}, ValueError),
+        (object(), TypeError),
+    )
+    for bad_input, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            filesystem_writer.dry_run_replay_package_write(bad_input)
+
+    unapproved_root = tmp_path / "other_root"
+    unapproved_root.mkdir()
+    with pytest.raises(ValueError):
+        filesystem_writer.dry_run_replay_package_write(
+            {
+                **base_input,
+                "storage_root_path": str(unapproved_root),
+            }
+        )
+
+    other_target = Path(base_input["storage_root_path"]) / "run_unit11" / "other.json"
+    temp_path = other_target.with_name(f".{other_target.name}.tmp")
+    temp_path.write_bytes(b"stale temporary data")
+    with pytest.raises(ValueError):
+        filesystem_writer.write_replay_package_artifact(
+            {
+                **base_input,
+                "artifact_relative_path": "run_unit11/other.json",
+            }
+        )
+
+    module_text = FILESYSTEM_WRITER_MODULE.read_text(encoding="utf-8")
+    assert "main.py" not in module_text
+    assert "runtime_logs" not in module_text
+    assert "RuntimeCapture" not in module_text
+    assert "EvaluationEngine" not in module_text
+    assert "BrokerAuthority" not in module_text
+    assert "PaperTradingAuthority" not in module_text
+    assert "LiveTradingAuthority" not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
