@@ -7855,6 +7855,179 @@ def test_runtime_artifact_discovery_helper_fails_closed() -> None:
     assert "LiveTradingAuthority" not in module_text
 
 
+def test_runtime_artifact_discovery_authority_contract_remains_metadata_only() -> None:
+    base_input = _runtime_artifact_discovery_input()
+    base_candidate = base_input["runtime_artifact_candidates"][0]
+    conceptual_discovery_vocabulary = (
+        "artifact_class",
+        "artifact_reference_id",
+        "run_id",
+        "discovery_status",
+        "absent",
+        "not_applicable",
+        "discovered",
+        "stale",
+        "malformed",
+        "mixed_run",
+        "provenance_status",
+        "redaction_status",
+        "eligibility_status",
+    )
+    unsupported_authority_requests = (
+        {**base_input, "discovery_status": "unknown"},
+        {**base_input, "runtime_log_inspection_authority": True},
+        {**base_input, "runtime_artifact_content_inspection": True},
+        {**base_input, "source_path_authority": True},
+        {**base_input, "approved_file_read_authority": True},
+        {**base_input, "package_creation_authority": True},
+        {**base_input, "manifest_generation_authority": True},
+        {**base_input, "hashing_integrity_authority": True},
+        {**base_input, "storage_finalization_authority": True},
+        {**base_input, "immutable_package_evidence": True},
+        {**base_input, "promotion_authority": True},
+    )
+    contract_guard_cases = (
+        ({}, TypeError),
+        ({**base_input, "runtime_artifact_candidates": ()}, ValueError),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (
+                    {**base_candidate, "artifact_type": "unknown"},
+                ),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (
+                    {**base_candidate, "discovery_status": "unknown"},
+                ),
+            },
+            TypeError,
+        ),
+        ({**base_input, "stale_runtime_artifact_metadata": True}, ValueError),
+        ({**base_input, "malformed_runtime_artifact_metadata": True}, ValueError),
+        ({**base_input, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**base_input, "runtime_artifact_provenance": ""}, ValueError),
+        ({**base_input, "runtime_artifact_provenance": object()}, ValueError),
+        ({**base_input, "runtime_artifact_redaction_status": ""}, ValueError),
+        ({**base_input, "runtime_artifact_redaction_status": "unknown"}, ValueError),
+        ({**base_input, "sensitive_data_status": "exposed"}, ValueError),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (
+                    {**base_candidate, "eligible": False},
+                ),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (
+                    {**base_candidate, "artifact_type": "not_applicable"},
+                ),
+            },
+            ValueError,
+        ),
+        ({**base_input, "runtime_log_dependent": True}, ValueError),
+        ({**base_input, "runtime_path_dependent": True}, ValueError),
+        ({**base_input, "file_read_dependent": True}, ValueError),
+        ({**base_input, "source_path_ingestion_dependent": True}, ValueError),
+        ({**base_input, "file_path_ingestion_dependent": True}, ValueError),
+        ({**base_input, "artifact_copying_dependent": True}, ValueError),
+        ({**base_input, "runtime_capture_dependent": True}, ValueError),
+        ({**base_input, "attempted_runtime_capture": True}, ValueError),
+        ({**base_input, "evaluation_dependent": True}, ValueError),
+        ({**base_input, "attempted_evaluation_approval": True}, ValueError),
+        ({**base_input, "broker_dependent": True}, ValueError),
+        ({**base_input, "attempted_paper_trading_authority": True}, ValueError),
+        ({**base_input, "attempted_live_trading_authority": True}, ValueError),
+    )
+
+    for bad_input, expected_error in (
+        *contract_guard_cases,
+        *((bad_input, TypeError) for bad_input in unsupported_authority_requests),
+    ):
+        with pytest.raises(expected_error):
+            runtime_artifact_discovery.validate_runtime_artifact_discovery(bad_input)
+
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Runtime Artifact Discovery Authority Contract" in spec_text
+    assert "Discovery vocabulary remains metadata-only" in spec_text
+    assert "Missing discovery result must fail closed" in spec_text
+    assert "Unknown artifact class must fail closed" in spec_text
+    assert "Unknown discovery status must fail closed" in spec_text
+    assert "Stale artifact metadata must fail closed" in spec_text
+    assert "Malformed artifact metadata must fail closed" in spec_text
+    assert "Mixed-run artifact metadata must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Invalid provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Sensitive-data markers must fail closed" in spec_text
+    assert "Absence declarations must be explicit and non-authorizing" in spec_text
+    assert "Not-applicable declarations must be explicit and non-authorizing" in (
+        spec_text
+    )
+    assert "Discovery cannot inspect runtime logs" in spec_text
+    assert "Discovery cannot inspect runtime artifact content" in spec_text
+    assert "Discovery cannot imply source path authority" in spec_text
+    assert "Discovery cannot imply file path ingestion" in spec_text
+    assert "Discovery cannot imply approved file reads" in spec_text
+    assert "Discovery cannot imply artifact copying" in spec_text
+    assert "Discovery cannot imply runtime capture" in spec_text
+    assert "Discovery cannot imply package creation" in spec_text
+    assert "Discovery cannot imply immutable package evidence" in spec_text
+    assert "Discovery cannot imply evaluation, scoring" in spec_text
+    assert "Discovery cannot imply broker/API" in spec_text
+
+    result = runtime_artifact_discovery.validate_runtime_artifact_discovery(
+        base_input
+    )
+    assert result["metadata_only"] is True
+    assert result["runtime_log_access"] is False
+    assert result["file_reads"] is False
+    assert result["source_path_ingestion"] is False
+    assert result["file_path_ingestion"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["paper_trading_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert "runtime_log_inspection_authority" not in result
+    assert "runtime_artifact_content_inspection" not in result
+    assert "source_path_authority" not in result
+    assert "file_path_ingestion_authority" not in result
+    assert "file_read_authority" not in result
+    assert "artifact_copying_authority" not in result
+    assert "runtime_capture_authority" not in result
+    assert "package_creation_authority" not in result
+    assert "manifest_generation_authority" not in result
+    assert "hashing_integrity_authority" not in result
+    assert "storage_finalization_authority" not in result
+    assert "immutable_package_evidence" not in result
+    assert "evaluation_authority" not in result
+    assert "promotion_authority" not in result
+    assert "broker_authority" not in result
+
+    candidate = result["runtime_artifact_candidates"][0]
+    assert candidate["runtime_log_access"] is False
+    assert candidate["file_reads"] is False
+    assert candidate["source_path_ingestion"] is False
+    assert candidate["file_path_ingestion"] is False
+    assert candidate["artifact_copying"] is False
+    assert candidate["runtime_artifact_capture"] is False
+    assert candidate["runtime_capture"] is False
+    for vocabulary_name in conceptual_discovery_vocabulary:
+        assert vocabulary_name not in RUNTIME_ARTIFACT_DISCOVERY_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in runtime_artifact_discovery.__dict__
+
+
 def test_file_read_scope_guard_records_boundary_only() -> None:
     map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
