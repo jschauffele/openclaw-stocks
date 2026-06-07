@@ -8028,6 +8028,223 @@ def test_runtime_artifact_discovery_authority_contract_remains_metadata_only() -
         assert vocabulary_name not in runtime_artifact_discovery.__dict__
 
 
+def test_source_path_authority_contract_remains_metadata_only(
+    tmp_path: Path,
+) -> None:
+    source_input = _source_artifact_authority_input()
+    file_read_request = _file_read_request(tmp_path)
+    conceptual_source_path_vocabulary = (
+        "source_path_reference",
+        "repo_relative_source_path",
+        "runtime_relative_source_path",
+        "artifact_declared_source_path",
+        "path_authority_status",
+        "path_scope",
+        "path_provenance_status",
+        "path_redaction_status",
+        "path_eligibility_status",
+        "declared",
+        "absent",
+        "not_applicable",
+        "malformed",
+        "ambiguous",
+        "stale",
+        "mixed_run",
+        "blocked_sensitive",
+        "unknown",
+    )
+    unsupported_source_path_authority_inputs = (
+        {**source_input, "source_path_status": "unknown"},
+        {**source_input, "path_resolution_authority": True},
+        {**source_input, "symlink_resolution_authority": True},
+        {**source_input, "runtime_log_inspection_authority": True},
+        {**source_input, "runtime_artifact_content_inspection": True},
+        {**source_input, "file_read_authority": True},
+        {**source_input, "package_creation_authority": True},
+        {**source_input, "manifest_generation_authority": True},
+        {**source_input, "hashing_integrity_authority": True},
+        {**source_input, "storage_finalization_authority": True},
+        {**source_input, "immutable_package_evidence": True},
+        {**source_input, "promotion_authority": True},
+    )
+    source_path_guard_cases = (
+        ({**source_input, "source_path_identity": object()}, ValueError),
+        ({**source_input, "source_path_identity": ""}, ValueError),
+        ({**source_input, "ambiguous_source_references": True}, ValueError),
+        ({**source_input, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**source_input, "stale_source_artifact_metadata": True}, ValueError),
+        ({**source_input, "malformed_source_artifact_metadata": True}, ValueError),
+        ({**source_input, "source_artifact_provenance": ""}, ValueError),
+        ({**source_input, "source_artifact_provenance": object()}, ValueError),
+        ({**source_input, "source_artifact_redaction_status": ""}, ValueError),
+        ({**source_input, "source_artifact_redaction_status": "unknown"}, ValueError),
+        ({**source_input, "sensitive_data_status": "exposed"}, ValueError),
+        ({**source_input, "runtime_log_dependent": True}, ValueError),
+        ({**source_input, "runtime_path_dependent": True}, ValueError),
+        ({**source_input, "file_path_ingestion_dependent": True}, ValueError),
+        ({**source_input, "artifact_copying_dependent": True}, ValueError),
+        ({**source_input, "runtime_capture_dependent": True}, ValueError),
+        ({**source_input, "attempted_runtime_capture": True}, ValueError),
+        ({**source_input, "evaluation_dependent": True}, ValueError),
+        ({**source_input, "attempted_evaluation_approval": True}, ValueError),
+        ({**source_input, "broker_dependent": True}, ValueError),
+        ({**source_input, "attempted_paper_trading_authority": True}, ValueError),
+        ({**source_input, "attempted_live_trading_authority": True}, ValueError),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "absent_source_artifact_declaration": None,
+                "not_applicable_source_artifact_declaration": None,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "absent_source_artifact_declaration": (
+                    source_artifacts.declare_absent_source_artifact(
+                        "run_unit11",
+                        "event_jsonl",
+                    )
+                ),
+            },
+            None,
+        ),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "not_applicable_source_artifact_declaration": (
+                    source_artifacts.declare_not_applicable_source_artifact(
+                        "run_unit11",
+                        "event_jsonl",
+                    )
+                ),
+            },
+            None,
+        ),
+        (
+            {
+                **file_read_request,
+                "file_relative_path": "/tmp/source-path.jsonl",
+                "approved_path_metadata": {
+                    "approved": True,
+                    "file_identity": "event_stream",
+                    "relative_path": "/tmp/source-path.jsonl",
+                },
+            },
+            ValueError,
+        ),
+        (
+            {
+                **file_read_request,
+                "file_relative_path": "../source-path.jsonl",
+                "approved_path_metadata": {
+                    "approved": True,
+                    "file_identity": "event_stream",
+                    "relative_path": "../source-path.jsonl",
+                },
+            },
+            ValueError,
+        ),
+        ({**file_read_request, "symlink_status": "symlink"}, ValueError),
+    )
+
+    for bad_input in unsupported_source_path_authority_inputs:
+        with pytest.raises(TypeError):
+            source_artifacts.validate_source_artifact_authority(bad_input)
+
+    for bad_input, expected_error in source_path_guard_cases:
+        if expected_error is None:
+            result = source_artifacts.validate_source_artifact_authority(bad_input)
+            assert result["artifact_exists"] is False
+            assert result["source_path_ingestion"] is False
+            assert result["file_path_ingestion"] is False
+            assert result["artifact_copying"] is False
+            assert result["runtime_capture"] is False
+            assert result["evaluation_or_promotion"] is False
+            assert result["broker_api_authority"] is False
+            assert result["paper_trading_authority"] is False
+            assert result["live_trading_authority"] is False
+            continue
+        with pytest.raises(expected_error):
+            if "file_relative_path" in bad_input or "symlink_status" in bad_input:
+                file_reader.validate_file_read_authority(bad_input)
+            else:
+                source_artifacts.validate_source_artifact_authority(bad_input)
+
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Source Path Authority Contract" in spec_text
+    assert "Source path vocabulary remains non-resolving and metadata-only" in (
+        spec_text
+    )
+    assert "Source path authority cannot inspect runtime logs" in spec_text
+    assert "Source path authority cannot inspect runtime artifact content" in (
+        spec_text
+    )
+    assert "Missing source path status must fail closed" in spec_text
+    assert "Unknown source path status must fail closed" in spec_text
+    assert "Malformed source path metadata must fail closed" in spec_text
+    assert "Ambiguous source path metadata must fail closed" in spec_text
+    assert "Mixed-run source path metadata must fail closed" in spec_text
+    assert "Stale source path metadata must fail closed" in spec_text
+    assert "Absolute path smuggling must fail closed" in spec_text
+    assert "Parent traversal must fail closed" in spec_text
+    assert "Symlink or link-like path claims must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Invalid provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Sensitive-data markers must fail closed" in spec_text
+    assert "Absent declarations must be explicit and non-authorizing" in spec_text
+    assert "Not-applicable declarations must be explicit and non-authorizing" in (
+        spec_text
+    )
+    assert "Source path authority cannot imply file path ingestion" in spec_text
+    assert "Source path authority cannot imply approved file reads" in spec_text
+    assert "Source path authority cannot imply artifact copying" in spec_text
+    assert "Source path authority cannot imply runtime capture" in spec_text
+    assert "Source path authority cannot imply package creation" in spec_text
+    assert "Source path authority cannot imply immutable package evidence" in (
+        spec_text
+    )
+    assert "Source path authority cannot imply evaluation, scoring" in spec_text
+    assert "Source path authority cannot imply broker/API" in spec_text
+
+    source_result = source_artifacts.validate_source_artifact_authority(source_input)
+    assert source_result["metadata_only"] is True
+    assert source_result["source_path_authority"] is True
+    assert source_result["source_path_ingestion"] is False
+    assert source_result["file_path_ingestion"] is False
+    assert source_result["runtime_artifact_discovery"] is False
+    assert source_result["artifact_copying"] is False
+    assert source_result["runtime_capture"] is False
+    assert source_result["evaluation_or_promotion"] is False
+    assert source_result["broker_api_authority"] is False
+    assert source_result["paper_trading_authority"] is False
+    assert source_result["live_trading_authority"] is False
+    assert "path_resolution_authority" not in source_result
+    assert "symlink_resolution_authority" not in source_result
+    assert "file_path_ingestion_authority" not in source_result
+    assert "file_read_authority" not in source_result
+    assert "artifact_copying_authority" not in source_result
+    assert "runtime_capture_authority" not in source_result
+    assert "package_creation_authority" not in source_result
+    assert "manifest_generation_authority" not in source_result
+    assert "hashing_integrity_authority" not in source_result
+    assert "storage_finalization_authority" not in source_result
+    assert "immutable_package_evidence" not in source_result
+    assert "evaluation_authority" not in source_result
+    assert "promotion_authority" not in source_result
+    assert "broker_authority" not in source_result
+
+    for vocabulary_name in conceptual_source_path_vocabulary:
+        assert vocabulary_name not in SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in source_artifacts.__dict__
+
+
 def test_file_read_scope_guard_records_boundary_only() -> None:
     map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
