@@ -8513,6 +8513,122 @@ def test_file_read_helper_rejects_runtime_log_scope_without_reading(
     )
 
 
+def test_file_read_helper_rejects_source_path_scope_without_reading(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _file_read_request(tmp_path)
+    source_path_relative_path = "source_paths/run_unit11/event_stream.jsonl"
+    source_path_payload = b"synthetic source path evidence must not be read\n"
+    source_path = Path(request["artifact_root_path"]) / source_path_relative_path
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.write_bytes(source_path_payload)
+
+    absolute_source_path = tmp_path / "outside_source" / "event_stream.jsonl"
+    absolute_source_path.parent.mkdir()
+    absolute_source_path.write_bytes(source_path_payload)
+
+    read_attempts: list[str] = []
+    guarded_paths = {source_path, absolute_source_path}
+    original_read_bytes = Path.read_bytes
+
+    def fail_if_source_path_is_read(path: Path) -> bytes:
+        if path in guarded_paths:
+            read_attempts.append(str(path))
+            raise AssertionError("source path was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_if_source_path_is_read)
+
+    repo_relative_source_path_request = {
+        **request,
+        "source_references": ("draft_package",),
+        "file_relative_path": source_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": source_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(source_path_payload).hexdigest(),
+        "max_size_bytes": len(source_path_payload),
+        "source_path_ingestion_dependent": True,
+    }
+    absolute_source_path_request = {
+        **request,
+        "file_relative_path": str(absolute_source_path),
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": str(absolute_source_path),
+        },
+        "expected_sha256": hashlib.sha256(source_path_payload).hexdigest(),
+        "max_size_bytes": len(source_path_payload),
+    }
+    replay_reference_source_path_request = {
+        **request,
+        "source_references": ("draft_package", "source_path"),
+        "file_relative_path": source_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": source_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(source_path_payload).hexdigest(),
+        "max_size_bytes": len(source_path_payload),
+    }
+    runtime_log_vocabulary_source_path_request = {
+        **request,
+        "source_references": (file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE,),
+        "file_relative_path": source_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": source_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(source_path_payload).hexdigest(),
+        "max_size_bytes": len(source_path_payload),
+    }
+
+    source_path_scope_requests = (
+        {**request, "source_path_ingestion_dependent": True},
+        repo_relative_source_path_request,
+        absolute_source_path_request,
+        replay_reference_source_path_request,
+        runtime_log_vocabulary_source_path_request,
+    )
+
+    for bad_request in source_path_scope_requests:
+        with pytest.raises(ValueError):
+            file_reader.read_approved_replay_file(bad_request)
+
+    assert read_attempts == []
+    assert "SOURCE_PATH_INGESTION" in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+    assert "SourcePathIngestion" in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+    assert "SOURCE_PATH_INGESTION" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert "SourcePathIngestion" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+
+    result = file_reader.read_approved_replay_file(request)
+    assert result["source_path_ingestion"] is False
+    assert result["runtime_log_access"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert "no_source_path_ingestion" in result["authority_boundary"]
+    assert "source_path_ingestion_dependency" in result["fail_closed_boundaries"]
+    assert "file_read_authority_as_artifact_copying" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_runtime_capture" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_evaluation_approval" in (
+        result["fail_closed_boundaries"]
+    )
+
+
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
