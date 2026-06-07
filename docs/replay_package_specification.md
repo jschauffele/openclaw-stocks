@@ -2953,6 +2953,217 @@ and must not inspect runtime logs, inspect runtime artifacts, edit production
 code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
 scheduler/systemd, approve paper trading, or approve live trading.
 
+## File Path Ingestion Authority Contract
+
+File path ingestion authority remains governance-only and is not implemented
+yet. This contract defines a conceptual authority boundary after source path
+authority, before artifact copying, package creation, immutable package
+evidence, runtime capture, or evaluation implementation can be considered.
+
+This contract does not approve tests, code, file path ingestion modules, real
+path resolution, directory traversal, symlink traversal, runtime log
+inspection, runtime artifact content inspection, file reads, artifact copying,
+runtime capture, replay package creation, manifest generation, hashing or
+integrity validation, storage, finalization, immutability, immutable package
+evidence, evaluation, promotion, broker work, paper trading, or live trading.
+
+File path ingestion scope:
+
+- File path ingestion means governed metadata acceptance for path-like values
+  as future ingestion candidates, without resolving, traversing, opening,
+  reading, copying, or validating any filesystem target.
+- A source reference identifies a governed evidence class or ownership
+  declaration. A source artifact class categorizes the future evidence. Source
+  path authority governs whether a path-like reference may be named
+  conceptually. File path ingestion authority may only define when path-like
+  metadata can be accepted as an ingestion candidate.
+- File path ingestion authority does not read files.
+- File path ingestion authority does not resolve real filesystem paths.
+- File path ingestion authority does not traverse directories.
+- File path ingestion authority does not follow symlinks.
+- File path ingestion authority does not copy artifacts.
+- File path ingestion authority does not inspect runtime artifacts.
+- File path ingestion authority does not inspect runtime logs.
+- File path ingestion authority does not approve runtime capture.
+- File path ingestion metadata may describe a candidate as declared, absent,
+  not applicable, malformed, ambiguous, stale, mixed-run, blocked by sensitive
+  data, or unknown, but those states do not grant downstream authority.
+
+File path ingestion dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before file
+  path ingestion metadata can bind to a governed source reference or artifact
+  class.
+- Provenance and Redaction Authority must be defined before file path
+  ingestion metadata can be considered eligible for downstream planning.
+- Runtime Artifact Discovery Authority must be defined before file path
+  ingestion metadata can attach to discovered runtime artifact candidates.
+- Source Path Authority must be defined before file path ingestion metadata
+  can be considered as a downstream candidate.
+- Terminal completion and run eligibility authority must be defined before
+  file path ingestion metadata can support capture eligibility.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Runtime log inspection.
+- Runtime artifact content inspection.
+- File reads.
+- Directory traversal.
+- Path resolution.
+- Symlink traversal.
+- Artifact copying.
+- Runtime capture.
+- Replay package creation.
+- Manifest generation.
+- Hashing or integrity validation.
+- Storage, finalization, or immutability.
+- Immutable package evidence.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual file path ingestion vocabulary:
+
+- `file_path_reference`.
+- `ingestion_candidate_path`.
+- `repo_relative_ingestion_path`.
+- `runtime_relative_ingestion_path`.
+- `ingestion_path_scope`.
+- `ingestion_path_status`.
+- `ingestion_path_provenance_status`.
+- `ingestion_path_redaction_status`.
+- `ingestion_path_eligibility_status`.
+- Explicit absence declaration.
+- Explicit not-applicable declaration.
+- Metadata-only file path ingestion result.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, path resolution, filesystem traversal, symlink handling, file reads,
+artifact copies, runtime capture, package sections, manifests, hashes,
+storage, immutable evidence, evaluation inputs, broker authority, or trading
+authority.
+
+Required future file path ingestion statuses:
+
+- `candidate_declared` means an ingestion candidate path has been named
+  conceptually, but path resolution and file access remain unauthorized.
+- `absent` means the ingestion candidate path was explicitly declared absent
+  under later governed terminal completion and run eligibility rules.
+- `not_applicable` means the ingestion candidate path is explicitly not
+  applicable to the source reference, artifact class, run, or package section
+  under later governed rules.
+- `malformed` means the ingestion path metadata is structurally invalid.
+- `ambiguous` means the ingestion path metadata cannot identify exactly one
+  governed conceptual ingestion candidate.
+- `stale` means the ingestion path metadata is not current enough for
+  downstream use.
+- `mixed_run` means the ingestion path metadata spans or conflicts with more
+  than one run identity.
+- `blocked_sensitive` means the ingestion path metadata or associated evidence
+  is blocked by sensitive data exposure.
+- `unknown` means ingestion path status is unresolved and is not acceptable for
+  downstream authority.
+
+Unknown, missing, malformed, ambiguous, stale, mixed-run, or sensitive
+ingestion-path status must fail closed for downstream authority.
+
+Fail-closed handling:
+
+- Missing ingestion path status must fail closed.
+- Unknown ingestion path status must fail closed.
+- Malformed ingestion path metadata must fail closed.
+- Ambiguous ingestion path metadata must fail closed.
+- Mixed-run ingestion path metadata must fail closed.
+- Stale ingestion path metadata must fail closed.
+- Absolute path smuggling must fail closed.
+- Parent traversal must fail closed.
+- Symlink or link-like path claims must fail closed until separately
+  authorized.
+- Directory traversal claims must fail closed.
+- Missing provenance must fail closed.
+- Invalid provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive-data markers must fail closed.
+- Absent declarations must be explicit and non-authorizing.
+- Not-applicable declarations must be explicit and non-authorizing.
+- File path ingestion metadata that implies runtime log inspection, runtime
+  artifact content inspection, path resolution, directory traversal, symlink
+  traversal, file reads, artifact copying, runtime capture, package creation,
+  immutable evidence, evaluation, broker/API work, paper trading, or live
+  trading must fail closed.
+
+Required future test-only guards:
+
+- File path ingestion vocabulary remains metadata-only.
+- File path ingestion cannot inspect runtime logs.
+- File path ingestion cannot inspect runtime artifact content.
+- File path ingestion cannot imply approved file reads.
+- File path ingestion cannot imply path resolution.
+- File path ingestion cannot imply symlink traversal.
+- File path ingestion cannot imply directory traversal.
+- File path ingestion cannot imply artifact copying.
+- File path ingestion cannot imply runtime capture.
+- File path ingestion cannot imply package creation.
+- File path ingestion cannot imply immutable package evidence.
+- File path ingestion cannot imply evaluation, scoring, reporting, or
+  promotion.
+- File path ingestion cannot imply broker/API, execution, paper trading, or
+  live trading authority.
+- Absolute path smuggling fails closed.
+- Parent traversal fails closed.
+- Ambiguous ingestion path metadata fails closed.
+- Malformed ingestion path metadata fails closed.
+- Stale ingestion path metadata fails closed.
+- Mixed-run ingestion path metadata fails closed.
+- Absent declarations remain explicit and non-authorizing.
+- Not-applicable declarations remain explicit and non-authorizing.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need real runtime artifact content.
+- Need secrets.
+- Need `.env` access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need uncontrolled filesystem reads.
+- Need filesystem writes.
+- Need actual path resolution.
+- Need symlink resolution.
+- Need directory traversal.
+- Need file reads.
+- Need artifact copying.
+- Need runtime capture.
+- Need package creation.
+- Need manifest generation.
+- Need hashing or integrity validation.
+- Need storage, finalization, or immutability.
+- Need immutable package evidence.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+File path ingestion authority is not runtime log access authority, runtime
+artifact content access, path resolution, directory traversal, symlink
+traversal, file-read authority, artifact copying, runtime capture, package
+creation, manifest authority, hashing or integrity authority,
+storage/finalization/immutability authority, immutable package evidence,
+evaluation, promotion, broker authority, execution permission, paper trading
+approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_FILE_PATH_INGESTION_AUTHORITY_GUARD`. That future gate must be
+test-only and must not inspect runtime logs, inspect runtime artifacts, edit
+production code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
+scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
