@@ -2747,6 +2747,212 @@ be test-only and must not inspect runtime logs, inspect runtime artifacts,
 edit production code, edit docs, touch VPS, call broker APIs, inspect `.env`,
 change scheduler/systemd, approve paper trading, or approve live trading.
 
+## Source Path Authority Contract
+
+Source path authority remains governance-only and is not implemented yet. This
+contract defines a conceptual authority boundary after source reference and
+source artifact authority, provenance/redaction authority, and runtime
+artifact discovery authority, before file path ingestion, artifact copying,
+package creation, immutable package evidence, runtime capture, or evaluation
+implementation can be considered.
+
+This contract does not approve tests, code, source path modules, path
+resolution, runtime log inspection, runtime artifact content inspection, file
+path ingestion, file reads, artifact copying, runtime capture, replay package
+creation, manifest generation, hashing or integrity validation, storage,
+finalization, immutability, immutable package evidence, evaluation, promotion,
+broker work, paper trading, or live trading.
+
+Source path scope:
+
+- A source path is a governed path-like metadata declaration that may name
+  where a future source artifact could be found, without resolving,
+  traversing, opening, reading, copying, or validating the filesystem target.
+- A source reference identifies a governed evidence class or ownership
+  declaration. A source artifact class categorizes the future evidence. A
+  source path names a conceptual path-like reference for that class. File path
+  ingestion is a separate downstream authority that may later decide whether
+  actual path resolution or file access is permitted.
+- Source path authority may only define whether a path-like reference can be
+  named conceptually.
+- Source path authority does not resolve paths.
+- Source path authority does not read files.
+- Source path authority does not copy artifacts.
+- Source path authority does not inspect runtime artifacts.
+- Source path authority does not inspect runtime logs.
+- Source path authority does not approve runtime capture.
+- Source path metadata may describe a declaration as present, absent, not
+  applicable, malformed, ambiguous, stale, mixed-run, blocked by sensitive
+  data, or unknown, but those states do not grant downstream authority.
+
+Source path dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before source
+  path metadata can bind to a governed source reference or artifact class.
+- Provenance and Redaction Authority must be defined before source path
+  metadata can be considered eligible for downstream planning.
+- Runtime Artifact Discovery Authority must be defined before source path
+  metadata can attach to discovered runtime artifact candidates.
+- Terminal completion and run eligibility authority must be defined before
+  source path metadata can support capture eligibility.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Runtime log inspection.
+- Runtime artifact content inspection.
+- File path ingestion.
+- File reads.
+- Path traversal.
+- Symlink traversal.
+- Artifact copying.
+- Runtime capture.
+- Replay package creation.
+- Manifest generation.
+- Hashing or integrity validation.
+- Storage, finalization, or immutability.
+- Immutable package evidence.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual source path vocabulary:
+
+- `source_path_reference`.
+- `repo_relative_source_path`.
+- `runtime_relative_source_path`.
+- `artifact_declared_source_path`.
+- `path_authority_status`.
+- `path_scope`.
+- `path_provenance_status`.
+- `path_redaction_status`.
+- `path_eligibility_status`.
+- Explicit absence declaration.
+- Explicit not-applicable declaration.
+- Metadata-only source path result.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, path resolution, filesystem traversal, symlink handling, file path
+ingestion, file reads, artifact copies, runtime capture, package sections,
+manifests, hashes, storage, immutable evidence, evaluation inputs, broker
+authority, or trading authority.
+
+Required future source path statuses:
+
+- `declared` means a governed source path reference has been named
+  conceptually, but path resolution and file access remain unauthorized.
+- `absent` means the source path was explicitly declared absent under later
+  governed terminal completion and run eligibility rules.
+- `not_applicable` means the source path is explicitly not applicable to the
+  source reference, artifact class, run, or package section under later
+  governed rules.
+- `malformed` means the source path metadata is structurally invalid.
+- `ambiguous` means the source path metadata cannot identify exactly one
+  governed conceptual path reference.
+- `stale` means the source path metadata is not current enough for downstream
+  use.
+- `mixed_run` means the source path metadata spans or conflicts with more than
+  one run identity.
+- `blocked_sensitive` means the source path metadata or associated evidence is
+  blocked by sensitive data exposure.
+- `unknown` means source path status is unresolved and is not acceptable for
+  downstream authority.
+
+Unknown, missing, malformed, ambiguous, stale, mixed-run, or sensitive path
+status must fail closed for downstream authority.
+
+Fail-closed handling:
+
+- Missing source path status must fail closed.
+- Unknown source path status must fail closed.
+- Malformed source path metadata must fail closed.
+- Ambiguous source path metadata must fail closed.
+- Mixed-run source path metadata must fail closed.
+- Stale source path metadata must fail closed.
+- Absolute path smuggling must fail closed.
+- Parent traversal must fail closed.
+- Symlink or link-like path claims must fail closed until separately
+  authorized.
+- Missing provenance must fail closed.
+- Invalid provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive-data markers must fail closed.
+- Absent declarations must be explicit and non-authorizing.
+- Not-applicable declarations must be explicit and non-authorizing.
+- Source path metadata that implies runtime log inspection, runtime artifact
+  content inspection, path resolution, file path ingestion, file reads,
+  artifact copying, runtime capture, package creation, immutable evidence,
+  evaluation, broker/API work, paper trading, or live trading must fail
+  closed.
+
+Required future test-only guards:
+
+- Source path vocabulary remains non-resolving and metadata-only.
+- Source path authority cannot inspect runtime logs.
+- Source path authority cannot inspect runtime artifact content.
+- Source path authority cannot imply file path ingestion.
+- Source path authority cannot imply approved file reads.
+- Source path authority cannot imply artifact copying.
+- Source path authority cannot imply runtime capture.
+- Source path authority cannot imply package creation.
+- Source path authority cannot imply immutable package evidence.
+- Source path authority cannot imply evaluation, scoring, reporting, or
+  promotion.
+- Source path authority cannot imply broker/API, execution, paper trading, or
+  live trading authority.
+- Absolute path smuggling fails closed.
+- Parent traversal fails closed.
+- Ambiguous source path metadata fails closed.
+- Malformed source path metadata fails closed.
+- Stale source path metadata fails closed.
+- Mixed-run source path metadata fails closed.
+- Absent declarations remain explicit and non-authorizing.
+- Not-applicable declarations remain explicit and non-authorizing.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need real runtime artifact content.
+- Need secrets.
+- Need `.env` access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need uncontrolled filesystem reads.
+- Need filesystem writes.
+- Need actual path resolution.
+- Need symlink resolution.
+- Need file path ingestion.
+- Need file reads.
+- Need artifact copying.
+- Need runtime capture.
+- Need package creation.
+- Need manifest generation.
+- Need hashing or integrity validation.
+- Need storage, finalization, or immutability.
+- Need immutable package evidence.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Source path authority is not runtime log access authority, runtime artifact
+content access, path resolution, file path ingestion, file-read authority,
+artifact copying, runtime capture, package creation, manifest authority,
+hashing or integrity authority, storage/finalization/immutability authority,
+immutable package evidence, evaluation, promotion, broker authority, execution
+permission, paper trading approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_SOURCE_PATH_AUTHORITY_GUARD`. That future gate must be test-only
+and must not inspect runtime logs, inspect runtime artifacts, edit production
+code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
+scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
