@@ -1331,6 +1331,98 @@ RUNTIME_ARTIFACT_DISCOVERY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "PaperTradingAuthority",
     "LiveTradingAuthority",
 )
+FUTURE_FILE_READ_MODULES = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "file_reader.py",
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "runtime_artifact_file_reader.py"
+    ),
+    (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "approved_file_reads.py"
+    ),
+)
+FILE_READ_SCOPE_RELAXABLE_NAMES = (
+    "FILE_READ_AUTHORITY",
+    "REPLAY_FILE_READER",
+    "RUNTIME_ARTIFACT_FILE_READER",
+    "SOURCE_ARTIFACT_FILE_READER",
+    "APPROVED_FILE_READ_REQUEST",
+    "APPROVED_FILE_READ_RESULT",
+    "FILE_READ_PREFLIGHT_RESULT",
+    "FILE_READ_PATH_RESOLUTION_RESULT",
+    "FILE_READ_NO_ACCESS_RESULT",
+    "FILE_READ_CHECKSUM_RESULT",
+    "FILE_READ_SIZE_LIMIT_RESULT",
+    "FILE_READ_ENCODING_RESULT",
+    "FILE_READ_PROVENANCE_RESULT",
+    "FILE_READ_REDACTION_RESULT",
+    "FILE_READ_RUN_ID_ALIGNMENT_RESULT",
+    "FILE_READ_TERMINAL_COMPLETION_PREREQUISITE",
+    "FILE_READ_FAILURE",
+    "RUNTIME_LOG_ACCESS_PREREQUISITE",
+    "ARTIFACT_COPYING_PREREQUISITE",
+    "RUNTIME_CAPTURE_PREREQUISITE",
+    "FileReadAuthority",
+    "ReplayFileReader",
+    "RuntimeArtifactFileReader",
+    "SourceArtifactFileReader",
+    "ApprovedFileReadRequest",
+    "ApprovedFileReadResult",
+    "FileReadPreflightResult",
+    "FileReadPathResolutionResult",
+    "FileReadNoAccessResult",
+    "FileReadChecksumResult",
+    "FileReadSizeLimitResult",
+    "FileReadEncodingResult",
+    "FileReadProvenanceResult",
+    "FileReadRedactionResult",
+    "FileReadRunIdAlignmentResult",
+    "FileReadTerminalCompletionPrerequisite",
+    "FileReadFailure",
+    "RuntimeLogAccessPrerequisite",
+    "ArtifactCopyingPrerequisite",
+    "RuntimeCapturePrerequisite",
+)
+FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "FILE_READ_IMPLEMENTATION",
+    "OPEN_READ_BEHAVIOR",
+    "RUNTIME_LOG_ACCESS",
+    "SOURCE_PATH_INGESTION",
+    "FILE_PATH_INGESTION",
+    "ARTIFACT_COPYING",
+    "RUNTIME_ARTIFACT_CAPTURE",
+    "RUNTIME_CAPTURE",
+    "EVALUATION_PROMOTION",
+    "STRATEGY_RISK_EXECUTION_BEHAVIOR",
+    "BROKER_API_AUTHORITY",
+    "EXECUTION_PERMISSION",
+    "PAPER_TRADING_AUTHORITY",
+    "LIVE_TRADING_AUTHORITY",
+    "open",
+    "read",
+    "read_text",
+    "read_bytes",
+    "RuntimeLogAccess",
+    "SourcePathIngestion",
+    "FilePathIngestion",
+    "ArtifactCopy",
+    "RuntimeArtifactCapture",
+    "RuntimeCapture",
+    "EvaluationEngine",
+    "PromotionGate",
+    "StrategyBehavior",
+    "RiskBehavior",
+    "ExecutionBehavior",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "PaperTradingAuthority",
+    "LiveTradingAuthority",
+)
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
     (
@@ -7702,6 +7794,358 @@ def test_runtime_artifact_discovery_helper_fails_closed() -> None:
     assert "BrokerAuthority" not in module_text
     assert "PaperTradingAuthority" not in module_text
     assert "LiveTradingAuthority" not in module_text
+
+
+def test_file_read_scope_guard_records_boundary_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    architecture_text = EVALUATION_INFRASTRUCTURE_ARCHITECTURE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "## Unit 10: Runtime Artifact Discovery/Capture" in map_text
+    assert "Runtime artifact access allowed: no until a separate" in map_text
+    assert "ungoverned filesystem reads/writes" in map_text
+    assert "Path-like runtime artifact inputs remain forbidden" in spec_text
+    assert "File path ingestion authority must be explicitly governed" in spec_text
+    assert "Artifact copying authority must be explicitly governed" in spec_text
+    assert "Need filesystem reads or writes" in spec_text
+    assert "Need file path ingestion" in spec_text
+    assert "Need artifact copying" in spec_text
+    assert "Missing file path ingestion authority" in spec_text
+    assert "Missing artifact copying authority" in spec_text
+    assert "Runtime capture must remain separate from evaluation and promotion" in (
+        spec_text
+    )
+    assert "Evaluation and promotion authority remains governance-only" in (
+        architecture_text
+    )
+    assert "AI recommendations, shadow outputs, paper validation" in architecture_text
+
+    assert FILE_READ_SCOPE_RELAXABLE_NAMES == (
+        "FILE_READ_AUTHORITY",
+        "REPLAY_FILE_READER",
+        "RUNTIME_ARTIFACT_FILE_READER",
+        "SOURCE_ARTIFACT_FILE_READER",
+        "APPROVED_FILE_READ_REQUEST",
+        "APPROVED_FILE_READ_RESULT",
+        "FILE_READ_PREFLIGHT_RESULT",
+        "FILE_READ_PATH_RESOLUTION_RESULT",
+        "FILE_READ_NO_ACCESS_RESULT",
+        "FILE_READ_CHECKSUM_RESULT",
+        "FILE_READ_SIZE_LIMIT_RESULT",
+        "FILE_READ_ENCODING_RESULT",
+        "FILE_READ_PROVENANCE_RESULT",
+        "FILE_READ_REDACTION_RESULT",
+        "FILE_READ_RUN_ID_ALIGNMENT_RESULT",
+        "FILE_READ_TERMINAL_COMPLETION_PREREQUISITE",
+        "FILE_READ_FAILURE",
+        "RUNTIME_LOG_ACCESS_PREREQUISITE",
+        "ARTIFACT_COPYING_PREREQUISITE",
+        "RUNTIME_CAPTURE_PREREQUISITE",
+        "FileReadAuthority",
+        "ReplayFileReader",
+        "RuntimeArtifactFileReader",
+        "SourceArtifactFileReader",
+        "ApprovedFileReadRequest",
+        "ApprovedFileReadResult",
+        "FileReadPreflightResult",
+        "FileReadPathResolutionResult",
+        "FileReadNoAccessResult",
+        "FileReadChecksumResult",
+        "FileReadSizeLimitResult",
+        "FileReadEncodingResult",
+        "FileReadProvenanceResult",
+        "FileReadRedactionResult",
+        "FileReadRunIdAlignmentResult",
+        "FileReadTerminalCompletionPrerequisite",
+        "FileReadFailure",
+        "RuntimeLogAccessPrerequisite",
+        "ArtifactCopyingPrerequisite",
+        "RuntimeCapturePrerequisite",
+    )
+    assert not (
+        set(FILE_READ_SCOPE_RELAXABLE_NAMES)
+        & set(FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    file_read_boundaries = (
+        "file_read_authority_after_runtime_artifact_discovery_helper",
+        "code_and_test_lane_required_before_behavior_exists",
+        "file_read_authority_is_not_runtime_log_access",
+        "file_read_authority_is_not_source_path_ingestion",
+        "file_read_authority_is_not_file_path_ingestion",
+        "file_read_authority_is_not_artifact_copying",
+        "file_read_authority_is_not_runtime_artifact_discovery",
+        "file_read_authority_is_not_runtime_artifact_capture",
+        "file_read_authority_is_not_runtime_capture",
+        "file_read_authority_is_not_filesystem_writer_authority",
+        "file_read_authority_is_not_evaluation_or_promotion",
+        "file_read_authority_is_not_strategy_risk_execution_behavior",
+        "file_read_authority_is_not_broker_live_or_paper_authority",
+    )
+    assert file_read_boundaries == (
+        "file_read_authority_after_runtime_artifact_discovery_helper",
+        "code_and_test_lane_required_before_behavior_exists",
+        "file_read_authority_is_not_runtime_log_access",
+        "file_read_authority_is_not_source_path_ingestion",
+        "file_read_authority_is_not_file_path_ingestion",
+        "file_read_authority_is_not_artifact_copying",
+        "file_read_authority_is_not_runtime_artifact_discovery",
+        "file_read_authority_is_not_runtime_artifact_capture",
+        "file_read_authority_is_not_runtime_capture",
+        "file_read_authority_is_not_filesystem_writer_authority",
+        "file_read_authority_is_not_evaluation_or_promotion",
+        "file_read_authority_is_not_strategy_risk_execution_behavior",
+        "file_read_authority_is_not_broker_live_or_paper_authority",
+    )
+
+    file_read_prerequisites = (
+        "canonical_run_id_alignment",
+        "runtime_artifact_discovery_result_present_and_valid",
+        "source_artifact_authority_result_present_and_valid",
+        "approved_source_reference_present_and_known",
+        "approved_file_identity_explicit",
+        "approved_storage_root_or_artifact_root_identity_explicit",
+        "approved_path_metadata_explicit",
+        "terminal_completion_rules_explicit",
+        "provenance_present_and_valid",
+        "redaction_status_present_and_valid",
+        "eligible_runtime_artifact_vocabulary_explicit",
+        "no_runtime_log_access",
+        "no_file_path_ingestion_behavior",
+        "no_source_path_ingestion_behavior",
+        "no_artifact_copying",
+        "no_runtime_artifact_capture",
+        "no_runtime_capture",
+        "no_evaluation_dependent_inputs",
+        "no_broker_dependent_inputs",
+        "no_strategy_risk_execution_inputs",
+        "no_paper_live_authority",
+    )
+    assert file_read_prerequisites == (
+        "canonical_run_id_alignment",
+        "runtime_artifact_discovery_result_present_and_valid",
+        "source_artifact_authority_result_present_and_valid",
+        "approved_source_reference_present_and_known",
+        "approved_file_identity_explicit",
+        "approved_storage_root_or_artifact_root_identity_explicit",
+        "approved_path_metadata_explicit",
+        "terminal_completion_rules_explicit",
+        "provenance_present_and_valid",
+        "redaction_status_present_and_valid",
+        "eligible_runtime_artifact_vocabulary_explicit",
+        "no_runtime_log_access",
+        "no_file_path_ingestion_behavior",
+        "no_source_path_ingestion_behavior",
+        "no_artifact_copying",
+        "no_runtime_artifact_capture",
+        "no_runtime_capture",
+        "no_evaluation_dependent_inputs",
+        "no_broker_dependent_inputs",
+        "no_strategy_risk_execution_inputs",
+        "no_paper_live_authority",
+    )
+
+    file_read_stop_conditions = (
+        "missing_runtime_artifact_discovery_result",
+        "failed_runtime_artifact_discovery_result",
+        "missing_source_artifact_authority_result",
+        "failed_source_artifact_authority_result",
+        "missing_source_references",
+        "unknown_source_references",
+        "ambiguous_source_references",
+        "missing_approved_file_identity",
+        "unapproved_file_identity",
+        "missing_approved_artifact_root",
+        "unapproved_artifact_root",
+        "missing_approved_path_metadata",
+        "malformed_approved_path_metadata",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "missing_terminal_completion_rule",
+        "failed_terminal_completion_rule",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "missing_eligible_runtime_artifact_vocabulary",
+        "malformed_eligible_runtime_artifact_vocabulary",
+        "sensitive_data_exposure",
+        "stale_file_read_metadata",
+        "malformed_file_read_metadata",
+        "mixed_run_id",
+        "runtime_log_dependency",
+        "source_path_ingestion_dependency",
+        "file_path_ingestion_dependency",
+        "artifact_copying_dependency",
+        "runtime_artifact_capture_dependency",
+        "runtime_capture_dependency",
+        "evaluation_dependency",
+        "broker_dependency",
+        "strategy_risk_execution_dependency",
+        "file_read_authority_as_runtime_log_access",
+        "file_read_authority_as_artifact_copying",
+        "file_read_authority_as_runtime_capture",
+        "file_read_authority_as_evaluation_approval",
+        "file_read_authority_as_execution_permission",
+        "file_read_authority_as_paper_trading_authority",
+        "file_read_authority_as_live_trading_authority",
+    )
+    assert file_read_stop_conditions == (
+        "missing_runtime_artifact_discovery_result",
+        "failed_runtime_artifact_discovery_result",
+        "missing_source_artifact_authority_result",
+        "failed_source_artifact_authority_result",
+        "missing_source_references",
+        "unknown_source_references",
+        "ambiguous_source_references",
+        "missing_approved_file_identity",
+        "unapproved_file_identity",
+        "missing_approved_artifact_root",
+        "unapproved_artifact_root",
+        "missing_approved_path_metadata",
+        "malformed_approved_path_metadata",
+        "path_traversal",
+        "absolute_path_injection",
+        "symlink_ambiguity",
+        "non_repo_path_ambiguity",
+        "missing_terminal_completion_rule",
+        "failed_terminal_completion_rule",
+        "missing_provenance",
+        "malformed_provenance",
+        "missing_redaction_status",
+        "invalid_redaction_status",
+        "missing_eligible_runtime_artifact_vocabulary",
+        "malformed_eligible_runtime_artifact_vocabulary",
+        "sensitive_data_exposure",
+        "stale_file_read_metadata",
+        "malformed_file_read_metadata",
+        "mixed_run_id",
+        "runtime_log_dependency",
+        "source_path_ingestion_dependency",
+        "file_path_ingestion_dependency",
+        "artifact_copying_dependency",
+        "runtime_artifact_capture_dependency",
+        "runtime_capture_dependency",
+        "evaluation_dependency",
+        "broker_dependency",
+        "strategy_risk_execution_dependency",
+        "file_read_authority_as_runtime_log_access",
+        "file_read_authority_as_artifact_copying",
+        "file_read_authority_as_runtime_capture",
+        "file_read_authority_as_evaluation_approval",
+        "file_read_authority_as_execution_permission",
+        "file_read_authority_as_paper_trading_authority",
+        "file_read_authority_as_live_trading_authority",
+    )
+
+    for future_module in FUTURE_FILE_READ_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["strategy_behavior_changes"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "file_read_authority",
+        "replay_file_reader",
+        "runtime_artifact_file_reader",
+        "source_artifact_file_reader",
+        "approved_file_read_request",
+        "approved_file_read_result",
+        "file_read_preflight_result",
+        "file_read_path_resolution_result",
+        "file_read_no_access_result",
+        "runtime_log_access",
+        "source_path_ingestion",
+        "file_path_ingestion_authority",
+        "artifact_copying_authority",
+        "runtime_artifact_capture",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "strategy_risk_execution_authority",
+        "broker_authority",
+        "execution_permission",
+        "paper_trading_authority",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for denied_name in (
+        "FILE_READ_IMPLEMENTATION",
+        "OPEN_READ_BEHAVIOR",
+        "RUNTIME_LOG_ACCESS",
+        "SOURCE_PATH_INGESTION",
+        "FILE_PATH_INGESTION",
+        "ARTIFACT_COPYING",
+        "RUNTIME_ARTIFACT_CAPTURE",
+        "RUNTIME_CAPTURE",
+        "EVALUATION_PROMOTION",
+        "STRATEGY_RISK_EXECUTION_BEHAVIOR",
+        "BROKER_API_AUTHORITY",
+        "EXECUTION_PERMISSION",
+        "PAPER_TRADING_AUTHORITY",
+        "LIVE_TRADING_AUTHORITY",
+    ):
+        assert denied_name in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in FILE_READ_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+        PACKAGE_CREATION_MODULE,
+        FILESYSTEM_STORAGE_AUTHORITY_MODULE,
+        STORAGE_IMPLEMENTATION_MODULE,
+        PACKAGE_COMPLETENESS_MODULE,
+        FILESYSTEM_WRITER_MODULE,
+        SOURCE_ARTIFACTS_MODULE,
+        RUNTIME_ARTIFACT_DISCOVERY_MODULE,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in (
+            "FileReadAuthority",
+            "ReplayFileReader",
+            "RuntimeArtifactFileReader",
+            "RuntimeLogAccess",
+            "SourcePathIngestion",
+            "FilePathIngestion",
+            "ArtifactCopy",
+            "RuntimeArtifactCapture",
+            "EvaluationEngine",
+            "PromotionGate",
+            "StrategyBehavior",
+            "RiskBehavior",
+            "ExecutionBehavior",
+            "BrokerAuthority",
+            "ExecutionPermission",
+            "PaperTradingAuthority",
+            "LiveTradingAuthority",
+        ):
+            assert denied_name not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
