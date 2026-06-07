@@ -9120,6 +9120,242 @@ def test_file_read_helper_rejects_runtime_capture_scope_without_capturing(
     )
 
 
+def test_file_read_helper_rejects_immutable_package_evidence_scope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _file_read_request(tmp_path)
+    immutable_source_relative_path = (
+        "immutable_package_evidence/run_unit11/event_stream.jsonl"
+    )
+    immutable_payload = b"synthetic immutable package evidence must not be read\n"
+    immutable_source_path = Path(request["artifact_root_path"]) / (
+        immutable_source_relative_path
+    )
+    immutable_source_path.parent.mkdir(parents=True, exist_ok=True)
+    immutable_source_path.write_bytes(immutable_payload)
+
+    absolute_immutable_source_path = (
+        tmp_path / "outside_immutable_package" / "event_stream.jsonl"
+    )
+    absolute_immutable_source_path.parent.mkdir()
+    absolute_immutable_source_path.write_bytes(immutable_payload)
+    immutable_destination_path = (
+        tmp_path / "finalized_immutable_package" / "event_stream.jsonl"
+    )
+
+    read_attempts: list[str] = []
+    guarded_paths = {absolute_immutable_source_path}
+    original_read_bytes = Path.read_bytes
+
+    def fail_if_immutable_source_is_read(path: Path) -> bytes:
+        if path in guarded_paths:
+            read_attempts.append(str(path))
+            raise AssertionError("immutable package evidence source was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_if_immutable_source_is_read)
+
+    repo_relative_immutable_request = {
+        **request,
+        "source_references": ("draft_package",),
+        "file_relative_path": immutable_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": immutable_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+    absolute_immutable_request = {
+        **request,
+        "file_relative_path": str(absolute_immutable_source_path),
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": str(absolute_immutable_source_path),
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+    runtime_capture_vocabulary_immutable_request = {
+        **request,
+        "source_references": (file_reader.RUNTIME_CAPTURE_PREREQUISITE,),
+        "file_relative_path": immutable_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": immutable_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+    artifact_copying_vocabulary_immutable_request = {
+        **request,
+        "source_references": (file_reader.ARTIFACT_COPYING_PREREQUISITE,),
+        "file_relative_path": immutable_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": immutable_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+    runtime_log_vocabulary_immutable_request = {
+        **request,
+        "source_references": (file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE,),
+        "file_relative_path": immutable_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": immutable_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+    source_path_vocabulary_immutable_request = {
+        **request,
+        "source_references": (source_artifacts.SOURCE_PATH_AUTHORITY,),
+        "file_relative_path": immutable_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": immutable_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+    file_path_vocabulary_immutable_request = {
+        **request,
+        "source_references": ("file_path_ingestion_prerequisite",),
+        "file_relative_path": immutable_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": immutable_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+    manifest_hash_finalization_vocabulary_request = {
+        **request,
+        "source_references": ("manifest_hash", "finalized_package"),
+        "file_relative_path": immutable_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": immutable_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(immutable_payload).hexdigest(),
+        "max_size_bytes": len(immutable_payload),
+    }
+
+    immutable_scope_requests = (
+        ({**request, "immutable_package_evidence_dependent": True}, TypeError),
+        ({**request, "attempted_immutable_package_evidence": True}, TypeError),
+        (
+            {
+                **request,
+                "finalized_immutable_replay_package_authority": True,
+            },
+            TypeError,
+        ),
+        (absolute_immutable_request, ValueError),
+        (runtime_capture_vocabulary_immutable_request, ValueError),
+        (artifact_copying_vocabulary_immutable_request, ValueError),
+        (runtime_log_vocabulary_immutable_request, ValueError),
+        (source_path_vocabulary_immutable_request, ValueError),
+        (file_path_vocabulary_immutable_request, ValueError),
+        (manifest_hash_finalization_vocabulary_request, ValueError),
+    )
+
+    for bad_request, expected_error in immutable_scope_requests:
+        with pytest.raises(expected_error):
+            file_reader.read_approved_replay_file(bad_request)
+
+    assert read_attempts == []
+    assert not immutable_destination_path.exists()
+
+    approved_immutable_named_read = file_reader.read_approved_replay_file(
+        repo_relative_immutable_request
+    )
+    assert approved_immutable_named_read["file_bytes"] == immutable_payload
+    assert approved_immutable_named_read["read_performed"] is True
+    assert approved_immutable_named_read["runtime_log_access"] is False
+    assert approved_immutable_named_read["source_path_ingestion"] is False
+    assert approved_immutable_named_read["file_path_ingestion"] is False
+    assert approved_immutable_named_read["artifact_copying"] is False
+    assert approved_immutable_named_read["runtime_capture"] is False
+    assert approved_immutable_named_read["evaluation_or_promotion"] is False
+    assert approved_immutable_named_read["broker_api_authority"] is False
+    assert approved_immutable_named_read["paper_trading_authority"] is False
+    assert approved_immutable_named_read["live_trading_authority"] is False
+    assert "finalized_immutable_replay_package_authority" not in (
+        approved_immutable_named_read
+    )
+    assert "immutable_package_evidence" not in approved_immutable_named_read
+    assert "manifest_hash_authority" not in approved_immutable_named_read
+    assert "package_finalization_authority" not in approved_immutable_named_read
+    assert "storage_authority" not in approved_immutable_named_read
+
+    assert "FINALIZED_PACKAGE" in FUTURE_STORAGE_FINALIZATION_SCOPE_RELAXABLE_NAMES
+    assert "FinalizedPackage" in FUTURE_STORAGE_FINALIZATION_SCOPE_RELAXABLE_NAMES
+    assert "FINALIZED_PACKAGE" in (
+        FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES
+    )
+    assert "FinalizedPackage" in (
+        FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES
+    )
+    assert "ImmutabilityEnforcement" in (
+        FILESYSTEM_STORAGE_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES
+    )
+    assert "FINALIZED_PACKAGE" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert "IMMUTABLE_PACKAGE" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert "ImmutablePackage" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert file_reader.RUNTIME_CAPTURE_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+    assert file_reader.ARTIFACT_COPYING_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+    assert file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+    assert source_artifacts.SOURCE_PATH_AUTHORITY not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+
+    result = file_reader.read_approved_replay_file(request)
+    assert result["runtime_log_access"] is False
+    assert result["source_path_ingestion"] is False
+    assert result["file_path_ingestion"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["paper_trading_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert "finalized_immutable_replay_package_authority" not in result
+    assert "immutable_package_evidence" not in result
+    assert "manifest_hash_authority" not in result
+    assert "package_finalization_authority" not in result
+    assert "storage_authority" not in result
+    assert "file_read_authority_as_runtime_capture" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_evaluation_approval" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_paper_trading_authority" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_live_trading_authority" in (
+        result["fail_closed_boundaries"]
+    )
+
+
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
