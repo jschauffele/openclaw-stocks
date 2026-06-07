@@ -12,6 +12,7 @@ import pytest
 import tools.replay.draft_envelope as draft_envelope
 import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
+import tools.replay.file_reader as file_reader
 import tools.replay.filesystem_storage_authority as filesystem_storage_authority
 import tools.replay.hash_computation as hash_computation
 import tools.replay.hashing as hashing
@@ -1332,7 +1333,6 @@ RUNTIME_ARTIFACT_DISCOVERY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "LiveTradingAuthority",
 )
 FUTURE_FILE_READ_MODULES = (
-    Path(__file__).resolve().parents[1] / "tools" / "replay" / "file_reader.py",
     (
         Path(__file__).resolve().parents[1]
         / "tools"
@@ -1345,6 +1345,9 @@ FUTURE_FILE_READ_MODULES = (
         / "replay"
         / "approved_file_reads.py"
     ),
+)
+FILE_READER_MODULE = (
+    Path(__file__).resolve().parents[1] / "tools" / "replay" / "file_reader.py"
 )
 FILE_READ_SCOPE_RELAXABLE_NAMES = (
     "FILE_READ_AUTHORITY",
@@ -1923,6 +1926,62 @@ def _runtime_artifact_discovery_input(**overrides: object) -> dict:
     }
     discovery_metadata.update(overrides)
     return discovery_metadata
+
+
+def _file_read_request(tmp_path: Path, **overrides: object) -> dict:
+    artifact_root_path = tmp_path / "approved_artifacts"
+    artifact_root_path.mkdir()
+    file_relative_path = "run_unit11/event_stream.jsonl"
+    approved_file_path = artifact_root_path / file_relative_path
+    approved_file_path.parent.mkdir()
+    payload = b'{"canonical_run_id":"run_unit11","event":"completed"}\n'
+    approved_file_path.write_bytes(payload)
+    source_artifact_authority_result = (
+        source_artifacts.validate_source_artifact_authority(
+            _source_artifact_authority_input()
+        )
+    )
+    runtime_artifact_discovery_result = (
+        runtime_artifact_discovery.validate_runtime_artifact_discovery(
+            _runtime_artifact_discovery_input(
+                source_artifact_authority_result=source_artifact_authority_result
+            )
+        )
+    )
+    request = {
+        "canonical_run_id": "run_unit11",
+        "runtime_artifact_discovery_result": runtime_artifact_discovery_result,
+        "source_artifact_authority_result": source_artifact_authority_result,
+        "source_references": ("event_jsonl", "draft_package"),
+        "known_source_references": ("event_jsonl", "draft_package"),
+        "approved_file_identity": "event_stream",
+        "approved_file_identities": ("event_stream",),
+        "artifact_root": "approved_artifacts",
+        "approved_artifact_roots": ("approved_artifacts",),
+        "artifact_root_path": str(artifact_root_path),
+        "approved_artifact_root_paths": (str(artifact_root_path),),
+        "file_relative_path": file_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": file_relative_path,
+        },
+        "terminal_completion_rule": {
+            "required": True,
+            "satisfied": True,
+            "terminal_event": "run_completed",
+        },
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "eligible_runtime_artifact_vocabulary": ("event_jsonl", "draft_package"),
+        "input_run_ids": ("run_unit11",),
+        "expected_sha256": hashlib.sha256(payload).hexdigest(),
+        "max_size_bytes": len(payload),
+        "expected_encoding": "utf-8",
+        "allow_absolute_artifact_root": True,
+    }
+    request.update(overrides)
+    return request
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -8146,6 +8205,249 @@ def test_file_read_scope_guard_records_boundary_only() -> None:
             "LiveTradingAuthority",
         ):
             assert denied_name not in module_text
+
+
+def test_file_read_helper_records_relaxable_vocabulary_and_boundary() -> None:
+    assert FILE_READER_MODULE.exists()
+    for future_module in FUTURE_FILE_READ_MODULES:
+        assert not future_module.exists()
+
+    module_names = set(file_reader.__dict__)
+    for relaxable_name in FILE_READ_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+
+    authority = file_reader.FileReadAuthority()
+    assert authority.name == file_reader.FILE_READ_AUTHORITY
+    assert "no_runtime_log_access" in authority.authority_boundary
+    assert "no_artifact_copying" in authority.authority_boundary
+    assert "no_runtime_capture" in authority.authority_boundary
+    assert "no_evaluation_or_promotion" in authority.authority_boundary
+    assert "no_broker_api_authority" in authority.authority_boundary
+    assert "no_paper_trading_authority" in authority.authority_boundary
+    assert "no_live_trading_authority" in authority.authority_boundary
+
+
+def test_file_read_helper_dry_run_and_path_resolution_do_not_read(
+    tmp_path: Path,
+) -> None:
+    request = _file_read_request(tmp_path)
+    dry_run = file_reader.dry_run_file_read(request)
+    resolved = file_reader.resolve_approved_file_read_path(request)
+    preflight = file_reader.build_file_read_preflight_result(request)
+
+    assert dry_run["result_type"] == file_reader.FILE_READ_NO_ACCESS_RESULT
+    assert resolved["result_type"] == file_reader.FILE_READ_PATH_RESOLUTION_RESULT
+    assert preflight["result_type"] == file_reader.FILE_READ_PREFLIGHT_RESULT
+    for result in (dry_run, resolved, preflight):
+        assert result["canonical_run_id"] == "run_unit11"
+        assert result["dry_run"] is True
+        assert result["read_performed"] is False
+        assert result["observed_sha256"] is None
+        assert result["runtime_log_access"] is False
+        assert result["source_path_ingestion"] is False
+        assert result["file_path_ingestion"] is False
+        assert result["artifact_copying"] is False
+        assert result["runtime_artifact_capture"] is False
+        assert result["runtime_capture"] is False
+        assert result["evaluation_or_promotion"] is False
+        assert result["strategy_risk_execution_behavior"] is False
+        assert result["broker_api_authority"] is False
+        assert result["execution_authority"] is False
+        assert result["paper_trading_authority"] is False
+        assert result["live_trading_authority"] is False
+
+
+def test_file_read_helper_reads_approved_test_controlled_file(
+    tmp_path: Path,
+) -> None:
+    request = _file_read_request(tmp_path)
+    result = file_reader.read_approved_replay_file(request)
+
+    assert result["result_type"] == file_reader.APPROVED_FILE_READ_RESULT
+    assert result["read_performed"] is True
+    assert result["dry_run"] is False
+    assert result["file_bytes"] == (
+        b'{"canonical_run_id":"run_unit11","event":"completed"}\n'
+    )
+    assert result["observed_sha256"] == request["expected_sha256"]
+    assert result["checksum_verified"] is True
+    assert file_reader.compute_file_read_checksum(result["file_bytes"]) == (
+        request["expected_sha256"]
+    )
+    assert result["runtime_log_access"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["execution_authority"] is False
+    assert result["paper_trading_authority"] is False
+    assert result["live_trading_authority"] is False
+
+
+def test_file_read_helper_validates_size_checksum_encoding_and_paths(
+    tmp_path: Path,
+) -> None:
+    request = _file_read_request(tmp_path)
+    file_reader.read_approved_replay_file(request)
+
+    bad_cases = (
+        ({**request, "expected_sha256": "0" * 64}, ValueError),
+        ({**request, "max_size_bytes": 1}, ValueError),
+        ({**request, "expected_encoding": ""}, ValueError),
+        ({**request, "approved_file_identity": "other"}, ValueError),
+        ({**request, "artifact_root": "other"}, ValueError),
+        (
+            {
+                **request,
+                "file_relative_path": "../event_stream.jsonl",
+                "approved_path_metadata": {
+                    "approved": True,
+                    "file_identity": "event_stream",
+                    "relative_path": "../event_stream.jsonl",
+                },
+            },
+            ValueError,
+        ),
+        (
+            {
+                **request,
+                "file_relative_path": "/tmp/event_stream.jsonl",
+                "approved_path_metadata": {
+                    "approved": True,
+                    "file_identity": "event_stream",
+                    "relative_path": "/tmp/event_stream.jsonl",
+                },
+            },
+            ValueError,
+        ),
+        ({**request, "symlink_status": "symlink"}, ValueError),
+        ({**request, "repo_relative": False}, ValueError),
+        ({**request, "approved_path_metadata": {}}, ValueError),
+        (
+            {
+                **request,
+                "approved_path_metadata": {
+                    "approved": False,
+                    "file_identity": "event_stream",
+                    "relative_path": request["file_relative_path"],
+                },
+            },
+            ValueError,
+        ),
+    )
+    for bad_request, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            file_reader.read_approved_replay_file(bad_request)
+
+
+def test_file_read_helper_requires_prior_authority_results(tmp_path: Path) -> None:
+    request = _file_read_request(tmp_path)
+    bad_discovery = {
+        **request["runtime_artifact_discovery_result"],
+        "runtime_artifact_discovery_authority": False,
+    }
+    bad_source_authority = {
+        **request["source_artifact_authority_result"],
+        "source_artifact_authority": False,
+    }
+    bad_cases = (
+        ({**request, "runtime_artifact_discovery_result": {}}, ValueError),
+        ({**request, "runtime_artifact_discovery_result": bad_discovery}, ValueError),
+        (
+            {
+                **request,
+                "runtime_artifact_discovery_result": {
+                    **request["runtime_artifact_discovery_result"],
+                    "file_reads": True,
+                },
+            },
+            ValueError,
+        ),
+        ({**request, "source_artifact_authority_result": {}}, ValueError),
+        ({**request, "source_artifact_authority_result": bad_source_authority}, ValueError),
+        (
+            {
+                **request,
+                "source_artifact_authority_result": {
+                    **request["source_artifact_authority_result"],
+                    "file_path_ingestion": True,
+                },
+            },
+            ValueError,
+        ),
+        ({**request, "source_references": ()}, ValueError),
+        ({**request, "source_references": ("unknown",)}, ValueError),
+        ({**request, "ambiguous_source_references": True}, ValueError),
+        ({**request, "terminal_completion_rule": {}}, ValueError),
+        (
+            {
+                **request,
+                "terminal_completion_rule": {"required": True, "satisfied": False},
+            },
+            ValueError,
+        ),
+        ({**request, "provenance": ""}, ValueError),
+        ({**request, "provenance": object()}, ValueError),
+        ({**request, "redaction_status": ""}, ValueError),
+        ({**request, "redaction_status": "unknown"}, ValueError),
+        ({**request, "eligible_runtime_artifact_vocabulary": ()}, ValueError),
+        (
+            {
+                **request,
+                "eligible_runtime_artifact_vocabulary": ("event_jsonl", ""),
+            },
+            ValueError,
+        ),
+        ({**request, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({}, TypeError),
+    )
+    for bad_request, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            file_reader.validate_file_read_authority(bad_request)
+
+
+def test_file_read_helper_fails_closed_for_downstream_authority(
+    tmp_path: Path,
+) -> None:
+    request = _file_read_request(tmp_path)
+    bad_cases = (
+        ({**request, "sensitive_data_status": "exposed"}, ValueError),
+        ({**request, "stale_file_read_metadata": True}, ValueError),
+        ({**request, "malformed_file_read_metadata": True}, ValueError),
+        ({**request, "runtime_log_dependent": True}, ValueError),
+        ({**request, "attempted_runtime_log_access": True}, ValueError),
+        ({**request, "source_path_ingestion_dependent": True}, ValueError),
+        ({**request, "file_path_ingestion_dependent": True}, ValueError),
+        ({**request, "artifact_copying_dependent": True}, ValueError),
+        ({**request, "attempted_artifact_copying": True}, ValueError),
+        ({**request, "runtime_artifact_capture_dependent": True}, ValueError),
+        ({**request, "runtime_capture_dependent": True}, ValueError),
+        ({**request, "attempted_runtime_capture": True}, ValueError),
+        ({**request, "evaluation_dependent": True}, ValueError),
+        ({**request, "attempted_evaluation_approval": True}, ValueError),
+        ({**request, "broker_dependent": True}, ValueError),
+        ({**request, "strategy_risk_execution_dependent": True}, ValueError),
+        ({**request, "attempted_execution_permission": True}, ValueError),
+        ({**request, "attempted_paper_trading_authority": True}, ValueError),
+        ({**request, "paper_trading_authority": True}, ValueError),
+        ({**request, "attempted_live_trading_authority": True}, ValueError),
+        ({**request, "live_trading_authority": True}, ValueError),
+    )
+    for bad_request, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            file_reader.read_approved_replay_file(bad_request)
+
+    module_text = FILE_READER_MODULE.read_text(encoding="utf-8")
+    assert "main.py" not in module_text
+    assert ".env" not in module_text
+    assert "systemd" not in module_text
+    assert "runtime_logs" not in module_text
+    assert "TWS" not in module_text
+    assert "Alpaca" not in module_text
+    assert "IBKR" not in module_text
+    assert "EvaluationEngine" not in module_text
+    assert "BrokerAuthority" not in module_text
+    assert "PaperTradingAuthority" not in module_text
+    assert "LiveTradingAuthority" not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
