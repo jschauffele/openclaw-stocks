@@ -9577,6 +9577,154 @@ def test_file_read_helper_rejects_evaluation_promotion_scope(
     )
 
 
+def test_file_read_helper_rejects_source_reference_artifact_authority_scope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _file_read_request(tmp_path)
+    source_reference_relative_path = (
+        "source_references/run_unit11/event_stream.jsonl"
+    )
+    source_reference_payload = (
+        b"synthetic source reference artifact evidence must not be read\n"
+    )
+    source_reference_path = Path(request["artifact_root_path"]) / (
+        source_reference_relative_path
+    )
+    source_reference_path.parent.mkdir(parents=True, exist_ok=True)
+    source_reference_path.write_bytes(source_reference_payload)
+
+    read_attempts: list[str] = []
+    original_read_bytes = Path.read_bytes
+
+    def fail_if_source_reference_path_is_read(path: Path) -> bytes:
+        if path == source_reference_path:
+            read_attempts.append(str(path))
+            raise AssertionError("source reference artifact path was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_if_source_reference_path_is_read)
+
+    conceptual_source_references = (
+        "canonical_event_chronology_reference",
+        "derived_operational_summary_reference",
+        "runtime_visibility_evidence_reference",
+        "explicit_absence_declaration",
+        "explicit_not_applicable_declaration",
+    )
+    source_reference_only_request = {
+        **request,
+        "source_references": conceptual_source_references,
+        "known_source_references": conceptual_source_references,
+        "file_relative_path": source_reference_relative_path,
+        "approved_file_identity": "",
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": source_reference_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(source_reference_payload).hexdigest(),
+        "max_size_bytes": len(source_reference_payload),
+    }
+    source_reference_path_request = {
+        **request,
+        "source_references": conceptual_source_references,
+        "known_source_references": conceptual_source_references,
+        "file_relative_path": source_reference_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": source_reference_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(source_reference_payload).hexdigest(),
+        "max_size_bytes": len(source_reference_payload),
+    }
+
+    source_reference_scope_requests = (
+        ({**request, "source_references": ("unknown",)}, ValueError),
+        ({**request, "ambiguous_source_references": True}, ValueError),
+        ({**request, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**request, "provenance": ""}, ValueError),
+        ({**request, "redaction_status": ""}, ValueError),
+        ({**request, "redaction_status": "unknown"}, ValueError),
+        (source_reference_only_request, ValueError),
+        ({**source_reference_path_request, "source_path_ingestion_dependent": True}, ValueError),
+        ({**source_reference_path_request, "file_path_ingestion_dependent": True}, ValueError),
+        ({**source_reference_path_request, "artifact_copying_dependent": True}, ValueError),
+        ({**source_reference_path_request, "runtime_capture_dependent": True}, ValueError),
+        ({**source_reference_path_request, "attempted_runtime_capture": True}, ValueError),
+        ({**source_reference_path_request, "evaluation_dependent": True}, ValueError),
+        (
+            {**source_reference_path_request, "attempted_evaluation_approval": True},
+            ValueError,
+        ),
+        ({**source_reference_path_request, "broker_dependent": True}, ValueError),
+        (
+            {
+                **source_reference_path_request,
+                "attempted_paper_trading_authority": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **source_reference_path_request,
+                "attempted_live_trading_authority": True,
+            },
+            ValueError,
+        ),
+        ({**source_reference_path_request, "package_creation_authority": True}, TypeError),
+        ({**source_reference_path_request, "manifest_generation_authority": True}, TypeError),
+        ({**source_reference_path_request, "hashing_integrity_authority": True}, TypeError),
+        ({**source_reference_path_request, "storage_finalization_authority": True}, TypeError),
+        ({**source_reference_path_request, "immutable_package_evidence": True}, TypeError),
+        ({**source_reference_path_request, "promotion_authority": True}, TypeError),
+    )
+
+    for bad_request, expected_error in source_reference_scope_requests:
+        with pytest.raises(expected_error):
+            file_reader.read_approved_replay_file(bad_request)
+
+    assert read_attempts == []
+
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Source Reference And Source Artifact Authority Contract" in spec_text
+    assert "This vocabulary is conceptual only" in spec_text
+    assert "Unknown source references must fail closed" in spec_text
+    assert "Ambiguous source references must fail closed" in spec_text
+    assert "Mixed-run source references must fail closed" in spec_text
+    assert "Source references cannot imply source path authority" in spec_text
+    assert "Source references cannot imply file-read authority" in spec_text
+    assert "Source references cannot imply artifact copying" in spec_text
+    assert "Source references cannot imply runtime capture" in spec_text
+    assert "Source references cannot imply package creation" in spec_text
+    assert "Source references cannot imply immutable package evidence" in spec_text
+    assert "Source references cannot imply evaluation, scoring" in spec_text
+    assert "Source references cannot imply broker/API" in spec_text
+
+    result = file_reader.read_approved_replay_file(request)
+    assert result["read_performed"] is True
+    assert result["source_path_ingestion"] is False
+    assert result["file_path_ingestion"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["paper_trading_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert "source_path_authority" not in result
+    assert "source_reference_artifact_authority" not in result
+    assert "runtime_artifact_discovery_authority" not in result
+    assert "package_creation_authority" not in result
+    assert "manifest_generation_authority" not in result
+    assert "hashing_integrity_authority" not in result
+    assert "storage_finalization_authority" not in result
+    assert "immutable_package_evidence" not in result
+    assert "evaluation_authority" not in result
+    assert "promotion_authority" not in result
+    assert "broker_authority" not in result
+
+
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
