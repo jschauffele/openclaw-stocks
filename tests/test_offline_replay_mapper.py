@@ -1163,6 +1163,78 @@ FILESYSTEM_WRITER_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
+FUTURE_SOURCE_ARTIFACT_AUTHORITY_MODULES = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "source_artifacts.py",
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "source_references.py",
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "source_paths.py",
+)
+SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES = (
+    "SOURCE_ARTIFACT_AUTHORITY",
+    "SOURCE_REFERENCE_AUTHORITY",
+    "SOURCE_PATH_AUTHORITY",
+    "RUNTIME_SOURCE_ARTIFACT",
+    "RUNTIME_SOURCE_REFERENCE",
+    "RUNTIME_SOURCE_PATH",
+    "ABSENT_SOURCE_ARTIFACT_DECLARATION",
+    "NOT_APPLICABLE_SOURCE_ARTIFACT_DECLARATION",
+    "SOURCE_ARTIFACT_ELIGIBILITY_RESULT",
+    "SOURCE_ARTIFACT_PROVENANCE_RESULT",
+    "SOURCE_ARTIFACT_REDACTION_RESULT",
+    "SOURCE_ARTIFACT_KNOWN_REFERENCE_RESULT",
+    "SOURCE_ARTIFACT_NO_ACCESS_RESULT",
+    "SOURCE_ARTIFACT_DISCOVERY_PREREQUISITE",
+    "RUNTIME_ARTIFACT_DISCOVERY_PREREQUISITE",
+    "SourceArtifactAuthority",
+    "SourceReferenceAuthority",
+    "SourcePathAuthority",
+    "RuntimeSourceArtifact",
+    "RuntimeSourceReference",
+    "RuntimeSourcePath",
+    "AbsentSourceArtifactDeclaration",
+    "NotApplicableSourceArtifactDeclaration",
+    "SourceArtifactEligibilityResult",
+    "SourceArtifactProvenanceResult",
+    "SourceArtifactRedactionResult",
+    "SourceArtifactKnownReferenceResult",
+    "SourceArtifactNoAccessResult",
+    "SourceArtifactDiscoveryPrerequisite",
+    "RuntimeArtifactDiscoveryPrerequisite",
+)
+SOURCE_ARTIFACT_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
+    "SOURCE_ARTIFACT_IMPLEMENTATION",
+    "SOURCE_PATH_INGESTION",
+    "RUNTIME_LOG_ACCESS",
+    "RUNTIME_ARTIFACT_DISCOVERY",
+    "ARTIFACT_COPYING",
+    "RUNTIME_CAPTURE",
+    "EVALUATION_PROMOTION",
+    "STRATEGY_RISK_EXECUTION_BEHAVIOR",
+    "BROKER_API_AUTHORITY",
+    "EXECUTION_PERMISSION",
+    "PAPER_TRADING_AUTHORITY",
+    "LIVE_TRADING_AUTHORITY",
+    "RuntimeCapture",
+    "RuntimeArtifactDiscovery",
+    "ArtifactCopy",
+    "EvaluationEngine",
+    "PromotionGate",
+    "StrategyBehavior",
+    "RiskBehavior",
+    "ExecutionBehavior",
+    "BrokerAuthority",
+    "ExecutionPermission",
+    "PaperTradingAuthority",
+    "LiveTradingAuthority",
+)
 FUTURE_RUNTIME_CAPTURE_MODULES = (
     Path(__file__).resolve().parents[1] / "tools" / "replay" / "runtime_capture.py",
     (
@@ -6219,6 +6291,299 @@ def test_filesystem_writer_helper_fails_closed(tmp_path: Path) -> None:
     assert "BrokerAuthority" not in module_text
     assert "PaperTradingAuthority" not in module_text
     assert "LiveTradingAuthority" not in module_text
+
+
+def test_source_artifact_authority_scope_guard_records_boundary_only() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    architecture_text = EVALUATION_INFRASTRUCTURE_ARCHITECTURE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "## Unit 9: Runtime Source-Reference And Source-Artifact Authority" in (
+        map_text
+    )
+    assert "blocked until storage, package, provenance, and\n  redaction" in (
+        map_text
+    )
+    assert "Candidate files: future source-reference/source-artifact module" in (
+        map_text
+    )
+    assert "no runtime artifact discovery, no source path" in map_text
+    assert "no artifact copying, no filesystem reads/writes" in map_text
+    assert "source references are not runtime capture" in map_text
+    assert "Runtime artifact access allowed: no." in map_text
+    assert "Required future source artifact authority" in spec_text
+    assert "Source artifact authority must be explicitly governed before capture" in (
+        spec_text
+    )
+    assert "Source reference authority must be explicitly governed before capture" in (
+        spec_text
+    )
+    assert "Source path authority must be explicitly governed before capture" in (
+        spec_text
+    )
+    assert "Runtime artifact discovery authority must be explicitly governed" in (
+        spec_text
+    )
+    assert "Unknown source references, unknown source paths" in spec_text
+    assert "Path-like runtime artifact inputs remain forbidden" in spec_text
+    assert "No\nruntime artifact capture, source artifact discovery" in spec_text
+    assert "Missing absent or not-applicable declarations must fail closed" in (
+        spec_text
+    )
+    assert "Evaluation and promotion authority remains governance-only" in (
+        architecture_text
+    )
+    assert "AI recommendations, shadow outputs, paper validation" in architecture_text
+
+    assert SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES == (
+        "SOURCE_ARTIFACT_AUTHORITY",
+        "SOURCE_REFERENCE_AUTHORITY",
+        "SOURCE_PATH_AUTHORITY",
+        "RUNTIME_SOURCE_ARTIFACT",
+        "RUNTIME_SOURCE_REFERENCE",
+        "RUNTIME_SOURCE_PATH",
+        "ABSENT_SOURCE_ARTIFACT_DECLARATION",
+        "NOT_APPLICABLE_SOURCE_ARTIFACT_DECLARATION",
+        "SOURCE_ARTIFACT_ELIGIBILITY_RESULT",
+        "SOURCE_ARTIFACT_PROVENANCE_RESULT",
+        "SOURCE_ARTIFACT_REDACTION_RESULT",
+        "SOURCE_ARTIFACT_KNOWN_REFERENCE_RESULT",
+        "SOURCE_ARTIFACT_NO_ACCESS_RESULT",
+        "SOURCE_ARTIFACT_DISCOVERY_PREREQUISITE",
+        "RUNTIME_ARTIFACT_DISCOVERY_PREREQUISITE",
+        "SourceArtifactAuthority",
+        "SourceReferenceAuthority",
+        "SourcePathAuthority",
+        "RuntimeSourceArtifact",
+        "RuntimeSourceReference",
+        "RuntimeSourcePath",
+        "AbsentSourceArtifactDeclaration",
+        "NotApplicableSourceArtifactDeclaration",
+        "SourceArtifactEligibilityResult",
+        "SourceArtifactProvenanceResult",
+        "SourceArtifactRedactionResult",
+        "SourceArtifactKnownReferenceResult",
+        "SourceArtifactNoAccessResult",
+        "SourceArtifactDiscoveryPrerequisite",
+        "RuntimeArtifactDiscoveryPrerequisite",
+    )
+    assert not (
+        set(SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES)
+        & set(SOURCE_ARTIFACT_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES)
+    )
+
+    source_artifact_boundaries = (
+        "source_artifact_authority_after_filesystem_writer_helper",
+        "code_and_test_lane_required_before_behavior_exists",
+        "source_reference_metadata_is_not_source_artifact_access",
+        "source_artifact_authority_is_not_runtime_artifact_discovery",
+        "source_artifact_authority_is_not_runtime_capture",
+        "source_artifact_authority_is_not_filesystem_writer_authority",
+        "source_artifact_authority_is_not_evaluation_or_promotion",
+        "source_artifact_authority_is_not_strategy_risk_execution_behavior",
+        "source_artifact_authority_is_not_broker_live_or_paper_authority",
+    )
+    assert source_artifact_boundaries == (
+        "source_artifact_authority_after_filesystem_writer_helper",
+        "code_and_test_lane_required_before_behavior_exists",
+        "source_reference_metadata_is_not_source_artifact_access",
+        "source_artifact_authority_is_not_runtime_artifact_discovery",
+        "source_artifact_authority_is_not_runtime_capture",
+        "source_artifact_authority_is_not_filesystem_writer_authority",
+        "source_artifact_authority_is_not_evaluation_or_promotion",
+        "source_artifact_authority_is_not_strategy_risk_execution_behavior",
+        "source_artifact_authority_is_not_broker_live_or_paper_authority",
+    )
+
+    source_artifact_prerequisites = (
+        "canonical_run_id_alignment",
+        "source_references_present_and_known",
+        "absent_or_not_applicable_declaration_when_no_artifact_exists",
+        "source_artifact_provenance_present_and_valid",
+        "source_artifact_redaction_status_present_and_valid",
+        "source_artifact_eligibility_explicit",
+        "source_path_identity_explicit_when_path_exists",
+        "no_runtime_log_access",
+        "no_file_path_ingestion",
+        "no_artifact_copying",
+        "no_runtime_artifact_discovery",
+        "no_runtime_artifact_capture",
+        "no_evaluation_dependent_inputs",
+        "no_broker_dependent_inputs",
+        "no_strategy_risk_execution_inputs",
+        "no_paper_live_authority",
+    )
+    assert source_artifact_prerequisites == (
+        "canonical_run_id_alignment",
+        "source_references_present_and_known",
+        "absent_or_not_applicable_declaration_when_no_artifact_exists",
+        "source_artifact_provenance_present_and_valid",
+        "source_artifact_redaction_status_present_and_valid",
+        "source_artifact_eligibility_explicit",
+        "source_path_identity_explicit_when_path_exists",
+        "no_runtime_log_access",
+        "no_file_path_ingestion",
+        "no_artifact_copying",
+        "no_runtime_artifact_discovery",
+        "no_runtime_artifact_capture",
+        "no_evaluation_dependent_inputs",
+        "no_broker_dependent_inputs",
+        "no_strategy_risk_execution_inputs",
+        "no_paper_live_authority",
+    )
+
+    source_artifact_stop_conditions = (
+        "missing_source_references",
+        "unknown_source_references",
+        "ambiguous_source_references",
+        "missing_absent_or_not_applicable_declaration",
+        "malformed_absent_or_not_applicable_declaration",
+        "missing_source_artifact_provenance",
+        "malformed_source_artifact_provenance",
+        "missing_source_artifact_redaction_status",
+        "invalid_source_artifact_redaction_status",
+        "sensitive_data_exposure",
+        "stale_source_artifact_metadata",
+        "malformed_source_artifact_metadata",
+        "mixed_run_id",
+        "runtime_log_dependency",
+        "runtime_path_dependency",
+        "file_path_ingestion_dependency",
+        "artifact_copying_dependency",
+        "runtime_artifact_discovery_dependency",
+        "runtime_capture_dependency",
+        "evaluation_dependency",
+        "broker_dependency",
+        "strategy_risk_execution_dependency",
+        "source_artifact_authority_as_runtime_capture",
+        "source_artifact_authority_as_evaluation_approval",
+        "source_artifact_authority_as_execution_permission",
+        "source_artifact_authority_as_paper_trading_authority",
+        "source_artifact_authority_as_live_trading_authority",
+    )
+    assert source_artifact_stop_conditions == (
+        "missing_source_references",
+        "unknown_source_references",
+        "ambiguous_source_references",
+        "missing_absent_or_not_applicable_declaration",
+        "malformed_absent_or_not_applicable_declaration",
+        "missing_source_artifact_provenance",
+        "malformed_source_artifact_provenance",
+        "missing_source_artifact_redaction_status",
+        "invalid_source_artifact_redaction_status",
+        "sensitive_data_exposure",
+        "stale_source_artifact_metadata",
+        "malformed_source_artifact_metadata",
+        "mixed_run_id",
+        "runtime_log_dependency",
+        "runtime_path_dependency",
+        "file_path_ingestion_dependency",
+        "artifact_copying_dependency",
+        "runtime_artifact_discovery_dependency",
+        "runtime_capture_dependency",
+        "evaluation_dependency",
+        "broker_dependency",
+        "strategy_risk_execution_dependency",
+        "source_artifact_authority_as_runtime_capture",
+        "source_artifact_authority_as_evaluation_approval",
+        "source_artifact_authority_as_execution_permission",
+        "source_artifact_authority_as_paper_trading_authority",
+        "source_artifact_authority_as_live_trading_authority",
+    )
+
+    for future_module in FUTURE_SOURCE_ARTIFACT_AUTHORITY_MODULES:
+        assert not future_module.exists()
+
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+    assert mapper_package["out_of_scope"]["strategy_behavior_changes"] is True
+    assert mapper_package["out_of_scope"]["replay_based_promotion_decisions"] is True
+
+    absent_authority_keys = (
+        "source_artifact_authority",
+        "source_reference_authority",
+        "source_path_authority",
+        "runtime_source_artifact",
+        "runtime_source_reference",
+        "runtime_source_path",
+        "absent_source_artifact_declaration",
+        "not_applicable_source_artifact_declaration",
+        "source_artifact_eligibility_result",
+        "source_artifact_discovery_prerequisite",
+        "runtime_artifact_discovery_prerequisite",
+        "runtime_artifact_discovery_authority",
+        "runtime_capture_authority",
+        "evaluation_authority",
+        "promotion_authority",
+        "strategy_risk_execution_authority",
+        "broker_authority",
+        "execution_permission",
+        "paper_trading_authority",
+        "live_trading_authority",
+    )
+    for key in absent_authority_keys:
+        assert key not in complete_inputs_envelope
+        assert key not in mapper_package
+
+    for denied_name in (
+        "SOURCE_ARTIFACT_IMPLEMENTATION",
+        "SOURCE_PATH_INGESTION",
+        "RUNTIME_LOG_ACCESS",
+        "RUNTIME_ARTIFACT_DISCOVERY",
+        "ARTIFACT_COPYING",
+        "RUNTIME_CAPTURE",
+        "EVALUATION_PROMOTION",
+        "STRATEGY_RISK_EXECUTION_BEHAVIOR",
+        "BROKER_API_AUTHORITY",
+        "EXECUTION_PERMISSION",
+        "PAPER_TRADING_AUTHORITY",
+        "LIVE_TRADING_AUTHORITY",
+    ):
+        assert denied_name in SOURCE_ARTIFACT_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES
+        assert denied_name not in SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES
+
+    for module_path in (
+        *REPLAY_SOURCE_MODULES,
+        CANONICAL_JSON_MODULE,
+        CANONICAL_BYTES_MODULE,
+        *FUTURE_HASHING_INTEGRITY_MODULES,
+        *FUTURE_MANIFEST_GENERATION_MODULES,
+        *FUTURE_HASH_COMPUTATION_MODULES,
+        *FUTURE_INTEGRITY_VALIDATION_MODULES,
+        PACKAGE_CREATION_MODULE,
+        FILESYSTEM_STORAGE_AUTHORITY_MODULE,
+        STORAGE_IMPLEMENTATION_MODULE,
+        PACKAGE_COMPLETENESS_MODULE,
+        FILESYSTEM_WRITER_MODULE,
+    ):
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in (
+            "SourceArtifactAuthority",
+            "SourcePathAuthority",
+            "RuntimeArtifactDiscovery",
+            "RuntimeCapture",
+            "EvaluationEngine",
+            "StrategyBehavior",
+            "RiskBehavior",
+            "ExecutionBehavior",
+            "BrokerAuthority",
+            "ExecutionPermission",
+            "PaperTradingAuthority",
+            "LiveTradingAuthority",
+        ):
+            assert denied_name not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
