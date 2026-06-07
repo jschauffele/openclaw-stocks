@@ -2193,6 +2193,176 @@ Storage, finalization, and immutability stop conditions:
 - Implied execution permission.
 - Implied live trading authority.
 
+## Source Reference And Source Artifact Authority Contract
+
+Source reference and source artifact authority remains governance-only and is
+not implemented yet. This contract defines the first upstream prerequisite for
+future runtime artifact discovery, source path authority, file path ingestion,
+artifact copying, package creation, immutable package evidence, runtime
+capture, and evaluation work.
+
+This contract does not approve tests, code, source reference modules, source
+artifact modules, runtime artifact discovery, source path ingestion, file path
+ingestion, file reads, artifact copying, runtime capture, replay package
+creation, manifest generation, hashing or integrity validation, storage,
+finalization, immutability, evaluation, promotion, broker work, paper trading,
+or live trading.
+
+Source reference scope:
+
+- A source reference is a source-controlled identifier or declaration that
+  names the class and ownership of future evidence without resolving a path or
+  reading bytes.
+- A source artifact class is a governed category of future evidence, such as
+  canonical event chronology, derived operational summary evidence, observed
+  runtime visibility evidence, configuration metadata, market input evidence,
+  strategy decision evidence, portfolio/risk evidence, broker-visible observed
+  evidence, or reconciliation/risk evidence.
+- Future replay and capture planning may use source references only when the
+  reference is known, unambiguous, aligned to the canonical run identity, and
+  paired with explicit provenance and redaction status.
+- Source references may identify which replay package section could later
+  receive evidence, but they cannot populate that section, create package
+  completeness, create immutable evidence, approve runtime capture, or approve
+  evaluation.
+- Source references must preserve the distinction between present, absent, and
+  not-applicable declarations when later gates define those states.
+
+Source reference dependencies:
+
+- Provenance and redaction authority must be defined before any source
+  reference can be used as trusted evidence metadata.
+- Runtime artifact discovery authority must be defined before source
+  references can be matched to discovered runtime artifacts.
+- Terminal completion and run eligibility authority must be defined before a
+  source reference can support capture eligibility.
+- Package layout authority must be defined before a source reference can target
+  a replay package section.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Source path ingestion.
+- File path ingestion.
+- File reads.
+- Artifact copying.
+- Runtime artifact discovery.
+- Runtime capture.
+- Replay package creation.
+- Manifest generation.
+- Hashing or integrity validation.
+- Storage, finalization, or immutability.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual source reference vocabulary:
+
+- Canonical event chronology reference.
+- Derived operational summary reference.
+- Operational state evidence reference.
+- Append-only observation evidence reference.
+- Runtime visibility evidence reference.
+- Configuration or code metadata reference.
+- Market input evidence reference.
+- Strategy input/output evidence reference.
+- Portfolio/risk state evidence reference.
+- Broker-visible observed evidence reference.
+- Reconciliation/risk evidence reference.
+- Explicit absence declaration.
+- Explicit not-applicable declaration.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, source paths, file paths, artifact reads, artifact copies, runtime
+capture, package sections, immutable evidence, evaluation inputs, broker
+authority, or trading authority.
+
+Unknown and ambiguous source reference handling:
+
+- Unknown source references must fail closed.
+- Ambiguous source references must fail closed.
+- Mixed-run source references must fail closed.
+- Source references with missing provenance must fail closed.
+- Source references with missing redaction status must fail closed.
+- Source references with invalid redaction status must fail closed.
+- Source references that imply path resolution, file reads, artifact copying,
+  runtime capture, package creation, evaluation, broker/API work, paper
+  trading, or live trading must fail closed.
+
+Provenance and redaction attachment:
+
+- Every future source reference must carry explicit provenance.
+- Every future source reference must carry explicit redaction status.
+- Provenance must identify the source environment, source artifact class,
+  run identity relationship, and whether the reference is present, absent, or
+  not applicable when those states are later governed.
+- Redaction status must identify whether the referenced future evidence is
+  clear, redacted, sanitized, absent, not applicable, or blocked by sensitive
+  data exposure when those states are later governed.
+- Provenance and redaction presence does not imply artifact eligibility,
+  runtime artifact discovery, path authority, file-read authority, artifact
+  copying, runtime capture, package completeness, immutable evidence,
+  evaluation, promotion, broker authority, paper trading, or live trading.
+
+Required future test-only guards:
+
+- Unknown source references fail closed.
+- Ambiguous source references fail closed.
+- Mixed-run source references fail closed.
+- Missing provenance fails closed.
+- Missing or invalid redaction status fails closed.
+- Source references cannot imply source path authority.
+- Source references cannot imply file path ingestion.
+- Source references cannot imply file-read authority.
+- Source references cannot imply artifact copying.
+- Source references cannot imply runtime artifact discovery.
+- Source references cannot imply runtime capture.
+- Source references cannot imply package creation.
+- Source references cannot imply immutable package evidence.
+- Source references cannot imply evaluation, scoring, reporting, or promotion.
+- Source references cannot imply broker/API, execution, paper trading, or live
+  trading authority.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need real runtime artifacts.
+- Need filesystem reads.
+- Need filesystem writes.
+- Need source path resolution.
+- Need file path ingestion.
+- Need artifact copying.
+- Need runtime artifact discovery.
+- Need runtime capture.
+- Need package creation.
+- Need manifest generation.
+- Need hashing or integrity validation.
+- Need storage, finalization, or immutability.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need `.env` access.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Source reference and source artifact authority is not runtime artifact
+discovery, source path authority, file path ingestion, file-read authority,
+artifact copying, runtime capture, package creation, manifest authority,
+hashing or integrity authority, storage/finalization/immutability authority,
+immutable package evidence, evaluation, promotion, broker authority, execution
+permission, paper trading approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_SOURCE_REFERENCE_ARTIFACT_AUTHORITY_GUARD`. That future gate must be
+test-only and must not inspect runtime logs, inspect runtime artifacts, edit
+production code, touch VPS, call broker APIs, inspect `.env`, change
+scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
