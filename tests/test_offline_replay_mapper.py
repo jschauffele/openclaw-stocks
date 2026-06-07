@@ -8629,6 +8629,154 @@ def test_file_read_helper_rejects_source_path_scope_without_reading(
     )
 
 
+def test_file_read_helper_rejects_file_path_scope_without_reading(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _file_read_request(tmp_path)
+    file_path_relative_path = "file_paths/run_unit11/event_stream.jsonl"
+    file_path_payload = b"synthetic file path evidence must not be read\n"
+    file_path = Path(request["artifact_root_path"]) / file_path_relative_path
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_bytes(file_path_payload)
+
+    absolute_file_path = tmp_path / "outside_file_path" / "event_stream.jsonl"
+    absolute_file_path.parent.mkdir()
+    absolute_file_path.write_bytes(file_path_payload)
+
+    read_attempts: list[str] = []
+    guarded_paths = {file_path, absolute_file_path}
+    original_read_bytes = Path.read_bytes
+
+    def fail_if_file_path_is_read(path: Path) -> bytes:
+        if path in guarded_paths:
+            read_attempts.append(str(path))
+            raise AssertionError("file path was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_if_file_path_is_read)
+
+    repo_relative_file_path_request = {
+        **request,
+        "source_references": ("draft_package",),
+        "file_relative_path": file_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": file_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(file_path_payload).hexdigest(),
+        "max_size_bytes": len(file_path_payload),
+        "file_path_ingestion_dependent": True,
+    }
+    absolute_file_path_request = {
+        **request,
+        "file_relative_path": str(absolute_file_path),
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": str(absolute_file_path),
+        },
+        "expected_sha256": hashlib.sha256(file_path_payload).hexdigest(),
+        "max_size_bytes": len(file_path_payload),
+    }
+    synthetic_file_path_metadata_request = {
+        **request,
+        "source_references": ("file_path",),
+        "file_relative_path": file_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": file_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(file_path_payload).hexdigest(),
+        "max_size_bytes": len(file_path_payload),
+    }
+    replay_reference_file_path_request = {
+        **request,
+        "source_references": ("draft_package",),
+        "file_relative_path": file_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": file_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(file_path_payload).hexdigest(),
+        "max_size_bytes": len(file_path_payload),
+        "file_path_ingestion_dependent": True,
+    }
+    source_path_vocabulary_file_path_request = {
+        **request,
+        "source_references": (source_artifacts.SOURCE_PATH_AUTHORITY,),
+        "file_relative_path": file_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": file_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(file_path_payload).hexdigest(),
+        "max_size_bytes": len(file_path_payload),
+    }
+    runtime_log_vocabulary_file_path_request = {
+        **request,
+        "source_references": (file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE,),
+        "file_relative_path": file_path_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": file_path_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(file_path_payload).hexdigest(),
+        "max_size_bytes": len(file_path_payload),
+    }
+
+    file_path_scope_requests = (
+        ({**request, "file_path_ingestion_dependent": True}, ValueError),
+        ({**request, "attempted_file_path_ingestion": True}, TypeError),
+        (repo_relative_file_path_request, ValueError),
+        (absolute_file_path_request, ValueError),
+        (synthetic_file_path_metadata_request, ValueError),
+        (replay_reference_file_path_request, ValueError),
+        (source_path_vocabulary_file_path_request, ValueError),
+        (runtime_log_vocabulary_file_path_request, ValueError),
+    )
+
+    for bad_request, expected_error in file_path_scope_requests:
+        with pytest.raises(expected_error):
+            file_reader.read_approved_replay_file(bad_request)
+
+    assert read_attempts == []
+    assert "FILE_PATH_INGESTION" in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+    assert "FilePathIngestion" in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+    assert "FILE_PATH_INGESTION" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert "FilePathIngestion" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert source_artifacts.SOURCE_PATH_AUTHORITY not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+    assert file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+
+    result = file_reader.read_approved_replay_file(request)
+    assert result["file_path_ingestion"] is False
+    assert result["source_path_ingestion"] is False
+    assert result["runtime_log_access"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert "no_file_path_ingestion" in result["authority_boundary"]
+    assert "file_path_ingestion_dependency" in result["fail_closed_boundaries"]
+    assert "file_read_authority_as_artifact_copying" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_runtime_capture" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_evaluation_approval" in (
+        result["fail_closed_boundaries"]
+    )
+
+
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
