@@ -25,6 +25,7 @@ import tools.replay.package_completeness as package_completeness
 import tools.replay.package_creation as package_creation
 import tools.replay.package_layout as package_layout
 import tools.replay.package_schema as package_schema
+import tools.replay.runtime_artifact_discovery as runtime_artifact_discovery
 import tools.replay.source_artifacts as source_artifacts
 import tools.replay.storage_implementation as storage_implementation
 from tools.replay.draft_envelope import build_draft_replay_envelope
@@ -1238,13 +1239,15 @@ SOURCE_ARTIFACT_AUTHORITY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "PaperTradingAuthority",
     "LiveTradingAuthority",
 )
-FUTURE_RUNTIME_ARTIFACT_DISCOVERY_MODULES = (
+RUNTIME_ARTIFACT_DISCOVERY_MODULE = (
     (
         Path(__file__).resolve().parents[1]
         / "tools"
         / "replay"
         / "runtime_artifact_discovery.py"
-    ),
+    )
+)
+FUTURE_RUNTIME_ARTIFACT_DISCOVERY_MODULES = (
     (
         Path(__file__).resolve().parents[1]
         / "tools"
@@ -1791,6 +1794,43 @@ def _source_artifact_authority_input(**overrides: object) -> dict:
     }
     source_metadata.update(overrides)
     return source_metadata
+
+
+def _runtime_artifact_discovery_input(**overrides: object) -> dict:
+    source_artifact_authority_result = (
+        source_artifacts.validate_source_artifact_authority(
+            _source_artifact_authority_input()
+        )
+    )
+    discovery_metadata = {
+        "canonical_run_id": "run_unit11",
+        "source_artifact_authority_result": source_artifact_authority_result,
+        "source_references": ("event_jsonl", "draft_package"),
+        "known_source_references": ("event_jsonl", "draft_package"),
+        "eligible_runtime_artifact_vocabulary": ("event_jsonl", "draft_package"),
+        "terminal_completion_rule": {
+            "required": True,
+            "satisfied": True,
+            "terminal_event": "run_completed",
+        },
+        "runtime_artifact_candidates": (
+            {
+                "artifact_id": "event_stream",
+                "artifact_type": "event_jsonl",
+                "source_reference": "event_jsonl",
+                "canonical_run_id": "run_unit11",
+                "provenance": "recorded",
+                "redaction_status": "not_required",
+                "eligible": True,
+                "source_path_metadata": "source-metadata:event_jsonl",
+            },
+        ),
+        "runtime_artifact_provenance": "recorded",
+        "runtime_artifact_redaction_status": "not_required",
+        "input_run_ids": ("run_unit11",),
+    }
+    discovery_metadata.update(overrides)
+    return discovery_metadata
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -7281,6 +7321,7 @@ def test_runtime_artifact_discovery_scope_guard_records_boundary_only() -> None:
         "runtime_artifact_discovery_as_live_trading_authority",
     )
 
+    assert RUNTIME_ARTIFACT_DISCOVERY_MODULE.exists()
     for future_module in FUTURE_RUNTIME_ARTIFACT_DISCOVERY_MODULES:
         assert not future_module.exists()
 
@@ -7382,6 +7423,285 @@ def test_runtime_artifact_discovery_scope_guard_records_boundary_only() -> None:
             "LiveTradingAuthority",
         ):
             assert denied_name not in module_text
+
+
+def test_runtime_artifact_discovery_helper_validates_metadata_only() -> None:
+    discovery_metadata = _runtime_artifact_discovery_input()
+
+    assert (
+        runtime_artifact_discovery.RuntimeArtifactDiscoveryAuthority().authority_boundary
+    ) == runtime_artifact_discovery.RUNTIME_ARTIFACT_DISCOVERY_AUTHORITY_BOUNDARY
+    assert runtime_artifact_discovery.RuntimeArtifactNoAccessResult().result_type == (
+        runtime_artifact_discovery.RUNTIME_ARTIFACT_NO_ACCESS_RESULT
+    )
+    assert (
+        runtime_artifact_discovery.RuntimeArtifactDiscoveryResult().result_type
+    ) == runtime_artifact_discovery.RUNTIME_ARTIFACT_DISCOVERY_RESULT
+
+    result = runtime_artifact_discovery.validate_runtime_artifact_discovery(
+        discovery_metadata
+    )
+    built = runtime_artifact_discovery.build_runtime_artifact_discovery_result(
+        discovery_metadata
+    )
+    inventory = runtime_artifact_discovery.build_runtime_artifact_inventory_result(
+        discovery_metadata
+    )
+    vocabulary = (
+        runtime_artifact_discovery.validate_eligible_runtime_artifact_vocabulary(
+            discovery_metadata
+        )
+    )
+    candidates = runtime_artifact_discovery.validate_runtime_artifact_candidates(
+        discovery_metadata
+    )
+
+    assert result == built
+    assert result["result_type"] == (
+        runtime_artifact_discovery.RUNTIME_ARTIFACT_DISCOVERY_RESULT
+    )
+    assert inventory["result_type"] == (
+        runtime_artifact_discovery.RUNTIME_ARTIFACT_INVENTORY_RESULT
+    )
+    assert vocabulary == ("event_jsonl", "draft_package")
+    assert candidates == result["runtime_artifact_candidates"]
+    assert result["canonical_run_id"] == "run_unit11"
+    assert result["runtime_artifact_discovery_authority"] is True
+    assert result["evidence_only"] is True
+    assert result["metadata_only"] is True
+    assert result["runtime_log_access"] is False
+    assert result["file_reads"] is False
+    assert result["source_path_ingestion"] is False
+    assert result["file_path_ingestion"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_artifact_capture"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["strategy_risk_execution_behavior"] is False
+    assert result["broker_api_authority"] is False
+    assert result["execution_authority"] is False
+    assert result["paper_trading_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert result["authority_boundary"] == (
+        runtime_artifact_discovery.RUNTIME_ARTIFACT_DISCOVERY_AUTHORITY_BOUNDARY
+    )
+    assert "no_runtime_log_access" in result["authority_boundary"]
+    assert "no_file_reads" in result["authority_boundary"]
+    assert "no_source_path_ingestion" in result["authority_boundary"]
+    assert "no_file_path_ingestion" in result["authority_boundary"]
+    assert "no_artifact_copying" in result["authority_boundary"]
+    assert "no_runtime_artifact_capture" in result["authority_boundary"]
+    assert "no_runtime_capture" in result["authority_boundary"]
+    assert "no_evaluation_or_promotion" in result["authority_boundary"]
+    assert "no_broker_api_authority" in result["authority_boundary"]
+    assert "no_execution_authority" in result["authority_boundary"]
+    assert "no_paper_trading_authority" in result["authority_boundary"]
+    assert "no_live_trading_authority" in result["authority_boundary"]
+
+    candidate = result["runtime_artifact_candidates"][0]
+    assert candidate["source_path_metadata"] == "source-metadata:event_jsonl"
+    assert candidate["runtime_log_access"] is False
+    assert candidate["file_reads"] is False
+    assert candidate["source_path_ingestion"] is False
+    assert candidate["artifact_copying"] is False
+    assert candidate["runtime_artifact_capture"] is False
+
+    module_names = set(runtime_artifact_discovery.__dict__)
+    for relaxable_name in RUNTIME_ARTIFACT_DISCOVERY_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+    for denied_name in (
+        "RuntimeLogAccess",
+        "FileRead",
+        "SourcePathIngestion",
+        "FilePathIngestion",
+        "ArtifactCopy",
+        "RuntimeArtifactCapture",
+        "EvaluationEngine",
+        "PromotionGate",
+        "StrategyBehavior",
+        "RiskBehavior",
+        "ExecutionBehavior",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "PaperTradingAuthority",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name not in module_names
+
+
+def test_runtime_artifact_discovery_helper_requires_source_authority() -> None:
+    base_input = _runtime_artifact_discovery_input()
+    invalid_source_authority = {
+        **base_input["source_artifact_authority_result"],
+        "source_artifact_authority": False,
+    }
+    bad_cases = (
+        ({**base_input, "source_artifact_authority_result": {}}, ValueError),
+        (
+            {
+                **base_input,
+                "source_artifact_authority_result": invalid_source_authority,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "source_artifact_authority_result": {
+                    **base_input["source_artifact_authority_result"],
+                    "metadata_only": False,
+                },
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "source_artifact_authority_result": {
+                    **base_input["source_artifact_authority_result"],
+                    "runtime_artifact_discovery": True,
+                },
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "source_artifact_authority_result": {
+                    **base_input["source_artifact_authority_result"],
+                    "canonical_run_id": "other",
+                },
+            },
+            ValueError,
+        ),
+    )
+    for bad_input, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            runtime_artifact_discovery.validate_runtime_artifact_discovery(bad_input)
+
+
+def test_runtime_artifact_discovery_helper_fails_closed() -> None:
+    base_input = _runtime_artifact_discovery_input()
+    bad_candidate = {
+        **base_input["runtime_artifact_candidates"][0],
+        "artifact_type": "unknown",
+    }
+    bad_cases = (
+        ({**base_input, "source_references": ()}, ValueError),
+        ({**base_input, "source_references": ("unknown",)}, ValueError),
+        ({**base_input, "ambiguous_source_references": True}, ValueError),
+        (
+            {
+                **base_input,
+                "eligible_runtime_artifact_vocabulary": (),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "eligible_runtime_artifact_vocabulary": ("event_jsonl", ""),
+            },
+            ValueError,
+        ),
+        ({**base_input, "terminal_completion_rule": {}}, ValueError),
+        (
+            {
+                **base_input,
+                "terminal_completion_rule": {"required": False, "satisfied": True},
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "terminal_completion_rule": {"required": True, "satisfied": False},
+            },
+            ValueError,
+        ),
+        ({**base_input, "runtime_artifact_provenance": ""}, ValueError),
+        ({**base_input, "runtime_artifact_provenance": object()}, ValueError),
+        ({**base_input, "runtime_artifact_redaction_status": ""}, ValueError),
+        ({**base_input, "runtime_artifact_redaction_status": "unknown"}, ValueError),
+        ({**base_input, "sensitive_data_status": "exposed"}, ValueError),
+        ({**base_input, "stale_runtime_artifact_metadata": True}, ValueError),
+        ({**base_input, "malformed_runtime_artifact_metadata": True}, ValueError),
+        ({**base_input, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**base_input, "runtime_log_dependent": True}, ValueError),
+        ({**base_input, "runtime_path_dependent": True}, ValueError),
+        ({**base_input, "file_read_dependent": True}, ValueError),
+        ({**base_input, "source_path_ingestion_dependent": True}, ValueError),
+        ({**base_input, "file_path_ingestion_dependent": True}, ValueError),
+        ({**base_input, "artifact_copying_dependent": True}, ValueError),
+        ({**base_input, "runtime_capture_dependent": True}, ValueError),
+        ({**base_input, "attempted_runtime_capture": True}, ValueError),
+        ({**base_input, "evaluation_dependent": True}, ValueError),
+        ({**base_input, "attempted_evaluation_approval": True}, ValueError),
+        ({**base_input, "broker_dependent": True}, ValueError),
+        ({**base_input, "strategy_risk_execution_dependent": True}, ValueError),
+        ({**base_input, "attempted_execution_permission": True}, ValueError),
+        ({**base_input, "attempted_paper_trading_authority": True}, ValueError),
+        ({**base_input, "paper_trading_authority": True}, ValueError),
+        ({**base_input, "attempted_live_trading_authority": True}, ValueError),
+        ({**base_input, "live_trading_authority": True}, ValueError),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (bad_candidate,),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (
+                    {
+                        **base_input["runtime_artifact_candidates"][0],
+                        "canonical_run_id": "other",
+                    },
+                ),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **base_input,
+                "runtime_artifact_candidates": (
+                    {
+                        **base_input["runtime_artifact_candidates"][0],
+                        "source_reference": "unknown",
+                    },
+                ),
+            },
+            ValueError,
+        ),
+        (object(), TypeError),
+    )
+    for bad_input, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            runtime_artifact_discovery.validate_runtime_artifact_discovery(bad_input)
+
+    module_text = RUNTIME_ARTIFACT_DISCOVERY_MODULE.read_text(encoding="utf-8")
+    assert "from pathlib" not in module_text
+    assert "main.py" not in module_text
+    assert "runtime_logs" not in module_text
+    assert "RuntimeLogAccess" not in module_text
+    assert "FileRead" not in module_text
+    assert "SourcePathIngestion" not in module_text
+    assert "FilePathIngestion" not in module_text
+    assert "ArtifactCopy" not in module_text
+    assert "RuntimeArtifactCapture" not in module_text
+    assert "EvaluationEngine" not in module_text
+    assert "BrokerAuthority" not in module_text
+    assert "PaperTradingAuthority" not in module_text
+    assert "LiveTradingAuthority" not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
