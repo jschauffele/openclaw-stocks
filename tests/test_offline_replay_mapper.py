@@ -9725,6 +9725,201 @@ def test_file_read_helper_rejects_source_reference_artifact_authority_scope(
     assert "broker_authority" not in result
 
 
+def test_file_read_helper_rejects_provenance_redaction_authority_scope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _file_read_request(tmp_path)
+    provenance_relative_path = "provenance_redaction/run_unit11/event_stream.jsonl"
+    provenance_payload = (
+        b"synthetic provenance redaction metadata must not authorize reads\n"
+    )
+    provenance_path = Path(request["artifact_root_path"]) / provenance_relative_path
+    provenance_path.parent.mkdir(parents=True, exist_ok=True)
+    provenance_path.write_bytes(provenance_payload)
+
+    read_attempts: list[str] = []
+    original_read_bytes = Path.read_bytes
+
+    def fail_if_provenance_path_is_read(path: Path) -> bytes:
+        if path == provenance_path:
+            read_attempts.append(str(path))
+            raise AssertionError("provenance/redaction path was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_if_provenance_path_is_read)
+
+    conceptual_provenance_vocabulary = (
+        "source_reference_id",
+        "run_id",
+        "artifact_class",
+        "producer",
+        "generated_at",
+        "observed_at",
+        "provenance_status",
+    )
+    conceptual_redaction_vocabulary = (
+        "redaction_status",
+        "redaction_reason",
+        "sensitive_fields_policy",
+        "not_applicable",
+        "redacted",
+        "verified_clean",
+        "blocked_sensitive",
+        "unknown",
+    )
+    provenance_path_request = {
+        **request,
+        "file_relative_path": provenance_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": provenance_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(provenance_payload).hexdigest(),
+        "max_size_bytes": len(provenance_payload),
+    }
+    provenance_only_request = {
+        **provenance_path_request,
+        "approved_file_identity": "",
+        "provenance": "recorded",
+        "redaction_status": "redacted",
+    }
+    unknown_reference_with_provenance = {
+        **provenance_path_request,
+        "source_references": ("unknown",),
+        "provenance": "recorded",
+        "redaction_status": "redacted",
+    }
+    unknown_reference_with_redaction = {
+        **provenance_path_request,
+        "source_references": ("unknown",),
+        "provenance": "recorded",
+        "redaction_status": "redacted",
+    }
+    provenance_redaction_scope_requests = (
+        ({**request, "provenance": ""}, ValueError),
+        ({**request, "provenance": object()}, ValueError),
+        ({**request, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**request, "redaction_status": ""}, ValueError),
+        ({**request, "redaction_status": object()}, ValueError),
+        ({**request, "redaction_status": "unknown"}, ValueError),
+        ({**request, "sensitive_data_status": "exposed"}, ValueError),
+        (unknown_reference_with_provenance, ValueError),
+        (unknown_reference_with_redaction, ValueError),
+        (provenance_only_request, ValueError),
+        (
+            {**provenance_path_request, "source_path_ingestion_dependent": True},
+            ValueError,
+        ),
+        (
+            {**provenance_path_request, "file_path_ingestion_dependent": True},
+            ValueError,
+        ),
+        ({**provenance_path_request, "artifact_copying_dependent": True}, ValueError),
+        ({**provenance_path_request, "runtime_capture_dependent": True}, ValueError),
+        ({**provenance_path_request, "attempted_runtime_capture": True}, ValueError),
+        ({**provenance_path_request, "evaluation_dependent": True}, ValueError),
+        (
+            {**provenance_path_request, "attempted_evaluation_approval": True},
+            ValueError,
+        ),
+        ({**provenance_path_request, "broker_dependent": True}, ValueError),
+        (
+            {
+                **provenance_path_request,
+                "attempted_paper_trading_authority": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **provenance_path_request,
+                "attempted_live_trading_authority": True,
+            },
+            ValueError,
+        ),
+        ({**provenance_path_request, "package_creation_authority": True}, TypeError),
+        (
+            {**provenance_path_request, "manifest_generation_authority": True},
+            TypeError,
+        ),
+        (
+            {**provenance_path_request, "hashing_integrity_authority": True},
+            TypeError,
+        ),
+        (
+            {**provenance_path_request, "storage_finalization_authority": True},
+            TypeError,
+        ),
+        (
+            {**provenance_path_request, "immutable_package_evidence": True},
+            TypeError,
+        ),
+        ({**provenance_path_request, "promotion_authority": True}, TypeError),
+    )
+
+    for bad_request, expected_error in provenance_redaction_scope_requests:
+        with pytest.raises(expected_error):
+            file_reader.read_approved_replay_file(bad_request)
+
+    assert read_attempts == []
+
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Provenance And Redaction Authority Contract" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Malformed provenance must fail closed" in spec_text
+    assert "Ambiguous provenance must fail closed" in spec_text
+    assert "Mixed-run provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Unknown, missing, malformed, or invalid redaction status" in spec_text
+    assert "Sensitive data exposure must fail closed" in spec_text
+    assert "Unknown source references with provenance-looking metadata" in spec_text
+    assert "Provenance cannot imply source path authority" in spec_text
+    assert "Provenance cannot imply file-read authority" in spec_text
+    assert "Provenance cannot imply artifact copying" in spec_text
+    assert "Provenance cannot imply runtime capture" in spec_text
+    assert "Provenance cannot imply package creation" in spec_text
+    assert "Provenance cannot imply immutable package evidence" in spec_text
+    assert "Provenance cannot imply evaluation, scoring" in spec_text
+    assert "Provenance cannot imply broker/API" in spec_text
+    assert "Redaction status cannot imply artifact eligibility" in spec_text
+
+    result = file_reader.read_approved_replay_file(request)
+    assert result["read_performed"] is True
+    assert result["source_path_ingestion"] is False
+    assert result["file_path_ingestion"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["paper_trading_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert "provenance_authority" not in result
+    assert "redaction_authority" not in result
+    assert "source_path_authority" not in result
+    assert "source_reference_artifact_authority" not in result
+    assert "file_path_ingestion_authority" not in result
+    assert "artifact_copying_authority" not in result
+    assert "runtime_capture_authority" not in result
+    assert "package_creation_authority" not in result
+    assert "manifest_generation_authority" not in result
+    assert "hashing_integrity_authority" not in result
+    assert "storage_finalization_authority" not in result
+    assert "immutable_package_evidence" not in result
+    assert "evaluation_authority" not in result
+    assert "promotion_authority" not in result
+    assert "broker_authority" not in result
+
+    for vocabulary_name in conceptual_provenance_vocabulary:
+        assert vocabulary_name not in FILE_READ_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in file_reader.FILE_READ_PREREQUISITES
+    for vocabulary_name in conceptual_redaction_vocabulary:
+        assert vocabulary_name not in FILE_READ_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in file_reader.FILE_READ_PREREQUISITES
+
+
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
