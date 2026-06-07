@@ -20,6 +20,7 @@ import tools.replay.integrity_validation as integrity_validation
 import tools.replay.manifest_builder as manifest_builder
 import tools.replay.manifest_schema as manifest_schema
 import tools.replay.offline_mapper as offline_mapper
+import tools.replay.package_completeness as package_completeness
 import tools.replay.package_creation as package_creation
 import tools.replay.package_layout as package_layout
 import tools.replay.package_schema as package_schema
@@ -1028,13 +1029,11 @@ STORAGE_IMPLEMENTATION_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
-FUTURE_PACKAGE_COMPLETENESS_MODULES = (
-    (
-        Path(__file__).resolve().parents[1]
-        / "tools"
-        / "replay"
-        / "package_completeness.py"
-    ),
+PACKAGE_COMPLETENESS_MODULE = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "replay"
+    / "package_completeness.py"
 )
 PACKAGE_COMPLETENESS_SCOPE_RELAXABLE_NAMES = (
     "PACKAGE_COMPLETENESS",
@@ -1469,6 +1468,36 @@ def _storage_writer_metadata_input(**overrides: object) -> dict:
     }
     storage_input.update(overrides)
     return storage_input
+
+
+def _package_completeness_evidence(**overrides: object) -> dict:
+    storage_implementation_result = storage_implementation.build_finalized_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    package_creation_result = storage_implementation_result["package_creation_result"]
+    completeness_evidence = {
+        "canonical_run_id": "run_unit11",
+        "package_identity": {
+            "canonical_run_id": "run_unit11",
+            "package_id": "package_run_unit11",
+        },
+        "package_creation_result": package_creation_result,
+        "manifest": package_creation_result["manifest"],
+        "canonical_bytes": package_creation_result["canonical_bytes"],
+        "hash_records": package_creation_result["hash_records"],
+        "integrity_validation_result": package_creation_result[
+            "integrity_validation_result"
+        ],
+        "storage_implementation_result": storage_implementation_result,
+        "storage_lifecycle_state": "finalized",
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "source_references": ("event_jsonl", "draft_package"),
+        "known_source_references": ("event_jsonl", "draft_package"),
+        "input_run_ids": ("run_unit11",),
+    }
+    completeness_evidence.update(overrides)
+    return completeness_evidence
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -5403,8 +5432,7 @@ def test_package_completeness_scope_guard_records_boundary_only() -> None:
         "package_completeness_as_live_trading_authority",
     )
 
-    for future_module in FUTURE_PACKAGE_COMPLETENESS_MODULES:
-        assert not future_module.exists()
+    assert PACKAGE_COMPLETENESS_MODULE.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -5442,6 +5470,157 @@ def test_package_completeness_scope_guard_records_boundary_only() -> None:
     ):
         assert denied_name in PACKAGE_COMPLETENESS_SCOPE_DOWNSTREAM_DENIED_NAMES
         assert denied_name not in PACKAGE_COMPLETENESS_SCOPE_RELAXABLE_NAMES
+
+
+def test_package_completeness_helper_validates_in_memory_evidence_only() -> None:
+    assert package_completeness.PackageCompleteness().authority_boundary == (
+        package_completeness.PACKAGE_COMPLETENESS_AUTHORITY_BOUNDARY
+    )
+    assert package_completeness.PackageCompletenessResult().result_type == (
+        package_completeness.PACKAGE_COMPLETENESS_RESULT
+    )
+    assert package_completeness.CompletePackageEligibility().prerequisites == (
+        package_completeness.PACKAGE_COMPLETENESS_PREREQUISITES
+    )
+    assert package_completeness.ACCEPTABLE_COMPLETENESS_LIFECYCLE_STATES == (
+        "finalized",
+    )
+
+    evidence = _package_completeness_evidence()
+    result = package_completeness.validate_package_completeness(evidence)
+
+    assert result == package_completeness.build_package_completeness_result(evidence)
+    assert result == package_completeness.assert_package_complete(evidence)
+    assert result["result_type"] == package_completeness.PACKAGE_COMPLETENESS_RESULT
+    assert result["validation_type"] == (
+        package_completeness.PACKAGE_COMPLETENESS_VALIDATION
+    )
+    assert result["canonical_run_id"] == "run_unit11"
+    assert result["package_identity"]["package_id"] == "package_run_unit11"
+    assert result["package_creation_result"]["package_completeness"] is False
+    assert result["storage_implementation_result"]["package_completeness"] is False
+    assert result["storage_lifecycle_state"] == "finalized"
+    assert result["package_completeness"] is True
+    assert result["package_completeness_authority"] is True
+    assert result["complete_replay_package_authority"] is True
+    assert result["evidence_only"] is True
+    assert (
+        result["non_authoritative_beyond_package_completeness_metadata"] is True
+    )
+    assert result["actual_filesystem_reads"] is False
+    assert result["actual_filesystem_writes"] is False
+    assert result["package_directory_creation"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["execution_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert result["prerequisites"] == (
+        package_completeness.PACKAGE_COMPLETENESS_PREREQUISITES
+    )
+    assert result["fail_closed_boundaries"] == (
+        package_completeness.PACKAGE_COMPLETENESS_FAIL_CLOSED_BOUNDARIES
+    )
+    assert result["authority_boundary"] == (
+        package_completeness.PACKAGE_COMPLETENESS_AUTHORITY_BOUNDARY
+    )
+    assert "no_actual_filesystem_reads" in result["authority_boundary"]
+    assert "no_actual_filesystem_writes" in result["authority_boundary"]
+    assert "no_package_directory_creation" in result["authority_boundary"]
+    assert "no_runtime_capture" in result["authority_boundary"]
+    assert "no_evaluation_or_promotion" in result["authority_boundary"]
+    assert "no_broker_api_authority" in result["authority_boundary"]
+    assert "no_execution_authority" in result["authority_boundary"]
+    assert "no_live_trading_authority" in result["authority_boundary"]
+
+    module_names = set(package_completeness.__dict__)
+    for relaxable_name in PACKAGE_COMPLETENESS_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+    for denied_name in (
+        "ActualFilesystemRead",
+        "ActualFilesystemWrite",
+        "PackageDirectoryCreation",
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "PromotionGate",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name not in module_names
+
+
+def test_package_completeness_helper_fails_closed() -> None:
+    base_evidence = _package_completeness_evidence()
+
+    bad_cases = (
+        ({**base_evidence, "package_identity": {}}, ValueError),
+        ({**base_evidence, "package_creation_result": {}}, ValueError),
+        ({**base_evidence, "manifest": {}}, ValueError),
+        ({**base_evidence, "canonical_bytes": b""}, ValueError),
+        ({**base_evidence, "hash_records": ()}, ValueError),
+        ({**base_evidence, "integrity_validation_result": {}}, ValueError),
+        (
+            {
+                **base_evidence,
+                "integrity_validation_result": {
+                    **base_evidence["integrity_validation_result"],
+                    "integrity_status": "mismatch",
+                },
+            },
+            ValueError,
+        ),
+        ({**base_evidence, "storage_implementation_result": {}}, ValueError),
+        (
+            {
+                **base_evidence,
+                "storage_implementation_result": {
+                    **base_evidence["storage_implementation_result"],
+                    "evidence_only": False,
+                },
+            },
+            ValueError,
+        ),
+        ({**base_evidence, "storage_lifecycle_state": ""}, ValueError),
+        ({**base_evidence, "storage_lifecycle_state": "unknown"}, ValueError),
+        ({**base_evidence, "storage_lifecycle_state": "draft"}, ValueError),
+        ({**base_evidence, "provenance": ""}, ValueError),
+        ({**base_evidence, "provenance": object()}, ValueError),
+        ({**base_evidence, "redaction_status": ""}, ValueError),
+        ({**base_evidence, "redaction_status": "unknown"}, ValueError),
+        ({**base_evidence, "source_references": ()}, ValueError),
+        ({**base_evidence, "source_references": ("unknown",)}, ValueError),
+        ({**base_evidence, "sensitive_data_status": "exposed"}, ValueError),
+        ({**base_evidence, "stale_input": True}, ValueError),
+        ({**base_evidence, "malformed_input": True}, ValueError),
+        ({**base_evidence, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**base_evidence, "runtime_dependent": True}, ValueError),
+        ({**base_evidence, "evaluation_dependent": True}, ValueError),
+        ({**base_evidence, "broker_dependent": True}, ValueError),
+        ({**base_evidence, "filesystem_writer_dependent": True}, ValueError),
+        ({**base_evidence, "attempted_evaluation_approval": True}, ValueError),
+        ({**base_evidence, "attempted_execution_permission": True}, ValueError),
+        ({**base_evidence, "attempted_live_trading_authority": True}, ValueError),
+        (object(), TypeError),
+    )
+    for bad_evidence, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            package_completeness.validate_package_completeness(bad_evidence)
+
+    module_text = PACKAGE_COMPLETENESS_MODULE.read_text(encoding="utf-8")
+    assert "from pathlib" not in module_text
+    assert "import os" not in module_text
+    assert "open(" not in module_text
+    assert ".read(" not in module_text
+    assert ".write(" not in module_text
+    assert "write_text(" not in module_text
+    assert "write_bytes(" not in module_text
+    assert "mkdir(" not in module_text
+    assert "RuntimeCapture" not in module_text
+    assert "EvaluationEngine" not in module_text
+    assert "BrokerAuthority" not in module_text
+    assert "ExecutionPermission" not in module_text
+    assert "LiveTradingAuthority" not in module_text
 
     for module_path in (
         *REPLAY_SOURCE_MODULES,
