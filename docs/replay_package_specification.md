@@ -2363,6 +2363,195 @@ test-only and must not inspect runtime logs, inspect runtime artifacts, edit
 production code, touch VPS, call broker APIs, inspect `.env`, change
 scheduler/systemd, approve paper trading, or approve live trading.
 
+## Provenance And Redaction Authority Contract
+
+Provenance and redaction authority remains governance-only and is not
+implemented yet. This contract defines the next upstream prerequisite after
+source reference and source artifact authority, before runtime artifact
+discovery, source path authority, file path ingestion, artifact copying,
+package creation, immutable package evidence, runtime capture, or evaluation
+implementation can be considered.
+
+This contract does not approve tests, code, provenance modules, redaction
+modules, runtime artifact discovery, source path ingestion, file path
+ingestion, file reads, artifact copying, runtime capture, replay package
+creation, manifest generation, hashing or integrity validation, storage,
+finalization, immutability, immutable package evidence, evaluation, promotion,
+broker work, paper trading, or live trading.
+
+Provenance and redaction scope:
+
+- Provenance for replay evidence is governed metadata that identifies where
+  future evidence came from, which run identity it belongs to, which source
+  reference and artifact class it claims, who or what produced it, and whether
+  that origin is known, complete, and unambiguous.
+- Redaction status for replay evidence is governed metadata that identifies
+  whether future evidence is safe to reference, has been redacted, is verified
+  clean, is not applicable, is unknown, or is blocked by sensitive data
+  exposure.
+- Required future provenance fields are conceptual only and include
+  `source_reference_id`, `run_id`, `artifact_class`, `producer`,
+  `generated_at` or `observed_at`, and `provenance_status`.
+- Required future redaction fields are conceptual only and include
+  `redaction_status`, `redaction_reason`, and `sensitive_fields_policy`.
+- Provenance and redaction metadata must attach to every future source
+  reference and every future runtime artifact before any downstream gate may
+  treat that reference or artifact as eligible evidence.
+- Provenance and redaction metadata may describe a future evidence claim, but
+  cannot read the evidence, resolve paths, copy artifacts, create packages,
+  finalize immutable evidence, evaluate results, promote strategies, access a
+  broker/API, or approve trading.
+
+Provenance and redaction dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before
+  provenance or redaction metadata can attach to a governed source reference.
+- Runtime Artifact Discovery Authority must be defined before provenance or
+  redaction metadata can attach to discovered runtime artifacts.
+- Terminal completion and run eligibility authority must be defined before
+  provenance or redaction metadata can support capture eligibility.
+- Package layout authority must be defined before provenance or redaction
+  metadata can target package sections.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Source path ingestion.
+- File path ingestion.
+- File reads.
+- Artifact copying.
+- Runtime artifact discovery.
+- Runtime capture.
+- Replay package creation.
+- Manifest generation.
+- Hashing or integrity validation.
+- Storage, finalization, or immutability.
+- Immutable package evidence.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual provenance and redaction vocabulary:
+
+- `source_reference_id`.
+- `run_id`.
+- `artifact_class`.
+- `producer`.
+- `generated_at`.
+- `observed_at`.
+- `redaction_status`.
+- `redaction_reason`.
+- `sensitive_fields_policy`.
+- `provenance_status`.
+- Source-controlled source reference provenance.
+- Runtime artifact provenance.
+- Section-level provenance.
+- Redaction-safe declaration.
+- Sensitive-data-blocked declaration.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, path authority, file-read authority, artifact-copying authority,
+runtime capture authority, package sections, manifests, hashes, storage,
+immutable evidence, evaluation inputs, broker authority, or trading authority.
+
+Required future redaction states:
+
+- `not_applicable` means redaction is not relevant to the source reference or
+  artifact class and must be explicitly justified.
+- `redacted` means sensitive fields have been removed or replaced according to
+  a future governed redaction policy.
+- `verified_clean` means the future evidence was reviewed under a governed
+  sensitive-fields policy and contains no sensitive fields requiring
+  redaction.
+- `blocked_sensitive` means the evidence must not proceed because sensitive
+  data exposure is known or suspected.
+- `unknown` means the redaction state is unresolved and is not acceptable for
+  downstream authority.
+
+Unknown, missing, malformed, or invalid redaction status must fail closed.
+
+Fail-closed handling:
+
+- Missing provenance must fail closed.
+- Malformed provenance must fail closed.
+- Ambiguous provenance must fail closed.
+- Mixed-run provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive data exposure must fail closed.
+- Unknown source references with provenance-looking metadata still fail
+  closed.
+- Provenance or redaction metadata that implies path resolution, file reads,
+  artifact copying, runtime capture, package creation, immutable evidence,
+  evaluation, broker/API work, paper trading, or live trading must fail closed.
+
+Required future test-only guards:
+
+- Missing provenance fails closed.
+- Malformed provenance fails closed.
+- Ambiguous provenance fails closed.
+- Mixed-run provenance fails closed.
+- Missing redaction status fails closed.
+- Invalid redaction status fails closed.
+- Sensitive-data markers block downstream authority.
+- Unknown source references with provenance-looking metadata fail closed.
+- Provenance cannot imply source path authority.
+- Provenance cannot imply file path ingestion.
+- Provenance cannot imply file-read authority.
+- Provenance cannot imply artifact copying.
+- Provenance cannot imply runtime artifact discovery.
+- Provenance cannot imply runtime capture.
+- Provenance cannot imply package creation.
+- Provenance cannot imply immutable package evidence.
+- Provenance cannot imply evaluation, scoring, reporting, or promotion.
+- Provenance cannot imply broker/API, execution, paper trading, or live
+  trading authority.
+- Redaction status cannot imply artifact eligibility, package completeness,
+  immutable evidence, evaluation, promotion, broker authority, paper trading,
+  or live trading.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need real runtime artifacts.
+- Need secrets.
+- Need `.env` access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need filesystem reads.
+- Need filesystem writes.
+- Need source path resolution.
+- Need file path ingestion.
+- Need artifact copying.
+- Need runtime artifact discovery.
+- Need runtime capture.
+- Need package creation.
+- Need manifest generation.
+- Need hashing or integrity validation.
+- Need storage, finalization, or immutability.
+- Need immutable package evidence.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Provenance and redaction authority is not runtime artifact discovery, source
+path authority, file path ingestion, file-read authority, artifact copying,
+runtime capture, package creation, manifest authority, hashing or integrity
+authority, storage/finalization/immutability authority, immutable package
+evidence, evaluation, promotion, broker authority, execution permission, paper
+trading approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_PROVENANCE_REDACTION_AUTHORITY_GUARD`. That future gate must be
+test-only and must not inspect runtime logs, inspect runtime artifacts, edit
+production code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
+scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
