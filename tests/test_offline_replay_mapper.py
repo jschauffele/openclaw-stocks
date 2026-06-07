@@ -25,6 +25,7 @@ import tools.replay.package_completeness as package_completeness
 import tools.replay.package_creation as package_creation
 import tools.replay.package_layout as package_layout
 import tools.replay.package_schema as package_schema
+import tools.replay.source_artifacts as source_artifacts
 import tools.replay.storage_implementation as storage_implementation
 from tools.replay.draft_envelope import build_draft_replay_envelope
 from tools.replay.offline_mapper import build_replay_package
@@ -1163,11 +1164,13 @@ FILESYSTEM_WRITER_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ExecutionPermission",
     "LiveTradingAuthority",
 )
-FUTURE_SOURCE_ARTIFACT_AUTHORITY_MODULES = (
+SOURCE_ARTIFACTS_MODULE = (
     Path(__file__).resolve().parents[1]
     / "tools"
     / "replay"
-    / "source_artifacts.py",
+    / "source_artifacts.py"
+)
+FUTURE_SOURCE_ARTIFACT_AUTHORITY_MODULES = (
     Path(__file__).resolve().parents[1]
     / "tools"
     / "replay"
@@ -1683,6 +1686,21 @@ def _filesystem_writer_input(tmp_path: Path, **overrides: object) -> dict:
     }
     writer_input.update(overrides)
     return writer_input
+
+
+def _source_artifact_authority_input(**overrides: object) -> dict:
+    source_metadata = {
+        "canonical_run_id": "run_unit11",
+        "source_references": ("event_jsonl", "draft_package"),
+        "known_source_references": ("event_jsonl", "draft_package"),
+        "source_artifact_provenance": "recorded",
+        "source_artifact_redaction_status": "not_required",
+        "source_artifact_eligibility": "eligible",
+        "input_run_ids": ("run_unit11",),
+        "source_path_identity": "source-metadata:event_jsonl",
+    }
+    source_metadata.update(overrides)
+    return source_metadata
 
 
 def _committed_candidate_artifacts() -> list[dict]:
@@ -6493,6 +6511,7 @@ def test_source_artifact_authority_scope_guard_records_boundary_only() -> None:
         "source_artifact_authority_as_live_trading_authority",
     )
 
+    assert SOURCE_ARTIFACTS_MODULE.exists()
     for future_module in FUTURE_SOURCE_ARTIFACT_AUTHORITY_MODULES:
         assert not future_module.exists()
 
@@ -6584,6 +6603,379 @@ def test_source_artifact_authority_scope_guard_records_boundary_only() -> None:
             "LiveTradingAuthority",
         ):
             assert denied_name not in module_text
+
+
+def test_source_artifact_authority_helper_validates_metadata_only() -> None:
+    source_metadata = _source_artifact_authority_input()
+
+    assert source_artifacts.SourceArtifactAuthority().authority_boundary == (
+        source_artifacts.SOURCE_ARTIFACT_AUTHORITY_BOUNDARY
+    )
+    assert source_artifacts.SourceArtifactNoAccessResult().authority_boundary == (
+        source_artifacts.SOURCE_ARTIFACT_AUTHORITY_BOUNDARY
+    )
+    assert source_artifacts.SourceArtifactEligibilityResult().result_type == (
+        source_artifacts.SOURCE_ARTIFACT_ELIGIBILITY_RESULT
+    )
+
+    validation = source_artifacts.validate_source_artifact_authority(source_metadata)
+    built = source_artifacts.build_source_artifact_authority_result(source_metadata)
+    references_only = source_artifacts.validate_source_references_only(source_metadata)
+
+    assert validation == built == references_only
+    assert built["result_type"] == source_artifacts.SOURCE_ARTIFACT_AUTHORITY_RESULT
+    assert built["canonical_run_id"] == "run_unit11"
+    assert built["source_references"] == ("event_jsonl", "draft_package")
+    assert built["source_path_identity"] == "source-metadata:event_jsonl"
+    assert built["source_artifact_authority"] is True
+    assert built["source_reference_authority"] is True
+    assert built["source_path_authority"] is True
+    assert built["evidence_only"] is True
+    assert built["metadata_only"] is True
+    assert built["runtime_log_access"] is False
+    assert built["source_path_ingestion"] is False
+    assert built["file_path_ingestion"] is False
+    assert built["runtime_artifact_discovery"] is False
+    assert built["artifact_copying"] is False
+    assert built["runtime_capture"] is False
+    assert built["evaluation_or_promotion"] is False
+    assert built["strategy_risk_execution_behavior"] is False
+    assert built["broker_api_authority"] is False
+    assert built["execution_authority"] is False
+    assert built["paper_trading_authority"] is False
+    assert built["live_trading_authority"] is False
+    assert built["authority_boundary"] == (
+        source_artifacts.SOURCE_ARTIFACT_AUTHORITY_BOUNDARY
+    )
+    assert "no_file_reads" in built["authority_boundary"]
+    assert "no_source_path_ingestion" in built["authority_boundary"]
+    assert "no_runtime_artifact_discovery" in built["authority_boundary"]
+    assert "no_runtime_capture" in built["authority_boundary"]
+    assert "no_evaluation_or_promotion" in built["authority_boundary"]
+    assert "no_strategy_risk_execution_behavior" in built["authority_boundary"]
+    assert "no_broker_api_authority" in built["authority_boundary"]
+    assert "no_execution_authority" in built["authority_boundary"]
+    assert "no_paper_trading_authority" in built["authority_boundary"]
+    assert "no_live_trading_authority" in built["authority_boundary"]
+
+    module_names = set(source_artifacts.__dict__)
+    for relaxable_name in SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES:
+        assert relaxable_name in module_names
+    for denied_name in (
+        "RuntimeCapture",
+        "EvaluationEngine",
+        "PromotionGate",
+        "StrategyBehavior",
+        "RiskBehavior",
+        "ExecutionBehavior",
+        "BrokerAuthority",
+        "ExecutionPermission",
+        "PaperTradingAuthority",
+        "LiveTradingAuthority",
+    ):
+        assert denied_name not in module_names
+
+
+def test_source_artifact_authority_helper_absent_and_not_applicable() -> None:
+    absent_declaration = source_artifacts.declare_absent_source_artifact(
+        "run_unit11",
+        "event_jsonl",
+    )
+    absent_result = source_artifacts.validate_source_artifact_authority(
+        _source_artifact_authority_input(
+            artifact_exists=False,
+            source_artifact_eligibility="absent",
+            absent_source_artifact_declaration=absent_declaration,
+            source_path_identity=None,
+        )
+    )
+
+    assert absent_declaration["declaration_type"] == (
+        source_artifacts.ABSENT_SOURCE_ARTIFACT_DECLARATION
+    )
+    assert absent_declaration["runtime_log_access"] is False
+    assert absent_declaration["file_path_ingestion"] is False
+    assert absent_declaration["runtime_capture"] is False
+    assert absent_result["artifact_exists"] is False
+    assert absent_result["absent_source_artifact_declaration"] == absent_declaration
+    assert absent_result["not_applicable_source_artifact_declaration"] is None
+
+    not_applicable_declaration = (
+        source_artifacts.declare_not_applicable_source_artifact(
+            "run_unit11",
+            "draft_package",
+        )
+    )
+    not_applicable_result = source_artifacts.validate_source_artifact_authority(
+        _source_artifact_authority_input(
+            artifact_exists=False,
+            source_references=("draft_package",),
+            source_artifact_eligibility="not_applicable",
+            not_applicable_source_artifact_declaration=not_applicable_declaration,
+            source_path_identity=None,
+        )
+    )
+
+    assert not_applicable_declaration["declaration_type"] == (
+        source_artifacts.NOT_APPLICABLE_SOURCE_ARTIFACT_DECLARATION
+    )
+    assert not_applicable_declaration["artifact_copying"] is False
+    assert not_applicable_declaration["paper_trading_authority"] is False
+    assert not_applicable_declaration["live_trading_authority"] is False
+    assert not_applicable_result["artifact_exists"] is False
+    assert not_applicable_result["absent_source_artifact_declaration"] is None
+    assert not_applicable_result[
+        "not_applicable_source_artifact_declaration"
+    ] == not_applicable_declaration
+
+
+def test_source_artifact_authority_helper_fails_closed() -> None:
+    bad_cases = (
+        ({**_source_artifact_authority_input(), "source_references": ()}, ValueError),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_references": ("unknown",),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "ambiguous_source_references": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "artifact_exists": False,
+                "source_artifact_eligibility": "absent",
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "artifact_exists": False,
+                "source_artifact_eligibility": "absent",
+                "absent_source_artifact_declaration": {"declaration_type": "bad"},
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "artifact_exists": False,
+                "source_artifact_eligibility": "absent",
+                "absent_source_artifact_declaration": object(),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_artifact_provenance": "",
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_artifact_provenance": object(),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_artifact_redaction_status": "",
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_artifact_redaction_status": "unknown",
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_artifact_eligibility": "implicit",
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_path_identity": object(),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "source_path_identity": "",
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "sensitive_data_status": "exposed",
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "stale_source_artifact_metadata": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "malformed_source_artifact_metadata": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "input_run_ids": ("run_unit11", "other"),
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "runtime_log_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "runtime_path_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "file_path_ingestion_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "artifact_copying_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "runtime_artifact_discovery_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "runtime_capture_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "attempted_runtime_capture": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "evaluation_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "attempted_evaluation_approval": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "broker_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "strategy_risk_execution_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "attempted_execution_permission": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "attempted_paper_trading_authority": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "paper_trading_authority": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "attempted_live_trading_authority": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **_source_artifact_authority_input(),
+                "live_trading_authority": True,
+            },
+            ValueError,
+        ),
+        (object(), TypeError),
+    )
+    for bad_input, expected_error in bad_cases:
+        with pytest.raises(expected_error):
+            source_artifacts.validate_source_artifact_authority(bad_input)
+
+    module_text = SOURCE_ARTIFACTS_MODULE.read_text(encoding="utf-8")
+    assert "from pathlib" not in module_text
+    assert "main.py" not in module_text
+    assert "runtime_logs" not in module_text
+    assert "RuntimeCapture" not in module_text
+    assert "EvaluationEngine" not in module_text
+    assert "BrokerAuthority" not in module_text
+    assert "PaperTradingAuthority" not in module_text
+    assert "LiveTradingAuthority" not in module_text
 
 
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
