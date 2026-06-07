@@ -9356,6 +9356,227 @@ def test_file_read_helper_rejects_immutable_package_evidence_scope(
     )
 
 
+def test_file_read_helper_rejects_evaluation_promotion_scope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _file_read_request(tmp_path)
+    evaluation_source_relative_path = "evaluation_scope/run_unit11/event_stream.jsonl"
+    evaluation_payload = b"synthetic evaluation evidence must not be scored\n"
+    evaluation_source_path = (
+        Path(request["artifact_root_path"]) / evaluation_source_relative_path
+    )
+    evaluation_source_path.parent.mkdir(parents=True, exist_ok=True)
+    evaluation_source_path.write_bytes(evaluation_payload)
+
+    absolute_evaluation_source_path = tmp_path / "outside_eval" / "event_stream.jsonl"
+    absolute_evaluation_source_path.parent.mkdir()
+    absolute_evaluation_source_path.write_bytes(evaluation_payload)
+    evaluation_report_path = tmp_path / "evaluation_reports" / "score.json"
+    promotion_decision_path = tmp_path / "promotion" / "decision.json"
+
+    read_attempts: list[str] = []
+    guarded_paths = {absolute_evaluation_source_path}
+    original_read_bytes = Path.read_bytes
+
+    def fail_if_evaluation_source_is_read(path: Path) -> bytes:
+        if path in guarded_paths:
+            read_attempts.append(str(path))
+            raise AssertionError("evaluation source path was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_if_evaluation_source_is_read)
+
+    repo_relative_evaluation_request = {
+        **request,
+        "source_references": ("draft_package",),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    absolute_evaluation_request = {
+        **request,
+        "file_relative_path": str(absolute_evaluation_source_path),
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": str(absolute_evaluation_source_path),
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    runtime_capture_vocabulary_evaluation_request = {
+        **request,
+        "source_references": (file_reader.RUNTIME_CAPTURE_PREREQUISITE,),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    immutable_vocabulary_evaluation_request = {
+        **request,
+        "source_references": ("immutable_package_evidence", "finalized_package"),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    artifact_copying_vocabulary_evaluation_request = {
+        **request,
+        "source_references": (file_reader.ARTIFACT_COPYING_PREREQUISITE,),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    runtime_log_vocabulary_evaluation_request = {
+        **request,
+        "source_references": (file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE,),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    source_path_vocabulary_evaluation_request = {
+        **request,
+        "source_references": (source_artifacts.SOURCE_PATH_AUTHORITY,),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    file_path_vocabulary_evaluation_request = {
+        **request,
+        "source_references": ("file_path_ingestion_prerequisite",),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+    manifest_hash_storage_vocabulary_evaluation_request = {
+        **request,
+        "source_references": ("manifest_hash", "storage_authority"),
+        "file_relative_path": evaluation_source_relative_path,
+        "approved_path_metadata": {
+            "approved": True,
+            "file_identity": "event_stream",
+            "relative_path": evaluation_source_relative_path,
+        },
+        "expected_sha256": hashlib.sha256(evaluation_payload).hexdigest(),
+        "max_size_bytes": len(evaluation_payload),
+    }
+
+    evaluation_scope_requests = (
+        ({**request, "evaluation_dependent": True}, ValueError),
+        ({**request, "attempted_evaluation_approval": True}, ValueError),
+        ({**request, "promotion_dependent": True}, TypeError),
+        ({**request, "attempted_promotion_approval": True}, TypeError),
+        ({**request, "evaluation_authority": True}, TypeError),
+        ({**request, "promotion_authority": True}, TypeError),
+        (absolute_evaluation_request, ValueError),
+        (runtime_capture_vocabulary_evaluation_request, ValueError),
+        (immutable_vocabulary_evaluation_request, ValueError),
+        (artifact_copying_vocabulary_evaluation_request, ValueError),
+        (runtime_log_vocabulary_evaluation_request, ValueError),
+        (source_path_vocabulary_evaluation_request, ValueError),
+        (file_path_vocabulary_evaluation_request, ValueError),
+        (manifest_hash_storage_vocabulary_evaluation_request, ValueError),
+    )
+
+    for bad_request, expected_error in evaluation_scope_requests:
+        with pytest.raises(expected_error):
+            file_reader.read_approved_replay_file(bad_request)
+
+    assert read_attempts == []
+    assert not evaluation_report_path.exists()
+    assert not promotion_decision_path.exists()
+
+    approved_evaluation_named_read = file_reader.read_approved_replay_file(
+        repo_relative_evaluation_request
+    )
+    assert approved_evaluation_named_read["file_bytes"] == evaluation_payload
+    assert approved_evaluation_named_read["read_performed"] is True
+    assert approved_evaluation_named_read["evaluation_or_promotion"] is False
+    assert approved_evaluation_named_read["broker_api_authority"] is False
+    assert approved_evaluation_named_read["paper_trading_authority"] is False
+    assert approved_evaluation_named_read["live_trading_authority"] is False
+    assert "evaluation_authority" not in approved_evaluation_named_read
+    assert "promotion_authority" not in approved_evaluation_named_read
+    assert "evaluation_report" not in approved_evaluation_named_read
+    assert "strategy_score" not in approved_evaluation_named_read
+    assert "strategy_ranking" not in approved_evaluation_named_read
+    assert "strategy_promotion_approval" not in approved_evaluation_named_read
+
+    assert "EVALUATION_PROMOTION" in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+    assert "EvaluationEngine" in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+    assert "PromotionGate" in FILE_READ_SCOPE_DOWNSTREAM_DENIED_NAMES
+    assert "EVALUATION_ENGINE" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert "PROMOTION_GATE" not in FILE_READ_SCOPE_RELAXABLE_NAMES
+    assert file_reader.RUNTIME_CAPTURE_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+    assert file_reader.ARTIFACT_COPYING_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+    assert file_reader.RUNTIME_LOG_ACCESS_PREREQUISITE not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+    assert source_artifacts.SOURCE_PATH_AUTHORITY not in (
+        file_reader.FILE_READ_PREREQUISITES
+    )
+
+    result = file_reader.read_approved_replay_file(request)
+    assert result["runtime_log_access"] is False
+    assert result["source_path_ingestion"] is False
+    assert result["file_path_ingestion"] is False
+    assert result["artifact_copying"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["paper_trading_authority"] is False
+    assert result["live_trading_authority"] is False
+    assert "no_evaluation_or_promotion" in result["authority_boundary"]
+    assert "evaluation_dependency" in result["fail_closed_boundaries"]
+    assert "file_read_authority_as_evaluation_approval" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_paper_trading_authority" in (
+        result["fail_closed_boundaries"]
+    )
+    assert "file_read_authority_as_live_trading_authority" in (
+        result["fail_closed_boundaries"]
+    )
+
+
 def test_runtime_capture_boundary_remains_unimplemented() -> None:
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
     assert "## Runtime Capture Authority Contract" in spec_text
