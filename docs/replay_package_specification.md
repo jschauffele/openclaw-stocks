@@ -3899,6 +3899,313 @@ and must not inspect runtime logs, inspect runtime artifacts, edit production
 code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
 scheduler/systemd, approve paper trading, or approve live trading.
 
+## Package Creation Authority Contract
+
+Package creation authority remains governance-only and is not implemented yet.
+This contract defines a conceptual authority boundary after package layout
+authority, before manifest generation, deterministic serialization, hashing,
+storage, finalization, immutable package evidence, runtime capture, or
+evaluation implementation can be considered.
+
+This contract does not approve tests, code, package creation constants,
+package builder types, package creation modules, package directories, package
+files, package artifacts, manifest generation, deterministic serialization,
+hashing or integrity implementation, storage, finalization, immutability,
+immutable package evidence, runtime capture, evaluation, promotion, broker
+work, runtime validation, scheduler or systemd changes, credential changes,
+strategy changes, risk changes, execution changes, order submission, order
+cancellation, flattening, cleanup, paper trading, or live trading.
+
+Package creation authority scope:
+
+- Package creation authority means governed metadata that may later describe
+  when a future implementation is allowed to assemble a replay package from
+  already-governed inputs into a controlled package output.
+- Package creation authority may describe future package creation preconditions,
+  input classes, lifecycle state boundaries, draft-only behavior, package
+  identity requirements, package layout dependency, source artifact
+  prerequisites, and downstream authority boundaries.
+- Package layout authority defines intended structure only. Package creation
+  authority may describe when that structure could be assembled by a future
+  implementation, but it still does not create directories, files, artifacts,
+  manifests, canonical bytes, hashes, storage records, immutable evidence,
+  runtime capture output, evaluation output, or promotion output.
+- Package creation authority remains metadata-only and non-authorizing until a
+  separate future implementation gate explicitly approves executable package
+  creation behavior.
+- Package creation authority does not create package directories.
+- Package creation authority does not create package files.
+- Package creation authority does not copy artifacts.
+- Package creation authority does not generate manifests.
+- Package creation authority does not serialize package content.
+- Package creation authority does not hash content.
+- Package creation authority does not write storage.
+- Package creation authority does not finalize packages.
+- Package creation authority does not create immutable package evidence.
+- Package creation authority does not approve runtime capture.
+- Package creation authority does not approve evaluation or promotion.
+- Package creation authority does not approve broker/API/TWS work, runtime
+  validation, scheduler/systemd changes, credential changes, strategy changes,
+  risk changes, execution changes, order submission, order cancellation,
+  flattening, cleanup, paper trading, or live trading.
+
+Package creation authority dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before package
+  creation metadata can bind package inputs to governed source references or
+  artifact classes.
+- Provenance and Redaction Authority must be defined before package creation
+  metadata can be considered eligible for downstream planning.
+- Runtime Artifact Discovery Authority must be defined before package creation
+  metadata can reference discovered runtime artifact classes.
+- Source Path Authority must be defined before package creation metadata can
+  refer to governed source path metadata.
+- File Path Ingestion Authority must be defined before package creation
+  metadata can refer to ingestion candidates.
+- Artifact Copying Authority must be defined before package creation metadata
+  can refer to copied artifacts.
+- Terminal Completion and Run Eligibility Authority must be defined before
+  package creation metadata can target a capture-eligible run.
+- Package Layout Authority must be defined before package creation metadata can
+  target package structure, package identity, section boundaries, or output
+  shape.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Runtime log inspection.
+- Runtime artifact semantic inspection.
+- Uncontrolled file reads.
+- Artifact copying.
+- Filesystem writes.
+- Package directory creation.
+- Package file creation.
+- Package artifact creation.
+- Manifest generation.
+- Deterministic serialization.
+- Canonical byte generation.
+- Hashing or integrity implementation.
+- Storage, finalization, or immutability implementation.
+- Immutable package evidence implementation.
+- Runtime capture.
+- Evaluation, scoring, reporting, attribution, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Runtime validation.
+- Scheduler or systemd changes.
+- Credential or `.env` changes.
+- Strategy, risk, or execution changes.
+- Order submission.
+- Order cancellation.
+- Flattening, selling, cleanup, retry, or remediation.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual package creation vocabulary:
+
+- `package_creation_authority`.
+- `package_creation_request`.
+- `package_creation_plan`.
+- `package_creation_status`.
+- `package_creation_preconditions`.
+- `package_creation_inputs`.
+- `package_creation_output_boundary`.
+- `draft_package_creation`.
+- `package_identity_binding`.
+- `package_layout_binding`.
+- `package_section_assignment`.
+- `package_lifecycle_state`.
+- `package_creation_fail_closed_reason`.
+- `documentation_authority_only`.
+- `implementation_authority_required`.
+- Metadata-only package creation authority result.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, package directories, package files, package artifacts, manifests,
+canonical bytes, serialized bytes, hashes, storage records, finalized packages,
+immutable evidence, runtime capture, evaluation inputs, promotion paths, broker
+authority, runtime authority, scheduler/systemd authority, credential
+authority, strategy/risk/execution authority, order authority, or trading
+authority.
+
+Required future package creation statuses:
+
+- `creation_declared` means package creation has been named conceptually, but
+  executable package creation remains unauthorized until a later implementation
+  gate explicitly approves it.
+- `creation_planned` means package creation prerequisites are documented, but
+  no package creation behavior is approved.
+- `creation_blocked` means package creation metadata or policy blocks
+  downstream package creation and must fail closed.
+- `draft_only` means any future approved package creation may produce only
+  draft, non-finalized, non-authoritative package output.
+- `absent` means package creation evidence was explicitly declared absent
+  under later governed rules.
+- `not_applicable` means package creation evidence is explicitly not
+  applicable to the source reference, artifact class, run, or package section
+  under later governed rules.
+- `missing` means required package creation metadata is missing.
+- `malformed` means package creation metadata is structurally invalid.
+- `ambiguous` means package creation metadata cannot identify exactly one
+  governed package identity, layout, input set, lifecycle state, or output
+  boundary.
+- `stale` means package creation metadata is not current enough for downstream
+  use.
+- `mixed_run` means package creation metadata spans or conflicts with more than
+  one run identity.
+- `blocked_sensitive` means package creation metadata or associated evidence is
+  blocked by sensitive data exposure.
+- `unknown` means package creation status is unresolved and is not acceptable
+  for downstream authority.
+
+Unknown, missing, malformed, ambiguous, stale, mixed-run, sensitive, blocked,
+planned-only, declared-only, or draft-only status must fail closed for manifest
+generation, deterministic serialization, hashing, storage, finalization,
+immutable package evidence, runtime capture, evaluation, promotion, broker
+authority, paper trading, or live trading unless separately authorized.
+
+Fail-closed handling:
+
+- Missing package creation status must fail closed.
+- Unknown package creation status must fail closed.
+- Malformed package creation metadata must fail closed.
+- Ambiguous package creation metadata must fail closed.
+- Mixed-run package creation metadata must fail closed.
+- Stale package creation metadata must fail closed.
+- Missing package creation plan must fail closed.
+- Unknown package creation plan must fail closed.
+- Missing package identity must fail closed.
+- Ambiguous package identity must fail closed.
+- Missing package layout binding must fail closed.
+- Missing source artifact authority must fail closed.
+- Missing provenance must fail closed.
+- Invalid provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive-data markers must fail closed.
+- Absent declarations must be explicit and non-authorizing.
+- Not-applicable declarations must be explicit and non-authorizing.
+- Any ambiguity between documentation authority and implementation authority
+  must fail closed.
+- Any ambiguity between draft package creation and finalized immutable evidence
+  must fail closed.
+- Package creation declaration must not imply manifest generation,
+  deterministic serialization, hashing, storage, finalization, immutable
+  evidence, runtime capture, evaluation, promotion, broker/API authority,
+  runtime validation, scheduler/systemd authority, credential authority,
+  strategy/risk/execution authority, order authority, paper trading, or live
+  trading.
+- Package creation metadata that implies runtime log inspection, runtime
+  artifact semantic inspection, artifact copying, filesystem writes, package
+  directory creation, package file creation, manifest generation,
+  deterministic serialization, hashing or integrity proof, storage,
+  finalization, immutability, immutable evidence, runtime capture, evaluation,
+  broker/API work, runtime validation, scheduler/systemd changes, credential
+  changes, strategy/risk/execution changes, order submission, order
+  cancellation, flattening, cleanup, paper trading, or live trading must fail
+  closed.
+
+Required future test-only guards:
+
+- Package creation vocabulary remains metadata-only unless separately
+  authorized.
+- Documentation authority cannot imply implementation authority.
+- Package creation authority cannot inspect runtime logs.
+- Package creation authority cannot inspect runtime artifacts.
+- Package creation authority cannot imply uncontrolled file reads.
+- Package creation authority cannot imply artifact copying.
+- Package creation authority cannot imply filesystem writes.
+- Package creation authority cannot imply package directory creation.
+- Package creation authority cannot imply package file creation.
+- Package creation authority cannot imply package artifact creation.
+- Package creation authority cannot imply manifest generation.
+- Package creation authority cannot imply deterministic serialization.
+- Package creation authority cannot imply hashing or integrity authority.
+- Package creation authority cannot imply storage, finalization, or
+  immutability.
+- Package creation authority cannot imply immutable package evidence.
+- Package creation authority cannot imply runtime capture.
+- Package creation authority cannot imply evaluation, scoring, reporting,
+  attribution, or promotion.
+- Package creation authority cannot imply broker/API, execution, paper
+  trading, or live trading authority.
+- Package creation authority cannot imply runtime validation,
+  scheduler/systemd, credential, strategy, risk, execution, order submission,
+  order cancellation, flattening, or cleanup authority.
+- Missing or ambiguous package identity fails closed.
+- Missing or ambiguous layout binding fails closed.
+- Missing, malformed, ambiguous, stale, or mixed-run package creation metadata
+  fails closed.
+- Absent declarations remain explicit and non-authorizing.
+- Not-applicable declarations remain explicit and non-authorizing.
+
+Future implementation stop conditions:
+
+- Need package creation code, constants, types, modules, or builders.
+- Need package directories.
+- Need package files.
+- Need package artifact paths.
+- Need manifest paths.
+- Need hash paths.
+- Need storage paths.
+- Need promotion paths.
+- Need real runtime logs.
+- Need semantic runtime artifact inspection.
+- Need secrets.
+- Need `.env` or credential access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need runtime validation.
+- Need scheduler or systemd changes.
+- Need strategy, risk, execution, or config behavior changes.
+- Need uncontrolled filesystem reads.
+- Need uncontrolled filesystem writes.
+- Need artifact copying.
+- Need manifest generation.
+- Need deterministic serialization.
+- Need canonical byte generation.
+- Need hashing or integrity proof.
+- Need storage, finalization, or immutability.
+- Need immutable package evidence.
+- Need runtime capture.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need order submission, order cancellation, flattening, selling, cleanup,
+  retry, or remediation.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Package creation authority is not runtime log access authority, runtime
+artifact semantic inspection, artifact copying, filesystem write authority,
+package artifact creation, manifest generation, deterministic serialization
+authority, hashing or integrity proof, storage/finalization/immutability
+authority, immutable package evidence, runtime capture, evaluation, promotion,
+broker authority, runtime validation, scheduler/systemd authority, credential
+authority, strategy/risk/execution authority, order authority, execution
+permission, paper trading approval, or live trading approval.
+
+Required future validation evidence:
+
+- Future validation must distinguish documentation authority from
+  implementation authority.
+- Future validation must prove that no code path, runtime path, package
+  artifact path, manifest path, hash path, storage path, or promotion path was
+  created or changed unless a separate implementation gate explicitly approved
+  that work.
+- Future validation must prove package creation metadata remains
+  non-authorizing for immutable evidence, runtime capture, evaluation,
+  promotion, broker/API work, runtime validation, scheduler/systemd changes,
+  credential changes, strategy changes, risk changes, execution changes,
+  order submission, order cancellation, flattening, cleanup, paper trading, or
+  live trading.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_PACKAGE_CREATION_AUTHORITY_GUARD`. That future gate must be
+test-only and must not inspect runtime logs, inspect runtime artifacts, edit
+production code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
+scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
