@@ -3387,6 +3387,265 @@ test-only and must not inspect runtime logs, inspect runtime artifacts, edit
 production code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
 scheduler/systemd, approve paper trading, or approve live trading.
 
+## Terminal Completion And Run Eligibility Authority Contract
+
+Terminal completion and run eligibility authority remains governance-only and
+is not implemented yet. This contract defines a conceptual authority boundary
+after artifact copying authority, before package layout, package creation,
+manifest generation, deterministic serialization, hashing, storage,
+finalization, immutable package evidence, runtime capture, or evaluation
+implementation can be considered.
+
+This contract does not approve tests, code, terminal completion modules, run
+eligibility modules, runtime log inspection, runtime artifact semantic
+inspection, uncontrolled file reads, artifact copying, package layout
+implementation, replay package creation, manifest generation, deterministic
+serialization, hashing or integrity proof, storage, finalization,
+immutability, immutable package evidence, runtime capture, evaluation,
+promotion, broker work, paper trading, or live trading.
+
+Terminal completion and run eligibility scope:
+
+- Terminal completion means governed metadata that may later establish whether
+  a run has exactly one acceptable terminal state for future capture
+  consideration.
+- Run eligibility means governed metadata conditions that may later establish
+  whether a completed run can be considered for future capture planning.
+- Runtime artifact discovery identifies metadata-only candidate artifact
+  classes and states. Artifact copying governs future copy eligibility for
+  already-approved ingestion candidates. Terminal completion and run
+  eligibility governs whether a run is complete enough for future capture
+  consideration. Package creation produces package output only under a later
+  implementation gate. Runtime capture records approved runtime evidence only
+  under a later implementation gate. Evaluation compares evidence only under a
+  later evaluation gate.
+- Terminal completion authority may only define whether a run can be
+  considered complete enough for future capture consideration.
+- Run eligibility authority may only define metadata conditions for future
+  capture consideration.
+- Terminal completion and run eligibility authority does not inspect runtime
+  logs.
+- Terminal completion and run eligibility authority does not inspect runtime
+  artifact content.
+- Terminal completion and run eligibility authority does not create packages.
+- Terminal completion and run eligibility authority does not create immutable
+  evidence.
+- Terminal completion and run eligibility authority does not approve runtime
+  capture.
+- Terminal completion and run eligibility authority does not approve evaluation
+  or promotion.
+- Terminal and eligibility metadata may describe a run as complete, failed,
+  cancelled, absent, not applicable, missing, duplicate, malformed, ambiguous,
+  stale, mixed-run, blocked by sensitive data, or unknown, but those states do
+  not grant downstream authority.
+
+Terminal completion and run eligibility dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before
+  terminal or eligibility metadata can bind to a governed source reference or
+  artifact class.
+- Provenance and Redaction Authority must be defined before terminal or
+  eligibility metadata can be considered eligible for downstream planning.
+- Runtime Artifact Discovery Authority must be defined before terminal or
+  eligibility metadata can attach to discovered runtime artifact candidates.
+- Source Path Authority must be defined before terminal or eligibility metadata
+  can refer to governed source path metadata.
+- File Path Ingestion Authority must be defined before terminal or eligibility
+  metadata can refer to an ingestion candidate.
+- Artifact Copying Authority must be defined before terminal or eligibility
+  metadata can refer to copy candidate status.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Runtime log inspection.
+- Runtime artifact semantic inspection.
+- Uncontrolled file reads.
+- Artifact copying.
+- Package layout authority.
+- Replay package creation.
+- Manifest generation.
+- Deterministic serialization.
+- Hashing or integrity proof.
+- Storage, finalization, or immutability.
+- Immutable package evidence.
+- Runtime capture.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual terminal completion and run eligibility vocabulary:
+
+- `terminal_event`.
+- `completion_event`.
+- `completion_status`.
+- `run_id`.
+- `run_identity`.
+- `run_eligibility_status`.
+- `terminal_timestamp`.
+- `terminal_timestamp_utc`.
+- `run_started`.
+- `run_completed`.
+- `run_failed`.
+- `run_cancelled`.
+- `run_unknown`.
+- `single_completion_event`.
+- `duplicate_completion_event`.
+- `missing_completion_event`.
+- `mixed_run`.
+- `stale_run`.
+- `malformed_run_metadata`.
+- Explicit absence declaration.
+- Explicit not-applicable declaration.
+- Metadata-only terminal completion result.
+- Metadata-only run eligibility result.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, runtime log reads, runtime artifact inspection, filesystem reads,
+filesystem writes, artifact copies, package layout, package directories,
+complete replay packages, manifests, canonical bytes, hashes, storage,
+immutable evidence, runtime capture, evaluation inputs, broker authority, or
+trading authority.
+
+Required future terminal completion and run eligibility statuses:
+
+- `complete` means a run has a governed future terminal-completion state, but
+  this status alone does not grant runtime capture, package creation,
+  immutable evidence, evaluation, or trading authority.
+- `failed` means a run ended in a failed state and must fail closed for capture
+  eligibility unless separately authorized.
+- `cancelled` means a run ended in a cancelled state and must fail closed for
+  capture eligibility unless separately authorized.
+- `absent` means the terminal or eligibility evidence was explicitly declared
+  absent under later governed rules.
+- `not_applicable` means terminal or eligibility evidence is explicitly not
+  applicable to the source reference, artifact class, run, or package section
+  under later governed rules.
+- `missing` means required terminal or eligibility evidence is missing.
+- `duplicate` means more than one terminal event or completion state is present
+  for the same governed run.
+- `malformed` means terminal or eligibility metadata is structurally invalid.
+- `ambiguous` means terminal or eligibility metadata cannot identify exactly
+  one governed run completion state.
+- `stale` means terminal or eligibility metadata is not current enough for
+  downstream use.
+- `mixed_run` means terminal or eligibility metadata spans or conflicts with
+  more than one run identity.
+- `blocked_sensitive` means terminal or eligibility metadata or associated
+  evidence is blocked by sensitive data exposure.
+- `unknown` means terminal or eligibility status is unresolved and is not
+  acceptable for downstream authority.
+
+Unknown, missing, duplicate, malformed, ambiguous, stale, mixed-run,
+sensitive, failed, cancelled, or blocked status must fail closed for downstream
+capture authority unless separately authorized.
+
+Fail-closed handling:
+
+- Missing run_id must fail closed.
+- Missing terminal event must fail closed.
+- Duplicate terminal events must fail closed.
+- Ambiguous terminal event must fail closed.
+- Malformed terminal event must fail closed.
+- Mixed-run terminal metadata must fail closed.
+- Stale terminal metadata must fail closed.
+- Missing timestamp or timestamp_utc must fail closed.
+- Inconsistent timestamp or timestamp_utc metadata must fail closed.
+- Failed run state must fail closed for capture eligibility unless separately
+  authorized.
+- Cancelled run state must fail closed for capture eligibility unless
+  separately authorized.
+- Missing provenance must fail closed.
+- Invalid provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive-data markers must fail closed.
+- Absent declarations must be explicit and non-authorizing.
+- Not-applicable declarations must be explicit and non-authorizing.
+- Terminal completion must not imply package completeness, immutable evidence,
+  runtime capture, evaluation, promotion, broker/API authority, paper trading,
+  or live trading.
+- Run eligibility metadata that implies runtime log inspection, runtime
+  artifact semantic inspection, artifact copying, package layout authority,
+  package creation, manifest generation, deterministic serialization, hashing
+  or integrity proof, storage, finalization, immutability, immutable evidence,
+  runtime capture, evaluation, broker/API work, paper trading, or live trading
+  must fail closed.
+
+Required future test-only guards:
+
+- Terminal completion vocabulary remains metadata-only unless separately
+  authorized.
+- Run eligibility vocabulary remains metadata-only unless separately
+  authorized.
+- Terminal completion cannot inspect runtime logs.
+- Terminal completion cannot inspect runtime artifacts.
+- Run eligibility cannot imply artifact copying.
+- Run eligibility cannot imply package layout.
+- Run eligibility cannot imply package creation.
+- Run eligibility cannot imply manifest generation.
+- Run eligibility cannot imply deterministic serialization.
+- Run eligibility cannot imply hashing or integrity authority.
+- Run eligibility cannot imply storage, finalization, or immutability.
+- Run eligibility cannot imply immutable package evidence.
+- Run eligibility cannot imply runtime capture.
+- Run eligibility cannot imply evaluation, scoring, reporting, or promotion.
+- Run eligibility cannot imply broker/API, execution, paper trading, or live
+  trading authority.
+- Missing terminal metadata fails closed.
+- Duplicate terminal metadata fails closed.
+- Malformed terminal metadata fails closed.
+- Ambiguous terminal metadata fails closed.
+- Stale terminal metadata fails closed.
+- Mixed-run terminal metadata fails closed.
+- Failed run statuses remain non-authorizing.
+- Cancelled run statuses remain non-authorizing.
+- Absent declarations remain explicit and non-authorizing.
+- Not-applicable declarations remain explicit and non-authorizing.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need semantic runtime artifact inspection.
+- Need secrets.
+- Need `.env` access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need uncontrolled filesystem reads.
+- Need uncontrolled filesystem writes.
+- Need artifact copying.
+- Need package layout implementation.
+- Need package creation.
+- Need manifest generation.
+- Need deterministic serialization.
+- Need hashing or integrity proof.
+- Need storage, finalization, or immutability.
+- Need immutable package evidence.
+- Need runtime capture.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Terminal completion and run eligibility authority is not runtime log access
+authority, runtime artifact semantic inspection, artifact copying, package
+layout authority, package creation, manifest generation, deterministic
+serialization authority, hashing or integrity proof,
+storage/finalization/immutability authority, immutable package evidence,
+runtime capture, evaluation, promotion, broker authority, execution
+permission, paper trading approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_TERMINAL_COMPLETION_RUN_ELIGIBILITY_AUTHORITY_GUARD`. That future
+gate must be test-only and must not inspect runtime logs, inspect runtime
+artifacts, edit production code, edit docs, touch VPS, call broker APIs,
+inspect `.env`, change scheduler/systemd, approve paper trading, or approve
+live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
