@@ -734,9 +734,18 @@ FUTURE_HASHING_INTEGRITY_MODULES = (
 FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES = (
     "HASH_ALGORITHM",
     "HASH_VERSION",
+    "HASH_DIGEST_ENCODING",
+    "HASH_DIGEST_FIELD_LABELS",
     "INTEGRITY_STATUS",
+    "HashAlgorithmName",
+    "HashVersionName",
+    "HashDigestEncodingName",
+    "HashDigestFieldLabel",
     "HashAlgorithm",
     "HashVersion",
+    "HashDigestEncoding",
+    "HashDigestFieldLabels",
+    "IntegrityStatusLabel",
     "IntegrityStatus",
 )
 HASHING_INTEGRITY_SCOPE_DOWNSTREAM_DENIED_NAMES = (
@@ -3589,9 +3598,18 @@ def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
     assert FUTURE_HASHING_INTEGRITY_SCOPE_RELAXABLE_NAMES == (
         "HASH_ALGORITHM",
         "HASH_VERSION",
+        "HASH_DIGEST_ENCODING",
+        "HASH_DIGEST_FIELD_LABELS",
         "INTEGRITY_STATUS",
+        "HashAlgorithmName",
+        "HashVersionName",
+        "HashDigestEncodingName",
+        "HashDigestFieldLabel",
         "HashAlgorithm",
         "HashVersion",
+        "HashDigestEncoding",
+        "HashDigestFieldLabels",
+        "IntegrityStatusLabel",
         "IntegrityStatus",
     )
     assert not (
@@ -3604,14 +3622,31 @@ def test_hashing_integrity_scope_guard_records_unit3_vocabulary_only() -> None:
 
     assert hashing.HASH_ALGORITHM == "sha256"
     assert hashing.HASH_VERSION == "v1"
+    assert hashing.HASH_DIGEST_ENCODING == "hex"
+    assert hashing.HASH_DIGEST_FIELD_LABELS == (
+        "hash_algorithm",
+        "hash_version",
+        "digest",
+    )
     assert hashing.HashAlgorithm().name == hashing.HASH_ALGORITHM
     assert hashing.HashVersion().value == hashing.HASH_VERSION
+    assert hashing.HashDigestEncoding().value == hashing.HASH_DIGEST_ENCODING
+    assert hashing.HashDigestFieldLabels().values == hashing.HASH_DIGEST_FIELD_LABELS
+    assert hashing.HashAlgorithmName is str
+    assert hashing.HashVersionName is str
+    assert hashing.HashDigestEncodingName is str
+    assert hashing.HashDigestFieldLabel is str
     assert integrity.INTEGRITY_STATUS == (
-        "missing",
-        "present",
-        "unavailable",
-        "not_validated",
+        "not_implemented",
+        "not_applicable",
+        "pending",
+        "valid",
+        "invalid",
+        "missing_hash",
+        "mismatch",
+        "unknown",
     )
+    assert integrity.IntegrityStatusLabel is str
     assert integrity.IntegrityStatus().values == integrity.INTEGRITY_STATUS
 
     module_names = set(hashing.__dict__) | set(integrity.__dict__)
@@ -4387,10 +4422,14 @@ def test_integrity_validation_scope_guard_records_unit7_only() -> None:
     assert "Need filesystem reads or writes" in spec_text
 
     assert integrity.INTEGRITY_STATUS == (
-        "missing",
-        "present",
-        "unavailable",
-        "not_validated",
+        "not_implemented",
+        "not_applicable",
+        "pending",
+        "valid",
+        "invalid",
+        "missing_hash",
+        "mismatch",
+        "unknown",
     )
     assert integrity.IntegrityStatus().values == integrity.INTEGRITY_STATUS
     assert hash_computation.HASH_COMPUTATION_AUTHORITY_BOUNDARY.count(

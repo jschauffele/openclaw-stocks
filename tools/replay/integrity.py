@@ -9,13 +9,21 @@ strategies, or authorize execution.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeAlias
 
 
-INTEGRITY_STATUS: tuple[str, ...] = (
-    "missing",
-    "present",
-    "unavailable",
-    "not_validated",
+IntegrityStatusLabel: TypeAlias = str
+
+
+INTEGRITY_STATUS: tuple[IntegrityStatusLabel, ...] = (
+    "not_implemented",
+    "not_applicable",
+    "pending",
+    "valid",
+    "invalid",
+    "missing_hash",
+    "mismatch",
+    "unknown",
 )
 
 
