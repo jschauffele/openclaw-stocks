@@ -547,6 +547,11 @@ FORBIDDEN_MANIFEST_SCHEMA_IMPLEMENTATION_NAMES = (
     "MANIFEST_AUTHORITY_BOUNDARY",
     "ManifestSchema",
     "ManifestSchemaVersion",
+    "ManifestFieldName",
+    "ManifestSectionName",
+    "ManifestSectionStatusValue",
+    "ManifestLifecycleStatusValue",
+    "ManifestAuthorityBoundaryName",
     "ManifestField",
     "ManifestSection",
     "ManifestSectionStatus",
@@ -572,8 +577,17 @@ FUTURE_MANIFEST_SCHEMA_SCOPE_RELAXABLE_NAMES = (
     "MANIFEST_SECTION_STATUS",
     "MANIFEST_LIFECYCLE_STATUS",
     "ManifestSchema",
+    "ManifestSchemaVersion",
+    "ManifestFieldName",
+    "ManifestSectionName",
+    "ManifestSectionStatusValue",
+    "ManifestLifecycleStatusValue",
+    "ManifestAuthorityBoundaryName",
     "ManifestField",
+    "ManifestSection",
     "ManifestSectionStatus",
+    "ManifestLifecycleStatus",
+    "ManifestAuthorityBoundary",
 )
 MANIFEST_SCHEMA_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "ManifestBuilder",
@@ -2883,7 +2897,13 @@ def test_manifest_schema_vocabulary_types_are_in_memory_only() -> None:
 
     schema = manifest_schema.ManifestSchema()
     field = manifest_schema.ManifestField(name="canonical_run_id", required=True)
+    section = manifest_schema.ManifestSection(
+        name="authority_boundary",
+        status="unknown",
+    )
     section_status = manifest_schema.ManifestSectionStatus()
+    lifecycle_status = manifest_schema.ManifestLifecycleStatus()
+    authority_boundary = manifest_schema.ManifestAuthorityBoundary()
 
     assert schema.schema_version == manifest_schema.MANIFEST_SCHEMA_VERSION
     assert schema.required_fields == manifest_schema.MANIFEST_REQUIRED_FIELDS
@@ -2893,7 +2913,21 @@ def test_manifest_schema_vocabulary_types_are_in_memory_only() -> None:
     assert field.name == "canonical_run_id"
     assert field.required is True
     assert field.future_only is False
+    assert section.name == "authority_boundary"
+    assert section.status == "unknown"
+    assert section.future_only is False
     assert section_status.values == manifest_schema.MANIFEST_SECTION_STATUS
+    assert lifecycle_status.values == manifest_schema.MANIFEST_LIFECYCLE_STATUS
+    assert lifecycle_status.future_values == (
+        manifest_schema.MANIFEST_FUTURE_LIFECYCLE_STATUS
+    )
+    assert authority_boundary.values == manifest_schema.MANIFEST_AUTHORITY_BOUNDARY
+    assert manifest_schema.ManifestSchemaVersion is str
+    assert manifest_schema.ManifestFieldName is str
+    assert manifest_schema.ManifestSectionName is str
+    assert manifest_schema.ManifestSectionStatusValue is str
+    assert manifest_schema.ManifestLifecycleStatusValue is str
+    assert manifest_schema.ManifestAuthorityBoundaryName is str
 
     module_names = set(manifest_schema.__dict__)
     for allowed_name in FUTURE_MANIFEST_SCHEMA_SCOPE_RELAXABLE_NAMES:

@@ -9,9 +9,17 @@ execution.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeAlias
 
 
 MANIFEST_SCHEMA_VERSION = "0.1-vocabulary"
+
+ManifestSchemaVersion: TypeAlias = str
+ManifestFieldName: TypeAlias = str
+ManifestSectionName: TypeAlias = str
+ManifestSectionStatusValue: TypeAlias = str
+ManifestLifecycleStatusValue: TypeAlias = str
+ManifestAuthorityBoundaryName: TypeAlias = str
 
 MANIFEST_REQUIRED_FIELDS: tuple[str, ...] = (
     "canonical_run_id",
@@ -148,8 +156,17 @@ MANIFEST_SCHEMA = "manifest_schema_vocabulary_only"
 class ManifestField:
     """A static manifest field vocabulary entry."""
 
-    name: str
+    name: ManifestFieldName
     required: bool
+    future_only: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ManifestSection:
+    """A static manifest section vocabulary entry."""
+
+    name: ManifestSectionName
+    status: ManifestSectionStatusValue = "unknown"
     future_only: bool = False
 
 
@@ -161,10 +178,25 @@ class ManifestSectionStatus:
 
 
 @dataclass(frozen=True, slots=True)
+class ManifestLifecycleStatus:
+    """Static lifecycle status vocabulary."""
+
+    values: tuple[str, ...] = MANIFEST_LIFECYCLE_STATUS
+    future_values: tuple[str, ...] = MANIFEST_FUTURE_LIFECYCLE_STATUS
+
+
+@dataclass(frozen=True, slots=True)
+class ManifestAuthorityBoundary:
+    """Static manifest authority-boundary vocabulary."""
+
+    values: tuple[str, ...] = MANIFEST_AUTHORITY_BOUNDARY
+
+
+@dataclass(frozen=True, slots=True)
 class ManifestSchema:
     """Static manifest schema vocabulary container."""
 
-    schema_version: str = MANIFEST_SCHEMA_VERSION
+    schema_version: ManifestSchemaVersion = MANIFEST_SCHEMA_VERSION
     fields: tuple[str, ...] = MANIFEST_FIELDS
     required_fields: tuple[str, ...] = MANIFEST_REQUIRED_FIELDS
     optional_fields: tuple[str, ...] = MANIFEST_OPTIONAL_FIELDS
