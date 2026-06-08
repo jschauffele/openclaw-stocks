@@ -276,10 +276,20 @@ FUTURE_PACKAGE_IDENTITY_LAYOUT_SCOPE_RELAXABLE_NAMES = (
     "PACKAGE_LAYOUT",
     "PACKAGE_ID",
     "CANONICAL_RUN_ID",
+    "PACKAGE_LAYOUT_VERSION",
+    "PACKAGE_LAYOUT_STATUS",
+    "PACKAGE_LAYOUT_FAIL_CLOSED_STATUS",
+    "PACKAGE_SECTION_BOUNDARIES",
     "PackageIdentity",
     "PackageLayout",
     "PackageId",
     "CanonicalRunId",
+    "PackageLayoutVersion",
+    "PackageLayoutStatus",
+    "PackageSectionBoundary",
+    "package_identity_is_complete",
+    "package_layout_boundaries_are_separated",
+    "layout_status_allows_downstream_authority",
 )
 PACKAGE_IDENTITY_LAYOUT_SCOPE_DOWNSTREAM_DENIED_NAMES = (
     "PACKAGE_CREATION",
@@ -3741,10 +3751,20 @@ def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
         "PACKAGE_LAYOUT",
         "PACKAGE_ID",
         "CANONICAL_RUN_ID",
+        "PACKAGE_LAYOUT_VERSION",
+        "PACKAGE_LAYOUT_STATUS",
+        "PACKAGE_LAYOUT_FAIL_CLOSED_STATUS",
+        "PACKAGE_SECTION_BOUNDARIES",
         "PackageIdentity",
         "PackageLayout",
         "PackageId",
         "CanonicalRunId",
+        "PackageLayoutVersion",
+        "PackageLayoutStatus",
+        "PackageSectionBoundary",
+        "package_identity_is_complete",
+        "package_layout_boundaries_are_separated",
+        "layout_status_allows_downstream_authority",
     )
     assert not (
         set(FUTURE_PACKAGE_IDENTITY_LAYOUT_SCOPE_RELAXABLE_NAMES)
@@ -3758,6 +3778,7 @@ def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
     assert package_layout.PACKAGE_LAYOUT == "package_layout_vocabulary_only"
     assert package_layout.PACKAGE_ID == "package_id"
     assert package_layout.CANONICAL_RUN_ID == "canonical_run_id"
+    assert package_layout.PACKAGE_LAYOUT_VERSION == "0.1-layout-rules"
     assert package_layout.PACKAGE_IDENTITY_FIELDS == (
         package_layout.CANONICAL_RUN_ID,
         package_layout.PACKAGE_ID,
@@ -3767,6 +3788,40 @@ def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
         "manifest",
         "source_artifact_references",
         "integrity",
+        "authority_boundary",
+    )
+    assert package_layout.PACKAGE_LAYOUT_STATUS == (
+        "layout_declared",
+        "layout_draft",
+        "layout_blocked",
+        "absent",
+        "not_applicable",
+        "missing",
+        "malformed",
+        "ambiguous",
+        "stale",
+        "mixed_run",
+        "blocked_sensitive",
+        "unknown",
+    )
+    assert package_layout.PACKAGE_LAYOUT_FAIL_CLOSED_STATUS == (
+        "layout_draft",
+        "layout_blocked",
+        "missing",
+        "malformed",
+        "ambiguous",
+        "stale",
+        "mixed_run",
+        "blocked_sensitive",
+        "unknown",
+    )
+    assert package_layout.PACKAGE_SECTION_BOUNDARIES == (
+        "artifact_section",
+        "manifest_section",
+        "provenance_section",
+        "redaction_section",
+        "immutable_evidence_section",
+        "mutable_evaluation_section",
         "authority_boundary",
     )
     assert package_layout.PackageId().field_name == package_layout.PACKAGE_ID
@@ -3782,6 +3837,67 @@ def test_package_identity_layout_scope_guard_records_unit4_only() -> None:
         package_layout.PackageLayout().sections
         == package_layout.PACKAGE_LAYOUT_SECTIONS
     )
+    assert package_layout.PackageLayout().version == (
+        package_layout.PACKAGE_LAYOUT_VERSION
+    )
+    assert package_layout.PackageLayout().statuses == (
+        package_layout.PACKAGE_LAYOUT_STATUS
+    )
+    assert package_layout.PackageLayout().section_boundaries == (
+        package_layout.PACKAGE_SECTION_BOUNDARIES
+    )
+    assert package_layout.PackageLayoutVersion().value == (
+        package_layout.PACKAGE_LAYOUT_VERSION
+    )
+    assert package_layout.PackageLayoutStatus().fail_closed_values == (
+        package_layout.PACKAGE_LAYOUT_FAIL_CLOSED_STATUS
+    )
+    assert package_layout.PackageSectionBoundary(
+        name="immutable_evidence_section",
+        section="immutable_evidence_section",
+    ).section == "immutable_evidence_section"
+    assert package_layout.package_identity_is_complete(
+        {
+            "canonical_run_id": "run_unit4",
+            "package_id": "package_run_unit4",
+            "run_ids": ("run_unit4",),
+        }
+    )
+    for ambiguous_identity in (
+        {"canonical_run_id": "", "package_id": "package_run_unit4"},
+        {"canonical_run_id": "run_unit4", "package_id": ""},
+        {
+            "canonical_run_id": "run_unit4",
+            "package_id": "package_run_unit4",
+            "run_ids": ("run_unit4", "other"),
+        },
+        {
+            "canonical_run_id": "run_unit4",
+            "package_id": "package_run_unit4",
+            "run_ids": ["run_unit4"],
+        },
+    ):
+        assert not package_layout.package_identity_is_complete(ambiguous_identity)
+    assert package_layout.package_layout_boundaries_are_separated(
+        {
+            "immutable_evidence_section": "immutable_evidence",
+            "mutable_evaluation_section": "mutable_evaluation",
+        }
+    )
+    for bad_boundaries in (
+        {},
+        {"immutable_evidence_section": "shared"},
+        {"mutable_evaluation_section": "shared"},
+        {
+            "immutable_evidence_section": "shared",
+            "mutable_evaluation_section": "shared",
+        },
+    ):
+        assert not package_layout.package_layout_boundaries_are_separated(
+            bad_boundaries
+        )
+    for status in (*package_layout.PACKAGE_LAYOUT_STATUS, "", object()):
+        assert not package_layout.layout_status_allows_downstream_authority(status)
     assert "no_package_creation" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
     assert "no_filesystem_access" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
     assert "no_manifest_generation" in package_layout.PACKAGE_LAYOUT_AUTHORITY_BOUNDARY
