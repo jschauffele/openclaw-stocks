@@ -8486,6 +8486,270 @@ def test_file_path_ingestion_authority_contract_remains_metadata_only(
         assert vocabulary_name not in file_reader.__dict__
 
 
+def test_artifact_copying_authority_contract_remains_metadata_only(
+    tmp_path: Path,
+) -> None:
+    source_input = _source_artifact_authority_input()
+    file_read_request = _file_read_request(tmp_path)
+    conceptual_artifact_copying_vocabulary = (
+        "copy_candidate_reference",
+        "approved_copy_source",
+        "controlled_copy_target",
+        "copy_scope",
+        "copy_status",
+        "copy_provenance_status",
+        "copy_redaction_status",
+        "copy_integrity_status",
+        "copy_eligibility_status",
+        "copy_candidate_declared",
+        "copy_approved",
+        "copy_blocked",
+        "absent",
+        "not_applicable",
+        "malformed",
+        "ambiguous",
+        "stale",
+        "mixed_run",
+        "blocked_sensitive",
+        "unknown",
+    )
+    unsupported_artifact_copying_inputs = (
+        {**source_input, "copy_status": "unknown"},
+        {**source_input, "artifact_copying_authority": True},
+        {**source_input, "copy_success": True},
+        {**source_input, "package_completeness_authority": True},
+        {**source_input, "path_resolution_authority": True},
+        {**source_input, "symlink_traversal_authority": True},
+        {**source_input, "directory_traversal_authority": True},
+        {**source_input, "runtime_log_inspection_authority": True},
+        {**source_input, "runtime_artifact_semantic_inspection": True},
+        {**source_input, "uncontrolled_file_read_authority": True},
+        {**source_input, "package_creation_authority": True},
+        {**source_input, "manifest_generation_authority": True},
+        {**source_input, "hashing_integrity_authority": True},
+        {**source_input, "storage_finalization_authority": True},
+        {**source_input, "immutable_package_evidence": True},
+        {**source_input, "promotion_authority": True},
+    )
+    artifact_copying_guard_cases = (
+        ({**source_input, "artifact_copying_dependent": True}, ValueError),
+        ({**source_input, "runtime_log_dependent": True}, ValueError),
+        ({**source_input, "runtime_path_dependent": True}, ValueError),
+        ({**source_input, "file_path_ingestion_dependent": True}, ValueError),
+        ({**source_input, "runtime_capture_dependent": True}, ValueError),
+        ({**source_input, "attempted_runtime_capture": True}, ValueError),
+        ({**source_input, "evaluation_dependent": True}, ValueError),
+        ({**source_input, "attempted_evaluation_approval": True}, ValueError),
+        ({**source_input, "broker_dependent": True}, ValueError),
+        ({**source_input, "attempted_paper_trading_authority": True}, ValueError),
+        ({**source_input, "attempted_live_trading_authority": True}, ValueError),
+        ({**source_input, "ambiguous_source_references": True}, ValueError),
+        ({**source_input, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**source_input, "stale_source_artifact_metadata": True}, ValueError),
+        ({**source_input, "malformed_source_artifact_metadata": True}, ValueError),
+        ({**source_input, "source_artifact_provenance": ""}, ValueError),
+        ({**source_input, "source_artifact_provenance": object()}, ValueError),
+        ({**source_input, "source_artifact_redaction_status": ""}, ValueError),
+        ({**source_input, "source_artifact_redaction_status": "unknown"}, ValueError),
+        ({**source_input, "sensitive_data_status": "exposed"}, ValueError),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "absent_source_artifact_declaration": None,
+                "not_applicable_source_artifact_declaration": None,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "absent_source_artifact_declaration": (
+                    source_artifacts.declare_absent_source_artifact(
+                        "run_unit11",
+                        "event_jsonl",
+                    )
+                ),
+            },
+            None,
+        ),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "not_applicable_source_artifact_declaration": (
+                    source_artifacts.declare_not_applicable_source_artifact(
+                        "run_unit11",
+                        "event_jsonl",
+                    )
+                ),
+            },
+            None,
+        ),
+        (
+            {
+                **file_read_request,
+                "artifact_copying_dependent": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **file_read_request,
+                "attempted_artifact_copying": True,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **file_read_request,
+                "file_relative_path": "/tmp/copy-candidate.jsonl",
+                "approved_path_metadata": {
+                    "approved": True,
+                    "file_identity": "event_stream",
+                    "relative_path": "/tmp/copy-candidate.jsonl",
+                },
+            },
+            ValueError,
+        ),
+        (
+            {
+                **file_read_request,
+                "file_relative_path": "../copy-candidate.jsonl",
+                "approved_path_metadata": {
+                    "approved": True,
+                    "file_identity": "event_stream",
+                    "relative_path": "../copy-candidate.jsonl",
+                },
+            },
+            ValueError,
+        ),
+        (
+            {
+                **file_read_request,
+                "file_relative_path": "run_unit11/../copy-candidate.jsonl",
+                "approved_path_metadata": {
+                    "approved": True,
+                    "file_identity": "event_stream",
+                    "relative_path": "run_unit11/../copy-candidate.jsonl",
+                },
+            },
+            ValueError,
+        ),
+        ({**file_read_request, "symlink_status": "symlink"}, ValueError),
+    )
+
+    for bad_input in unsupported_artifact_copying_inputs:
+        with pytest.raises(TypeError):
+            source_artifacts.validate_source_artifact_authority(bad_input)
+
+    for bad_input, expected_error in artifact_copying_guard_cases:
+        if expected_error is None:
+            result = source_artifacts.validate_source_artifact_authority(bad_input)
+            assert result["artifact_exists"] is False
+            assert result["artifact_copying"] is False
+            assert result["runtime_capture"] is False
+            assert result["evaluation_or_promotion"] is False
+            assert result["broker_api_authority"] is False
+            assert result["paper_trading_authority"] is False
+            assert result["live_trading_authority"] is False
+            continue
+        with pytest.raises(expected_error):
+            if "file_relative_path" in bad_input or "symlink_status" in bad_input:
+                file_reader.validate_file_read_authority(bad_input)
+            else:
+                source_artifacts.validate_source_artifact_authority(bad_input)
+
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Artifact Copying Authority Contract" in spec_text
+    assert "Artifact copying vocabulary remains metadata-only" in spec_text
+    assert "Artifact copying cannot inspect runtime logs" in spec_text
+    assert "Artifact copying cannot inspect runtime artifact content semantically" in (
+        spec_text
+    )
+    assert "Missing copy status must fail closed" in spec_text
+    assert "Unknown copy status must fail closed" in spec_text
+    assert "Malformed copy metadata must fail closed" in spec_text
+    assert "Ambiguous copy metadata must fail closed" in spec_text
+    assert "Mixed-run copy metadata must fail closed" in spec_text
+    assert "Stale copy metadata must fail closed" in spec_text
+    assert "blocked\ncopy status must fail closed" in spec_text
+    assert "Sensitive-data markers must fail closed" in spec_text
+    assert "Missing provenance must fail closed" in spec_text
+    assert "Invalid provenance must fail closed" in spec_text
+    assert "Missing redaction status must fail closed" in spec_text
+    assert "Invalid redaction status must fail closed" in spec_text
+    assert "Absolute path smuggling must fail closed" in spec_text
+    assert "Parent traversal must fail closed" in spec_text
+    assert "Symlink or link-like path claims must fail closed" in spec_text
+    assert "Directory traversal claims must fail closed" in spec_text
+    assert "Absent declarations must be explicit and non-authorizing" in spec_text
+    assert "Not-applicable declarations must be explicit and non-authorizing" in (
+        spec_text
+    )
+    assert "Copy success must not imply package completeness" in spec_text
+    assert "immutable evidence" in spec_text
+    assert "runtime capture" in spec_text
+    assert "evaluation, promotion" in spec_text
+    assert "Artifact copying cannot imply uncontrolled file reads" in spec_text
+    assert "Artifact copying cannot imply path resolution" in spec_text
+    assert "Artifact copying cannot imply symlink traversal" in spec_text
+    assert "Artifact copying cannot imply directory traversal" in spec_text
+    assert "Artifact copying cannot imply package creation" in spec_text
+    assert "Artifact copying cannot imply manifest generation" in spec_text
+    assert "Artifact copying cannot imply hashing or integrity authority" in spec_text
+    assert "Artifact copying cannot imply storage, finalization" in spec_text
+    assert "Artifact copying cannot imply immutable package evidence" in spec_text
+    assert "Artifact copying cannot imply runtime capture" in spec_text
+    assert "Artifact copying cannot imply evaluation, scoring" in spec_text
+    assert "Artifact copying cannot imply broker/API" in spec_text
+
+    source_result = source_artifacts.validate_source_artifact_authority(source_input)
+    assert source_result["metadata_only"] is True
+    assert source_result["artifact_copying"] is False
+    assert source_result["runtime_capture"] is False
+    assert source_result["evaluation_or_promotion"] is False
+    assert source_result["broker_api_authority"] is False
+    assert source_result["paper_trading_authority"] is False
+    assert source_result["live_trading_authority"] is False
+    assert "artifact_copying_authority" not in source_result
+    assert "copy_success" not in source_result
+    assert "package_completeness_authority" not in source_result
+    assert "package_creation_authority" not in source_result
+    assert "manifest_generation_authority" not in source_result
+    assert "hashing_integrity_authority" not in source_result
+    assert "storage_finalization_authority" not in source_result
+    assert "immutable_package_evidence" not in source_result
+    assert "runtime_capture_authority" not in source_result
+    assert "evaluation_authority" not in source_result
+    assert "promotion_authority" not in source_result
+    assert "broker_authority" not in source_result
+
+    file_read_preflight = file_reader.validate_file_read_authority(file_read_request)
+    assert file_read_preflight["dry_run"] is True
+    assert file_read_preflight["read_performed"] is False
+    assert file_read_preflight["artifact_copying"] is False
+    assert file_read_preflight["runtime_capture"] is False
+    assert file_read_preflight["evaluation_or_promotion"] is False
+    assert file_read_preflight["broker_api_authority"] is False
+    assert file_read_preflight["paper_trading_authority"] is False
+    assert file_read_preflight["live_trading_authority"] is False
+    assert "artifact_copying_authority" not in file_read_preflight
+    assert "package_completeness_authority" not in file_read_preflight
+    assert "package_creation_authority" not in file_read_preflight
+    assert "manifest_generation_authority" not in file_read_preflight
+    assert "hashing_integrity_authority" not in file_read_preflight
+    assert "storage_finalization_authority" not in file_read_preflight
+    assert "immutable_package_evidence" not in file_read_preflight
+
+    for vocabulary_name in conceptual_artifact_copying_vocabulary:
+        assert vocabulary_name not in SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in FILE_READ_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in source_artifacts.__dict__
+        assert vocabulary_name not in file_reader.__dict__
+
+
 def test_file_read_scope_guard_records_boundary_only() -> None:
     map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
