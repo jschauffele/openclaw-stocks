@@ -9265,6 +9265,317 @@ def test_package_layout_authority_contract_remains_metadata_only(
         assert vocabulary_name not in file_reader.__dict__
 
 
+def test_package_creation_authority_contract_remains_metadata_only(
+    tmp_path: Path,
+) -> None:
+    source_input = _source_artifact_authority_input()
+    file_read_request = _file_read_request(tmp_path)
+    conceptual_package_creation_vocabulary = (
+        "package_creation_authority",
+        "package_creation_request",
+        "package_creation_plan",
+        "package_creation_status",
+        "package_creation_preconditions",
+        "package_creation_inputs",
+        "package_creation_output_boundary",
+        "draft_package_creation",
+        "package_identity_binding",
+        "package_layout_binding",
+        "package_section_assignment",
+        "package_lifecycle_state",
+        "package_creation_fail_closed_reason",
+        "documentation_authority_only",
+        "implementation_authority_required",
+        "creation_declared",
+        "creation_planned",
+        "creation_blocked",
+        "draft_only",
+        "absent",
+        "not_applicable",
+        "missing",
+        "malformed",
+        "ambiguous",
+        "stale",
+        "mixed_run",
+        "blocked_sensitive",
+        "unknown",
+    )
+    unsupported_package_creation_inputs = (
+        {**source_input, "package_creation_authority": True},
+        {**source_input, "package_creation_request": "create"},
+        {**source_input, "package_creation_plan": "draft"},
+        {**source_input, "package_creation_status": "creation_declared"},
+        {**source_input, "package_creation_inputs": ("event_jsonl",)},
+        {**source_input, "package_creation_output_boundary": "draft_only"},
+        {**source_input, "draft_package_creation": True},
+        {**source_input, "package_identity_binding": "run_unit11"},
+        {**source_input, "package_layout_binding": "layout_v1"},
+        {**source_input, "package_section_assignment": "artifact_section"},
+        {**source_input, "package_lifecycle_state": "creation_planned"},
+        {**source_input, "documentation_authority_only": True},
+        {**source_input, "implementation_authority_required": False},
+        {**source_input, "code_path": "tools/replay/package_creation.py"},
+        {**source_input, "runtime_path": "main.py"},
+        {**source_input, "package_artifact_path": "packages/run_unit11"},
+        {**source_input, "manifest_path": "manifest.json"},
+        {**source_input, "deterministic_serialization_path": "canonical.json"},
+        {**source_input, "hash_path": "sha256"},
+        {**source_input, "storage_path": "immutable/run_unit11"},
+        {**source_input, "promotion_path": "promotion"},
+        {**source_input, "manifest_generation_authority": True},
+        {**source_input, "deterministic_serialization_authority": True},
+        {**source_input, "hashing_integrity_authority": True},
+        {**source_input, "storage_finalization_authority": True},
+        {**source_input, "immutable_package_evidence": True},
+        {**source_input, "runtime_validation_authority": True},
+        {**source_input, "scheduler_systemd_authority": True},
+        {**source_input, "credential_authority": True},
+        {**source_input, "strategy_change_authority": True},
+        {**source_input, "risk_change_authority": True},
+        {**source_input, "execution_change_authority": True},
+        {**source_input, "order_submission_authority": True},
+        {**source_input, "order_cancellation_authority": True},
+        {**source_input, "flattening_authority": True},
+        {**source_input, "cleanup_authority": True},
+        {**source_input, "promotion_authority": True},
+    )
+    package_creation_guard_cases = (
+        ({**source_input, "artifact_copying_dependent": True}, ValueError),
+        ({**source_input, "runtime_log_dependent": True}, ValueError),
+        ({**source_input, "runtime_path_dependent": True}, ValueError),
+        ({**source_input, "runtime_capture_dependent": True}, ValueError),
+        ({**source_input, "attempted_runtime_capture": True}, ValueError),
+        ({**source_input, "evaluation_dependent": True}, ValueError),
+        ({**source_input, "attempted_evaluation_approval": True}, ValueError),
+        ({**source_input, "broker_dependent": True}, ValueError),
+        ({**source_input, "attempted_paper_trading_authority": True}, ValueError),
+        ({**source_input, "attempted_live_trading_authority": True}, ValueError),
+        ({**source_input, "ambiguous_source_references": True}, ValueError),
+        ({**source_input, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**source_input, "stale_source_artifact_metadata": True}, ValueError),
+        ({**source_input, "malformed_source_artifact_metadata": True}, ValueError),
+        ({**source_input, "source_artifact_provenance": ""}, ValueError),
+        ({**source_input, "source_artifact_provenance": object()}, ValueError),
+        ({**source_input, "source_artifact_redaction_status": ""}, ValueError),
+        ({**source_input, "source_artifact_redaction_status": "unknown"}, ValueError),
+        ({**source_input, "sensitive_data_status": "exposed"}, ValueError),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "absent_source_artifact_declaration": None,
+                "not_applicable_source_artifact_declaration": None,
+            },
+            ValueError,
+        ),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "absent_source_artifact_declaration": (
+                    source_artifacts.declare_absent_source_artifact(
+                        "run_unit11",
+                        "event_jsonl",
+                    )
+                ),
+            },
+            None,
+        ),
+        (
+            {
+                **source_input,
+                "artifact_exists": False,
+                "not_applicable_source_artifact_declaration": (
+                    source_artifacts.declare_not_applicable_source_artifact(
+                        "run_unit11",
+                        "event_jsonl",
+                    )
+                ),
+            },
+            None,
+        ),
+        ({**file_read_request, "artifact_copying_dependent": True}, ValueError),
+        ({**file_read_request, "attempted_artifact_copying": True}, ValueError),
+        ({**file_read_request, "runtime_capture_dependent": True}, ValueError),
+        ({**file_read_request, "attempted_runtime_capture": True}, ValueError),
+        ({**file_read_request, "evaluation_dependent": True}, ValueError),
+        ({**file_read_request, "attempted_evaluation_approval": True}, ValueError),
+        ({**file_read_request, "broker_dependent": True}, ValueError),
+        ({**file_read_request, "attempted_paper_trading_authority": True}, ValueError),
+        ({**file_read_request, "attempted_live_trading_authority": True}, ValueError),
+        ({**file_read_request, "input_run_ids": ("run_unit11", "other")}, ValueError),
+        ({**file_read_request, "stale_file_read_metadata": True}, ValueError),
+        ({**file_read_request, "malformed_file_read_metadata": True}, ValueError),
+        ({**file_read_request, "provenance": ""}, ValueError),
+        ({**file_read_request, "provenance": object()}, ValueError),
+        ({**file_read_request, "redaction_status": ""}, ValueError),
+        ({**file_read_request, "redaction_status": "unknown"}, ValueError),
+        ({**file_read_request, "sensitive_data_status": "exposed"}, ValueError),
+    )
+
+    for bad_input in unsupported_package_creation_inputs:
+        with pytest.raises(TypeError):
+            source_artifacts.validate_source_artifact_authority(bad_input)
+
+    for bad_input, expected_error in package_creation_guard_cases:
+        if expected_error is None:
+            result = source_artifacts.validate_source_artifact_authority(bad_input)
+            assert result["artifact_exists"] is False
+            assert result["artifact_copying"] is False
+            assert result["runtime_capture"] is False
+            assert result["evaluation_or_promotion"] is False
+            assert result["broker_api_authority"] is False
+            assert result["paper_trading_authority"] is False
+            assert result["live_trading_authority"] is False
+            assert "package_creation_authority" not in result
+            assert "manifest_generation_authority" not in result
+            assert "deterministic_serialization_authority" not in result
+            assert "hashing_integrity_authority" not in result
+            assert "storage_finalization_authority" not in result
+            assert "immutable_package_evidence" not in result
+            continue
+        with pytest.raises(expected_error):
+            if "approved_file_identity" in bad_input:
+                file_reader.validate_file_read_authority(bad_input)
+            else:
+                source_artifacts.validate_source_artifact_authority(bad_input)
+
+    spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
+    assert "## Package Creation Authority Contract" in spec_text
+    assert "Package creation authority remains governance-only" in spec_text
+    assert "metadata-only and non-authorizing" in spec_text
+    assert "separate future implementation gate" in spec_text
+    assert "Documentation authority cannot imply implementation authority" in (
+        spec_text
+    )
+    assert "Any ambiguity between documentation authority and implementation" in (
+        spec_text
+    )
+    assert "Any ambiguity between draft package creation and finalized immutable" in (
+        spec_text
+    )
+    assert "no code path, runtime path, package" in spec_text
+    assert "artifact path, manifest path, hash path, storage path" in spec_text
+    assert "or promotion path was\n  created or changed" in spec_text
+    assert "Package creation vocabulary remains metadata-only" in spec_text
+    assert "Package creation authority cannot inspect runtime logs" in spec_text
+    assert "Package creation authority cannot inspect runtime artifacts" in spec_text
+    assert "Package creation authority cannot imply uncontrolled file reads" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply artifact copying" in spec_text
+    assert "Package creation authority cannot imply filesystem writes" in spec_text
+    assert "Package creation authority cannot imply package directory creation" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply package file creation" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply package artifact creation" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply manifest generation" in spec_text
+    assert "Package creation authority cannot imply deterministic serialization" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply hashing or integrity authority" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply storage, finalization" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply immutable package evidence" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply runtime capture" in spec_text
+    assert "Package creation authority cannot imply evaluation, scoring" in (
+        spec_text
+    )
+    assert "Package creation authority cannot imply broker/API" in spec_text
+    assert "Package creation authority cannot imply runtime validation" in spec_text
+    assert "scheduler/systemd" in spec_text
+    assert "credential" in spec_text
+    assert "strategy" in spec_text
+    assert "risk" in spec_text
+    assert "execution" in spec_text
+    assert "order submission" in spec_text
+    assert "order cancellation" in spec_text
+    assert "flattening" in spec_text
+    assert "cleanup" in spec_text
+    assert "Missing package creation status must fail closed" in spec_text
+    assert "Unknown package creation status must fail closed" in spec_text
+    assert "Malformed package creation metadata must fail closed" in spec_text
+    assert "Ambiguous package creation metadata must fail closed" in spec_text
+    assert "Mixed-run package creation metadata must fail closed" in spec_text
+    assert "Stale package creation metadata must fail closed" in spec_text
+    assert "Absent declarations remain explicit and non-authorizing" in spec_text
+    assert "Not-applicable declarations remain explicit and non-authorizing" in (
+        spec_text
+    )
+
+    source_result = source_artifacts.validate_source_artifact_authority(source_input)
+    assert source_result["metadata_only"] is True
+    assert source_result["artifact_copying"] is False
+    assert source_result["runtime_capture"] is False
+    assert source_result["evaluation_or_promotion"] is False
+    assert source_result["broker_api_authority"] is False
+    assert source_result["paper_trading_authority"] is False
+    assert source_result["live_trading_authority"] is False
+    assert "package_creation_authority" not in source_result
+    assert "package_artifact_creation_authority" not in source_result
+    assert "manifest_generation_authority" not in source_result
+    assert "deterministic_serialization_authority" not in source_result
+    assert "hashing_integrity_authority" not in source_result
+    assert "storage_finalization_authority" not in source_result
+    assert "immutable_package_evidence" not in source_result
+    assert "runtime_capture_authority" not in source_result
+    assert "evaluation_authority" not in source_result
+    assert "promotion_authority" not in source_result
+    assert "runtime_validation_authority" not in source_result
+    assert "scheduler_systemd_authority" not in source_result
+    assert "credential_authority" not in source_result
+    assert "strategy_change_authority" not in source_result
+    assert "risk_change_authority" not in source_result
+    assert "execution_change_authority" not in source_result
+    assert "order_submission_authority" not in source_result
+    assert "order_cancellation_authority" not in source_result
+    assert "flattening_authority" not in source_result
+    assert "cleanup_authority" not in source_result
+
+    file_read_preflight = file_reader.validate_file_read_authority(file_read_request)
+    assert file_read_preflight["dry_run"] is True
+    assert file_read_preflight["read_performed"] is False
+    assert file_read_preflight["artifact_copying"] is False
+    assert file_read_preflight["runtime_capture"] is False
+    assert file_read_preflight["evaluation_or_promotion"] is False
+    assert file_read_preflight["broker_api_authority"] is False
+    assert file_read_preflight["paper_trading_authority"] is False
+    assert file_read_preflight["live_trading_authority"] is False
+    assert "package_creation_authority" not in file_read_preflight
+    assert "package_artifact_creation_authority" not in file_read_preflight
+    assert "manifest_generation_authority" not in file_read_preflight
+    assert "deterministic_serialization_authority" not in file_read_preflight
+    assert "hashing_integrity_authority" not in file_read_preflight
+    assert "storage_finalization_authority" not in file_read_preflight
+    assert "immutable_package_evidence" not in file_read_preflight
+    assert "runtime_validation_authority" not in file_read_preflight
+    assert "scheduler_systemd_authority" not in file_read_preflight
+    assert "credential_authority" not in file_read_preflight
+    assert "strategy_change_authority" not in file_read_preflight
+    assert "risk_change_authority" not in file_read_preflight
+    assert "execution_change_authority" not in file_read_preflight
+    assert "order_submission_authority" not in file_read_preflight
+    assert "order_cancellation_authority" not in file_read_preflight
+    assert "flattening_authority" not in file_read_preflight
+    assert "cleanup_authority" not in file_read_preflight
+
+    for vocabulary_name in conceptual_package_creation_vocabulary:
+        assert vocabulary_name not in SOURCE_ARTIFACT_AUTHORITY_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in FILE_READ_SCOPE_RELAXABLE_NAMES
+        assert vocabulary_name not in source_artifacts.__dict__
+        assert vocabulary_name not in file_reader.__dict__
+
+
 def test_file_read_scope_guard_records_boundary_only() -> None:
     map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
     spec_text = REPLAY_PACKAGE_SPECIFICATION.read_text(encoding="utf-8")
