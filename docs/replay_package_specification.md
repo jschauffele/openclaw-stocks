@@ -3646,6 +3646,259 @@ artifacts, edit production code, edit docs, touch VPS, call broker APIs,
 inspect `.env`, change scheduler/systemd, approve paper trading, or approve
 live trading.
 
+## Package Layout Authority Contract
+
+Package layout authority remains governance-only and is not implemented yet.
+This contract defines a conceptual authority boundary after terminal
+completion and run eligibility authority, before package creation, manifest
+generation, deterministic serialization, hashing, storage, finalization,
+immutable package evidence, runtime capture, or evaluation implementation can
+be considered.
+
+This contract does not approve tests, code, package layout modules, package
+directory creation, package file creation, filesystem writes, artifact
+copying, runtime log inspection, runtime artifact semantic inspection,
+uncontrolled file reads, replay package creation, manifest generation,
+deterministic serialization, hashing or integrity proof, storage,
+finalization, immutability, immutable package evidence, runtime capture,
+evaluation, promotion, broker work, paper trading, or live trading.
+
+Package layout scope:
+
+- Package layout means governed metadata that may later define the intended
+  replay package structure, package identity boundaries, package sections,
+  section names, and separation between mutable and immutable package areas.
+- Artifact copying governs future copy eligibility for already-approved
+  ingestion candidates. Terminal completion and run eligibility governs whether
+  a run is complete enough for future capture consideration. Package layout
+  governs intended future structure only. Package creation produces package
+  output only under a later implementation gate. Manifest generation records
+  package metadata only under a later implementation gate. Immutable evidence
+  requires later hashing, storage, finalization, and immutability authority.
+  Runtime capture records approved runtime evidence only under a later
+  implementation gate. Evaluation compares evidence only under a later
+  evaluation gate.
+- Package layout authority may only define the intended future structure,
+  sections, names, identity boundaries, and separation of mutable and
+  immutable package areas.
+- Package layout authority does not create package directories.
+- Package layout authority does not create package files.
+- Package layout authority does not copy artifacts.
+- Package layout authority does not generate manifests.
+- Package layout authority does not serialize package content.
+- Package layout authority does not hash content.
+- Package layout authority does not finalize storage.
+- Package layout authority does not create immutable evidence.
+- Package layout authority does not approve runtime capture.
+- Package layout authority does not approve evaluation or promotion.
+- Package layout metadata may describe a layout as declared, draft, blocked,
+  absent, not applicable, missing, malformed, ambiguous, stale, mixed-run,
+  blocked by sensitive data, or unknown, but those states do not grant
+  downstream authority.
+
+Package layout dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before layout
+  metadata can bind package sections to governed source references or artifact
+  classes.
+- Provenance and Redaction Authority must be defined before layout metadata can
+  be considered eligible for downstream planning.
+- Runtime Artifact Discovery Authority must be defined before layout metadata
+  can target discovered runtime artifact classes.
+- Source Path Authority must be defined before layout metadata can refer to
+  governed source path metadata.
+- File Path Ingestion Authority must be defined before layout metadata can
+  refer to ingestion candidates.
+- Artifact Copying Authority must be defined before layout metadata can refer
+  to copy candidate status.
+- Terminal Completion and Run Eligibility Authority must be defined before
+  layout metadata can target a capture-eligible run.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Runtime log inspection.
+- Runtime artifact semantic inspection.
+- Uncontrolled file reads.
+- Artifact copying.
+- Filesystem writes.
+- Package directory creation.
+- Package file creation.
+- Replay package creation.
+- Manifest generation.
+- Deterministic serialization.
+- Hashing or integrity proof.
+- Storage, finalization, or immutability.
+- Immutable package evidence.
+- Runtime capture.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual package layout vocabulary:
+
+- `replay_package_layout`.
+- `package_identity`.
+- `package_sections`.
+- `immutable_evidence_section`.
+- `mutable_evaluation_section`.
+- `artifact_section`.
+- `manifest_section`.
+- `provenance_section`.
+- `redaction_section`.
+- `layout_version`.
+- `layout_status`.
+- `package_root_concept`.
+- `package_path_concept`.
+- `section_boundary`.
+- `downstream_output_boundary`.
+- Explicit absence declaration.
+- Explicit not-applicable declaration.
+- Metadata-only package layout result.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, directories, files, filesystem writes, artifact copies, complete
+replay packages, manifests, canonical bytes, hashes, storage, immutable
+evidence, runtime capture, evaluation inputs, broker authority, or trading
+authority.
+
+Required future package layout statuses:
+
+- `layout_declared` means a package layout has been named conceptually, but
+  package creation remains unauthorized until a later implementation gate
+  explicitly approves it.
+- `layout_draft` means a layout remains draft-only and non-authoritative for
+  downstream package creation, immutable evidence, runtime capture, or
+  evaluation.
+- `layout_blocked` means layout metadata or policy blocks downstream package
+  use and must fail closed.
+- `absent` means layout evidence was explicitly declared absent under later
+  governed rules.
+- `not_applicable` means layout evidence is explicitly not applicable to the
+  source reference, artifact class, run, or package section under later
+  governed rules.
+- `missing` means required layout metadata is missing.
+- `malformed` means layout metadata is structurally invalid.
+- `ambiguous` means layout metadata cannot identify exactly one governed
+  package identity, version, section set, or section boundary.
+- `stale` means layout metadata is not current enough for downstream use.
+- `mixed_run` means layout metadata spans or conflicts with more than one run
+  identity.
+- `blocked_sensitive` means layout metadata or associated evidence is blocked
+  by sensitive data exposure.
+- `unknown` means layout status is unresolved and is not acceptable for
+  downstream authority.
+
+Unknown, missing, malformed, ambiguous, stale, mixed-run, sensitive, blocked,
+or draft-only status must fail closed for downstream package creation,
+immutable evidence, runtime capture, or evaluation authority unless separately
+authorized.
+
+Fail-closed handling:
+
+- Missing layout status must fail closed.
+- Unknown layout status must fail closed.
+- Malformed layout metadata must fail closed.
+- Ambiguous layout metadata must fail closed.
+- Mixed-run layout metadata must fail closed.
+- Stale layout metadata must fail closed.
+- Missing layout version must fail closed.
+- Unknown layout version must fail closed.
+- Missing package identity must fail closed.
+- Ambiguous package identity must fail closed.
+- Missing section boundaries must fail closed.
+- Overlapping mutable and immutable section boundaries must fail closed.
+- Missing provenance must fail closed.
+- Invalid provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive-data markers must fail closed.
+- Absent declarations must be explicit and non-authorizing.
+- Not-applicable declarations must be explicit and non-authorizing.
+- Layout declaration must not imply package creation, manifest generation,
+  deterministic serialization, hashing, storage, finalization, immutable
+  evidence, runtime capture, evaluation, promotion, broker/API authority, paper
+  trading, or live trading.
+- Package layout metadata that implies runtime log inspection, runtime artifact
+  semantic inspection, artifact copying, filesystem writes, package directory
+  creation, package file creation, package creation, manifest generation,
+  deterministic serialization, hashing or integrity proof, storage,
+  finalization, immutability, immutable evidence, runtime capture, evaluation,
+  broker/API work, paper trading, or live trading must fail closed.
+
+Required future test-only guards:
+
+- Package layout vocabulary remains metadata-only unless separately
+  authorized.
+- Package layout cannot inspect runtime logs.
+- Package layout cannot inspect runtime artifacts.
+- Package layout cannot imply artifact copying.
+- Package layout cannot imply filesystem writes.
+- Package layout cannot imply package directory creation.
+- Package layout cannot imply package file creation.
+- Package layout cannot imply package creation.
+- Package layout cannot imply manifest generation.
+- Package layout cannot imply deterministic serialization.
+- Package layout cannot imply hashing or integrity authority.
+- Package layout cannot imply storage, finalization, or immutability.
+- Package layout cannot imply immutable package evidence.
+- Package layout cannot imply runtime capture.
+- Package layout cannot imply evaluation, scoring, reporting, or promotion.
+- Package layout cannot imply broker/API, execution, paper trading, or live
+  trading authority.
+- Missing layout metadata fails closed.
+- Malformed layout metadata fails closed.
+- Ambiguous layout metadata fails closed.
+- Stale layout metadata fails closed.
+- Mixed-run layout metadata fails closed.
+- Missing package identity fails closed.
+- Ambiguous package identity fails closed.
+- Overlapping mutable and immutable section boundaries fail closed.
+- Absent declarations remain explicit and non-authorizing.
+- Not-applicable declarations remain explicit and non-authorizing.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need semantic runtime artifact inspection.
+- Need secrets.
+- Need `.env` access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need uncontrolled filesystem reads.
+- Need uncontrolled filesystem writes.
+- Need artifact copying.
+- Need package directory creation.
+- Need package file creation.
+- Need package creation.
+- Need manifest generation.
+- Need deterministic serialization.
+- Need hashing or integrity proof.
+- Need storage, finalization, or immutability.
+- Need immutable evidence.
+- Need runtime capture.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Package layout authority is not runtime log access authority, runtime artifact
+semantic inspection, artifact copying, filesystem write authority, package
+creation, manifest generation, deterministic serialization authority, hashing
+or integrity proof, storage/finalization/immutability authority, immutable
+package evidence, runtime capture, evaluation, promotion, broker authority,
+execution permission, paper trading approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_PACKAGE_LAYOUT_AUTHORITY_GUARD`. That future gate must be test-only
+and must not inspect runtime logs, inspect runtime artifacts, edit production
+code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
+scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
