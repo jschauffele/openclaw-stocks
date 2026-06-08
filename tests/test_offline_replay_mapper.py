@@ -366,6 +366,9 @@ FUTURE_MANIFEST_GENERATION_SCOPE_RELAXABLE_NAMES = (
     "MANIFEST_REDACTION_ELIGIBILITY",
     "MANIFEST_RUN_ID_ALIGNMENT",
     "MANIFEST_SOURCE_REFERENCE_ELIGIBILITY",
+    "MANIFEST_PACKAGE_IDENTITY_ELIGIBILITY",
+    "MANIFEST_PACKAGE_LAYOUT_ELIGIBILITY",
+    "MANIFEST_INTEGRITY_STATUS_PLACEHOLDER",
     "ManifestGeneration",
     "ManifestBuilder",
     "DraftManifest",
@@ -375,6 +378,9 @@ FUTURE_MANIFEST_GENERATION_SCOPE_RELAXABLE_NAMES = (
     "ManifestRedactionEligibility",
     "ManifestRunIdAlignment",
     "ManifestSourceReferenceEligibility",
+    "ManifestPackageIdentityEligibility",
+    "ManifestPackageLayoutEligibility",
+    "ManifestIntegrityStatusPlaceholder",
     "build_draft_manifest",
     "build_in_memory_manifest",
 )
@@ -1690,13 +1696,30 @@ def _complete_replay_inputs() -> dict:
 
 
 def _draft_manifest_input_dict(**overrides: object) -> dict:
+    canonical_run_id = overrides.get("canonical_run_id", "run_unit5")
+    package_id = (
+        f"package_{canonical_run_id}"
+        if isinstance(canonical_run_id, str) and canonical_run_id
+        else "package_run_unit5"
+    )
     manifest_input = {
-        "canonical_run_id": "run_unit5",
+        "canonical_run_id": canonical_run_id,
         "created_at": "2026-06-06T00:00:00Z",
+        "package_identity": {
+            "canonical_run_id": canonical_run_id,
+            "package_id": package_id,
+            "run_ids": (canonical_run_id,),
+        },
+        "package_layout_metadata": {
+            "layout_status": "layout_declared",
+            "layout_version": package_layout.PACKAGE_LAYOUT_VERSION,
+            "immutable_evidence_section": "immutable_evidence",
+            "mutable_evaluation_section": "mutable_evaluation",
+        },
         "source_artifact_references": (
             {
                 "source_reference": "event_jsonl",
-                "run_id": "run_unit5",
+                "run_id": canonical_run_id,
                 "provenance": "recorded",
                 "redaction_status": "not_required",
             },
@@ -4018,6 +4041,9 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
         "MANIFEST_REDACTION_ELIGIBILITY",
         "MANIFEST_RUN_ID_ALIGNMENT",
         "MANIFEST_SOURCE_REFERENCE_ELIGIBILITY",
+        "MANIFEST_PACKAGE_IDENTITY_ELIGIBILITY",
+        "MANIFEST_PACKAGE_LAYOUT_ELIGIBILITY",
+        "MANIFEST_INTEGRITY_STATUS_PLACEHOLDER",
         "ManifestGeneration",
         "ManifestBuilder",
         "DraftManifest",
@@ -4027,6 +4053,9 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
         "ManifestRedactionEligibility",
         "ManifestRunIdAlignment",
         "ManifestSourceReferenceEligibility",
+        "ManifestPackageIdentityEligibility",
+        "ManifestPackageLayoutEligibility",
+        "ManifestIntegrityStatusPlaceholder",
         "build_draft_manifest",
         "build_in_memory_manifest",
     )
@@ -4063,6 +4092,12 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
         .known_references_required
         is True
     )
+    assert manifest_builder.ManifestPackageIdentityEligibility().required is True
+    assert manifest_builder.ManifestPackageLayoutEligibility().required is True
+    integrity_placeholder = manifest_builder.ManifestIntegrityStatusPlaceholder()
+    assert integrity_placeholder.integrity_status == "not_implemented"
+    assert integrity_placeholder.hash_algorithm == hashing.HASH_ALGORITHM
+    assert integrity_placeholder.hash_version == hashing.HASH_VERSION
 
     manifest_input = _draft_manifest_input()
     draft_manifest = manifest_builder.build_draft_manifest(manifest_input)
@@ -4070,11 +4105,25 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
 
     assert draft_manifest == in_memory_manifest
     assert draft_manifest["canonical_run_id"] == manifest_input.canonical_run_id
-    assert draft_manifest["package_id"] is None
+    assert draft_manifest["package_id"] == "package_run_unit5"
+    assert draft_manifest["package_identity"] == {
+        "canonical_run_id": "run_unit5",
+        "package_id": "package_run_unit5",
+        "run_ids": ("run_unit5",),
+    }
+    assert draft_manifest["package_layout"] == {
+        "layout_status": "layout_declared",
+        "layout_version": package_layout.PACKAGE_LAYOUT_VERSION,
+        "immutable_evidence_section": "immutable_evidence",
+        "mutable_evaluation_section": "mutable_evaluation",
+    }
     assert draft_manifest["manifest_schema_version"] == (
         manifest_schema.MANIFEST_SCHEMA_VERSION
     )
     assert draft_manifest["lifecycle_status"] == "draft"
+    assert draft_manifest["integrity_status"] == "not_implemented"
+    assert draft_manifest["hash_algorithm"] == hashing.HASH_ALGORITHM
+    assert draft_manifest["hash_version"] == hashing.HASH_VERSION
     assert draft_manifest["evidence_only"] is True
     assert draft_manifest["non_authoritative"] is True
     assert draft_manifest["authority_boundary"] == (
@@ -4099,6 +4148,57 @@ def test_manifest_generation_scope_guard_records_unit5_only() -> None:
         object(),
         {},
         _draft_manifest_input_dict(canonical_run_id=""),
+        _draft_manifest_input_dict(package_identity={}),
+        _draft_manifest_input_dict(
+            package_identity={
+                "canonical_run_id": "run_unit5",
+                "package_id": "",
+                "run_ids": ("run_unit5",),
+            }
+        ),
+        _draft_manifest_input_dict(
+            package_identity={
+                "canonical_run_id": "run_unit5",
+                "package_id": "package_run_unit5",
+                "run_ids": ("run_unit5", "other"),
+            }
+        ),
+        _draft_manifest_input_dict(
+            package_identity={
+                "canonical_run_id": "other",
+                "package_id": "package_run_unit5",
+                "run_ids": ("other",),
+            }
+        ),
+        _draft_manifest_input_dict(package_id="other_package"),
+        _draft_manifest_input_dict(package_layout_metadata={}),
+        _draft_manifest_input_dict(
+            package_layout_metadata={
+                "layout_status": "layout_draft",
+                "layout_version": package_layout.PACKAGE_LAYOUT_VERSION,
+                "immutable_evidence_section": "immutable_evidence",
+                "mutable_evaluation_section": "mutable_evaluation",
+            }
+        ),
+        _draft_manifest_input_dict(
+            package_layout_metadata={
+                "layout_status": "layout_declared",
+                "layout_version": "unknown",
+                "immutable_evidence_section": "immutable_evidence",
+                "mutable_evaluation_section": "mutable_evaluation",
+            }
+        ),
+        _draft_manifest_input_dict(
+            package_layout_metadata={
+                "layout_status": "layout_declared",
+                "layout_version": package_layout.PACKAGE_LAYOUT_VERSION,
+                "immutable_evidence_section": "shared",
+                "mutable_evaluation_section": "shared",
+            }
+        ),
+        _draft_manifest_input_dict(integrity_status="valid"),
+        _draft_manifest_input_dict(hash_algorithm="unknown"),
+        _draft_manifest_input_dict(hash_version="unknown"),
     ):
         with pytest.raises((TypeError, ValueError)):
             manifest_builder.build_draft_manifest(malformed_input)

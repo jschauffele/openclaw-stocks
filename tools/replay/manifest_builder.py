@@ -11,6 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from tools.replay import hashing
+from tools.replay import integrity
+from tools.replay import package_layout as package_layout_rules
 from tools.replay.manifest_schema import (
     MANIFEST_LIFECYCLE_STATUS,
     MANIFEST_REQUIRED_FIELDS,
@@ -27,6 +30,9 @@ MANIFEST_PROVENANCE_ELIGIBILITY = "provenance_required"
 MANIFEST_REDACTION_ELIGIBILITY = "redaction_status_required"
 MANIFEST_RUN_ID_ALIGNMENT = "single_run_id_required"
 MANIFEST_SOURCE_REFERENCE_ELIGIBILITY = "known_source_references_required"
+MANIFEST_PACKAGE_IDENTITY_ELIGIBILITY = "package_identity_rules_required"
+MANIFEST_PACKAGE_LAYOUT_ELIGIBILITY = "package_layout_rules_required"
+MANIFEST_INTEGRITY_STATUS_PLACEHOLDER = "integrity_status_metadata_only"
 
 MANIFEST_GENERATION_AUTHORITY_BOUNDARY: tuple[str, ...] = (
     "draft_only",
@@ -82,11 +88,36 @@ class ManifestSourceReferenceEligibility:
 
 
 @dataclass(frozen=True, slots=True)
+class ManifestPackageIdentityEligibility:
+    """Static package identity eligibility vocabulary."""
+
+    required: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class ManifestPackageLayoutEligibility:
+    """Static package layout eligibility vocabulary."""
+
+    required: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class ManifestIntegrityStatusPlaceholder:
+    """Static inert integrity/hash vocabulary placeholder for draft manifests."""
+
+    integrity_status: str = integrity.INTEGRITY_STATUS[0]
+    hash_algorithm: str = hashing.HASH_ALGORITHM
+    hash_version: str = hashing.HASH_VERSION
+
+
+@dataclass(frozen=True, slots=True)
 class ManifestInput:
     """Already-loaded metadata eligible for draft manifest generation."""
 
     canonical_run_id: str
     created_at: str
+    package_identity: Mapping[str, Any]
+    package_layout_metadata: Mapping[str, Any]
     source_artifact_references: tuple[Mapping[str, Any], ...]
     section_status: Mapping[str, str]
     section_provenance: Mapping[str, str]
@@ -97,6 +128,9 @@ class ManifestInput:
     manifest_schema_version: str = MANIFEST_SCHEMA_VERSION
     lifecycle_status: str = MANIFEST_LIFECYCLE_STATUS[0]
     lifecycle_reason: str = "draft_manifest_generation_only"
+    integrity_status: str = integrity.INTEGRITY_STATUS[0]
+    hash_algorithm: str = hashing.HASH_ALGORITHM
+    hash_version: str = hashing.HASH_VERSION
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,14 +161,20 @@ def build_draft_manifest(manifest_input: ManifestInput | Mapping[str, Any]) -> d
 
     normalized = _normalize_manifest_input(manifest_input)
     _validate_manifest_input(normalized)
+    package_id = _manifest_package_id(normalized)
     return {
         "canonical_run_id": normalized.canonical_run_id,
-        "package_id": normalized.package_id,
+        "package_id": package_id,
+        "package_identity": dict(normalized.package_identity),
+        "package_layout": dict(normalized.package_layout_metadata),
         "package_schema_version": normalized.package_schema_version,
         "manifest_schema_version": normalized.manifest_schema_version,
         "lifecycle_status": normalized.lifecycle_status,
         "lifecycle_reason": normalized.lifecycle_reason,
         "created_at": normalized.created_at,
+        "integrity_status": normalized.integrity_status,
+        "hash_algorithm": normalized.hash_algorithm,
+        "hash_version": normalized.hash_version,
         "source_artifact_references": tuple(normalized.source_artifact_references),
         "section_status": dict(normalized.section_status),
         "section_provenance": dict(normalized.section_provenance),
@@ -170,9 +210,53 @@ def _validate_manifest_input(manifest_input: ManifestInput) -> None:
     if manifest_input.lifecycle_status != "draft":
         raise ValueError("draft manifests require draft lifecycle status")
     _reject_filesystem_dependent_input(manifest_input)
+    _validate_package_identity_and_layout(manifest_input)
+    _check_integrity_placeholder(manifest_input)
     _validate_source_artifact_references(manifest_input)
     _validate_sections(manifest_input)
     _validate_run_id_alignment(manifest_input)
+
+
+def _manifest_package_id(manifest_input: ManifestInput) -> str:
+    package_id = manifest_input.package_identity.get(package_layout_rules.PACKAGE_ID)
+    if not isinstance(package_id, str) or not package_id:
+        raise ValueError("package_id is required")
+    return package_id
+
+
+def _validate_package_identity_and_layout(manifest_input: ManifestInput) -> None:
+    if not package_layout_rules.package_identity_is_complete(
+        manifest_input.package_identity
+    ):
+        raise ValueError("package identity is required")
+    if manifest_input.package_identity.get(package_layout_rules.CANONICAL_RUN_ID) != (
+        manifest_input.canonical_run_id
+    ):
+        raise ValueError("package identity run_id must align")
+    package_id = manifest_input.package_identity.get(package_layout_rules.PACKAGE_ID)
+    if manifest_input.package_id is not None and manifest_input.package_id != package_id:
+        raise ValueError("package_id must align with package identity")
+
+    layout_status = manifest_input.package_layout_metadata.get("layout_status")
+    if layout_status != "layout_declared":
+        raise ValueError("layout status must be declared")
+    if manifest_input.package_layout_metadata.get("layout_version") != (
+        package_layout_rules.PACKAGE_LAYOUT_VERSION
+    ):
+        raise ValueError("layout version is required")
+    if not package_layout_rules.package_layout_boundaries_are_separated(
+        manifest_input.package_layout_metadata
+    ):
+        raise ValueError("package layout boundaries must be separated")
+
+
+def _check_integrity_placeholder(manifest_input: ManifestInput) -> None:
+    if manifest_input.integrity_status != integrity.INTEGRITY_STATUS[0]:
+        raise ValueError("manifest integrity status must remain not_implemented")
+    if manifest_input.hash_algorithm != hashing.HASH_ALGORITHM:
+        raise ValueError("manifest hash algorithm metadata is unsupported")
+    if manifest_input.hash_version != hashing.HASH_VERSION:
+        raise ValueError("manifest hash version metadata is unsupported")
 
 
 def _validate_source_artifact_references(manifest_input: ManifestInput) -> None:
