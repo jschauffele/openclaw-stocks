@@ -3164,6 +3164,229 @@ test-only and must not inspect runtime logs, inspect runtime artifacts, edit
 production code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
 scheduler/systemd, approve paper trading, or approve live trading.
 
+## Artifact Copying Authority Contract
+
+Artifact copying authority remains governance-only and is not implemented yet.
+This contract defines a conceptual authority boundary after file path ingestion
+authority, before package creation, immutable package evidence, runtime
+capture, or evaluation implementation can be considered.
+
+This contract does not approve tests, code, artifact copying modules, real path
+resolution, directory traversal, symlink traversal, runtime log inspection,
+runtime artifact semantic inspection, uncontrolled file reads, uncontrolled
+file writes, replay package creation, manifest generation, hashing or integrity
+proof, storage, finalization, immutability, immutable package evidence, runtime
+capture, evaluation, promotion, broker work, paper trading, or live trading.
+
+Artifact copying scope:
+
+- Artifact copying means a governed future operation that may copy an
+  already-approved ingestion candidate into a controlled future package or
+  staging context.
+- A source reference identifies a governed evidence class or ownership
+  declaration. Runtime artifact discovery identifies metadata-only candidate
+  artifact classes and states. Source path authority governs whether path-like
+  references may be named conceptually. File path ingestion authority governs
+  when path-like metadata may be accepted as an ingestion candidate. Artifact
+  copying authority may only define when an already-approved ingestion
+  candidate may be copied into a controlled future package or staging context.
+- Artifact copying authority does not inspect artifact content semantically.
+- Artifact copying authority does not approve uncontrolled file reads.
+- Artifact copying authority does not approve directory traversal.
+- Artifact copying authority does not approve symlink traversal.
+- Artifact copying authority does not create complete replay packages.
+- Artifact copying authority does not create immutable evidence.
+- Artifact copying authority does not approve runtime capture.
+- Artifact copying authority does not approve evaluation or promotion.
+- Copy metadata may describe a candidate as declared, approved, blocked,
+  absent, not applicable, malformed, ambiguous, stale, mixed-run, blocked by
+  sensitive data, or unknown, but those states do not grant downstream
+  authority.
+
+Artifact copying dependencies:
+
+- Source Reference and Source Artifact Authority must be defined before copy
+  metadata can bind to a governed source reference or artifact class.
+- Provenance and Redaction Authority must be defined before copy metadata can
+  be considered eligible for downstream planning.
+- Runtime Artifact Discovery Authority must be defined before copy metadata can
+  attach to discovered runtime artifact candidates.
+- Source Path Authority must be defined before copy metadata can refer to
+  governed source path metadata.
+- File Path Ingestion Authority must be defined before copy metadata can refer
+  to an ingestion candidate.
+- Terminal completion and run eligibility authority must be defined before
+  artifact copying metadata can support capture eligibility.
+- Downstream authorities are not granted by this contract.
+
+Explicitly forbidden authority:
+
+- Runtime log inspection.
+- Runtime artifact semantic inspection.
+- Uncontrolled file reads.
+- Directory traversal.
+- Path resolution outside approved boundaries.
+- Symlink traversal.
+- Replay package creation.
+- Manifest generation.
+- Hashing or integrity proof.
+- Storage, finalization, or immutability.
+- Immutable package evidence.
+- Runtime capture.
+- Evaluation, scoring, reporting, or promotion.
+- Broker/API/TWS/IBKR/Alpaca authority.
+- Execution permission.
+- Paper trading authority.
+- Live trading authority.
+
+Allowed future conceptual artifact copying vocabulary:
+
+- `copy_candidate_reference`.
+- `approved_copy_source`.
+- `controlled_copy_target`.
+- `copy_scope`.
+- `copy_status`.
+- `copy_provenance_status`.
+- `copy_redaction_status`.
+- `copy_integrity_status`.
+- `copy_eligibility_status`.
+- Explicit absence declaration.
+- Explicit not-applicable declaration.
+- Metadata-only artifact copying result.
+
+This vocabulary is conceptual only. It does not create constants, types,
+modules, filesystem reads, filesystem writes, path resolution, directory
+traversal, symlink handling, artifact copies, package directories, complete
+replay packages, manifests, hashes, storage, immutable evidence, runtime
+capture, evaluation inputs, broker authority, or trading authority.
+
+Required future artifact copying statuses:
+
+- `copy_candidate_declared` means a copy candidate has been named
+  conceptually, but copying remains unauthorized until a later implementation
+  gate explicitly approves it.
+- `copy_approved` means a future governed copy candidate has passed all
+  conceptual preconditions for copying, but this status alone still does not
+  grant package creation, immutable evidence, runtime capture, evaluation, or
+  trading authority.
+- `copy_blocked` means copy metadata or policy blocks copying and must fail
+  closed for downstream authority.
+- `absent` means the copy candidate was explicitly declared absent under later
+  governed terminal completion and run eligibility rules.
+- `not_applicable` means the copy candidate is explicitly not applicable to
+  the source reference, artifact class, run, or package section under later
+  governed rules.
+- `malformed` means copy metadata is structurally invalid.
+- `ambiguous` means copy metadata cannot identify exactly one governed copy
+  candidate, source, and controlled target.
+- `stale` means copy metadata is not current enough for downstream use.
+- `mixed_run` means copy metadata spans or conflicts with more than one run
+  identity.
+- `blocked_sensitive` means copy metadata or associated evidence is blocked by
+  sensitive data exposure.
+- `unknown` means copy status is unresolved and is not acceptable for
+  downstream authority.
+
+Unknown, missing, malformed, ambiguous, stale, mixed-run, sensitive, or blocked
+copy status must fail closed for downstream authority.
+
+Fail-closed handling:
+
+- Missing copy status must fail closed.
+- Unknown copy status must fail closed.
+- Malformed copy metadata must fail closed.
+- Ambiguous copy metadata must fail closed.
+- Mixed-run copy metadata must fail closed.
+- Stale copy metadata must fail closed.
+- Missing provenance must fail closed.
+- Invalid provenance must fail closed.
+- Missing redaction status must fail closed.
+- Invalid redaction status must fail closed.
+- Sensitive-data markers must fail closed.
+- Absolute path smuggling must fail closed.
+- Parent traversal must fail closed.
+- Symlink or link-like path claims must fail closed until separately
+  authorized.
+- Directory traversal claims must fail closed.
+- Absent declarations must be explicit and non-authorizing.
+- Not-applicable declarations must be explicit and non-authorizing.
+- Copy success must not imply package completeness, immutable evidence,
+  runtime capture, evaluation, promotion, broker/API authority, paper trading,
+  or live trading.
+- Artifact copying metadata that implies runtime log inspection, runtime
+  artifact semantic inspection, uncontrolled file reads, path resolution
+  outside approved boundaries, directory traversal, symlink traversal, package
+  creation, manifest generation, hashing or integrity proof, storage,
+  finalization, immutability, immutable evidence, runtime capture, evaluation,
+  broker/API work, paper trading, or live trading must fail closed.
+
+Required future test-only guards:
+
+- Artifact copying vocabulary remains metadata-only unless separately
+  authorized.
+- Artifact copying cannot inspect runtime logs.
+- Artifact copying cannot inspect runtime artifact content semantically.
+- Artifact copying cannot imply uncontrolled file reads.
+- Artifact copying cannot imply path resolution outside approved boundaries.
+- Artifact copying cannot imply symlink traversal.
+- Artifact copying cannot imply directory traversal.
+- Artifact copying cannot imply package creation.
+- Artifact copying cannot imply manifest generation.
+- Artifact copying cannot imply hashing or integrity authority.
+- Artifact copying cannot imply storage, finalization, or immutability.
+- Artifact copying cannot imply immutable package evidence.
+- Artifact copying cannot imply runtime capture.
+- Artifact copying cannot imply evaluation, scoring, reporting, or promotion.
+- Artifact copying cannot imply broker/API, execution, paper trading, or live
+  trading authority.
+- Absolute path smuggling fails closed.
+- Parent traversal fails closed.
+- Ambiguous copy metadata fails closed.
+- Malformed copy metadata fails closed.
+- Stale copy metadata fails closed.
+- Mixed-run copy metadata fails closed.
+- Absent declarations remain explicit and non-authorizing.
+- Not-applicable declarations remain explicit and non-authorizing.
+
+Future implementation stop conditions:
+
+- Need real runtime logs.
+- Need semantic runtime artifact inspection.
+- Need secrets.
+- Need `.env` access.
+- Need broker/API/TWS/IBKR/Alpaca access.
+- Need uncontrolled filesystem reads.
+- Need uncontrolled filesystem writes.
+- Need actual path resolution outside approved boundaries.
+- Need symlink traversal.
+- Need directory traversal.
+- Need package creation.
+- Need manifest generation.
+- Need hashing or integrity proof.
+- Need storage, finalization, or immutability.
+- Need immutable package evidence.
+- Need runtime capture.
+- Need evaluation, scoring, reporting, attribution, or promotion.
+- Need VPS, runtime, service, scheduler, or systemd changes.
+- Need paper trading or live trading authority.
+
+Downstream non-authority boundaries:
+
+Artifact copying authority is not runtime log access authority, runtime
+artifact semantic inspection, uncontrolled file-read authority, package
+creation, manifest generation, hashing or integrity proof,
+storage/finalization/immutability authority, immutable package evidence,
+runtime capture, evaluation, promotion, broker authority, execution
+permission, paper trading approval, or live trading approval.
+
+Proposed next gate:
+
+After this docs-only contract is committed and reviewed, the next safe gate is
+`TEST_ONLY_ARTIFACT_COPYING_AUTHORITY_GUARD`. That future gate must be
+test-only and must not inspect runtime logs, inspect runtime artifacts, edit
+production code, edit docs, touch VPS, call broker APIs, inspect `.env`, change
+scheduler/systemd, approve paper trading, or approve live trading.
+
 ## Runtime Capture Authority Contract
 
 Runtime capture authority remains governance-only and is not implemented yet.
