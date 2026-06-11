@@ -228,9 +228,11 @@ evidence is not broker authority.
 
 - Current authority status: docs-rebased and test-guarded; implementation is
   unapproved.
-- Implementation readiness: blocked until integrity validation, package layout,
-  and package creation authority exist.
-- Prerequisite dependencies: units 4, 7, and 11 for finalized persistence.
+- Implementation readiness: metadata-only in-memory scope ready after units 4
+  and 7; finalized persistence scope remains blocked until unit 11 and a
+  separate filesystem/storage/finalization gate exist.
+- Prerequisite dependencies: units 4 and 7 for metadata-only in-memory scope;
+  unit 11 additionally required for finalized persistence scope only.
 - Candidate files: future storage lifecycle module and storage tests, only
   after a separate filesystem/storage gate.
 - Forbidden files/actions: no filesystem reads or writes before that separate

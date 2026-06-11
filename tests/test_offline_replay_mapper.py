@@ -5027,9 +5027,10 @@ def test_storage_finalization_scope_guard_records_unit8_only() -> None:
     assert "## Unit 8: Storage Root/Path/Lifecycle/Finalization/Immutability" in (
         map_text
     )
-    assert "blocked until integrity validation, package layout" in map_text
-    assert "and package creation authority exist" in map_text
-    assert "Prerequisite dependencies: units 4, 7, and 11" in map_text
+    assert "metadata-only in-memory scope ready after units 4" in map_text
+    assert "and 7; finalized persistence scope remains blocked" in map_text
+    assert "Prerequisite dependencies: units 4 and 7 for metadata-only" in map_text
+    assert "unit 11 additionally required for finalized persistence scope only" in map_text
     assert "future storage lifecycle module and storage tests" in map_text
     assert "separate filesystem/storage gate" in map_text
     assert "root/path authority" in map_text
