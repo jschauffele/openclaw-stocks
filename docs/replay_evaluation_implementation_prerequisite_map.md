@@ -745,10 +745,11 @@ not open Gates B, C, or D. Unit 12 remains blocked.
 - A1 filesystem/source-artifact authority record: **COMPLETE**
 - A2 operator VPS/runtime gate: **COMPLETE** (this record)
 - Gate A: **COMPLETE** (both A1 and A2 recorded)
-- Gate B (package writer/persistence): **NOT STARTED**
+- Gate B (package writer/persistence): **COMPLETE** (as docs-only prerequisite
+  authority record, see Gate B Record B1 below)
 - Gate C (complete replay package authority): **NOT STARTED**
 - Gate D (evaluation prerequisite governance): **NOT STARTED**
-- Unit 12: **BLOCKED** (Gates B, C, D not started)
+- Unit 12: **BLOCKED** (Gates C and D not started)
 
 ### A2 Terminal Event Binding Rule
 
@@ -862,6 +863,178 @@ A2 does not authorize:
 - Storage or finalization implementation
 - Evaluation, attribution engine, or experiment registry implementation
 - Promotion workflow
+- Broker/API/TWS/Alpaca/IBKR behavior
+- Strategy, risk, or execution behavior changes
+- Config, credential, `.env`, systemd, scheduler, or deployment changes
+- Paper trading approval or live trading approval
+- Order submission, order cancellation, cleanup, flatten, or sell
+- Broker remediation
+
+## Gate B Record B1: Filesystem Write Authority Grant
+
+### B1 Status
+
+Recorded as a docs-only governance record on 2026-06-11. This is the
+filesystem write authority record required before package_writer.py and
+package_persistence.py may exist. Gate B is complete as a prerequisite
+authority record.
+
+Gate B completion does not authorize package_writer.py or
+package_persistence.py to be implemented. It does not authorize filesystem
+writes, package directory creation, runtime capture, runtime artifact reads,
+storage or finalization implementation, evaluation, promotion, VPS action,
+broker/API work, or trading of any kind.
+
+### B1 Gate Prerequisite Chain Status
+
+- Source-reference/source-path vocabulary: **COMPLETE**
+- Vocabulary boundary verifier: **COMPLETE**
+- Gate A (runtime capture authority — both A1 and A2): **COMPLETE**
+- B1 filesystem write authority record: **COMPLETE** (this record)
+- Gate B: **COMPLETE** (as a docs-only prerequisite authority record)
+- Gate C (complete replay package authority): **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED**
+- Unit 12: **BLOCKED** (Gates C and D not started)
+
+### B1 Filesystem Write Authority Scope
+
+Gate B authorizes the docs-level recording of filesystem write authority
+boundaries only. It does not itself authorize writes. It does not implement
+package_writer.py or package_persistence.py. Future implementation gates
+may use this authority only if they separately implement and validate:
+
+- Fail-closed path containment
+- Deterministic package layout
+- Manifest schema
+- Deterministic serialization
+- Hashing and integrity validation
+- Redaction
+- Provenance
+- Storage and finalization
+- Non-overwrite behavior
+
+### B1 Governed Storage Root Label
+
+The governed storage root label is `"replay_packages"`. This label is
+source-controlled in test fixtures (tests/test_offline_replay_mapper.py).
+The relative package path family is `"replay_packages/{run_id}"`, where
+`{run_id}` is the canonical run_id format defined in Gate A Record A2.
+
+The absolute VPS path follows from Gate A Record A1 (VPS artifact root
+`/opt/openclaw-stocks`): the intended absolute VPS package output root is
+`/opt/openclaw-stocks/replay_packages`. The absolute path binding is not
+yet source-controlled in docs. Future package implementation remains blocked
+until a later implementation gate explicitly confirms and records the
+absolute VPS package output root and governs path containment relative to it.
+
+No other storage root, absolute path, or path outside the governed root is
+approved by this record.
+
+### B1 Fail-Closed Path Authority Rules
+
+Path authority is fail-closed:
+
+- No absolute path writes unless the absolute root is explicitly
+  source-controlled and operator-approved.
+- No writes outside the governed package output root.
+- No path traversal.
+- No symlink traversal.
+- No arbitrary file path writes.
+- No writes to runtime logs.
+- No writes to broker files.
+- No writes to config, credentials, `.env`, systemd, scheduler, deployment,
+  Git metadata, source files, or tests.
+- No writes to VPS paths from a local dev gate.
+- No package path may be derived from untrusted runtime input without
+  validation and canonicalization.
+
+### B1 Authorized Future Write Operations
+
+After future implementation gates separately approve them:
+
+- Create a new governed package directory or staging directory under the
+  governed package output root only.
+- Write new package files under the governed package root only.
+- Write manifest and integrity files under governed package layout only.
+- Finalize by deterministic, fail-closed operation only if the
+  storage/finalization authority later approves it.
+
+### B1 Explicitly Forbidden Write Operations
+
+The following operations are forbidden and must not be implemented under
+this record or any gate that cites only this record as its authority:
+
+- Delete
+- Overwrite finalized packages
+- Mutate finalized packages
+- Append to finalized evidence
+- Write outside the governed package root
+- `chmod`/`chown` or permission mutation unless separately approved
+- Arbitrary `mkdir`
+- Arbitrary copy
+- Arbitrary rename outside finalization rules
+- Shell execution
+- Network access
+- Broker/API activity
+- Credential access
+- Runtime activation
+
+### B1 Package Writer / Package Persistence Eligibility
+
+After Gate B is complete as a docs-only authority record, package_writer.py
+and package_persistence.py may become eligible only in later separate
+implementation gates. Those gates must be explicit and may not be inferred
+from Gate B.
+
+package_writer.py is not approved for implementation in this gate.
+package_persistence.py is not approved for implementation in this gate.
+Future guards protecting these modules must not be flipped in this gate.
+
+### B1 Runtime Capture / Runtime Artifacts / Source Path Ingestion Status
+
+Gate A made runtime_capture.py, runtime_artifacts.py, and
+source_path_ingestion.py eligible only for future in-memory contract module
+consideration. Gate B does not implement them.
+
+Runtime capture remains blocked until package layout, package creation,
+manifest schema, deterministic serialization, hashing/integrity, redaction,
+provenance, storage, and finalization authority are separately promoted.
+
+Runtime artifact reads remain blocked until a later file-reader authority
+extension and any required VPS/runtime gate are separately opened.
+
+### B1 Gate C and Gate D Status
+
+- Gate C remains **NOT STARTED** and blocked until complete replay package
+  authority exists with actual governed package structure.
+- Gate D remains **NOT STARTED** and blocked until evaluation prerequisite
+  governance is separately recorded.
+- Unit 12 remains **BLOCKED** until the Gate B, Gate C, and Gate D chain is
+  complete and separately validated.
+
+### B1 Non-Authorization Statement
+
+Gate B does not authorize:
+
+- package_writer.py implementation
+- package_persistence.py implementation
+- runtime_capture.py implementation
+- runtime_artifacts.py implementation
+- source_path_ingestion.py implementation
+- Future guard flips
+- Package directory creation
+- Package file creation
+- Filesystem-backed package persistence
+- Immutable evidence creation
+- Storage or finalization implementation
+- Runtime capture execution
+- Runtime artifact reads or runtime log reads
+- Source path ingestion or arbitrary file path ingestion
+- Artifact copying
+- Evaluation implementation
+- Attribution engine or experiment registry implementation
+- Promotion workflow
+- VPS commands or VPS runtime execution
 - Broker/API/TWS/Alpaca/IBKR behavior
 - Strategy, risk, or execution behavior changes
 - Config, credential, `.env`, systemd, scheduler, or deployment changes
