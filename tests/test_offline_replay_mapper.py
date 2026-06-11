@@ -2346,7 +2346,9 @@ def test_replay_package_creation_boundary_remains_unimplemented() -> None:
     assert "Replay package creation cannot authorize manifest authority" in spec_text
     assert "Package creation output cannot become\nmanifest truth" in spec_text
 
-    for module_path in FUTURE_PACKAGE_CREATION_MODULES:
+    # package_writer.py is now implemented; remaining creation modules remain future-gated
+    assert FUTURE_PACKAGE_CREATION_MODULES[0].exists()
+    for module_path in FUTURE_PACKAGE_CREATION_MODULES[1:]:
         assert not module_path.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
@@ -2609,7 +2611,9 @@ def test_package_creation_scope_guard_records_unit11_only() -> None:
         "evaluation_dependent_inputs",
     )
 
-    for module_path in FUTURE_PACKAGE_CREATION_MODULES:
+    # package_writer.py is now implemented; remaining creation modules remain future-gated
+    assert FUTURE_PACKAGE_CREATION_MODULES[0].exists()
+    for module_path in FUTURE_PACKAGE_CREATION_MODULES[1:]:
         assert not module_path.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
@@ -6676,7 +6680,12 @@ def test_filesystem_writer_scope_guard_records_boundary_only() -> None:
 
     assert FILESYSTEM_WRITER_MODULE.exists()
     for future_module in FUTURE_FILESYSTEM_WRITER_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+        module_text = future_module.read_text(encoding="utf-8")
+        assert "AUTHORITY_BOUNDARY" in module_text
+        assert "no_evaluation_or_promotion" in module_text
+        assert "no_broker_api_authority" in module_text
+        assert "no_live_trading_authority" in module_text
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -13417,3 +13426,407 @@ def test_file_reader_extension_modules_are_governed_only() -> None:
             assert forbidden_call not in source, (
                 f"{mod_path.name} contains forbidden call: '{forbidden_call}'"
             )
+
+
+# ---------------------------------------------------------------------------
+# Package writer / package persistence implementation tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.package_writer as package_writer
+import tools.replay.package_persistence as package_persistence
+
+_PW_RUN_ID = "run_2026-06-11T14:00:00Z_pw0001"
+_PP_RUN_ID = "run_2026-06-11T14:00:00Z_pp0001"
+
+
+def _pw_filesystem_writer_input(tmp_path: Path, run_id: str = _PW_RUN_ID) -> dict:
+    package_directory = "run_unit11"
+    storage_root_path = tmp_path / "replay_packages"
+    package_directory_path = storage_root_path / package_directory
+    package_directory_path.mkdir(parents=True)
+    package_completeness_result = package_completeness.validate_package_completeness(
+        _package_completeness_evidence(
+            canonical_run_id="run_unit11",
+        )
+    )
+    storage_implementation_result = package_completeness_result[
+        "storage_implementation_result"
+    ]
+    return {
+        "canonical_run_id": "run_unit11",
+        "filesystem_storage_authority_result": storage_implementation_result[
+            "filesystem_storage_authority_result"
+        ],
+        "package_completeness_result": package_completeness_result,
+        "storage_implementation_result": storage_implementation_result,
+        "storage_root": "replay_packages",
+        "approved_storage_roots": ("replay_packages",),
+        "package_path": "replay_packages/run_unit11",
+        "approved_package_paths": ("replay_packages/run_unit11",),
+        "package_directory": "run_unit11",
+        "approved_package_directories": ("run_unit11",),
+        "storage_root_path": str(storage_root_path),
+        "approved_storage_root_paths": (str(storage_root_path),),
+        "artifact_relative_path": "run_unit11/manifest.json",
+        "artifact_bytes": b'{"canonical_run_id":"run_unit11"}',
+        "lifecycle_status": "finalized",
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "source_references": ("event_jsonl", "draft_package"),
+        "known_source_references": ("event_jsonl", "draft_package"),
+        "input_run_ids": ("run_unit11",),
+        "allow_absolute_storage_root": True,
+    }
+
+
+def _pp_base_request(
+    storage_implementation_result: dict | None = None,
+    filesystem_storage_authority_result: dict | None = None,
+) -> dict:
+    if storage_implementation_result is None:
+        si = storage_implementation.build_finalized_storage_record(
+            _storage_writer_metadata_input(lifecycle_status="finalized")
+        )
+        storage_implementation_result = si
+    if filesystem_storage_authority_result is None:
+        filesystem_storage_authority_result = storage_implementation_result[
+            "filesystem_storage_authority_result"
+        ]
+    return {
+        "canonical_run_id": "run_unit11",
+        "storage_root": "replay_packages",
+        "package_path": "replay_packages/run_unit11",
+        "lifecycle_status": "finalized",
+        "filesystem_storage_authority_result": filesystem_storage_authority_result,
+        "storage_implementation_result": storage_implementation_result,
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+    }
+
+
+# --- package_writer module existence and authority ---
+
+
+def test_package_writer_module_exists() -> None:
+    assert FUTURE_FILESYSTEM_WRITER_MODULES[0].exists()
+    assert FUTURE_FILESYSTEM_WRITER_MODULES[0].name == "package_writer.py"
+
+
+def test_package_writer_authority_boundary_markers() -> None:
+    assert "PACKAGE_WRITER_AUTHORITY_BOUNDARY" in dir(package_writer)
+    boundary = package_writer.PACKAGE_WRITER_AUTHORITY_BOUNDARY
+    assert "approved_governed_paths_only" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+    assert "no_runtime_capture_execution" in boundary
+    assert "no_vps_package_writes_from_local_dev_gate" in boundary
+
+
+def test_package_writer_fail_closed_conditions_recorded() -> None:
+    assert "PACKAGE_WRITER_FAIL_CLOSED_CONDITIONS" in dir(package_writer)
+    conds = package_writer.PACKAGE_WRITER_FAIL_CLOSED_CONDITIONS
+    assert "missing_canonical_run_id" in conds
+    assert "unapproved_storage_root" in conds
+    assert "order_state_write_requires_later_binding_gate" in conds
+    assert "path_traversal" in conds
+    assert "mixed_run_id" in conds
+
+
+def test_package_writer_vps_root_source_controlled() -> None:
+    assert package_writer.APPROVED_VPS_PACKAGE_ROOT_PATH == (
+        "/opt/openclaw-stocks/replay_packages"
+    )
+    assert package_writer.GOVERNED_PACKAGE_ROOT_LABEL == "replay_packages"
+    assert package_writer.GOVERNED_PACKAGE_RELATIVE_PATH_FAMILY == (
+        "replay_packages/{run_id}"
+    )
+
+
+def test_package_writer_authority_dataclass() -> None:
+    authority = package_writer.PackageWriterAuthority()
+    assert authority.name == package_writer.PACKAGE_WRITER_AUTHORITY
+    assert authority.authority_boundary == package_writer.PACKAGE_WRITER_AUTHORITY_BOUNDARY
+
+
+# --- package_writer.write_package_artifact end-to-end ---
+
+
+def test_package_writer_write_package_artifact_e2e(tmp_path: Path) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    result = package_writer.write_package_artifact(request)
+    assert result["result_type"] == package_writer.PACKAGE_WRITER_RESULT
+    assert result["governed_package_root_label"] == "replay_packages"
+    assert result["write_performed"] is True
+    assert result["checksum_verified"] is True
+    assert result["dry_run"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["live_trading_authority"] is False
+
+
+def test_package_writer_result_type_overrides_filesystem_writer_result(
+    tmp_path: Path,
+) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    result = package_writer.write_package_artifact(request)
+    assert result["result_type"] == package_writer.PACKAGE_WRITER_RESULT
+    assert result["result_type"] != filesystem_writer.WRITER_FINALIZATION_RESULT
+
+
+def test_package_writer_governed_root_label_present(tmp_path: Path) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    result = package_writer.write_package_artifact(request)
+    assert "governed_package_root_label" in result
+    assert result["governed_package_root_label"] == "replay_packages"
+
+
+def test_package_writer_missing_completeness_fails(tmp_path: Path) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    bad = {**request, "package_completeness_result": {}}
+    with pytest.raises((ValueError, TypeError)):
+        package_writer.write_package_artifact(bad)
+
+
+def test_package_writer_unapproved_storage_root_fails(tmp_path: Path) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    bad = {**request, "storage_root": "other_root"}
+    with pytest.raises(ValueError):
+        package_writer.write_package_artifact(bad)
+
+
+def test_package_writer_path_traversal_blocked(tmp_path: Path) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    bad = {**request, "artifact_relative_path": "../traversal/manifest.json"}
+    with pytest.raises(ValueError):
+        package_writer.write_package_artifact(bad)
+
+
+def test_package_writer_missing_provenance_fails(tmp_path: Path) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    bad = {**request, "provenance": ""}
+    with pytest.raises(ValueError):
+        package_writer.write_package_artifact(bad)
+
+
+def test_package_writer_missing_artifact_bytes_fails(tmp_path: Path) -> None:
+    request = _pw_filesystem_writer_input(tmp_path)
+    bad = {**request, "artifact_bytes": b""}
+    with pytest.raises(ValueError):
+        package_writer.write_package_artifact(bad)
+
+
+# --- package_writer.write_order_state_artifact blocked ---
+
+
+def test_package_writer_order_state_write_blocked() -> None:
+    with pytest.raises(ValueError, match="later explicit binding gate"):
+        package_writer.write_order_state_artifact()
+
+
+def test_package_writer_order_state_blocked_with_args() -> None:
+    with pytest.raises(ValueError, match="later explicit binding gate"):
+        package_writer.write_order_state_artifact("any", key="value")
+
+
+# --- package_writer boundary: does not enable runtime capture ---
+
+
+def test_package_writer_does_not_enable_runtime_capture_envelope() -> None:
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["artifact_writer"] is True
+
+
+def test_package_writer_modules_are_governed_only() -> None:
+    for mod in (package_writer, package_persistence):
+        mod_path = Path(mod.__file__)  # type: ignore[arg-type]
+        source = mod_path.read_text(encoding="utf-8")
+        for forbidden in ("import os", "import subprocess",
+                          "import glob", "import shutil", "import requests"):
+            assert forbidden not in source, (
+                f"{mod_path.name} contains forbidden import: '{forbidden}'"
+            )
+        for forbidden_call in (".write_text(", "open("):
+            assert forbidden_call not in source, (
+                f"{mod_path.name} contains forbidden call: '{forbidden_call}'"
+            )
+
+
+# --- package_persistence module existence and authority ---
+
+
+def test_package_persistence_module_exists() -> None:
+    assert FUTURE_FILESYSTEM_WRITER_MODULES[1].exists()
+    assert FUTURE_FILESYSTEM_WRITER_MODULES[1].name == "package_persistence.py"
+
+
+def test_package_persistence_authority_boundary_markers() -> None:
+    assert "PACKAGE_PERSISTENCE_AUTHORITY_BOUNDARY" in dir(package_persistence)
+    boundary = package_persistence.PACKAGE_PERSISTENCE_AUTHORITY_BOUNDARY
+    assert "in_memory_only" in boundary
+    assert "metadata_only" in boundary
+    assert "no_actual_filesystem_writes" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+    assert "no_runtime_capture_execution" in boundary
+
+
+def test_package_persistence_fail_closed_conditions_recorded() -> None:
+    assert "PACKAGE_PERSISTENCE_FAIL_CLOSED_CONDITIONS" in dir(package_persistence)
+    conds = package_persistence.PACKAGE_PERSISTENCE_FAIL_CLOSED_CONDITIONS
+    assert "missing_canonical_run_id" in conds
+    assert "missing_lifecycle_status" in conds
+    assert "unknown_lifecycle_status" in conds
+    assert "mixed_run_id" in conds
+    assert "sensitive_data_exposure" in conds
+
+
+def test_package_persistence_authority_dataclass() -> None:
+    authority = package_persistence.PackagePersistenceAuthority()
+    assert authority.name == package_persistence.PACKAGE_PERSISTENCE_AUTHORITY
+    assert (
+        authority.authority_boundary
+        == package_persistence.PACKAGE_PERSISTENCE_AUTHORITY_BOUNDARY
+    )
+
+
+# --- package_persistence.build_package_persistence_result ---
+
+
+def test_package_persistence_build_result_basic() -> None:
+    request = _pp_base_request()
+    result = package_persistence.build_package_persistence_result(request)
+    assert result["result_type"] == package_persistence.PACKAGE_PERSISTENCE_RESULT
+    assert result["canonical_run_id"] == "run_unit11"
+    assert result["storage_root"] == "replay_packages"
+    assert result["lifecycle_status"] == "finalized"
+    assert result["evidence_only"] is True
+    assert result["actual_filesystem_writes"] is False
+    assert result["runtime_capture"] is False
+    assert result["evaluation_or_promotion"] is False
+    assert result["broker_api_authority"] is False
+    assert result["execution_authority"] is False
+    assert result["live_trading_authority"] is False
+
+
+def test_package_persistence_actual_filesystem_writes_always_false() -> None:
+    request = _pp_base_request()
+    result = package_persistence.build_package_persistence_result(request)
+    assert result["actual_filesystem_writes"] is False
+
+
+def test_package_persistence_governed_storage_lifecycle_label() -> None:
+    request = _pp_base_request()
+    result = package_persistence.build_package_persistence_result(request)
+    assert result["governed_storage_lifecycle_only"] == (
+        package_persistence.GOVERNED_STORAGE_LIFECYCLE_ONLY
+    )
+
+
+def test_package_persistence_missing_run_id_fails() -> None:
+    request = {**_pp_base_request(), "canonical_run_id": ""}
+    with pytest.raises(ValueError, match="canonical_run_id"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_missing_storage_root_fails() -> None:
+    request = {**_pp_base_request(), "storage_root": ""}
+    with pytest.raises(ValueError, match="storage_root"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_missing_package_path_fails() -> None:
+    request = {**_pp_base_request(), "package_path": ""}
+    with pytest.raises(ValueError, match="package_path"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_missing_lifecycle_fails() -> None:
+    request = {**_pp_base_request(), "lifecycle_status": ""}
+    with pytest.raises(ValueError, match="lifecycle_status"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_unknown_lifecycle_fails() -> None:
+    request = {**_pp_base_request(), "lifecycle_status": "unknown_state"}
+    with pytest.raises(ValueError, match="unknown lifecycle_status"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_missing_provenance_fails() -> None:
+    request = {**_pp_base_request(), "provenance": ""}
+    with pytest.raises(ValueError, match="provenance"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_missing_redaction_fails() -> None:
+    request = {**_pp_base_request(), "redaction_status": ""}
+    with pytest.raises(ValueError, match="redaction_status"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_sensitive_data_fails() -> None:
+    request = {**_pp_base_request(), "sensitive_data_status": "pii"}
+    with pytest.raises(ValueError, match="sensitive data"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_mixed_run_id_fails() -> None:
+    si = storage_implementation.build_finalized_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    request = {
+        **_pp_base_request(storage_implementation_result=si),
+        "canonical_run_id": "run_DIFFERENT",
+    }
+    with pytest.raises(ValueError, match="mixed run_id"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_storage_impl_not_evidence_only_fails() -> None:
+    si = storage_implementation.build_finalized_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    bad_si = {**si, "evidence_only": False}
+    request = _pp_base_request(storage_implementation_result=bad_si)
+    with pytest.raises(ValueError, match="evidence_only"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_filesystem_authority_not_evidence_only_fails() -> None:
+    si = storage_implementation.build_finalized_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    fsa = si["filesystem_storage_authority_result"]
+    bad_fsa = {**fsa, "evidence_only": False}
+    request = _pp_base_request(
+        storage_implementation_result=si,
+        filesystem_storage_authority_result=bad_fsa,
+    )
+    with pytest.raises(ValueError, match="evidence_only"):
+        package_persistence.build_package_persistence_result(request)
+
+
+def test_package_persistence_all_known_lifecycle_states_accepted() -> None:
+    si = storage_implementation.build_finalized_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    for state in ("draft", "finalized", "invalidated", "superseded"):
+        si_for_state = {**si, "lifecycle_status": state}
+        request = {
+            **_pp_base_request(storage_implementation_result=si_for_state),
+            "lifecycle_status": state,
+        }
+        result = package_persistence.build_package_persistence_result(request)
+        assert result["lifecycle_status"] == state
+        assert result["actual_filesystem_writes"] is False

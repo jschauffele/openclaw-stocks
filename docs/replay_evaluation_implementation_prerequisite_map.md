@@ -930,6 +930,23 @@ absolute VPS package output root and governs path containment relative to it.
 No other storage root, absolute path, or path outside the governed root is
 approved by this record.
 
+### B1 Absolute VPS Package Output Root (Implementation Gate Record)
+
+Recorded by gate IMPLEMENT_PACKAGE_WRITER_PERSISTENCE (2026-06-11).
+
+- Governed storage root label: `replay_packages`
+- Relative package path family: `replay_packages/{run_id}`
+- Absolute VPS package output root: `/opt/openclaw-stocks/replay_packages`
+
+The absolute VPS root is recorded as package-output authority metadata only.
+`APPROVED_VPS_PACKAGE_ROOT_PATH = "/opt/openclaw-stocks/replay_packages"` is
+source-controlled in `tools/replay/package_writer.py`.
+
+This local implementation gate does not authorize real VPS writes. VPS package
+writes require a separate VPS execution gate. Gate C (complete replay package
+authority), Gate D (evaluation prerequisite governance), and Unit 12 remain
+blocked and are not authorized by this implementation gate.
+
 ### B1 Fail-Closed Path Authority Rules
 
 Path authority is fail-closed:
