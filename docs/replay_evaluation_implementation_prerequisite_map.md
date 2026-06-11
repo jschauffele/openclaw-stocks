@@ -281,10 +281,17 @@ evidence is not broker authority.
 
 ## Unit 10: Runtime Artifact Discovery/Capture
 
-- Current authority status: docs-rebased and test-guarded; implementation is
-  unapproved.
-- Implementation readiness: blocked until source-reference authority, source
-  path authority, redaction, storage, and package creation exist.
+- Current authority status: vocabulary-only scope validated
+  (tools/replay/runtime_artifact_discovery.py exists and is test-guarded);
+  actual runtime capture (tools/replay/runtime_capture.py,
+  tools/replay/runtime_artifacts.py, tools/replay/source_path_ingestion.py)
+  remains unapproved and requires a separate runtime capture authority gate
+  before those files may exist.
+- Implementation readiness: vocabulary-only scope (runtime_artifact_discovery.py)
+  validated as no-op; actual capture scope blocked until source-reference
+  authority, source path authority, redaction, storage, and package creation
+  exist and a separate runtime capture/source-artifact gate is opened (see
+  Post-Unit-11 Prerequisite Chain section below).
 - Prerequisite dependencies: units 8, 9, and 11 plus terminal completion and
   strict run_id alignment rules.
 - Candidate files: future `tools/replay/runtime_capture.py` and runtime capture
@@ -394,6 +401,120 @@ evidence is not broker authority.
 - Runtime artifact access allowed: no.
 - Broker/API access allowed: no.
 - Execution/live trading authority allowed: no.
+
+## Post-Unit-11 Prerequisite Chain To Unit 12
+
+Units 1 through 11 have been validated as pure in-memory vocabulary,
+metadata, and draft package creation only. Unit 12 (evaluation
+metric/attribution/experiment registry prerequisites) is blocked until the
+following gates are opened in order. No gate in this chain may be skipped.
+
+### Gate A: Runtime Capture Authority Gate
+
+Required before: tools/replay/runtime_capture.py,
+tools/replay/runtime_artifacts.py, tools/replay/source_path_ingestion.py may
+exist.
+
+This gate requires a separate operator-approved runtime/VPS authority decision
+and explicit filesystem/source-artifact authority grant. It cannot be opened
+from the local Mac dev lane alone.
+
+Prerequisites for this gate (blocked until source-reference authority, source
+path authority, redaction, storage, and package creation exist):
+- All of units 8, 9, and 11 in-memory vocabulary scopes are validated.
+- Explicit source-reference authority exists (source_artifacts.py validated).
+- Explicit runtime artifact discovery vocabulary exists
+  (runtime_artifact_discovery.py validated).
+- A separate filesystem/source-artifact authority grant is recorded in
+  source-controlled docs.
+- A separate operator-approved VPS/runtime gate is recorded.
+
+Required behaviors this gate must define:
+- Strict run_id alignment: every captured artifact run_id must match the
+  canonical_run_id; mixed run_id must fail closed.
+- Terminal completion: a run must have a terminal completion event before its
+  artifacts are capture-eligible.
+- Stale artifacts must fail closed.
+- Missing artifacts without explicit absent or not-applicable declarations
+  must fail closed.
+- Malformed artifacts must fail closed.
+- Unknown source references must fail closed.
+- Missing provenance must fail closed.
+- Missing or invalid redaction status must fail closed.
+- Sensitive data exposure must stop capture.
+- No broker/API/TWS/Alpaca/IBKR access.
+- No main.py calls, timer mutation, or signal remediation.
+
+Non-authority boundaries:
+- Runtime capture output is not package completeness authority.
+- Runtime capture output is not finalized immutable evidence.
+- Runtime capture output is not evaluation authority.
+- Runtime capture output is not promotion authority.
+- Runtime capture output is not broker authority.
+- Runtime capture output is not execution permission.
+- Runtime capture output is not paper trading approval.
+- Runtime capture output is not live trading authority.
+
+### Gate B: Package Writer And Package Persistence Authority Gate
+
+Required before: tools/replay/package_writer.py,
+tools/replay/package_persistence.py may exist.
+
+This gate requires explicit filesystem write authority and a separate
+storage/finalization gate. It cannot be opened from the local Mac dev lane
+alone without a separate filesystem write authority grant.
+
+Prerequisites for this gate:
+- Gate A (runtime capture authority) must be complete.
+- Filesystem write authority must be explicitly granted in source-controlled
+  docs.
+- Storage and finalization authority (unit 8, filesystem_storage_authority.py,
+  storage_implementation.py) must be stable.
+- Package layout (unit 4) and package identity rules must be stable.
+- Manifest generation (unit 5), hash computation (unit 6), integrity
+  validation (unit 7) must be stable.
+
+Non-authority boundaries:
+- Package writer output is not evaluation authority.
+- Package writer output is not promotion authority.
+- Package writer output is not broker authority or execution permission.
+
+### Gate C: Complete Replay Package Authority
+
+Required before: any module may claim complete replay package authority or
+produce finalized immutable replay package evidence.
+
+Prerequisites for this gate:
+- Gate B (package writer/persistence) must be complete.
+- Actual on-disk replay packages must exist with known hashes and
+  source-controlled provenance.
+- No-overwrite finalization semantics must be enforced.
+- Immutability markers must be present for finalized packages.
+
+### Gate D: Evaluation Prerequisite Governance Gate
+
+Required before: Unit 12 may be opened.
+
+This is the "separate evaluation prerequisite gate" required by Unit 12.
+
+Prerequisites for this gate:
+- Gate C (complete replay package authority) must be complete.
+- Finalized immutable evidence must exist.
+- Metric vocabulary and versioning must be governed and source-controlled.
+- Attribution vocabulary and versioning must be governed.
+- Experiment identifier and registry authority must be governed.
+- Package-set inclusion/exclusion rules must be governed.
+- Reproducibility rules must be governed.
+- Candidate strategy identity and parameter versioning must be governed.
+- Baseline versus candidate comparison rules must be governed.
+- As-of feature availability and decision-time evidence rules must be governed.
+
+Non-authority boundaries (carried forward from Unit 12 map):
+- Evaluation reports, metrics, comparisons, and recommendations do not create
+  promotion authority.
+- Evaluation output must remain separate from strategy promotion.
+- Evaluation output is not broker authority, execution permission, paper
+  trading approval, or live trading authority.
 
 ## Drift Risks
 
