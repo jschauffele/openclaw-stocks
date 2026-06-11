@@ -7130,7 +7130,25 @@ def test_source_artifact_authority_scope_guard_records_boundary_only() -> None:
 
     assert SOURCE_ARTIFACTS_MODULE.exists()
     for future_module in FUTURE_SOURCE_ARTIFACT_AUTHORITY_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+
+    import tools.replay.source_references as _src_refs
+    import tools.replay.source_paths as _src_paths
+
+    assert hasattr(_src_refs, "KNOWN_SOURCE_REFERENCES")
+    assert hasattr(_src_refs, "SOURCE_REFERENCE_FAIL_CLOSED_CONDITIONS")
+    assert hasattr(_src_refs, "SOURCE_REFERENCE_AUTHORITY_BOUNDARY")
+    assert "in_memory_only" in _src_refs.SOURCE_REFERENCE_AUTHORITY_BOUNDARY
+    assert "no_filesystem_reads" in _src_refs.SOURCE_REFERENCE_AUTHORITY_BOUNDARY
+    assert "no_runtime_capture" in _src_refs.SOURCE_REFERENCE_AUTHORITY_BOUNDARY
+
+    assert hasattr(_src_paths, "KNOWN_SOURCE_PATH_FAMILIES")
+    assert hasattr(_src_paths, "SOURCE_PATH_FAIL_CLOSED_CONDITIONS")
+    assert hasattr(_src_paths, "SOURCE_PATH_AUTHORITY_BOUNDARY")
+    assert "in_memory_only" in _src_paths.SOURCE_PATH_AUTHORITY_BOUNDARY
+    assert "no_filesystem_reads" in _src_paths.SOURCE_PATH_AUTHORITY_BOUNDARY
+    assert "no_path_resolution" in _src_paths.SOURCE_PATH_AUTHORITY_BOUNDARY
+    assert "no_runtime_capture" in _src_paths.SOURCE_PATH_AUTHORITY_BOUNDARY
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
