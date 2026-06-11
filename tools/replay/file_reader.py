@@ -42,9 +42,11 @@ RUNTIME_CAPTURE_PREREQUISITE = "runtime_capture_prerequisite"
 FILE_READ_RESULT = "file_read_result"
 FILE_READ_HASH_ALGORITHM = "sha256"
 
+VPS_ARTIFACT_ROOT_PATH = "/opt/openclaw-stocks"
+
 FILE_READ_AUTHORITY_BOUNDARY: tuple[str, ...] = (
     "deterministic_file_read_only",
-    "approved_test_controlled_files_only",
+    "approved_governed_paths_only",
     "no_runtime_log_access",
     "no_source_path_ingestion",
     "no_file_path_ingestion",
@@ -597,7 +599,10 @@ def _validate_target_path(
     if target_path.is_symlink() or artifact_root_path.is_symlink():
         raise ValueError("symlink ambiguity")
     if read_request.repo_relative is not True:
-        raise ValueError("non-repo path ambiguity")
+        if not read_request.allow_absolute_artifact_root:
+            raise ValueError("non-repo path ambiguity")
+        if str(artifact_root_path) not in read_request.approved_artifact_root_paths:
+            raise ValueError("non-repo path ambiguity")
     if not target_path.exists():
         raise ValueError("unapproved path")
     if not target_path.is_file():

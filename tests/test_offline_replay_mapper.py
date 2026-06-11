@@ -10177,7 +10177,13 @@ def test_file_read_scope_guard_records_boundary_only() -> None:
     )
 
     for future_module in FUTURE_FILE_READ_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+        module_text = future_module.read_text(encoding="utf-8")
+        assert "AUTHORITY_BOUNDARY" in module_text
+        assert "approved_governed_paths_only" in module_text
+        assert "no_evaluation_or_promotion" in module_text
+        assert "no_broker_api_authority" in module_text
+        assert "no_live_trading_authority" in module_text
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -10285,7 +10291,7 @@ def test_file_read_scope_guard_records_boundary_only() -> None:
 def test_file_read_helper_records_relaxable_vocabulary_and_boundary() -> None:
     assert FILE_READER_MODULE.exists()
     for future_module in FUTURE_FILE_READ_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
 
     module_names = set(file_reader.__dict__)
     for relaxable_name in FILE_READ_SCOPE_RELAXABLE_NAMES:
@@ -10395,7 +10401,10 @@ def test_file_read_helper_validates_size_checksum_encoding_and_paths(
             ValueError,
         ),
         ({**request, "symlink_status": "symlink"}, ValueError),
-        ({**request, "repo_relative": False}, ValueError),
+        (
+            {**request, "repo_relative": False, "allow_absolute_artifact_root": False},
+            ValueError,
+        ),
         ({**request, "approved_path_metadata": {}}, ValueError),
         (
             {
@@ -13096,6 +13105,315 @@ def test_runtime_capture_contract_modules_are_in_memory_only() -> None:
             )
         for forbidden_call in ("open(", ".read_bytes(", ".write_bytes(",
                                ".exists(", ".read_text(", ".write_text("):
+            assert forbidden_call not in source, (
+                f"{mod_path.name} contains forbidden call: '{forbidden_call}'"
+            )
+
+
+# ---------------------------------------------------------------------------
+# File reader VPS authority extension tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.approved_file_reads as approved_file_reads
+import tools.replay.runtime_artifact_file_reader as runtime_artifact_file_reader
+from tools.replay.source_references import KNOWN_SOURCE_REFERENCES as _ALL_KNOWN_REFS
+
+_RAFR_RUN_ID = "run_2026-06-11T12:00:00Z_abc123"
+
+
+def _rafr_source_artifact_result(run_id: str = _RAFR_RUN_ID) -> dict:
+    return source_artifacts.validate_source_artifact_authority({
+        "canonical_run_id": run_id,
+        "source_references": ("event_jsonl",),
+        "known_source_references": _ALL_KNOWN_REFS,
+        "source_artifact_provenance": "recorded",
+        "source_artifact_redaction_status": "not_required",
+        "source_artifact_eligibility": "eligible",
+        "input_run_ids": (run_id,),
+        "source_path_identity": "source-metadata:event_jsonl",
+    })
+
+
+def _rafr_discovery_result(run_id: str = _RAFR_RUN_ID) -> dict:
+    source_auth = _rafr_source_artifact_result(run_id)
+    return runtime_artifact_discovery.validate_runtime_artifact_discovery({
+        "canonical_run_id": run_id,
+        "source_artifact_authority_result": source_auth,
+        "source_references": ("event_jsonl",),
+        "known_source_references": _ALL_KNOWN_REFS,
+        "eligible_runtime_artifact_vocabulary": ("event_jsonl",),
+        "terminal_completion_rule": {
+            "required": True,
+            "satisfied": True,
+            "terminal_event": "system_completion",
+        },
+        "runtime_artifact_candidates": (
+            {
+                "artifact_id": "event_stream",
+                "artifact_type": "event_jsonl",
+                "source_reference": "event_jsonl",
+                "canonical_run_id": run_id,
+                "provenance": "recorded",
+                "redaction_status": "not_required",
+                "eligible": True,
+                "source_path_metadata": "source-metadata:event_jsonl",
+            },
+        ),
+        "runtime_artifact_provenance": "recorded",
+        "runtime_artifact_redaction_status": "not_required",
+        "input_run_ids": (run_id,),
+    })
+
+
+def _make_jsonl_file(
+    tmp_path: Path, run_id: str = _RAFR_RUN_ID
+) -> tuple[Path, bytes]:
+    artifact_root = tmp_path / "vps_root"
+    artifact_root.mkdir(exist_ok=True)
+    logs_dir = artifact_root / "logs"
+    logs_dir.mkdir(exist_ok=True)
+    payload = (
+        f'{{"canonical_run_id":"{run_id}","event":"system_completion"}}\n'
+        .encode()
+    )
+    (logs_dir / f"{run_id}.jsonl").write_bytes(payload)
+    return artifact_root, payload
+
+
+def _make_last_run_report_file(
+    tmp_path: Path, run_id: str = _RAFR_RUN_ID
+) -> tuple[Path, bytes]:
+    artifact_root = tmp_path / "vps_root"
+    artifact_root.mkdir(exist_ok=True)
+    payload = (
+        f'{{"canonical_run_id":"{run_id}","status":"complete"}}\n'.encode()
+    )
+    (artifact_root / "last_run_report.json").write_bytes(payload)
+    return artifact_root, payload
+
+
+# approved_file_reads module tests
+
+
+def test_approved_file_reads_module_exists() -> None:
+    mod_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools" / "replay" / "approved_file_reads.py"
+    )
+    assert mod_path.exists()
+
+
+def test_approved_file_reads_authority_boundary_contains_governed_markers() -> None:
+    boundary = approved_file_reads.APPROVED_FILE_READS_AUTHORITY_BOUNDARY
+    assert "approved_governed_paths_only" in boundary
+    assert "in_memory_only" in boundary
+    assert "no_filesystem_reads" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_approved_file_reads_builds_jsonl_request() -> None:
+    run_id = _RAFR_RUN_ID
+    request = approved_file_reads.build_jsonl_event_stream_read_request(
+        canonical_run_id=run_id,
+        artifact_root_path_string="/opt/openclaw-stocks",
+        source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+        runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+    )
+    assert request["canonical_run_id"] == run_id
+    assert request["file_relative_path"] == f"logs/{run_id}.jsonl"
+    assert request["allow_absolute_artifact_root"] is True
+    assert request["repo_relative"] is False
+    assert request["approved_file_identity"] == approved_file_reads.JSONL_EVENT_STREAM_READ
+    assert request["artifact_root"] == approved_file_reads.VPS_ARTIFACT_ROOT_LABEL
+    assert "/opt/openclaw-stocks" in request["approved_artifact_root_paths"]
+
+
+def test_approved_file_reads_builds_last_run_report_request() -> None:
+    run_id = _RAFR_RUN_ID
+    request = approved_file_reads.build_last_run_report_read_request(
+        canonical_run_id=run_id,
+        artifact_root_path_string="/opt/openclaw-stocks",
+        source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+        runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+    )
+    assert request["file_relative_path"] == "last_run_report.json"
+    assert request["allow_absolute_artifact_root"] is True
+    assert request["repo_relative"] is False
+    assert request["approved_file_identity"] == approved_file_reads.LAST_RUN_REPORT_READ
+
+
+def test_approved_file_reads_order_state_builder_fails_closed() -> None:
+    with pytest.raises(ValueError):
+        approved_file_reads.build_order_state_read_request(
+            "run_id", "/opt/openclaw-stocks", {}, {}
+        )
+
+
+def test_approved_file_reads_vps_root_is_source_controlled() -> None:
+    assert approved_file_reads.APPROVED_VPS_ARTIFACT_ROOT_PATH_STRING == (
+        "/opt/openclaw-stocks"
+    )
+    assert approved_file_reads.VPS_ARTIFACT_ROOT_LABEL == "vps_artifact_root"
+
+
+# runtime_artifact_file_reader module tests
+
+
+def test_runtime_artifact_file_reader_module_exists() -> None:
+    mod_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools" / "replay" / "runtime_artifact_file_reader.py"
+    )
+    assert mod_path.exists()
+
+
+def test_runtime_artifact_file_reader_authority_boundary_contains_governed_markers() -> None:
+    boundary = (
+        runtime_artifact_file_reader.RUNTIME_ARTIFACT_FILE_READER_AUTHORITY_BOUNDARY
+    )
+    assert "approved_governed_paths_only" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+    assert "no_package_writing" in boundary
+
+
+def test_runtime_artifact_file_reader_reads_jsonl_event_stream(
+    tmp_path: Path,
+) -> None:
+    run_id = _RAFR_RUN_ID
+    artifact_root, payload = _make_jsonl_file(tmp_path, run_id)
+    result = runtime_artifact_file_reader.read_jsonl_event_stream(
+        canonical_run_id=run_id,
+        artifact_root_path_string=str(artifact_root),
+        source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+        runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+        expected_sha256=hashlib.sha256(payload).hexdigest(),
+    )
+    assert result["result_type"] == (
+        runtime_artifact_file_reader.RUNTIME_ARTIFACT_FILE_READER_RESULT
+    )
+    assert result["artifact_family"] == approved_file_reads.JSONL_EVENT_STREAM_READ
+    assert result["file_bytes"] == payload
+    assert result["read_performed"] is True
+    assert result["runtime_capture"] is False
+
+
+def test_runtime_artifact_file_reader_jsonl_wrong_checksum_fails(
+    tmp_path: Path,
+) -> None:
+    run_id = _RAFR_RUN_ID
+    artifact_root, _payload = _make_jsonl_file(tmp_path, run_id)
+    with pytest.raises(ValueError):
+        runtime_artifact_file_reader.read_jsonl_event_stream(
+            canonical_run_id=run_id,
+            artifact_root_path_string=str(artifact_root),
+            source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+            runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+            expected_sha256="0" * 64,
+        )
+
+
+def test_runtime_artifact_file_reader_reads_last_run_report(
+    tmp_path: Path,
+) -> None:
+    run_id = _RAFR_RUN_ID
+    artifact_root, payload = _make_last_run_report_file(tmp_path, run_id)
+    result = runtime_artifact_file_reader.read_last_run_report(
+        canonical_run_id=run_id,
+        artifact_root_path_string=str(artifact_root),
+        source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+        runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+        expected_sha256=hashlib.sha256(payload).hexdigest(),
+    )
+    assert result["result_type"] == (
+        runtime_artifact_file_reader.RUNTIME_ARTIFACT_FILE_READER_RESULT
+    )
+    assert result["artifact_family"] == approved_file_reads.LAST_RUN_REPORT_READ
+    assert result["file_bytes"] == payload
+    assert result["read_performed"] is True
+
+
+def test_runtime_artifact_file_reader_order_state_blocked() -> None:
+    with pytest.raises(ValueError, match="later explicit binding gate"):
+        runtime_artifact_file_reader.read_order_state()
+
+
+def test_runtime_artifact_file_reader_missing_provenance_fails(
+    tmp_path: Path,
+) -> None:
+    run_id = _RAFR_RUN_ID
+    artifact_root, _payload = _make_jsonl_file(tmp_path, run_id)
+    with pytest.raises(ValueError):
+        runtime_artifact_file_reader.read_jsonl_event_stream(
+            canonical_run_id=run_id,
+            artifact_root_path_string=str(artifact_root),
+            source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+            runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+            provenance="",
+        )
+
+
+def test_runtime_artifact_file_reader_mixed_run_id_fails(
+    tmp_path: Path,
+) -> None:
+    run_id = _RAFR_RUN_ID
+    other_run_id = "run_2026-06-11T12:00:01Z_xyz999"
+    artifact_root, _payload = _make_jsonl_file(tmp_path, run_id)
+    with pytest.raises(ValueError):
+        runtime_artifact_file_reader.read_jsonl_event_stream(
+            canonical_run_id=run_id,
+            artifact_root_path_string=str(artifact_root),
+            source_artifact_authority_result=_rafr_source_artifact_result(other_run_id),
+            runtime_artifact_discovery_result=_rafr_discovery_result(other_run_id),
+        )
+
+
+def test_runtime_artifact_file_reader_absent_file_fails(
+    tmp_path: Path,
+) -> None:
+    run_id = _RAFR_RUN_ID
+    artifact_root = tmp_path / "vps_root"
+    artifact_root.mkdir()
+    with pytest.raises(ValueError):
+        runtime_artifact_file_reader.read_jsonl_event_stream(
+            canonical_run_id=run_id,
+            artifact_root_path_string=str(artifact_root),
+            source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+            runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+        )
+
+
+# Boundary preservation: extension modules do not enable runtime capture
+
+
+def test_file_reader_extension_does_not_enable_runtime_capture_envelope() -> None:
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+
+
+def test_file_reader_extension_modules_are_governed_only() -> None:
+    for mod in (approved_file_reads, runtime_artifact_file_reader):
+        mod_path = Path(mod.__file__)  # type: ignore[arg-type]
+        source = mod_path.read_text(encoding="utf-8")
+        for forbidden in ("import os", "import subprocess",
+                          "import glob", "import shutil", "import requests"):
+            assert forbidden not in source, (
+                f"{mod_path.name} contains forbidden import: '{forbidden}'"
+            )
+        for forbidden_call in (".write_bytes(", ".write_text("):
             assert forbidden_call not in source, (
                 f"{mod_path.name} contains forbidden call: '{forbidden_call}'"
             )
