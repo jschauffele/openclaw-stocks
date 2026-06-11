@@ -28,6 +28,7 @@ import tools.replay.package_layout as package_layout
 import tools.replay.package_schema as package_schema
 import tools.replay.runtime_artifact_discovery as runtime_artifact_discovery
 import tools.replay.source_artifacts as source_artifacts
+import tools.replay.storage as storage
 import tools.replay.storage_implementation as storage_implementation
 from tools.replay.draft_envelope import build_draft_replay_envelope
 from tools.replay.offline_mapper import build_replay_package
@@ -5186,7 +5187,52 @@ def test_storage_finalization_scope_guard_records_unit8_only() -> None:
     )
 
     for future_module in FUTURE_STORAGE_FINALIZATION_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
+
+    assert storage.STORAGE_ROOT == "storage_root"
+    assert storage.STORAGE_PATH == "storage_path"
+    assert storage.PACKAGE_DIRECTORY == "package_directory"
+    assert storage.PACKAGE_PATH == "package_path"
+    assert storage.PACKAGE_LIFECYCLE_STATE == "package_lifecycle_state"
+    assert storage.FINALIZATION_STATE == "finalization_state"
+    assert storage.FINALIZED_PACKAGE == "finalized_package"
+    assert storage.INVALIDATED_PACKAGE == "invalidated_package"
+    assert storage.SUPERSEDED_PACKAGE == "superseded_package"
+    assert storage.IMMUTABILITY_MARKER == "immutability_marker"
+    assert storage.LINEAGE_REFERENCE == "lineage_reference"
+    assert storage.CORRECTION_REFERENCE == "correction_reference"
+    assert storage.INVALIDATION_REFERENCE == "invalidation_reference"
+    assert storage.SUPERSESSION_REFERENCE == "supersession_reference"
+    assert storage.PACKAGE_LIFECYCLE_STATES == (
+        "draft",
+        "finalized",
+        "invalidated",
+        "superseded",
+    )
+    assert storage.StorageRoot().name == storage.STORAGE_ROOT
+    assert storage.FinalizedPackage().name == storage.FINALIZED_PACKAGE
+    assert storage.InvalidatedPackage().name == storage.INVALIDATED_PACKAGE
+    assert storage.SupersededPackage().name == storage.SUPERSEDED_PACKAGE
+    assert storage.ImmutabilityMarker().name == storage.IMMUTABILITY_MARKER
+    assert storage.LineageReference().name == storage.LINEAGE_REFERENCE
+    assert storage.CorrectionReference().name == storage.CORRECTION_REFERENCE
+    assert storage.InvalidationReference().name == storage.INVALIDATION_REFERENCE
+    assert storage.SupersessionReference().name == storage.SUPERSESSION_REFERENCE
+    assert "no_actual_filesystem_reads" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_actual_filesystem_writes" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_package_directory_creation" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_finalized_storage" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_immutability_enforcement" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_package_completeness" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_runtime_capture" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_evaluation_or_promotion" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_broker_authority" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_execution_authority" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    assert "no_live_trading_authority" in storage.STORAGE_LIFECYCLE_AUTHORITY_BOUNDARY
+    for module_path in FUTURE_STORAGE_FINALIZATION_MODULES:
+        module_text = module_path.read_text(encoding="utf-8")
+        for denied_name in STORAGE_FINALIZATION_SCOPE_DOWNSTREAM_DENIED_NAMES:
+            assert denied_name not in module_text
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -5363,7 +5409,7 @@ def test_filesystem_storage_authority_scope_guard_records_boundary_only() -> Non
     )
 
     for future_module in FUTURE_STORAGE_FINALIZATION_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -5733,7 +5779,7 @@ def test_storage_implementation_scope_guard_records_unit8_code_boundary() -> Non
     )
 
     for future_module in FUTURE_STORAGE_FINALIZATION_MODULES:
-        assert not future_module.exists()
+        assert future_module.exists()
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
