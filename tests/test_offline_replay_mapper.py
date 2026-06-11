@@ -12042,7 +12042,42 @@ def test_runtime_capture_boundary_remains_unimplemented() -> None:
     assert "replay package creation, package authority, package completeness" in spec_text
 
     for module_path in FUTURE_RUNTIME_CAPTURE_MODULES:
-        assert not module_path.exists()
+        assert module_path.exists()
+
+    import tools.replay.source_path_ingestion as _spi
+    import tools.replay.runtime_artifacts as _ra
+    import tools.replay.runtime_capture as _rc
+
+    assert hasattr(_spi, "SOURCE_PATH_INGESTION_AUTHORITY")
+    assert hasattr(_spi, "SOURCE_PATH_INGESTION_AUTHORITY_BOUNDARY")
+    assert hasattr(_spi, "SOURCE_PATH_INGESTION_FAIL_CLOSED_CONDITIONS")
+    assert hasattr(_spi, "validate_source_path_ingestion")
+    assert "in_memory_only" in _spi.SOURCE_PATH_INGESTION_AUTHORITY_BOUNDARY
+    assert "no_filesystem_reads" in _spi.SOURCE_PATH_INGESTION_AUTHORITY_BOUNDARY
+    assert "no_runtime_capture" in _spi.SOURCE_PATH_INGESTION_AUTHORITY_BOUNDARY
+    assert "no_live_trading_authority" in _spi.SOURCE_PATH_INGESTION_AUTHORITY_BOUNDARY
+
+    assert hasattr(_ra, "RUNTIME_ARTIFACT_AUTHORITY")
+    assert hasattr(_ra, "RUNTIME_ARTIFACT_AUTHORITY_BOUNDARY")
+    assert hasattr(_ra, "RUNTIME_ARTIFACT_FAIL_CLOSED_CONDITIONS")
+    assert hasattr(_ra, "RUNTIME_ARTIFACT_TYPES")
+    assert hasattr(_ra, "validate_runtime_artifact")
+    assert "in_memory_only" in _ra.RUNTIME_ARTIFACT_AUTHORITY_BOUNDARY
+    assert "no_filesystem_reads" in _ra.RUNTIME_ARTIFACT_AUTHORITY_BOUNDARY
+    assert "no_runtime_artifact_reads" in _ra.RUNTIME_ARTIFACT_AUTHORITY_BOUNDARY
+    assert "no_runtime_capture" in _ra.RUNTIME_ARTIFACT_AUTHORITY_BOUNDARY
+    assert "no_live_trading_authority" in _ra.RUNTIME_ARTIFACT_AUTHORITY_BOUNDARY
+
+    assert hasattr(_rc, "RUNTIME_CAPTURE_AUTHORITY")
+    assert hasattr(_rc, "RUNTIME_CAPTURE_AUTHORITY_BOUNDARY")
+    assert hasattr(_rc, "RUNTIME_CAPTURE_FAIL_CLOSED_CONDITIONS")
+    assert hasattr(_rc, "validate_runtime_capture_prerequisites")
+    assert "in_memory_only" in _rc.RUNTIME_CAPTURE_AUTHORITY_BOUNDARY
+    assert "no_filesystem_reads" in _rc.RUNTIME_CAPTURE_AUTHORITY_BOUNDARY
+    assert "no_runtime_artifact_reads" in _rc.RUNTIME_CAPTURE_AUTHORITY_BOUNDARY
+    assert "no_package_writing" in _rc.RUNTIME_CAPTURE_AUTHORITY_BOUNDARY
+    assert "no_runtime_capture_execution" in _rc.RUNTIME_CAPTURE_AUTHORITY_BOUNDARY
+    assert "no_live_trading_authority" in _rc.RUNTIME_CAPTURE_AUTHORITY_BOUNDARY
 
     complete_inputs_envelope = build_draft_replay_envelope(
         ReplayInputBundle(**_complete_replay_inputs())
@@ -12685,3 +12720,382 @@ def test_import_isolation_and_no_side_effect_fragments() -> None:
         for value in module.__dict__.values():
             if isinstance(value, FunctionType):
                 assert forbidden_names.isdisjoint(value.__code__.co_names)
+
+
+# ---------------------------------------------------------------------------
+# In-memory runtime capture contract module tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.source_path_ingestion as source_path_ingestion
+import tools.replay.runtime_artifacts as runtime_artifacts
+import tools.replay.runtime_capture as runtime_capture
+from tools.replay.source_paths import KNOWN_SOURCE_PATH_FAMILIES
+
+
+def _valid_source_path_ingestion_input() -> dict:
+    return {
+        "canonical_run_id": "run_2026-06-11T12:00:00Z_abc123",
+        "source_reference": "event_jsonl",
+        "path_family": KNOWN_SOURCE_PATH_FAMILIES[0],
+        "path_value": "logs/run_2026-06-11T12:00:00Z_abc123.jsonl",
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "approved": True,
+    }
+
+
+def _valid_runtime_artifact_input() -> dict:
+    return {
+        "canonical_run_id": "run_2026-06-11T12:00:00Z_abc123",
+        "artifact_type": runtime_artifacts.JSONL_EVENT_STREAM,
+        "status": runtime_artifacts.RUNTIME_ARTIFACT_ELIGIBLE,
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+    }
+
+
+def _valid_runtime_capture_input() -> dict:
+    return {
+        "canonical_run_id": "run_2026-06-11T12:00:00Z_abc123",
+        "terminal_completion_present": True,
+        "terminal_completion_status": "ok",
+        "run_id_aligned": True,
+        "source_artifact_authority_valid": True,
+        "runtime_artifact_discovery_valid": True,
+        "source_path_ingestion_valid": True,
+        "provenance_present": True,
+        "redaction_status_present": True,
+        "package_creation_authority_present": True,
+        "storage_finalization_authority_present": True,
+    }
+
+
+# source_path_ingestion module tests
+
+
+def test_source_path_ingestion_module_exists() -> None:
+    spi_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools" / "replay" / "source_path_ingestion.py"
+    )
+    assert spi_path.exists()
+
+
+def test_source_path_ingestion_authority_boundary_is_in_memory_only() -> None:
+    boundary = source_path_ingestion.SOURCE_PATH_INGESTION_AUTHORITY_BOUNDARY
+    assert "in_memory_only" in boundary
+    assert "no_filesystem_reads" in boundary
+    assert "no_path_resolution" in boundary
+    assert "no_file_path_reads" in boundary
+    assert "no_artifact_copying" in boundary
+    assert "no_runtime_capture" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_source_path_ingestion_fail_closed_conditions_non_empty() -> None:
+    assert len(source_path_ingestion.SOURCE_PATH_INGESTION_FAIL_CLOSED_CONDITIONS) > 0
+
+
+def test_source_path_ingestion_valid_input_returns_empty() -> None:
+    failures = source_path_ingestion.validate_source_path_ingestion(
+        _valid_source_path_ingestion_input()
+    )
+    assert failures == [], f"Expected no failures: {failures}"
+
+
+def test_source_path_ingestion_missing_canonical_run_id_fails() -> None:
+    data = {**_valid_source_path_ingestion_input(), "canonical_run_id": ""}
+    failures = source_path_ingestion.validate_source_path_ingestion(data)
+    assert any("canonical_run_id" in f for f in failures)
+
+
+def test_source_path_ingestion_unapproved_fails() -> None:
+    data = {**_valid_source_path_ingestion_input(), "approved": False}
+    failures = source_path_ingestion.validate_source_path_ingestion(data)
+    assert any("approved" in f for f in failures)
+
+
+def test_source_path_ingestion_absolute_path_fails() -> None:
+    data = {**_valid_source_path_ingestion_input(), "path_value": "/opt/openclaw-stocks/logs/run.jsonl"}
+    failures = source_path_ingestion.validate_source_path_ingestion(data)
+    assert any("absolute" in f for f in failures)
+
+
+def test_source_path_ingestion_path_traversal_fails() -> None:
+    data = {**_valid_source_path_ingestion_input(), "path_value": "logs/../etc/passwd"}
+    failures = source_path_ingestion.validate_source_path_ingestion(data)
+    assert any("traversal" in f for f in failures)
+
+
+def test_source_path_ingestion_missing_provenance_fails() -> None:
+    data = {**_valid_source_path_ingestion_input(), "provenance": ""}
+    failures = source_path_ingestion.validate_source_path_ingestion(data)
+    assert any("provenance" in f for f in failures)
+
+
+def test_source_path_ingestion_missing_redaction_status_fails() -> None:
+    data = {**_valid_source_path_ingestion_input(), "redaction_status": ""}
+    failures = source_path_ingestion.validate_source_path_ingestion(data)
+    assert any("redaction_status" in f for f in failures)
+
+
+def test_source_path_ingestion_unknown_path_family_fails() -> None:
+    data = {**_valid_source_path_ingestion_input(), "path_family": "unknown_path_family"}
+    failures = source_path_ingestion.validate_source_path_ingestion(data)
+    assert any("unknown path_family" in f for f in failures)
+
+
+# runtime_artifacts module tests
+
+
+def test_runtime_artifacts_module_exists() -> None:
+    ra_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools" / "replay" / "runtime_artifacts.py"
+    )
+    assert ra_path.exists()
+
+
+def test_runtime_artifacts_authority_boundary_is_in_memory_only() -> None:
+    boundary = runtime_artifacts.RUNTIME_ARTIFACT_AUTHORITY_BOUNDARY
+    assert "in_memory_only" in boundary
+    assert "no_filesystem_reads" in boundary
+    assert "no_runtime_artifact_reads" in boundary
+    assert "no_artifact_copying" in boundary
+    assert "no_package_writing" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_runtime_artifacts_known_types_include_required() -> None:
+    assert runtime_artifacts.JSONL_EVENT_STREAM in runtime_artifacts.RUNTIME_ARTIFACT_TYPES
+    assert runtime_artifacts.LAST_RUN_REPORT in runtime_artifacts.RUNTIME_ARTIFACT_TYPES
+    assert runtime_artifacts.ORDER_STATE in runtime_artifacts.RUNTIME_ARTIFACT_TYPES
+
+
+def test_runtime_artifacts_fail_closed_conditions_non_empty() -> None:
+    assert len(runtime_artifacts.RUNTIME_ARTIFACT_FAIL_CLOSED_CONDITIONS) > 0
+
+
+def test_runtime_artifacts_valid_eligible_input_returns_empty() -> None:
+    failures = runtime_artifacts.validate_runtime_artifact(
+        _valid_runtime_artifact_input()
+    )
+    assert failures == [], f"Expected no failures: {failures}"
+
+
+def test_runtime_artifacts_absent_without_reason_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_ABSENT}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("absent_reason" in f for f in failures)
+
+
+def test_runtime_artifacts_absent_with_reason_passes() -> None:
+    data = {
+        **_valid_runtime_artifact_input(),
+        "status": runtime_artifacts.RUNTIME_ARTIFACT_ABSENT,
+        "absent_reason": "artifact not produced in blocked run",
+    }
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert failures == [], f"Expected no failures: {failures}"
+
+
+def test_runtime_artifacts_not_applicable_without_reason_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_NOT_APPLICABLE}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("not_applicable_reason" in f for f in failures)
+
+
+def test_runtime_artifacts_stale_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_STALE}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("stale" in f for f in failures)
+
+
+def test_runtime_artifacts_malformed_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_MALFORMED}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("malformed" in f for f in failures)
+
+
+def test_runtime_artifacts_mixed_run_id_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_MIXED_RUN_ID}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("mixed_run_id" in f for f in failures)
+
+
+def test_runtime_artifacts_ambiguous_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_AMBIGUOUS}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("ambiguous" in f for f in failures)
+
+
+def test_runtime_artifacts_unknown_status_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_UNKNOWN}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("unknown" in f for f in failures)
+
+
+def test_runtime_artifacts_blocked_sensitive_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "status": runtime_artifacts.RUNTIME_ARTIFACT_BLOCKED_SENSITIVE}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("blocked_sensitive" in f for f in failures)
+
+
+def test_runtime_artifacts_missing_provenance_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "provenance": ""}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("provenance" in f for f in failures)
+
+
+def test_runtime_artifacts_missing_redaction_status_fails() -> None:
+    data = {**_valid_runtime_artifact_input(), "redaction_status": ""}
+    failures = runtime_artifacts.validate_runtime_artifact(data)
+    assert any("redaction_status" in f for f in failures)
+
+
+# runtime_capture module tests
+
+
+def test_runtime_capture_module_exists() -> None:
+    rc_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools" / "replay" / "runtime_capture.py"
+    )
+    assert rc_path.exists()
+
+
+def test_runtime_capture_authority_boundary_is_in_memory_only() -> None:
+    boundary = runtime_capture.RUNTIME_CAPTURE_AUTHORITY_BOUNDARY
+    assert "in_memory_only" in boundary
+    assert "no_filesystem_reads" in boundary
+    assert "no_runtime_artifact_reads" in boundary
+    assert "no_file_path_ingestion" in boundary
+    assert "no_artifact_copying" in boundary
+    assert "no_package_writing" in boundary
+    assert "no_storage_finalization" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_execution_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+    assert "no_runtime_capture_execution" in boundary
+
+
+def test_runtime_capture_fail_closed_conditions_non_empty() -> None:
+    assert len(runtime_capture.RUNTIME_CAPTURE_FAIL_CLOSED_CONDITIONS) > 0
+
+
+def test_runtime_capture_valid_ok_input_returns_empty() -> None:
+    failures = runtime_capture.validate_runtime_capture_prerequisites(
+        _valid_runtime_capture_input()
+    )
+    assert failures == [], f"Expected no failures: {failures}"
+
+
+def test_runtime_capture_valid_blocked_input_returns_empty() -> None:
+    data = {**_valid_runtime_capture_input(), "terminal_completion_status": "blocked"}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert failures == [], f"Expected no failures: {failures}"
+
+
+def test_runtime_capture_error_completion_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "terminal_completion_status": "error"}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("error" in f for f in failures)
+
+
+def test_runtime_capture_missing_terminal_completion_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "terminal_completion_present": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("terminal_completion_present" in f for f in failures)
+
+
+def test_runtime_capture_unaligned_run_id_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "run_id_aligned": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("run_id_aligned" in f for f in failures)
+
+
+def test_runtime_capture_missing_source_artifact_authority_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "source_artifact_authority_valid": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("source_artifact_authority_valid" in f for f in failures)
+
+
+def test_runtime_capture_missing_runtime_artifact_discovery_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "runtime_artifact_discovery_valid": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("runtime_artifact_discovery_valid" in f for f in failures)
+
+
+def test_runtime_capture_missing_source_path_ingestion_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "source_path_ingestion_valid": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("source_path_ingestion_valid" in f for f in failures)
+
+
+def test_runtime_capture_missing_provenance_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "provenance_present": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("provenance_present" in f for f in failures)
+
+
+def test_runtime_capture_missing_redaction_status_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "redaction_status_present": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("redaction_status_present" in f for f in failures)
+
+
+def test_runtime_capture_missing_package_creation_authority_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "package_creation_authority_present": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("package_creation_authority_present" in f for f in failures)
+
+
+def test_runtime_capture_missing_storage_finalization_authority_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "storage_finalization_authority_present": False}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("storage_finalization_authority_present" in f for f in failures)
+
+
+def test_runtime_capture_missing_canonical_run_id_fails() -> None:
+    data = {**_valid_runtime_capture_input(), "canonical_run_id": ""}
+    failures = runtime_capture.validate_runtime_capture_prerequisites(data)
+    assert any("canonical_run_id" in f for f in failures)
+
+
+# Boundary preservation: envelope flags unchanged after contract module creation
+
+
+def test_runtime_capture_contract_modules_do_not_enable_runtime_capture_envelope() -> None:
+    complete_inputs_envelope = build_draft_replay_envelope(
+        ReplayInputBundle(**_complete_replay_inputs())
+    )
+    mapper_package = complete_inputs_envelope["mapper_package"]
+    assert complete_inputs_envelope["runtime_capture"] is False
+    assert complete_inputs_envelope["file_path_ingestion"] is False
+    assert complete_inputs_envelope["filesystem_writes"] is False
+    assert complete_inputs_envelope["evaluation_or_promotion"] is False
+    assert complete_inputs_envelope["broker_api_authority"] is False
+    assert mapper_package["out_of_scope"]["runtime_capture"] is True
+    assert mapper_package["out_of_scope"]["file_path_artifact_ingestion"] is True
+    assert mapper_package["out_of_scope"]["broker_live_api_work"] is True
+
+
+def test_runtime_capture_contract_modules_are_in_memory_only() -> None:
+    for mod in (source_path_ingestion, runtime_artifacts, runtime_capture):
+        mod_path = Path(mod.__file__)  # type: ignore[arg-type]
+        source = mod_path.read_text(encoding="utf-8")
+        for forbidden in ("import os", "import pathlib", "import subprocess",
+                          "import glob", "import shutil", "import requests"):
+            assert forbidden not in source, (
+                f"{mod_path.name} contains forbidden import: '{forbidden}'"
+            )
+        for forbidden_call in ("open(", ".read_bytes(", ".write_bytes(",
+                               ".exists(", ".read_text(", ".write_text("):
+            assert forbidden_call not in source, (
+                f"{mod_path.name} contains forbidden call: '{forbidden_call}'"
+            )
