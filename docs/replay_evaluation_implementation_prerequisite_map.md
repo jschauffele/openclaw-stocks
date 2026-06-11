@@ -538,7 +538,9 @@ This approval records the future-authorized path only. It does not approve:
 - runtime_capture.py, runtime_artifacts.py, or source_path_ingestion.py
   (all remain forbidden until a separate implementation gate)
 - source_references.py or source_paths.py
-  (future-gate modules; must be created before path-based capture is approved)
+  (both now exist and are test-guarded as of commit
+  c00b6567f8349b82e311d8b37abd9b7ebb7290bd; this does not approve runtime
+  capture, source path ingestion, or any downstream authority)
 - file_reader.py extension to VPS runtime artifact paths
   (validated for governed replay evidence reads only; cannot independently
   authorize VPS runtime artifact capture)
@@ -549,8 +551,11 @@ This approval records the future-authorized path only. It does not approve:
 ### Future-Approved VPS Artifact Path Families (Governance Only)
 
 The following artifact path families are recorded for future governance
-reference. No artifact in these families may be read until source-reference
-and source-path authority is source-controlled in a later gate:
+reference. No artifact in these families may be read until Gate A is open.
+Source-reference and source-path authority is now source-controlled
+(source_references.py, source_paths.py, verify_vocabulary_boundaries.py); the
+remaining Gate A prerequisites (filesystem/source-artifact authority grant and
+operator-approved VPS/runtime gate) are not yet recorded:
 
 - logs/<run_id>.jsonl — canonical JSONL event log per run
 - last_run_report.json — derived operational summary; matched to JSONL run_id
@@ -598,10 +603,28 @@ Runtime capture output, when later implemented, cannot create:
 Unit 12 (evaluation metric/attribution/experiment registry prerequisites)
 remains blocked until all of the following are complete:
 
-1. Source-reference and source-path authority modules (source_references.py,
-   source_paths.py) are created and validated.
+1. ~~Source-reference and source-path authority modules (source_references.py,
+   source_paths.py) are created and validated.~~
+   **COMPLETE as of commit c00b6567f8349b82e311d8b37abd9b7ebb7290bd.**
+   tools/replay/source_references.py, tools/replay/source_paths.py, and
+   tools/replay/verify_vocabulary_boundaries.py all exist and are
+   test-guarded. tests/test_vocabulary_boundary_verifier.py provides 16 tests
+   covering pass/fail paths and boundary vocabulary allowances.
+   verify_vocabulary_boundaries.py is the permanent source-controlled
+   deterministic verifier for source-reference/source-path vocabulary
+   boundaries; it uses AST parsing and fixed text checks and does not read
+   runtime artifacts, resolve paths, or perform runtime capture.
+   This completion does not authorize: runtime capture, runtime artifact reads,
+   source path ingestion, file path ingestion, package writing, package
+   persistence, complete replay package authority, finalized immutable
+   evidence, evaluation authority, promotion authority, broker/API authority,
+   execution permission, paper trading approval, or live trading authority.
 2. Runtime capture authority (runtime_capture.py, runtime_artifacts.py,
    source_path_ingestion.py) is implemented and validated under Gate A.
+   Gate A cannot open until two governance records are separately completed:
+   (a) filesystem/source-artifact authority grant recorded in source-controlled
+   docs; (b) operator-approved VPS/runtime gate recorded in source-controlled
+   docs. Neither is recorded yet.
 3. Package writer and package persistence authority (package_writer.py,
    package_persistence.py) is implemented and validated under Gate B.
 4. Complete replay package authority exists with actual on-disk packages
