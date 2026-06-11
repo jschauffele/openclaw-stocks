@@ -551,12 +551,11 @@ This approval records the future-authorized path only. It does not approve:
 ### Future-Approved VPS Artifact Path Families (Governance Only)
 
 The following artifact path families are recorded for future governance
-reference. No artifact in these families may be read until Gate A is fully
-open (both A1 and A2 recorded). Source-reference and source-path authority is
-now source-controlled (source_references.py, source_paths.py,
-verify_vocabulary_boundaries.py). The A1 filesystem/source-artifact authority
-grant is now recorded (see Gate A Record A1 section below). The A2
-operator-approved VPS/runtime gate remains missing:
+reference. No artifact in these families may be read until a subsequent
+file-reader authority extension code gate is opened after Gate A is complete.
+Gate A is now complete (both A1 and A2 recorded). Actual runtime artifact
+reads remain blocked until the file-reader authority extension code gate and
+any required VPS execution gate are separately opened:
 
 - logs/<run_id>.jsonl — canonical JSONL event log per run
 - last_run_report.json — derived operational summary; matched to JSONL run_id
@@ -622,14 +621,15 @@ remains blocked until all of the following are complete:
    execution permission, paper trading approval, or live trading authority.
 2. Runtime capture authority (runtime_capture.py, runtime_artifacts.py,
    source_path_ingestion.py) is implemented and validated under Gate A.
-   Gate A requires two governance records:
-   (a) filesystem/source-artifact authority grant — **RECORDED as A1** (see
-   Gate A Record A1 section below; recorded in this A1 docs-only governance
-   record);
-   (b) operator-approved VPS/runtime gate — **still missing (A2)**.
-   Gate A remains incomplete until A2 is separately operator-approved and
-   recorded. runtime_capture.py, runtime_artifacts.py, and
-   source_path_ingestion.py remain forbidden until Gate A is complete.
+   Gate A required two governance records:
+   (a) filesystem/source-artifact authority grant — **COMPLETE as A1** (see
+   Gate A Record A1 section below);
+   (b) operator-approved VPS/runtime gate — **COMPLETE as A2** (see Gate A
+   Record A2 section below).
+   **Gate A is now complete as a prerequisite authority record.** Unit 12
+   remains blocked. runtime_capture.py, runtime_artifacts.py, and
+   source_path_ingestion.py remain forbidden until separate in-memory contract
+   module gates are opened after Gate A.
 3. Package writer and package persistence authority (package_writer.py,
    package_persistence.py) is implemented and validated under Gate B.
 4. Complete replay package authority exists with actual on-disk packages
@@ -655,9 +655,9 @@ A2 is separately operator-approved and recorded.
 - Vocabulary boundary verifier: **COMPLETE**
   (tests/test_vocabulary_boundary_verifier.py, 16 tests)
 - A1 filesystem/source-artifact authority record: **COMPLETE** (this record)
-- A2 operator VPS/runtime gate: **MISSING** (not yet approved or recorded)
-- Gate A: **INCOMPLETE** (A2 required before Gate A is open)
-- Unit 12: **BLOCKED** (Gate A incomplete; Gates B, C, D not started)
+- A2 operator VPS/runtime gate: **COMPLETE** (see Gate A Record A2 below)
+- Gate A: **COMPLETE** (both A1 and A2 recorded)
+- Unit 12: **BLOCKED** (Gates B, C, D not started)
 
 ### A1 Approved VPS Artifact Root
 
@@ -725,20 +725,149 @@ A1 does not authorize:
 - Paper trading approval
 - Live trading authority
 
-### A2 Remaining Requirements
+### A2 Requirements — Now Satisfied
 
-A2 must be separately operator-approved and recorded before Gate A is
-complete. A2 must address:
+A2 has been recorded (see Gate A Record A2 section below). Gate A is complete.
 
-- VPS/runtime gate approval (operator-confirmed VPS state and readiness)
-- Runtime completion semantics (which JSONL event types constitute a
-  satisfied terminal completion rule)
-- Terminal completion rule source (how the terminal_completion_rule
-  `{required: True, satisfied: True}` contract is satisfied from JSONL)
-- run_id/path-read eligibility semantics (how the canonical_run_id is
-  derived from the JSONL filename for artifact path binding)
-- When runtime_capture.py, runtime_artifacts.py, and source_path_ingestion.py
-  may become eligible as in-memory contract modules
+## Gate A Record A2: Operator VPS/Runtime Semantics Authority Grant
+
+### A2 Status
+
+Recorded as a docs-only governance record on 2026-06-11. This is record A2
+of the two records required to open Gate A. With A1 and A2 both recorded,
+Gate A is complete as a prerequisite authority record. Gate A completion does
+not open Gates B, C, or D. Unit 12 remains blocked.
+
+### A2 Gate Prerequisite Chain Status
+
+- Source-reference/source-path vocabulary: **COMPLETE**
+- Vocabulary boundary verifier: **COMPLETE**
+- A1 filesystem/source-artifact authority record: **COMPLETE**
+- A2 operator VPS/runtime gate: **COMPLETE** (this record)
+- Gate A: **COMPLETE** (both A1 and A2 recorded)
+- Gate B (package writer/persistence): **NOT STARTED**
+- Gate C (complete replay package authority): **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED**
+- Unit 12: **BLOCKED** (Gates B, C, D not started)
+
+### A2 Terminal Event Binding Rule
+
+A terminal runtime event is defined as exactly one JSONL event where:
+
+- `event_type == "system"` AND
+- `stage == "completion"`
+
+This is a source-controlled runtime fact derived from `event_logger.py` and
+`main.py`. Every execution path in `main.py` converges on exactly one
+`log_event("system", "completion", <status>, {...})` call. No run can reach
+a second completion event in normal flow.
+
+Fail-closed rules for terminal events:
+
+- A run with zero terminal completion events must fail closed.
+- A run with duplicate terminal completion events must fail closed.
+- A run with malformed, ambiguous, mixed-run, stale, or non-aligned terminal
+  metadata must fail closed.
+- The terminal completion event `run_id` must match the JSONL filename stem.
+
+### A2 Completion-Status Eligibility Policy
+
+The following operator policy governs which completion statuses are
+capture-eligible:
+
+- `status == "ok"` — **capture-eligible**, subject to standard fail-closed
+  alignment guards. Represents paper order submitted or dry run completed.
+- `status == "blocked"` — **capture-eligible**, subject to standard
+  fail-closed alignment guards. Blocked completions represent normal
+  controlled runtime outcomes in paper trading operation (killswitch,
+  market session, duplicate, risk, reconciliation checks, etc.).
+- `status == "error"` — **not eligible** for governed runtime capture
+  packages, replay evaluation evidence, promotion evidence, or success
+  evidence. Error completions represent diagnostic terminal states. A later
+  explicit diagnostic authority gate may separately authorize error-run
+  capture; no such gate exists yet.
+
+All eligibility determinations remain subject to: canonical run_id alignment,
+terminal completion event presence, provenance, redaction status, and all
+other fail-closed guards defined in Gate A and the runtime capture authority
+contract.
+
+### A2 run_id Format and JSONL Path Binding
+
+The source-controlled run_id format (from `event_logger.generate_run_id()`):
+
+```
+run_YYYY-MM-DDTHH:MM:SSZ_XXXXXX
+```
+
+Where `XXXXXX` is the six-character lowercase hex suffix produced by
+`secrets.token_hex(3)`. Example shape: `run_2026-05-29T19:45:04Z_8b7033`.
+
+JSONL path binding rules:
+
+- The canonical JSONL path family is `logs/{run_id}.jsonl`.
+- The VPS artifact root (from A1) is `/opt/openclaw-stocks`.
+- The canonical VPS JSONL path is `/opt/openclaw-stocks/logs/{run_id}.jsonl`.
+- The JSONL filename stem must equal the canonical run_id.
+- Every event line in the JSONL must carry the same `run_id` field value.
+- The terminal completion event `run_id` field must match the JSONL filename
+  stem.
+- Mixed `run_id` values within a single JSONL file must fail closed.
+
+### A2 last_run_report.json Binding
+
+- `last_run_report.json` is eligible only if its `run_id` field matches the
+  canonical JSONL filename stem and the JSONL internal `run_id`.
+- `last_run_report.json` is not independently authoritative without
+  JSONL/run_id alignment.
+- A stale report file (run_id mismatch or absent) must fail closed.
+- A2 does not authorize `last_run_report.json` reads; reads remain blocked
+  until the file-reader authority extension code gate is opened.
+
+### A2 order_state.json Authority Boundary
+
+- `order_state.json` does not independently establish canonical run_id
+  authority unless a later governed capture or file-reader authority extension
+  explicitly binds it to a run.
+- `order_state.json` must not be treated as run-aligned promotion or
+  evaluation evidence from A2 alone.
+- A2 does not authorize `order_state.json` reads.
+
+### A2 In-Memory Module Eligibility Statement
+
+After Gate A is complete, the following modules may become eligible in later
+separate gates as local in-memory contract modules only, subject to each gate
+meeting its own prerequisites:
+
+- `tools/replay/runtime_capture.py`
+- `tools/replay/runtime_artifacts.py`
+- `tools/replay/source_path_ingestion.py`
+
+These modules are not approved for implementation in this gate. They remain
+forbidden until their respective in-memory contract module gates are opened.
+
+### A2 Non-Authorization Statement
+
+A2 does not authorize:
+
+- VPS commands or VPS runtime execution
+- Runtime capture execution
+- Runtime artifact reads or runtime log reads
+- Source path ingestion or arbitrary file path ingestion
+- Artifact discovery beyond existing metadata-only vocabulary
+- Artifact copying
+- Package creation, package directories, or filesystem-backed package
+  persistence
+- Immutable evidence creation
+- Storage or finalization implementation
+- Evaluation, attribution engine, or experiment registry implementation
+- Promotion workflow
+- Broker/API/TWS/Alpaca/IBKR behavior
+- Strategy, risk, or execution behavior changes
+- Config, credential, `.env`, systemd, scheduler, or deployment changes
+- Paper trading approval or live trading approval
+- Order submission, order cancellation, cleanup, flatten, or sell
+- Broker remediation
 
 ## Drift Risks
 
