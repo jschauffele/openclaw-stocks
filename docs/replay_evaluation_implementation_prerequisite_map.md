@@ -516,6 +516,102 @@ Non-authority boundaries (carried forward from Unit 12 map):
 - Evaluation output is not broker authority, execution permission, paper
   trading approval, or live trading authority.
 
+## Operator Approval Record: Runtime Capture Authority Path
+
+### Phase 2 VPS/Git Alignment Confirmation
+
+The operator confirmed Phase 2 VPS/Git alignment on 2026-06-10:
+
+- VPS repo: /opt/openclaw-stocks
+- VPS HEAD: 3ba1d52eeb3eb3291fe3c2477478b2ed0275365c
+- GitHub/main: 3ba1d52eeb3eb3291fe3c2477478b2ed0275365c
+- Phase 2 authority check result: PHASE2_VPS_AUTHORITY_CHECK_PASS
+
+This is a governance record only. It does not authorize runtime capture
+implementation, source path ingestion, artifact reads, or any downstream
+authority.
+
+### Governance Approval Scope
+
+This approval records the future-authorized path only. It does not approve:
+
+- runtime_capture.py, runtime_artifacts.py, or source_path_ingestion.py
+  (all remain forbidden until a separate implementation gate)
+- source_references.py or source_paths.py
+  (future-gate modules; must be created before path-based capture is approved)
+- file_reader.py extension to VPS runtime artifact paths
+  (validated for governed replay evidence reads only; cannot independently
+  authorize VPS runtime artifact capture)
+- any filesystem-backed package implementation, storage finalization,
+  immutability enforcement, evaluation, promotion, broker/API access,
+  execution permission, paper trading, or live trading authority
+
+### Future-Approved VPS Artifact Path Families (Governance Only)
+
+The following artifact path families are recorded for future governance
+reference. No artifact in these families may be read until source-reference
+and source-path authority is source-controlled in a later gate:
+
+- logs/<run_id>.jsonl — canonical JSONL event log per run
+- last_run_report.json — derived operational summary; matched to JSONL run_id
+- order_state.json — operational state evidence; requires explicit provenance
+  or explicit absent declaration
+- observations — only if later explicitly source-referenced and
+  run_id-governed; not approved without a separate observations gate
+- runtime visibility evidence — only if later explicitly source-referenced or
+  declared absent/not-applicable; not approved without a separate gate
+
+### Required Future Capture Artifact Rules
+
+Every artifact captured in any future runtime capture gate must have:
+
+- Canonical run_id alignment: artifact internal run_id must match the
+  canonical_run_id derived from the JSONL filename; mixed run_id fails closed.
+- Terminal completion evidence: the run must have a terminal completion event
+  before any artifact in that run is capture-eligible.
+- Source reference identity: each artifact must be bound to a known, governed
+  source reference name.
+- Source path identity: each artifact must be bound to an explicitly governed
+  source path; ungoverned path discovery is forbidden.
+- Provenance: explicit and recorded per artifact.
+- Redaction status: explicit and valid per artifact.
+- Fail-closed behavior for: stale artifact, missing artifact without
+  absent/not-applicable declaration, malformed artifact, mixed run_id,
+  unknown source reference, missing provenance, missing or invalid redaction
+  status, and sensitive data exposure.
+
+### Runtime Capture Non-Authority Boundaries
+
+Runtime capture output, when later implemented, cannot create:
+
+- Package completeness authority
+- Finalized immutable evidence
+- Evaluation authority
+- Promotion authority
+- Broker/API authority
+- Execution permission
+- Paper trading approval
+- Live trading authority
+
+### Unit 12 Remaining Blockers
+
+Unit 12 (evaluation metric/attribution/experiment registry prerequisites)
+remains blocked until all of the following are complete:
+
+1. Source-reference and source-path authority modules (source_references.py,
+   source_paths.py) are created and validated.
+2. Runtime capture authority (runtime_capture.py, runtime_artifacts.py,
+   source_path_ingestion.py) is implemented and validated under Gate A.
+3. Package writer and package persistence authority (package_writer.py,
+   package_persistence.py) is implemented and validated under Gate B.
+4. Complete replay package authority exists with actual on-disk packages
+   (Gate C).
+5. Finalized immutable evidence exists.
+6. Evaluation prerequisite governance is complete (Gate D).
+
+No gate in this chain may be skipped. This operator approval record does not
+advance the chain; it records the pre-conditions that must be met.
+
 ## Drift Risks
 
 Known drift risks to guard:
