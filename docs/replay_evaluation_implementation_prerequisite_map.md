@@ -551,11 +551,12 @@ This approval records the future-authorized path only. It does not approve:
 ### Future-Approved VPS Artifact Path Families (Governance Only)
 
 The following artifact path families are recorded for future governance
-reference. No artifact in these families may be read until Gate A is open.
-Source-reference and source-path authority is now source-controlled
-(source_references.py, source_paths.py, verify_vocabulary_boundaries.py); the
-remaining Gate A prerequisites (filesystem/source-artifact authority grant and
-operator-approved VPS/runtime gate) are not yet recorded:
+reference. No artifact in these families may be read until Gate A is fully
+open (both A1 and A2 recorded). Source-reference and source-path authority is
+now source-controlled (source_references.py, source_paths.py,
+verify_vocabulary_boundaries.py). The A1 filesystem/source-artifact authority
+grant is now recorded (see Gate A Record A1 section below). The A2
+operator-approved VPS/runtime gate remains missing:
 
 - logs/<run_id>.jsonl — canonical JSONL event log per run
 - last_run_report.json — derived operational summary; matched to JSONL run_id
@@ -621,10 +622,14 @@ remains blocked until all of the following are complete:
    execution permission, paper trading approval, or live trading authority.
 2. Runtime capture authority (runtime_capture.py, runtime_artifacts.py,
    source_path_ingestion.py) is implemented and validated under Gate A.
-   Gate A cannot open until two governance records are separately completed:
-   (a) filesystem/source-artifact authority grant recorded in source-controlled
-   docs; (b) operator-approved VPS/runtime gate recorded in source-controlled
-   docs. Neither is recorded yet.
+   Gate A requires two governance records:
+   (a) filesystem/source-artifact authority grant — **RECORDED as A1** (see
+   Gate A Record A1 section below; recorded in this A1 docs-only governance
+   record);
+   (b) operator-approved VPS/runtime gate — **still missing (A2)**.
+   Gate A remains incomplete until A2 is separately operator-approved and
+   recorded. runtime_capture.py, runtime_artifacts.py, and
+   source_path_ingestion.py remain forbidden until Gate A is complete.
 3. Package writer and package persistence authority (package_writer.py,
    package_persistence.py) is implemented and validated under Gate B.
 4. Complete replay package authority exists with actual on-disk packages
@@ -634,6 +639,106 @@ remains blocked until all of the following are complete:
 
 No gate in this chain may be skipped. This operator approval record does not
 advance the chain; it records the pre-conditions that must be met.
+
+## Gate A Record A1: Filesystem/Source-Artifact Authority Grant
+
+### A1 Status
+
+Recorded as a docs-only governance record on 2026-06-11. This is record A1
+of the two records required to open Gate A. Gate A remains incomplete until
+A2 is separately operator-approved and recorded.
+
+### A1 Gate Prerequisite Chain Status
+
+- Source-reference/source-path vocabulary: **COMPLETE**
+  (source_references.py, source_paths.py, verify_vocabulary_boundaries.py)
+- Vocabulary boundary verifier: **COMPLETE**
+  (tests/test_vocabulary_boundary_verifier.py, 16 tests)
+- A1 filesystem/source-artifact authority record: **COMPLETE** (this record)
+- A2 operator VPS/runtime gate: **MISSING** (not yet approved or recorded)
+- Gate A: **INCOMPLETE** (A2 required before Gate A is open)
+- Unit 12: **BLOCKED** (Gate A incomplete; Gates B, C, D not started)
+
+### A1 Approved VPS Artifact Root
+
+The approved VPS artifact root for governed runtime artifact reads is:
+
+```
+/opt/openclaw-stocks
+```
+
+This root applies only to the OpenClaw VPS at the path established in Phase 2.
+No other filesystem root is approved by this record.
+
+### A1 Approved Flag
+
+`allow_absolute_artifact_root: True` is approved only for governed VPS
+artifact paths under `/opt/openclaw-stocks`. It is not approved for arbitrary
+absolute paths, local Mac paths, or any path outside this root.
+
+### A1 Authorized Path Families
+
+The only A1-authorized path families are:
+
+- `logs/<run_id>.jsonl` — canonical JSONL event log per run
+- `last_run_report.json` — derived operational summary; matched to JSONL run_id
+- `order_state.json` — operational state evidence; requires explicit provenance
+  or explicit absent/not-applicable declaration
+
+The following path families remain not authorized by A1 and require a
+separate gate before they may be read:
+
+- observations — requires a separate observations gate
+- runtime visibility evidence — requires a separate gate
+
+### A1 Non-Authorization Statement
+
+A1 alone does not authorize actual VPS artifact reads. Actual governed VPS
+runtime artifact reads remain blocked until A2 is separately recorded and
+Gate A is complete.
+
+A1 alone does not authorize these modules to exist:
+
+- tools/replay/runtime_capture.py
+- tools/replay/runtime_artifacts.py
+- tools/replay/source_path_ingestion.py
+- tools/replay/runtime_artifact_file_reader.py
+- tools/replay/approved_file_reads.py
+- tools/replay/package_writer.py
+- tools/replay/package_persistence.py
+
+A1 does not authorize:
+
+- Runtime capture
+- Source path ingestion
+- Arbitrary file path ingestion
+- Artifact discovery beyond existing metadata-only vocabulary
+- Artifact copying
+- Package writing or package persistence
+- Complete replay package authority
+- Finalized immutable evidence
+- Evaluation authority
+- Promotion authority
+- Broker/API authority
+- Strategy/risk/execution behavior
+- Config/credential/systemd/deployment changes
+- Paper trading approval
+- Live trading authority
+
+### A2 Remaining Requirements
+
+A2 must be separately operator-approved and recorded before Gate A is
+complete. A2 must address:
+
+- VPS/runtime gate approval (operator-confirmed VPS state and readiness)
+- Runtime completion semantics (which JSONL event types constitute a
+  satisfied terminal completion rule)
+- Terminal completion rule source (how the terminal_completion_rule
+  `{required: True, satisfied: True}` contract is satisfied from JSONL)
+- run_id/path-read eligibility semantics (how the canonical_run_id is
+  derived from the JSONL filename for artifact path binding)
+- When runtime_capture.py, runtime_artifacts.py, and source_path_ingestion.py
+  may become eligible as in-memory contract modules
 
 ## Drift Risks
 
