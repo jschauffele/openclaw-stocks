@@ -13830,3 +13830,544 @@ def test_package_persistence_all_known_lifecycle_states_accepted() -> None:
         result = package_persistence.build_package_persistence_result(request)
         assert result["lifecycle_status"] == state
         assert result["actual_filesystem_writes"] is False
+
+
+# ---------------------------------------------------------------------------
+# Complete package authority (Gate C local mechanics) implementation tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.complete_package_authority as complete_package_authority
+
+_CPA_RUN_ID = "run_unit11"
+_CPA_WRITTEN_BYTES = b'{"canonical_run_id":"run_unit11"}'
+
+
+def _cpa_request_kwargs(tmp_path: Path) -> dict:
+    content_hash = hashlib.sha256(_CPA_WRITTEN_BYTES).hexdigest()
+    source_artifact_authority_result = (
+        source_artifacts.validate_source_artifact_authority(
+            _source_artifact_authority_input()
+        )
+    )
+    runtime_artifact_discovery_result = (
+        runtime_artifact_discovery.validate_runtime_artifact_discovery(
+            _runtime_artifact_discovery_input(
+                source_artifact_authority_result=source_artifact_authority_result
+            )
+        )
+    )
+    spi_input = {
+        "canonical_run_id": _CPA_RUN_ID,
+        "source_reference": "event_jsonl",
+        "path_family": KNOWN_SOURCE_PATH_FAMILIES[0],
+        "path_value": f"logs/{_CPA_RUN_ID}.jsonl",
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "approved": True,
+    }
+    assert source_path_ingestion.validate_source_path_ingestion(spi_input) == []
+    source_path_ingestion_result = {**spi_input, "failures": ()}
+    runtime_artifact_metadata = {
+        "canonical_run_id": _CPA_RUN_ID,
+        "artifact_type": runtime_artifacts.JSONL_EVENT_STREAM,
+        "status": runtime_artifacts.RUNTIME_ARTIFACT_ELIGIBLE,
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+    }
+    approved_file_read_result = file_reader.read_approved_replay_file(
+        _file_read_request(tmp_path)
+    )
+    package_layout_result = {
+        "canonical_run_id": _CPA_RUN_ID,
+        "package_id": f"package_{_CPA_RUN_ID}",
+        "layout_status": "layout_declared",
+        "layout_version": package_layout.PACKAGE_LAYOUT_VERSION,
+    }
+    package_creation_result = package_creation.build_draft_package(
+        _draft_package_creation_input()
+    )
+    deterministic_serialization_result = {
+        "canonical_run_id": _CPA_RUN_ID,
+        "serializer": "canonical_json",
+        "deterministic": True,
+        "canonical_bytes_present": True,
+    }
+    hash_record = hash_computation.build_package_hash(
+        _CPA_WRITTEN_BYTES,
+        _hash_metadata(
+            canonical_run_id=_CPA_RUN_ID,
+            run_ids=(_CPA_RUN_ID,),
+            package_scope="written_package_artifact",
+            section_scope=None,
+        ),
+    )
+    integrity_result = integrity_validation.validate_integrity(
+        hash_record, hash_record
+    )
+    package_writer_result = package_writer.write_package_artifact(
+        _pw_filesystem_writer_input(tmp_path)
+    )
+    package_persistence_result = package_persistence.build_package_persistence_result(
+        _pp_base_request()
+    )
+    storage_finalization_result = storage_implementation.build_finalized_storage_record(
+        _storage_writer_metadata_input(lifecycle_status="finalized")
+    )
+    written_artifact_evidence = {
+        "canonical_run_id": _CPA_RUN_ID,
+        "artifact_relative_path": f"{_CPA_RUN_ID}/manifest.json",
+        "written_bytes": _CPA_WRITTEN_BYTES,
+        "content_hash": content_hash,
+    }
+    return {
+        "canonical_run_id": _CPA_RUN_ID,
+        "terminal_completion_status": "blocked",
+        "terminal_completion_eligible": True,
+        "runtime_artifact_discovery_result": runtime_artifact_discovery_result,
+        "source_artifact_authority_result": source_artifact_authority_result,
+        "source_path_ingestion_result": source_path_ingestion_result,
+        "runtime_artifact_metadata": runtime_artifact_metadata,
+        "approved_file_read_result": approved_file_read_result,
+        "package_layout_result": package_layout_result,
+        "manifest": package_creation_result["manifest"],
+        "deterministic_serialization_result": deterministic_serialization_result,
+        "hash_record": hash_record,
+        "integrity_validation_result": integrity_result,
+        "redaction_status": "not_required",
+        "provenance": "recorded",
+        "package_writer_result": package_writer_result,
+        "package_persistence_result": package_persistence_result,
+        "storage_finalization_result": storage_finalization_result,
+        "written_artifact_evidence": written_artifact_evidence,
+        "immutability_marker": storage_implementation.IMMUTABILITY_MARKER,
+        "optional_artifact_declarations": {
+            "order_state": "absent",
+            "observations": "not_applicable",
+            "runtime_visibility": "not_applicable",
+        },
+    }
+
+
+def _cpa_result_from(kwargs: dict, **overrides: object):
+    merged = {**kwargs, **overrides}
+    request = complete_package_authority.CompletePackageAuthorityRequest(**merged)
+    return complete_package_authority.build_complete_package_authority_result(request)
+
+
+def _cpa_result(tmp_path: Path, **overrides: object):
+    return _cpa_result_from(_cpa_request_kwargs(tmp_path), **overrides)
+
+
+# --- complete_package_authority module existence and boundary ---
+
+
+def test_complete_package_authority_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "complete_package_authority.py"
+    )
+    assert module_path.exists()
+
+
+def test_complete_package_authority_boundary_contains_local_only_markers() -> None:
+    boundary = complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_BOUNDARY
+    assert "local_complete_package_authority_mechanics_only" in boundary
+    assert "tmp_path_tests_do_not_satisfy_production_gate_c" in boundary
+    assert complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_LOCAL_TEST_ONLY
+    assert (
+        complete_package_authority.PRODUCTION_GATE_C_COMPLETION_REQUIRES_VPS_EXECUTION_GATE
+    )
+
+
+def test_complete_package_authority_boundary_blocks_vps_runtime_capture_gate_d_broker_trading() -> None:
+    boundary = complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_BOUNDARY
+    assert "no_real_vps_package_writes" in boundary
+    assert "no_real_vps_runtime_artifact_reads" in boundary
+    assert "no_runtime_capture_execution" in boundary
+    assert "no_order_state_binding" in boundary
+    assert "no_gate_d_authority" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_strategy_risk_execution_authority" in boundary
+    assert "no_paper_trading_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_complete_package_authority_does_not_create_guarded_package_creator_modules() -> None:
+    replay_dir = Path(__file__).resolve().parents[1] / "tools" / "replay"
+    assert not (replay_dir / "package_creator.py").exists()
+    assert not (replay_dir / "manifest_writer.py").exists()
+    assert not (replay_dir / "manifest_generator.py").exists()
+
+
+def test_complete_package_authority_constants_match_package_writer() -> None:
+    assert complete_package_authority.GOVERNED_PACKAGE_ROOT_LABEL == (
+        package_writer.GOVERNED_PACKAGE_ROOT_LABEL
+    )
+    assert complete_package_authority.APPROVED_VPS_PACKAGE_ROOT_PATH == (
+        package_writer.APPROVED_VPS_PACKAGE_ROOT_PATH
+    )
+
+
+def test_complete_package_authority_fail_closed_conditions_recorded() -> None:
+    conds = complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_FAIL_CLOSED_CONDITIONS
+    assert "missing_canonical_run_id" in conds
+    assert "mixed_run_id" in conds
+    assert "error_terminal_completion_status" in conds
+    assert "content_hash_mismatch" in conds
+    assert "order_state_binding_attempt" in conds
+    assert "production_gate_c_claimed_from_local_lane" in conds
+    assert len(complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_PREREQUISITES) > 0
+
+
+def test_complete_package_authority_module_is_governed_only() -> None:
+    module_path = Path(complete_package_authority.__file__)  # type: ignore[arg-type]
+    source = module_path.read_text(encoding="utf-8")
+    for forbidden in ("import os", "import pathlib", "import glob",
+                      "import shutil", "import subprocess", "import requests"):
+        assert forbidden not in source, (
+            f"complete_package_authority.py contains forbidden import: '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".write_text(", ".write_bytes(", "Path("):
+        assert forbidden_call not in source, (
+            f"complete_package_authority.py contains forbidden call: '{forbidden_call}'"
+        )
+
+
+# --- complete_package_authority positive tmp_path mechanics ---
+
+
+def test_complete_package_authority_accepts_valid_tmp_path_mechanics(
+    tmp_path: Path,
+) -> None:
+    result = _cpa_result(tmp_path)
+    assert result.result_type == (
+        complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_RESULT
+    )
+    assert result.complete_package_authority is True
+    assert result.local_mechanics_only == (
+        complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_LOCAL_TEST_ONLY
+    )
+    assert result.production_gate_c_complete is False
+    assert result.vps_execution_gate_required is True
+    assert result.real_vps_package_writes is False
+    assert result.real_vps_runtime_artifact_reads is False
+    assert result.runtime_capture_execution is False
+    assert result.order_state_binding is False
+    assert result.gate_d_authority is False
+    assert result.evaluation_or_promotion is False
+    assert result.broker_api_authority is False
+    assert result.strategy_risk_execution_authority is False
+    assert result.paper_trading_authority is False
+    assert result.live_trading_authority is False
+    assert result.canonical_run_id == _CPA_RUN_ID
+    assert result.content_hash == hashlib.sha256(_CPA_WRITTEN_BYTES).hexdigest()
+    assert result.storage_lifecycle_status == "finalized"
+
+
+def test_complete_package_authority_section_hashes_verified(tmp_path: Path) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    section_bytes = b'{"section":"package_identity"}'
+    evidence = {
+        **kwargs["written_artifact_evidence"],
+        "section_byte_evidence": {
+            "package_identity": {
+                "section_bytes": section_bytes,
+                "digest": hashlib.sha256(section_bytes).hexdigest(),
+            },
+        },
+    }
+    result = _cpa_result_from(kwargs, written_artifact_evidence=evidence)
+    assert result.complete_package_authority is True
+    assert result.production_gate_c_complete is False
+
+
+# --- complete_package_authority fail-closed behavior ---
+
+
+def test_complete_package_authority_missing_run_id_fails(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="canonical_run_id"):
+        _cpa_result(tmp_path, canonical_run_id="")
+
+
+def test_complete_package_authority_mixed_run_id_fails(tmp_path: Path) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    bad_manifest = {**kwargs["manifest"], "canonical_run_id": "run_OTHER"}
+    with pytest.raises(ValueError, match="mixed run_id"):
+        _cpa_result_from(kwargs, manifest=bad_manifest)
+
+
+def test_complete_package_authority_ineligible_terminal_completion_fails(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="not eligible"):
+        _cpa_result(tmp_path, terminal_completion_eligible=False)
+
+
+def test_complete_package_authority_error_terminal_status_fails(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="diagnostic only"):
+        _cpa_result(tmp_path, terminal_completion_status="error")
+
+
+def test_complete_package_authority_unknown_terminal_status_fails(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="unknown terminal completion"):
+        _cpa_result(tmp_path, terminal_completion_status="mystery")
+
+
+def test_complete_package_authority_missing_inputs_fail(tmp_path: Path) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    for field_name in (
+        "runtime_artifact_discovery_result",
+        "source_artifact_authority_result",
+        "source_path_ingestion_result",
+        "runtime_artifact_metadata",
+        "approved_file_read_result",
+        "package_layout_result",
+        "manifest",
+        "deterministic_serialization_result",
+        "hash_record",
+        "integrity_validation_result",
+        "package_writer_result",
+        "package_persistence_result",
+        "storage_finalization_result",
+        "written_artifact_evidence",
+    ):
+        with pytest.raises(ValueError, match="required"):
+            _cpa_result_from(kwargs, **{field_name: {}})
+
+
+def test_complete_package_authority_invalid_redaction_fails(tmp_path: Path) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="redaction"):
+        _cpa_result_from(kwargs, redaction_status="bogus")
+    with pytest.raises(ValueError, match="redaction"):
+        _cpa_result_from(kwargs, redaction_status="")
+
+
+def test_complete_package_authority_sensitive_data_fails(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="sensitive data"):
+        _cpa_result(tmp_path, sensitive_data_status="pii")
+
+
+def test_complete_package_authority_missing_provenance_fails(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="provenance"):
+        _cpa_result(tmp_path, provenance="")
+
+
+def test_complete_package_authority_writer_not_performed_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    bad_writer = {**kwargs["package_writer_result"], "write_performed": False}
+    with pytest.raises(ValueError, match="performed write"):
+        _cpa_result_from(kwargs, package_writer_result=bad_writer)
+
+
+def test_complete_package_authority_writer_downstream_authority_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    for authority_key in (
+        "runtime_capture",
+        "evaluation_or_promotion",
+        "broker_api_authority",
+        "live_trading_authority",
+    ):
+        bad_writer = {**kwargs["package_writer_result"], authority_key: True}
+        with pytest.raises(ValueError, match="downstream authority"):
+            _cpa_result_from(kwargs, package_writer_result=bad_writer)
+
+
+def test_complete_package_authority_persistence_actual_writes_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    bad_persistence = {
+        **kwargs["package_persistence_result"],
+        "actual_filesystem_writes": True,
+    }
+    with pytest.raises(ValueError, match="metadata-only"):
+        _cpa_result_from(kwargs, package_persistence_result=bad_persistence)
+
+
+def test_complete_package_authority_persistence_downstream_authority_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    bad_persistence = {
+        **kwargs["package_persistence_result"],
+        "evaluation_or_promotion": True,
+    }
+    with pytest.raises(ValueError, match="downstream authority"):
+        _cpa_result_from(kwargs, package_persistence_result=bad_persistence)
+
+
+def test_complete_package_authority_non_finalized_lifecycle_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    bad_finalization = {
+        **kwargs["storage_finalization_result"],
+        "lifecycle_status": "draft",
+    }
+    with pytest.raises(ValueError, match="finalized lifecycle"):
+        _cpa_result_from(kwargs, storage_finalization_result=bad_finalization)
+
+
+def test_complete_package_authority_missing_immutability_marker_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="immutability marker"):
+        _cpa_result_from(kwargs, immutability_marker="")
+    bad_finalization = {
+        **kwargs["storage_finalization_result"],
+        "immutability_marker": "",
+    }
+    with pytest.raises(ValueError, match="immutability marker"):
+        _cpa_result_from(kwargs, storage_finalization_result=bad_finalization)
+
+
+def test_complete_package_authority_missing_no_overwrite_evidence_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    bad_finalization = {
+        **kwargs["storage_finalization_result"],
+        "no_overwrite_rule": "",
+    }
+    with pytest.raises(ValueError, match="no-overwrite"):
+        _cpa_result_from(kwargs, storage_finalization_result=bad_finalization)
+    bad_writer = {**kwargs["package_writer_result"], "no_overwrite": False}
+    with pytest.raises(ValueError, match="no-overwrite"):
+        _cpa_result_from(kwargs, package_writer_result=bad_writer)
+
+
+def test_complete_package_authority_missing_written_bytes_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    evidence = dict(kwargs["written_artifact_evidence"])
+    evidence.pop("written_bytes")
+    with pytest.raises(ValueError, match="written bytes"):
+        _cpa_result_from(kwargs, written_artifact_evidence=evidence)
+
+
+def test_complete_package_authority_wrong_content_hash_fails(tmp_path: Path) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    evidence = {
+        **kwargs["written_artifact_evidence"],
+        "content_hash": "deadbeef" * 8,
+    }
+    with pytest.raises(ValueError, match="content hash mismatch"):
+        _cpa_result_from(kwargs, written_artifact_evidence=evidence)
+
+
+def test_complete_package_authority_wrong_section_hash_fails(tmp_path: Path) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    evidence = {
+        **kwargs["written_artifact_evidence"],
+        "section_byte_evidence": {
+            "package_identity": {
+                "section_bytes": b'{"section":"package_identity"}',
+                "digest": "deadbeef" * 8,
+            },
+        },
+    }
+    with pytest.raises(ValueError, match="section hash mismatch"):
+        _cpa_result_from(kwargs, written_artifact_evidence=evidence)
+
+
+def test_complete_package_authority_stale_malformed_ambiguous_fail(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    for flag, message in (
+        ("stale", "stale"),
+        ("malformed", "malformed"),
+        ("ambiguous", "ambiguous"),
+    ):
+        evidence = {**kwargs["written_artifact_evidence"], flag: True}
+        with pytest.raises(ValueError, match=message):
+            _cpa_result_from(kwargs, written_artifact_evidence=evidence)
+
+
+def test_complete_package_authority_order_state_binding_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _cpa_request_kwargs(tmp_path)
+    evidence = {
+        **kwargs["written_artifact_evidence"],
+        "artifact_relative_path": f"{_CPA_RUN_ID}/order_state.json",
+    }
+    with pytest.raises(ValueError, match="later explicit binding gate"):
+        _cpa_result_from(kwargs, written_artifact_evidence=evidence)
+    with pytest.raises(ValueError, match="later explicit binding gate"):
+        _cpa_result_from(
+            kwargs,
+            optional_artifact_declarations={"order_state": "bound"},
+        )
+
+
+def test_complete_package_authority_invalid_optional_declaration_fails(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="invalid optional artifact declaration"):
+        _cpa_result(
+            tmp_path,
+            optional_artifact_declarations={"observations": "present"},
+        )
+
+
+def test_complete_package_authority_production_gate_c_claim_fails(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="vps execution gate"):
+        _cpa_result(tmp_path, production_gate_c_claimed=True)
+
+
+# --- complete_package_authority boundary preservation ---
+
+
+def test_complete_package_authority_gate_c_remains_production_incomplete() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate C (complete replay package authority): **INCOMPLETE**" in map_text
+    assert "do not satisfy production Gate C" in map_text
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+
+
+def test_complete_package_authority_preserves_package_completeness_boundary() -> None:
+    assert package_completeness.COMPLETE_REPLAY_PACKAGE_AUTHORITY == (
+        "complete_replay_package_authority_metadata_only"
+    )
+    boundary = package_completeness.PACKAGE_COMPLETENESS_AUTHORITY_BOUNDARY
+    assert "in_memory_only" in boundary
+    assert "no_actual_filesystem_reads" in boundary
+    assert "no_actual_filesystem_writes" in boundary
+
+
+def test_complete_package_authority_no_repo_root_replay_packages() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    assert not (repo_root / "replay_packages").exists()
+
+
+def test_complete_package_authority_never_claims_production_authority(
+    tmp_path: Path,
+) -> None:
+    result = _cpa_result(tmp_path)
+    assert result.production_gate_c_complete is False
+    assert result.vps_execution_gate_required is True
+    assert result.approved_vps_package_root_path == (
+        "/opt/openclaw-stocks/replay_packages"
+    )
+    assert result.governed_package_root_label == "replay_packages"
+    assert result.authority_boundary == (
+        complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_BOUNDARY
+    )
