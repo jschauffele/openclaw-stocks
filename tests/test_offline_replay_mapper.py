@@ -15427,13 +15427,16 @@ def test_vps_writer_authority_requires_vps_mode_for_governed_root(
 ) -> None:
     # a fully valid writer request that points storage_root_path at the governed
     # VPS root is rejected in default tmp_path_test mode before any write occurs
+    before = _governed_package_root_snapshot()
     request = _pw_filesystem_writer_input(tmp_path)
     request["storage_root_path"] = "/opt/openclaw-stocks/replay_packages"
     request["approved_storage_root_paths"] = ("/opt/openclaw-stocks/replay_packages",)
     request["writer_authority_mode"] = "tmp_path_test"
     with pytest.raises(ValueError, match="must not target the governed VPS root"):
         filesystem_writer.write_replay_package_artifact(request)
-    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+    # the rejected write must not have created or mutated the governed VPS root
+    # (which may legitimately exist on the production VPS after Gate C evidence)
+    _assert_no_unsanctioned_replay_packages(before, selected_run_id="run_unit11")
 
 
 def test_vps_writer_authority_rejects_wrong_package_root() -> None:
@@ -15532,9 +15535,11 @@ def test_vps_writer_tmp_path_mechanics_unchanged(tmp_path: Path) -> None:
 
 
 def test_vps_writer_authority_does_not_touch_opt() -> None:
-    # exercising the pure validator must never create or read /opt
+    # exercising the pure validator must never create or mutate the governed VPS
+    # package root (which may already hold reviewed Gate C evidence on the VPS)
+    before = _governed_package_root_snapshot()
     _vps_writer_authority()
-    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+    _assert_no_unsanctioned_replay_packages(before, selected_run_id=_WA_RUN_ID)
 
 
 def test_vps_writer_orchestrator_production_uses_vps_writer_mode() -> None:
@@ -15609,6 +15614,7 @@ def test_vps_cli_authorized_passes_governed_request_and_authorization(
     monkeypatch, capsys
 ) -> None:
     captured: dict = {}
+    before = _governed_package_root_snapshot()
 
     def _fake_execute(request, *, authorized_vps_execution=False, vps_adapter=None):
         captured["request"] = request
@@ -15644,7 +15650,9 @@ def test_vps_cli_authorized_passes_governed_request_and_authorization(
     assert "not authorized in this lane" not in out
     # a machine-readable evidence report is emitted
     assert '"run_id"' in out
-    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+    # the monkeypatched CLI path performed no real write: execute was replaced by
+    # the fake (captured above) and the governed VPS root is unchanged
+    _assert_no_unsanctioned_replay_packages(before, selected_run_id=_VPSCLI_RUN_ID)
 
 
 def test_vps_cli_authorized_fail_closed_returns_nonzero(monkeypatch, capsys) -> None:
