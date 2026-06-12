@@ -16420,3 +16420,320 @@ def test_experiment_registry_gate_d_unit12_status_preserved() -> None:
         "Gate D Record D4: Experiment Identifier And Registry Authority Unit"
         in map_text
     )
+
+
+# ---------------------------------------------------------------------------
+# Gate D package-set inclusion/exclusion rules unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.package_set_governance as package_set_governance
+
+
+def _valid_package_set_record(**overrides: object) -> dict:
+    record = {
+        "package_set_governance_version": (
+            package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION
+        ),
+        "inclusion_rules": (
+            package_set_governance.INCLUDE_FINALIZED_IMMUTABLE,
+            package_set_governance.INCLUDE_HASH_VERIFIED,
+        ),
+        "exclusion_rules": (
+            package_set_governance.EXCLUDE_MUTABLE,
+            package_set_governance.EXCLUDE_STALE,
+        ),
+        "included_package_ids": ("run_a", "run_b"),
+        "excluded_package_ids": ("run_z",),
+        "package_references": (
+            {"package_id": "run_a", "immutable": True, "finalized": True},
+        ),
+    }
+    record.update(overrides)
+    return record
+
+
+def test_package_set_governance_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "package_set_governance.py"
+    )
+    assert module_path.exists()
+
+
+def test_package_set_governance_version_deterministic_and_non_empty() -> None:
+    version = package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION
+    assert isinstance(version, str) and version
+    assert version == package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION
+    assert package_set_governance.SUPPORTED_PACKAGE_SET_GOVERNANCE_VERSIONS == (
+        version,
+    )
+
+
+def test_package_set_governance_known_rules_unique_and_disjoint() -> None:
+    incl = package_set_governance.KNOWN_INCLUSION_RULES
+    excl = package_set_governance.KNOWN_EXCLUSION_RULES
+    assert incl and excl
+    assert len(set(incl)) == len(incl)
+    assert len(set(excl)) == len(excl)
+    assert not (set(incl) & set(excl))
+    for rule in incl:
+        assert package_set_governance.is_known_inclusion_rule(rule)
+        assert package_set_governance.is_known_package_set_rule(rule)
+    for rule in excl:
+        assert package_set_governance.is_known_exclusion_rule(rule)
+    assert not package_set_governance.is_known_inclusion_rule("not_a_rule")
+    assert not package_set_governance.is_known_exclusion_rule(123)
+
+
+def test_package_set_governance_valid_record_validates() -> None:
+    result = package_set_governance.validate_package_set_governance_record(
+        _valid_package_set_record()
+    )
+    assert result["result_type"] == (
+        package_set_governance.PACKAGE_SET_GOVERNANCE_RESULT
+    )
+    assert package_set_governance.INCLUDE_FINALIZED_IMMUTABLE in result[
+        "rule_identifiers"
+    ]
+    assert package_set_governance.EXCLUDE_MUTABLE in result["rule_identifiers"]
+
+
+def test_package_set_governance_valid_rule_record_validates() -> None:
+    result = package_set_governance.validate_package_set_rule_record(
+        {
+            "package_set_governance_version": (
+                package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION
+            ),
+            "rule_kind": package_set_governance.RULE_KIND_INCLUSION,
+            "rule_identifier": package_set_governance.INCLUDE_HASH_VERIFIED,
+        }
+    )
+    assert result["rule_identifiers"] == (
+        package_set_governance.INCLUDE_HASH_VERIFIED,
+    )
+
+
+def test_package_set_governance_missing_or_unsupported_version_fails_closed() -> None:
+    rec = _valid_package_set_record()
+    del rec["package_set_governance_version"]
+    with pytest.raises(ValueError, match="missing package set governance version"):
+        package_set_governance.validate_package_set_governance_record(rec)
+    with pytest.raises(ValueError, match="unsupported package set governance version"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(package_set_governance_version="9.9-x")
+        )
+
+
+def test_package_set_governance_unknown_rule_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unknown rule identifier"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(inclusion_rules=("bogus_rule",))
+        )
+
+
+def test_package_set_governance_duplicate_rule_fails_closed() -> None:
+    with pytest.raises(ValueError, match="duplicate rule identifier"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(
+                inclusion_rules=(
+                    package_set_governance.INCLUDE_HASH_VERIFIED,
+                    package_set_governance.INCLUDE_HASH_VERIFIED,
+                )
+            )
+        )
+
+
+def test_package_set_governance_empty_rule_sets_fail_closed() -> None:
+    with pytest.raises(ValueError, match="empty inclusion rule set"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(inclusion_rules=())
+        )
+    with pytest.raises(ValueError, match="empty exclusion rule set"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(exclusion_rules=())
+        )
+
+
+def test_package_set_governance_conflicting_include_exclude_fails_closed() -> None:
+    with pytest.raises(ValueError, match="conflicting include/exclude rules"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(
+                included_package_ids=("run_a",), excluded_package_ids=("run_a",)
+            )
+        )
+
+
+def test_package_set_governance_missing_immutable_marker_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing immutable evidence marker"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(
+                package_references=({"package_id": "x", "finalized": True},)
+            )
+        )
+
+
+def test_package_set_governance_mutable_marker_fails_closed() -> None:
+    with pytest.raises(ValueError, match="mutable package marker"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(
+                package_references=(
+                    {
+                        "package_id": "x",
+                        "immutable": True,
+                        "finalized": True,
+                        "mutable": True,
+                    },
+                )
+            )
+        )
+
+
+def test_package_set_governance_missing_finalization_marker_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing finalization marker"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(
+                package_references=({"package_id": "x", "immutable": True},)
+            )
+        )
+
+
+def test_package_set_governance_empty_package_references_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty package reference set"):
+        package_set_governance.validate_package_set_governance_record(
+            _valid_package_set_record(package_references=())
+        )
+
+
+def test_package_set_governance_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        package_set_governance.validate_package_set_governance_record("not_a_mapping")
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        package_set_governance.validate_package_set_rule_record("not_a_mapping")
+
+
+def test_package_set_governance_rule_kind_mismatch_fails_closed() -> None:
+    with pytest.raises(ValueError, match="rule kind mismatch"):
+        package_set_governance.validate_package_set_rule_record(
+            {
+                "package_set_governance_version": (
+                    package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION
+                ),
+                "rule_kind": package_set_governance.RULE_KIND_INCLUSION,
+                "rule_identifier": package_set_governance.EXCLUDE_MUTABLE,
+            }
+        )
+    with pytest.raises(ValueError, match="unknown rule kind"):
+        package_set_governance.validate_package_set_rule_record(
+            {
+                "package_set_governance_version": (
+                    package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION
+                ),
+                "rule_kind": "bogus_kind",
+                "rule_identifier": package_set_governance.INCLUDE_HASH_VERIFIED,
+            }
+        )
+
+
+def test_package_set_governance_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "package_reads",
+        "package_discovery",
+        "package_selection_execution",
+        "evaluation_execution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            package_set_governance.validate_package_set_governance_record(
+                _valid_package_set_record(**{field: True})
+            )
+
+
+def test_package_set_governance_output_carries_no_downstream_authority() -> None:
+    result = package_set_governance.validate_package_set_governance_record(
+        _valid_package_set_record()
+    )
+    for key in (
+        "package_reads",
+        "package_discovery",
+        "package_selection_execution",
+        "filesystem_reads",
+        "scoring",
+        "attribution_execution",
+        "experiment_execution",
+        "evaluation_execution",
+        "reproducibility_engine",
+        "baseline_vs_candidate_comparison",
+        "as_of_feature_logic",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = package_set_governance.PACKAGE_SET_GOVERNANCE_AUTHORITY_BOUNDARY
+    assert "no_package_reads" in boundary
+    assert "no_package_selection_execution" in boundary
+    assert "finalized_immutable_evidence_only" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_package_set_governance_module_is_pure_no_filesystem_or_selection() -> None:
+    source = Path(package_set_governance.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"package_set_governance.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"package_set_governance.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_package_set_governance_fail_closed_conditions_recorded() -> None:
+    conds = package_set_governance.PACKAGE_SET_GOVERNANCE_FAIL_CLOSED_CONDITIONS
+    assert "unsupported_package_set_governance_version" in conds
+    assert "unknown_rule_identifier" in conds
+    assert "conflicting_include_exclude" in conds
+    assert "missing_immutable_evidence_marker" in conds
+    assert "mutable_package_marker" in conds
+    assert "missing_finalization_marker" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_package_set_governance_prior_units_unchanged() -> None:
+    assert metric_vocabulary.METRIC_VOCABULARY_VERSION == "0.1-metric-vocab"
+    assert attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION == (
+        "0.1-attribution-vocab"
+    )
+    assert experiment_registry.EXPERIMENT_REGISTRY_VERSION == "0.1-experiment-registry"
+    assert experiment_registry.EXPERIMENT_REGISTRY_AUTHORITY
+
+
+def test_package_set_governance_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert (
+        "Gate D Record D5: Package-Set Inclusion/Exclusion Rules Unit" in map_text
+    )
