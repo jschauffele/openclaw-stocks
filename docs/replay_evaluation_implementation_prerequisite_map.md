@@ -1578,6 +1578,113 @@ the VPS or anywhere else. This completion record commits no package artifact, no
 package directory, and no manifest bytes; it records only the reviewed evidence
 metadata above. No replay package was created locally for this record.
 
+## Gate D Record D1: Evaluation Prerequisite Governance Contract
+
+### D1 Status
+
+Recorded as a docs-only governance record on 2026-06-12. This is the evaluation
+prerequisite governance contract that opens Gate D **only at the governance
+level**. It is the source-controlled basis required by the
+`### Gate D: Evaluation Prerequisite Governance Gate` section above and by the
+`## Evaluation and Promotion Authority Contract` in
+`docs/evaluation_infrastructure_architecture.md`.
+
+D1 is **COMPLETE** as a docs-only prerequisite governance contract record only.
+D1 does not start Gate D implementation, does not create any evaluation,
+metric, attribution, experiment-registry, scoring, or promotion code, and does
+not open Unit 12.
+
+Gate D implementation remains **NOT STARTED**. Unit 12 remains **BLOCKED**.
+This record is append-only governance evidence; it does not rewrite the prior
+chain-status history recorded in the A2, B1, C1, C2, and Gate C completion
+records.
+
+### D1 Prerequisite Chain Status
+
+- Gate A (runtime capture authority — A1 and A2): **COMPLETE**
+- Gate B (package writer/persistence — B1 plus implementation): **COMPLETE**
+- C1 (complete replay package authority governance record): **COMPLETE**
+- C2 (VPS execution authority contract): **COMPLETE**
+- Gate C (complete replay package authority — production evidence path):
+  **COMPLETE**
+- D1 (evaluation prerequisite governance contract): **COMPLETE** (this record,
+  governance contract only)
+- Gate D (evaluation prerequisite governance): **NOT STARTED**
+- Unit 12: **BLOCKED**
+
+### D1 Evidence Basis
+
+Gate C completion produced one finalized, immutable, governed on-disk replay
+package (recorded in the Gate C Completion Record). This is a **thin** immutable
+evidence set:
+
+- It is sufficient for evaluation prerequisite **governance planning** (defining
+  vocabulary, versioning, and fail-closed rules), which does not consume or
+  score packages.
+- It is **insufficient for real scoring**: the single package is a `blocked`,
+  market-closed run with no strategy decision or trade to evaluate and no
+  baseline-versus-candidate pair. Authoritative evaluation execution must wait
+  for a richer finalized immutable evidence set across real decision runs,
+  approved by a later separate gate.
+
+### D1 Ordered Prerequisite Chain
+
+Gate D prerequisite governance must be source-controlled in this order; no item
+may be skipped, and each is its own later lane:
+
+1. Metric vocabulary and versioning governance.
+2. Attribution vocabulary and versioning governance.
+3. Experiment identifier and registry authority governance.
+4. Package-set inclusion/exclusion rules.
+5. Reproducibility rules.
+6. Candidate strategy identity and parameter versioning.
+7. Baseline-versus-candidate comparison rules.
+8. As-of feature availability and decision-time evidence rules.
+
+The first implementation lane after D1, if and when separately approved, is the
+smallest unit: metric vocabulary and versioning, as a pure in-memory,
+test-guarded module with no scoring, no filesystem access, and no downstream
+authority. D1 does not approve that implementation.
+
+### D1 Fail-Closed Requirements
+
+Authoritative evaluation must fail closed for any replay package evidence that
+is incomplete, mutable, stale, mixed-run, unfinalized, unhashable, hash-
+mismatched, provenance-defective, redaction-defective, non-authoritative,
+invalidated, or otherwise unapproved. Draft or incomplete packages may support
+only exploratory, non-authoritative reports if a later gate explicitly approves
+that use; they may never be treated as authoritative evaluation evidence.
+
+### D1 Evaluation Output Non-Authority
+
+Evaluation reports, metrics, comparisons, attributions, and recommendations:
+
+- Do not create promotion authority and must remain separate from strategy
+  promotion.
+- Do not create broker authority, execution permission, paper trading approval,
+  or live trading authority.
+- Do not mutate runtime state and do not change strategy, risk, allocation,
+  sizing, sell, trim, rebalance, hedge, short, order, broker, or execution
+  behavior.
+
+### D1 Non-Authorization Statement
+
+D1 does not authorize:
+
+- Gate D implementation
+- Unit 12
+- Evaluation, metric, attribution, experiment-registry, scoring, or comparison
+  implementation
+- Promotion workflow or strategy promotion
+- Broker/API/TWS/Alpaca/IBKR behavior
+- Strategy, risk, or execution behavior changes
+- systemd, scheduler, or runtime activation changes
+- `.env` or credential changes
+- Cleanup, flatten, sell, cancel, order submission, order cancellation, or
+  broker remediation
+- Paper trading approval
+- Live trading approval
+
 ## Drift Risks
 
 Known drift risks to guard:
