@@ -1722,6 +1722,47 @@ baseline-vs-candidate comparison, as-of feature logic, scoring, strategy
 promotion, Unit 12, broker/API work, or any execution/paper/live trading
 authority.
 
+## Gate D Record D3: Attribution Vocabulary And Versioning Unit
+
+### D3 Status
+
+Recorded on 2026-06-12. This is the second Gate D implementation unit ordered by
+Gate D Record D1: attribution vocabulary and versioning governance, following
+the metric vocabulary unit (D2). It is **IMPLEMENTED** as a pure in-memory,
+test-guarded vocabulary module: `tools/replay/attribution_vocabulary.py`.
+
+The module defines governed attribution cause identifiers and a deterministic
+attribution vocabulary version (`ATTRIBUTION_VOCABULARY_VERSION`), and exposes
+pure validation helpers (`validate_attribution_identifier_set`,
+`validate_attribution_vocabulary_record`, `is_known_attribution_identifier`)
+that fail closed for unknown identifiers, missing or unsupported versions,
+duplicate identifiers, empty sets, malformed records, and authority-bearing
+fields. It performs no attribution computation, computes no scores, reads no
+files, reads no replay packages, and carries no evaluation-execution,
+experiment-registry, package-set, reproducibility, baseline-vs-candidate,
+as-of, promotion, broker, strategy, risk, execution, paper-trading, or
+live-trading authority.
+
+### D3 Chain Status
+
+- D1 (evaluation prerequisite governance contract): **COMPLETE**
+- D2 (metric vocabulary + versioning unit): **IMPLEMENTED**
+- D3 (attribution vocabulary + versioning unit): **IMPLEMENTED** (this record)
+- Remaining Gate D prerequisite units (experiment identifier/registry,
+  package-set inclusion/exclusion, reproducibility, candidate identity/parameter
+  versioning, baseline-vs-candidate comparison, as-of feature availability):
+  **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED** (implementation
+  of the full prerequisite chain is incomplete; this is the second of eight
+  units)
+- Unit 12: **BLOCKED**
+
+D3 does not complete Gate D and does not approve attribution execution,
+evaluation execution, experiment registry, package-set selection,
+reproducibility logic, baseline-vs-candidate comparison, as-of feature logic,
+scoring, strategy promotion, Unit 12, broker/API work, or any execution/paper/
+live trading authority.
+
 ## Drift Risks
 
 Known drift risks to guard:

@@ -15915,3 +15915,246 @@ def test_metric_vocabulary_gate_d_unit12_status_preserved() -> None:
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     # the metric vocabulary unit is recorded as implemented, not Gate D complete
     assert "Gate D Record D2: Metric Vocabulary And Versioning Unit" in map_text
+
+
+# ---------------------------------------------------------------------------
+# Gate D attribution vocabulary + versioning unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.attribution_vocabulary as attribution_vocabulary
+
+
+def _valid_attribution_record(**overrides: object) -> dict:
+    record = {
+        "attribution_identifier": (
+            attribution_vocabulary.ATTRIBUTION_PARAMETER_CHANGE
+        ),
+        "attribution_vocabulary_version": (
+            attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION
+        ),
+    }
+    record.update(overrides)
+    return record
+
+
+def test_attribution_vocabulary_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "attribution_vocabulary.py"
+    )
+    assert module_path.exists()
+
+
+def test_attribution_vocabulary_version_is_deterministic_and_non_empty() -> None:
+    version = attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION
+    assert isinstance(version, str) and version
+    assert version == attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION
+    assert attribution_vocabulary.SUPPORTED_ATTRIBUTION_VOCABULARY_VERSIONS == (
+        version,
+    )
+
+
+def test_attribution_vocabulary_known_identifiers_unique_and_non_empty() -> None:
+    known = attribution_vocabulary.KNOWN_ATTRIBUTION_IDENTIFIERS
+    assert known
+    assert len(set(known)) == len(known)
+    for identifier in known:
+        assert attribution_vocabulary.is_known_attribution_identifier(identifier)
+    assert not attribution_vocabulary.is_known_attribution_identifier("not_a_cause")
+    assert not attribution_vocabulary.is_known_attribution_identifier(123)
+
+
+def test_attribution_vocabulary_allowed_record_validates() -> None:
+    result = attribution_vocabulary.validate_attribution_vocabulary_record(
+        _valid_attribution_record()
+    )
+    assert result["result_type"] == (
+        attribution_vocabulary.ATTRIBUTION_VOCABULARY_RESULT
+    )
+    assert result["attribution_identifiers"] == (
+        attribution_vocabulary.ATTRIBUTION_PARAMETER_CHANGE,
+    )
+    assert result["attribution_vocabulary_version"] == (
+        attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION
+    )
+
+
+def test_attribution_vocabulary_allowed_identifier_set_validates() -> None:
+    result = attribution_vocabulary.validate_attribution_identifier_set(
+        (
+            attribution_vocabulary.ATTRIBUTION_PARAMETER_CHANGE,
+            attribution_vocabulary.ATTRIBUTION_RISK_GOVERNANCE_CHANGE,
+        )
+    )
+    assert result["attribution_identifiers"] == (
+        attribution_vocabulary.ATTRIBUTION_PARAMETER_CHANGE,
+        attribution_vocabulary.ATTRIBUTION_RISK_GOVERNANCE_CHANGE,
+    )
+
+
+def test_attribution_vocabulary_unknown_identifier_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unknown attribution identifier"):
+        attribution_vocabulary.validate_attribution_vocabulary_record(
+            _valid_attribution_record(attribution_identifier="bogus_cause")
+        )
+    with pytest.raises(ValueError, match="unknown attribution identifier"):
+        attribution_vocabulary.validate_attribution_identifier_set(("bogus_cause",))
+
+
+def test_attribution_vocabulary_missing_identifier_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing attribution identifier"):
+        attribution_vocabulary.validate_attribution_vocabulary_record(
+            {
+                "attribution_vocabulary_version": (
+                    attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION
+                )
+            }
+        )
+
+
+def test_attribution_vocabulary_missing_version_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing attribution vocabulary version"):
+        attribution_vocabulary.validate_attribution_vocabulary_record(
+            {
+                "attribution_identifier": (
+                    attribution_vocabulary.ATTRIBUTION_PARAMETER_CHANGE
+                )
+            }
+        )
+
+
+def test_attribution_vocabulary_unsupported_version_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unsupported attribution vocabulary version"):
+        attribution_vocabulary.validate_attribution_vocabulary_record(
+            _valid_attribution_record(
+                attribution_vocabulary_version="9.9-not-supported"
+            )
+        )
+
+
+def test_attribution_vocabulary_duplicate_identifier_fails_closed() -> None:
+    with pytest.raises(ValueError, match="duplicate attribution identifier"):
+        attribution_vocabulary.validate_attribution_identifier_set(
+            (
+                attribution_vocabulary.ATTRIBUTION_PARAMETER_CHANGE,
+                attribution_vocabulary.ATTRIBUTION_PARAMETER_CHANGE,
+            )
+        )
+
+
+def test_attribution_vocabulary_empty_set_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty attribution identifier set"):
+        attribution_vocabulary.validate_attribution_identifier_set(())
+
+
+def test_attribution_vocabulary_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        attribution_vocabulary.validate_attribution_vocabulary_record("not_a_mapping")
+    with pytest.raises(TypeError, match="already-loaded tuple or list"):
+        attribution_vocabulary.validate_attribution_identifier_set("not_a_sequence")
+
+
+def test_attribution_vocabulary_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "attribution_execution",
+        "evaluation_execution",
+        "experiment_registry",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            attribution_vocabulary.validate_attribution_vocabulary_record(
+                _valid_attribution_record(**{field: True})
+            )
+
+
+def test_attribution_vocabulary_output_carries_no_downstream_authority() -> None:
+    result = attribution_vocabulary.validate_attribution_vocabulary_record(
+        _valid_attribution_record()
+    )
+    for key in (
+        "attribution_execution",
+        "scoring",
+        "evaluation_execution",
+        "experiment_registry",
+        "package_set_selection",
+        "reproducibility_engine",
+        "baseline_vs_candidate_comparison",
+        "as_of_feature_logic",
+        "filesystem_reads",
+        "package_reads",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = attribution_vocabulary.ATTRIBUTION_VOCABULARY_AUTHORITY_BOUNDARY
+    assert "no_attribution_execution" in boundary
+    assert "no_scoring" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_attribution_vocabulary_module_is_pure_no_filesystem_or_attribution_exec() -> None:
+    source = Path(attribution_vocabulary.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"attribution_vocabulary.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir("):
+        assert forbidden_call not in source, (
+            f"attribution_vocabulary.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_attribution_vocabulary_fail_closed_conditions_recorded() -> None:
+    conds = attribution_vocabulary.ATTRIBUTION_VOCABULARY_FAIL_CLOSED_CONDITIONS
+    assert "unknown_attribution_identifier" in conds
+    assert "missing_attribution_vocabulary_version" in conds
+    assert "unsupported_attribution_vocabulary_version" in conds
+    assert "duplicate_attribution_identifier" in conds
+    assert "malformed_attribution_record" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_attribution_vocabulary_unit1_metric_vocabulary_unchanged() -> None:
+    # Unit 1 metric vocabulary remains intact and independent of Unit 2
+    assert metric_vocabulary.METRIC_VOCABULARY_VERSION == "0.1-metric-vocab"
+    assert metric_vocabulary.KNOWN_METRIC_IDENTIFIERS
+    result = metric_vocabulary.validate_metric_vocabulary_record(
+        {
+            "metric_identifier": metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+            "metric_vocabulary_version": metric_vocabulary.METRIC_VOCABULARY_VERSION,
+        }
+    )
+    assert result["metric_identifiers"] == (
+        metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+    )
+
+
+def test_attribution_vocabulary_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Gate D Record D3: Attribution Vocabulary And Versioning Unit" in map_text
