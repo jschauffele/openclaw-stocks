@@ -1857,6 +1857,54 @@ experiment execution, evaluation execution, reproducibility logic,
 baseline-vs-candidate comparison, as-of feature logic, strategy promotion,
 Unit 12, broker/API work, or any execution/paper/live trading authority.
 
+## Gate D Record D6: Reproducibility Rules Unit
+
+### D6 Status
+
+Recorded on 2026-06-12. This is the fifth Gate D implementation unit ordered by
+Gate D Record D1: reproducibility rules governance, following metric (D2),
+attribution (D3), experiment registry (D4), and package-set (D5). It is
+**IMPLEMENTED** as a pure in-memory, test-guarded module:
+`tools/replay/reproducibility_governance.py`.
+
+The module defines deterministic reproducibility rule identifiers (pinned commit
+identity, deterministic vocabulary versions, canonical serialization,
+hash-verified inputs, immutable evidence, stable ordering, environment-
+independent comparison), a governed reproducibility version
+(`REPRODUCIBILITY_GOVERNANCE_VERSION`), and pure validators
+(`is_known_reproducibility_rule`, `validate_reproducibility_rule_record`,
+`validate_reproducibility_governance_record`). It fails closed for missing or
+unsupported versions, unknown or duplicate rule identifiers, empty rule sets,
+malformed records, missing pinned-commit/canonical-serialization/hash-
+verification/immutable-evidence/stable-ordering/environment-independent-
+comparison declarations, mutable-input markers, nondeterministic-order markers,
+environment-dependent markers, and authority-bearing fields. It runs no replay,
+runs no evaluation, reads no packages, discovers no packages, selects no
+packages, touches no filesystem, and carries no scoring, attribution-execution,
+experiment-execution, baseline-vs-candidate, as-of, promotion, broker, strategy,
+risk, execution, paper-trading, or live-trading authority.
+
+### D6 Chain Status
+
+- D1 (evaluation prerequisite governance contract): **COMPLETE**
+- D2 (metric vocabulary + versioning unit): **IMPLEMENTED**
+- D3 (attribution vocabulary + versioning unit): **IMPLEMENTED**
+- D4 (experiment identifier + registry authority unit): **IMPLEMENTED**
+- D5 (package-set inclusion/exclusion rules unit): **IMPLEMENTED**
+- D6 (reproducibility rules unit): **IMPLEMENTED** (this record)
+- Remaining Gate D prerequisite units (candidate identity/parameter versioning,
+  baseline-vs-candidate comparison, as-of feature availability): **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED** (implementation
+  of the full prerequisite chain is incomplete; this is the fifth of eight
+  units)
+- Unit 12: **BLOCKED**
+
+D6 does not complete Gate D and does not approve replay execution, evaluation
+execution, package reading, package discovery, package selection execution,
+scoring, attribution execution, experiment execution, baseline-vs-candidate
+comparison, as-of feature logic, strategy promotion, Unit 12, broker/API work,
+or any execution/paper/live trading authority.
+
 ## Drift Risks
 
 Known drift risks to guard:

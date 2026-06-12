@@ -16737,3 +16737,279 @@ def test_package_set_governance_gate_d_unit12_status_preserved() -> None:
     assert (
         "Gate D Record D5: Package-Set Inclusion/Exclusion Rules Unit" in map_text
     )
+
+
+# ---------------------------------------------------------------------------
+# Gate D reproducibility rules unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.reproducibility_governance as reproducibility_governance
+
+
+def _valid_reproducibility_record(**overrides: object) -> dict:
+    record = {
+        "reproducibility_governance_version": (
+            reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_VERSION
+        ),
+        "reproducibility_rules": (
+            reproducibility_governance.KNOWN_REPRODUCIBILITY_RULES
+        ),
+        "pinned_commit": "923d0c4f54c093f1efac53b0ec2c29b43bf3867d",
+        "canonical_serialization": True,
+        "hash_verified_inputs": True,
+        "immutable_evidence": True,
+        "stable_ordering": True,
+        "environment_independent_comparison": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_reproducibility_governance_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "reproducibility_governance.py"
+    )
+    assert module_path.exists()
+
+
+def test_reproducibility_governance_version_deterministic_and_non_empty() -> None:
+    version = reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_VERSION
+    assert isinstance(version, str) and version
+    assert version == reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_VERSION
+    assert reproducibility_governance.SUPPORTED_REPRODUCIBILITY_GOVERNANCE_VERSIONS == (
+        version,
+    )
+
+
+def test_reproducibility_governance_known_rules_unique_and_non_empty() -> None:
+    rules = reproducibility_governance.KNOWN_REPRODUCIBILITY_RULES
+    assert rules
+    assert len(set(rules)) == len(rules)
+    for rule in rules:
+        assert reproducibility_governance.is_known_reproducibility_rule(rule)
+    assert not reproducibility_governance.is_known_reproducibility_rule("not_a_rule")
+    assert not reproducibility_governance.is_known_reproducibility_rule(123)
+
+
+def test_reproducibility_governance_valid_record_validates() -> None:
+    result = reproducibility_governance.validate_reproducibility_governance_record(
+        _valid_reproducibility_record()
+    )
+    assert result["result_type"] == (
+        reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_RESULT
+    )
+    assert reproducibility_governance.REPRO_CANONICAL_SERIALIZATION in result[
+        "rule_identifiers"
+    ]
+
+
+def test_reproducibility_governance_valid_rule_record_validates() -> None:
+    result = reproducibility_governance.validate_reproducibility_rule_record(
+        {
+            "reproducibility_governance_version": (
+                reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_VERSION
+            ),
+            "rule_identifier": (
+                reproducibility_governance.REPRO_HASH_VERIFIED_INPUTS
+            ),
+        }
+    )
+    assert result["rule_identifiers"] == (
+        reproducibility_governance.REPRO_HASH_VERIFIED_INPUTS,
+    )
+
+
+def test_reproducibility_governance_version_failures_fail_closed() -> None:
+    rec = _valid_reproducibility_record()
+    del rec["reproducibility_governance_version"]
+    with pytest.raises(ValueError, match="missing reproducibility governance version"):
+        reproducibility_governance.validate_reproducibility_governance_record(rec)
+    with pytest.raises(
+        ValueError, match="unsupported reproducibility governance version"
+    ):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            _valid_reproducibility_record(
+                reproducibility_governance_version="9.9-x"
+            )
+        )
+
+
+def test_reproducibility_governance_unknown_rule_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unknown rule identifier"):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            _valid_reproducibility_record(reproducibility_rules=("bogus_rule",))
+        )
+
+
+def test_reproducibility_governance_duplicate_rule_fails_closed() -> None:
+    with pytest.raises(ValueError, match="duplicate rule identifier"):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            _valid_reproducibility_record(
+                reproducibility_rules=(
+                    reproducibility_governance.REPRO_STABLE_ORDERING,
+                    reproducibility_governance.REPRO_STABLE_ORDERING,
+                )
+            )
+        )
+
+
+def test_reproducibility_governance_empty_rule_set_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty rule set"):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            _valid_reproducibility_record(reproducibility_rules=())
+        )
+
+
+def test_reproducibility_governance_missing_declarations_fail_closed() -> None:
+    cases = {
+        "pinned_commit": ("", "missing pinned commit declaration"),
+        "canonical_serialization": (False, "missing canonical serialization"),
+        "hash_verified_inputs": (False, "missing hash verification declaration"),
+        "immutable_evidence": (False, "missing immutable evidence declaration"),
+        "stable_ordering": (False, "missing stable ordering declaration"),
+        "environment_independent_comparison": (
+            False,
+            "missing environment independent comparison",
+        ),
+    }
+    for field, (value, message) in cases.items():
+        with pytest.raises(ValueError, match=message):
+            reproducibility_governance.validate_reproducibility_governance_record(
+                _valid_reproducibility_record(**{field: value})
+            )
+
+
+def test_reproducibility_governance_nondeterministic_markers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="mutable input marker"):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            _valid_reproducibility_record(mutable_inputs=True)
+        )
+    with pytest.raises(ValueError, match="nondeterministic order marker"):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            _valid_reproducibility_record(nondeterministic_order=True)
+        )
+    with pytest.raises(ValueError, match="environment dependent marker"):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            _valid_reproducibility_record(environment_dependent=True)
+        )
+
+
+def test_reproducibility_governance_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        reproducibility_governance.validate_reproducibility_governance_record(
+            "not_a_mapping"
+        )
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        reproducibility_governance.validate_reproducibility_rule_record("not_a_mapping")
+
+
+def test_reproducibility_governance_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "replay_execution",
+        "evaluation_execution",
+        "package_reads",
+        "attribution_execution",
+        "experiment_execution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            reproducibility_governance.validate_reproducibility_governance_record(
+                _valid_reproducibility_record(**{field: True})
+            )
+
+
+def test_reproducibility_governance_output_carries_no_downstream_authority() -> None:
+    result = reproducibility_governance.validate_reproducibility_governance_record(
+        _valid_reproducibility_record()
+    )
+    for key in (
+        "replay_execution",
+        "evaluation_execution",
+        "package_reads",
+        "package_discovery",
+        "package_selection_execution",
+        "filesystem_reads",
+        "scoring",
+        "attribution_execution",
+        "experiment_execution",
+        "baseline_vs_candidate_comparison",
+        "as_of_feature_logic",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = (
+        reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_AUTHORITY_BOUNDARY
+    )
+    assert "no_replay_execution" in boundary
+    assert "deterministic_reproducible_evidence_only" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_reproducibility_governance_module_is_pure_no_filesystem_or_execution() -> None:
+    source = Path(reproducibility_governance.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"reproducibility_governance.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"reproducibility_governance.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_reproducibility_governance_fail_closed_conditions_recorded() -> None:
+    conds = (
+        reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_FAIL_CLOSED_CONDITIONS
+    )
+    assert "unsupported_reproducibility_governance_version" in conds
+    assert "unknown_rule_identifier" in conds
+    assert "missing_pinned_commit_declaration" in conds
+    assert "missing_canonical_serialization_declaration" in conds
+    assert "missing_hash_verification_declaration" in conds
+    assert "mutable_input_marker" in conds
+    assert "nondeterministic_order_marker" in conds
+    assert "environment_dependent_marker" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_reproducibility_governance_prior_units_unchanged() -> None:
+    assert metric_vocabulary.METRIC_VOCABULARY_VERSION == "0.1-metric-vocab"
+    assert attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION == (
+        "0.1-attribution-vocab"
+    )
+    assert experiment_registry.EXPERIMENT_REGISTRY_VERSION == "0.1-experiment-registry"
+    assert package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION == "0.1-package-set"
+    assert package_set_governance.KNOWN_INCLUSION_RULES
+
+
+def test_reproducibility_governance_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Gate D Record D6: Reproducibility Rules Unit" in map_text
