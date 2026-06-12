@@ -1059,6 +1059,201 @@ Gate B does not authorize:
 - Order submission, order cancellation, cleanup, flatten, or sell
 - Broker remediation
 
+## Gate C Record C1: Complete Replay Package Authority Governance Record
+
+### C1 Status
+
+Recorded as a docs-only governance record on 2026-06-11. This is the
+complete replay package authority governance record required before any
+Gate C implementation lane may be considered.
+
+C1 is **COMPLETE** as a governance record only. C1 does not mark Gate C
+complete. Gate C remains **INCOMPLETE** until later separate
+implementation/evidence gates prove actual governed on-disk replay package
+authority. Gate D remains **NOT STARTED**. Unit 12 remains **BLOCKED**.
+
+C1 does not implement Gate C. It does not create package files or
+directories, write packages, perform runtime capture, read real VPS runtime
+artifacts, or approve evaluation, promotion, broker/API work,
+strategy/risk/execution changes, paper trading, or live trading.
+
+### C1 Gate Prerequisite Chain Status
+
+- Source-reference/source-path vocabulary: **COMPLETE**
+- Vocabulary boundary verifier: **COMPLETE**
+- Gate A (runtime capture authority — both A1 and A2): **COMPLETE**
+- Gate B (package writer/persistence — B1 plus
+  IMPLEMENT_PACKAGE_WRITER_PERSISTENCE): **COMPLETE**
+- C1 complete replay package authority governance record: **COMPLETE**
+  (this record, governance record only)
+- Gate C (complete replay package authority): **INCOMPLETE** (C1 recorded;
+  implementation and production on-disk evidence gates not opened)
+- Gate D (evaluation prerequisite governance): **NOT STARTED**
+- Unit 12: **BLOCKED** (Gate C incomplete, Gate D not started)
+
+### C1 Gate C Ambiguity Resolution (Operator Policy)
+
+The Gate C discovery lane identified an ambiguity in the Gate C requirement
+"actual on-disk replay packages must exist." The operator resolves it as
+follows:
+
+- tmp_path synthetic package roots are acceptable for local implementation
+  tests and deterministic validation of package mechanics and test contracts.
+- tmp_path synthetic package roots do not satisfy production Gate C
+  completion.
+- Production Gate C completion requires actual governed on-disk replay
+  packages with known hashes, source-controlled provenance, enforced
+  no-overwrite finalization, and immutability markers.
+- Real VPS package writes to `/opt/openclaw-stocks/replay_packages` require a
+  later explicit VPS execution gate.
+- No local Claude/Codex implementation lane may write real VPS packages.
+- No local Claude/Codex implementation lane may treat tmp_path package
+  evidence as production Gate C evidence.
+
+Governance authority, local implementation tests, production package
+evidence, and VPS execution authority remain distinct. None of the four may
+be inferred from another.
+
+### C1 Complete Replay Package Authority Contract
+
+Complete replay package authority requires all of the following:
+
+- Canonical run_id (Gate A Record A2 format and JSONL path binding).
+- Terminal completion eligibility under the A2 completion-status policy
+  (`ok` and `blocked` eligible; `error` not eligible).
+- Runtime artifact discovery result.
+- Source artifact authority.
+- Source path ingestion result.
+- Runtime artifact metadata.
+- Approved file-read result.
+- Package layout.
+- Manifest schema.
+- Deterministic serialization.
+- Hash computation.
+- Integrity validation.
+- Redaction status.
+- Provenance.
+- Package writer result.
+- Package persistence result.
+- Storage/finalization status.
+- Known written bytes.
+- Content hash.
+- Section hashes, if applicable.
+- No-overwrite finalization enforcement.
+- Immutability marker presence.
+- Absent/not_applicable declarations for optional artifacts.
+- Fail-closed handling for stale, malformed, mixed-run, ambiguous, sensitive,
+  or missing package evidence.
+
+Any package evidence missing one or more of these requirements must fail
+closed and cannot be classified as a complete replay package.
+
+### C1 package_completeness.py Boundary
+
+Existing `tools/replay/package_completeness.py` remains metadata-only and
+does not itself satisfy production Gate C. Its authority vocabulary is
+explicitly `complete_replay_package_authority_metadata_only`, its authority
+boundary forbids actual filesystem reads and writes, and its storage
+validation accepts metadata-only storage results only.
+
+package_completeness.py may remain a prerequisite contributor to a future
+Gate C implementation, but it cannot alone prove actual on-disk complete
+replay package authority. Its metadata-only boundary must not be weakened by
+C1 or by any gate that cites only C1 as its authority.
+
+### C1 Future Gate C Implementation Path (Identified, Not Opened)
+
+After C1, a later separate implementation gate may define and validate
+complete replay package authority machinery. C1 identifies but does not open
+the likely future implementation scope:
+
+- A complete replay package authority module, if needed. No module name is
+  source-controlled yet; any proposed name is a future implementation
+  candidate only and must avoid the guarded future module names
+  `package_creator.py`, `manifest_writer.py`, and `manifest_generator.py`,
+  which remain test-guarded as non-existent.
+- On-disk package evidence binding.
+- Written-byte hash verification against manifest hash records.
+- Finalized lifecycle verification.
+- Immutability marker verification.
+- Package writer/persistence result binding.
+- Manifest/hash/integrity binding.
+- tmp_path-only implementation tests.
+
+That future implementation gate must be explicit and may not be inferred
+from C1. Local implementation tests validate mechanics only; they do not
+create production Gate C evidence.
+
+### C1 Future VPS Execution Path (Identified, Not Opened)
+
+Even after local Gate C implementation tests pass, real VPS package writes
+remain blocked until a separate explicit VPS execution gate authorizes them.
+That future VPS execution gate must verify, at minimum:
+
+- VPS repo alignment.
+- Clean VPS tree.
+- venv Python.
+- Filesystem root state.
+- Package output root path.
+- No runtime/service instability.
+- No broker/API/trading authority.
+- Explicit operator approval for the bounded package-writing action.
+- Post-write package hash/provenance/finalization evidence.
+
+C1 does not open that VPS execution gate.
+
+### C1 order_state.json Boundary
+
+`order_state.json` remains blocked for reads and writes until a later
+explicit binding gate. `read_order_state(...)` and
+`write_order_state_artifact(...)` remain fail-closed. Gate C must not infer
+order_state authority from C1, from package completeness, or from any
+package evidence.
+
+### C1 Gate D and Unit 12 Status
+
+- Gate D remains **NOT STARTED**.
+- Gate D requires Gate C completion plus finalized immutable evidence plus
+  separate evaluation prerequisite governance.
+- Unit 12 remains **BLOCKED** after C1.
+- No evaluation, attribution engine, experiment registry, promotion
+  workflow, or metric authority is approved by C1.
+
+### C1 Non-Authorization Statement
+
+C1 does not authorize:
+
+- Complete replay package implementation
+- Real VPS package writes
+- Real VPS runtime artifact reads
+- Runtime capture execution
+- Package creation outside tmp_path tests
+- Package directories outside tmp_path tests
+- Filesystem-backed package persistence outside later approved gates
+- Immutable production evidence creation
+- Evaluation implementation
+- Attribution engine implementation
+- Experiment registry implementation
+- Promotion workflow
+- Broker/API/TWS/Alpaca/IBKR behavior
+- Strategy behavior changes
+- Risk behavior changes
+- Execution behavior changes
+- Config changes
+- Credential changes
+- `.env` changes
+- systemd changes
+- Scheduler changes
+- Deployment changes
+- Paper trading approval
+- Live trading approval
+- Order submission
+- Order cancellation
+- Cleanup
+- Flatten
+- Sell
+- Broker remediation
+
 ## Drift Risks
 
 Known drift risks to guard:
