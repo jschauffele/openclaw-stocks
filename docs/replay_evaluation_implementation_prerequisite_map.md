@@ -1685,6 +1685,43 @@ D1 does not authorize:
 - Paper trading approval
 - Live trading approval
 
+## Gate D Record D2: Metric Vocabulary And Versioning Unit
+
+### D2 Status
+
+Recorded on 2026-06-12. This is the first Gate D implementation unit ordered by
+Gate D Record D1: metric vocabulary and versioning governance. It is
+**IMPLEMENTED** as a pure in-memory, test-guarded vocabulary module:
+`tools/replay/metric_vocabulary.py`.
+
+The module defines governed metric identifiers and a deterministic metric
+vocabulary version (`METRIC_VOCABULARY_VERSION`), and exposes pure validation
+helpers (`validate_metric_identifier_set`, `validate_metric_vocabulary_record`,
+`is_known_metric_identifier`) that fail closed for unknown identifiers, missing
+or unsupported versions, duplicate identifiers, malformed records, and
+authority-bearing fields. It computes no scores, reads no files, reads no replay
+packages, and carries no evaluation-execution, attribution, experiment-registry,
+package-set, promotion, broker, strategy, risk, execution, paper-trading, or
+live-trading authority.
+
+### D2 Chain Status
+
+- D1 (evaluation prerequisite governance contract): **COMPLETE**
+- D2 (metric vocabulary + versioning unit): **IMPLEMENTED** (this record)
+- Remaining Gate D prerequisite units (attribution vocabulary, experiment
+  identifier/registry, package-set inclusion/exclusion, reproducibility,
+  candidate identity/parameter versioning, baseline-vs-candidate comparison,
+  as-of feature availability): **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED** (implementation
+  of the full prerequisite chain is incomplete; this unit is the first of eight)
+- Unit 12: **BLOCKED**
+
+D2 does not complete Gate D and does not approve evaluation execution,
+attribution, experiment registry, package-set selection, reproducibility logic,
+baseline-vs-candidate comparison, as-of feature logic, scoring, strategy
+promotion, Unit 12, broker/API work, or any execution/paper/live trading
+authority.
+
 ## Drift Risks
 
 Known drift risks to guard:

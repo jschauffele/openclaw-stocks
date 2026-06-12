@@ -15712,3 +15712,206 @@ def test_vps_cli_authorization_does_not_complete_production_gate_c() -> None:
     )
     assert result_default.production_gate_c_complete is False
     assert result_default.vps_execution_gate_required is True
+
+
+# ---------------------------------------------------------------------------
+# Gate D metric vocabulary + versioning unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.metric_vocabulary as metric_vocabulary
+
+
+def _valid_metric_record(**overrides: object) -> dict:
+    record = {
+        "metric_identifier": metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+        "metric_vocabulary_version": metric_vocabulary.METRIC_VOCABULARY_VERSION,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_metric_vocabulary_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "metric_vocabulary.py"
+    )
+    assert module_path.exists()
+
+
+def test_metric_vocabulary_version_is_deterministic_and_non_empty() -> None:
+    version = metric_vocabulary.METRIC_VOCABULARY_VERSION
+    assert isinstance(version, str) and version
+    # deterministic: re-reading the constant yields the same value
+    assert version == metric_vocabulary.METRIC_VOCABULARY_VERSION
+    assert metric_vocabulary.SUPPORTED_METRIC_VOCABULARY_VERSIONS == (version,)
+
+
+def test_metric_vocabulary_known_identifiers_unique_and_non_empty() -> None:
+    known = metric_vocabulary.KNOWN_METRIC_IDENTIFIERS
+    assert known
+    assert len(set(known)) == len(known)
+    for identifier in known:
+        assert metric_vocabulary.is_known_metric_identifier(identifier)
+    assert not metric_vocabulary.is_known_metric_identifier("not_a_metric")
+    assert not metric_vocabulary.is_known_metric_identifier(123)
+
+
+def test_metric_vocabulary_allowed_record_validates() -> None:
+    result = metric_vocabulary.validate_metric_vocabulary_record(_valid_metric_record())
+    assert result["result_type"] == metric_vocabulary.METRIC_VOCABULARY_RESULT
+    assert result["metric_identifiers"] == (
+        metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+    )
+    assert result["metric_vocabulary_version"] == (
+        metric_vocabulary.METRIC_VOCABULARY_VERSION
+    )
+
+
+def test_metric_vocabulary_allowed_identifier_set_validates() -> None:
+    result = metric_vocabulary.validate_metric_identifier_set(
+        (
+            metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+            metric_vocabulary.METRIC_RISK_DECISION_MATCH,
+        )
+    )
+    assert result["metric_identifiers"] == (
+        metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+        metric_vocabulary.METRIC_RISK_DECISION_MATCH,
+    )
+
+
+def test_metric_vocabulary_unknown_identifier_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unknown metric identifier"):
+        metric_vocabulary.validate_metric_vocabulary_record(
+            _valid_metric_record(metric_identifier="bogus_metric")
+        )
+    with pytest.raises(ValueError, match="unknown metric identifier"):
+        metric_vocabulary.validate_metric_identifier_set(("bogus_metric",))
+
+
+def test_metric_vocabulary_missing_identifier_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing metric identifier"):
+        metric_vocabulary.validate_metric_vocabulary_record(
+            {"metric_vocabulary_version": metric_vocabulary.METRIC_VOCABULARY_VERSION}
+        )
+
+
+def test_metric_vocabulary_missing_version_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing metric vocabulary version"):
+        metric_vocabulary.validate_metric_vocabulary_record(
+            {"metric_identifier": metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH}
+        )
+
+
+def test_metric_vocabulary_unsupported_version_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unsupported metric vocabulary version"):
+        metric_vocabulary.validate_metric_vocabulary_record(
+            _valid_metric_record(metric_vocabulary_version="9.9-not-supported")
+        )
+
+
+def test_metric_vocabulary_duplicate_identifier_fails_closed() -> None:
+    with pytest.raises(ValueError, match="duplicate metric identifier"):
+        metric_vocabulary.validate_metric_identifier_set(
+            (
+                metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+                metric_vocabulary.METRIC_TERMINAL_STATUS_MATCH,
+            )
+        )
+
+
+def test_metric_vocabulary_empty_set_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty metric identifier set"):
+        metric_vocabulary.validate_metric_identifier_set(())
+
+
+def test_metric_vocabulary_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        metric_vocabulary.validate_metric_vocabulary_record("not_a_mapping")
+    with pytest.raises(TypeError, match="already-loaded tuple or list"):
+        metric_vocabulary.validate_metric_identifier_set("not_a_sequence_of_ids")
+
+
+def test_metric_vocabulary_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "evaluation_execution",
+        "attribution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            metric_vocabulary.validate_metric_vocabulary_record(
+                _valid_metric_record(**{field: True})
+            )
+
+
+def test_metric_vocabulary_output_carries_no_downstream_authority() -> None:
+    result = metric_vocabulary.validate_metric_vocabulary_record(_valid_metric_record())
+    for key in (
+        "scoring",
+        "evaluation_execution",
+        "attribution",
+        "experiment_registry",
+        "package_set_selection",
+        "baseline_vs_candidate_comparison",
+        "filesystem_reads",
+        "package_reads",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = metric_vocabulary.METRIC_VOCABULARY_AUTHORITY_BOUNDARY
+    assert "no_scoring" in boundary
+    assert "no_evaluation_execution" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_metric_vocabulary_module_is_pure_no_filesystem_or_scoring() -> None:
+    source = Path(metric_vocabulary.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, f"metric_vocabulary.py imports '{forbidden}'"
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir("):
+        assert forbidden_call not in source, (
+            f"metric_vocabulary.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_metric_vocabulary_fail_closed_conditions_recorded() -> None:
+    conds = metric_vocabulary.METRIC_VOCABULARY_FAIL_CLOSED_CONDITIONS
+    assert "unknown_metric_identifier" in conds
+    assert "missing_metric_vocabulary_version" in conds
+    assert "unsupported_metric_vocabulary_version" in conds
+    assert "duplicate_metric_identifier" in conds
+    assert "malformed_metric_record" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_metric_vocabulary_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    # the metric vocabulary unit is recorded as implemented, not Gate D complete
+    assert "Gate D Record D2: Metric Vocabulary And Versioning Unit" in map_text
