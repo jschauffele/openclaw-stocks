@@ -1482,6 +1482,102 @@ C2 does not authorize:
 - Sell
 - Broker remediation
 
+## Gate C Completion Record: Governed VPS Replay-Package Evidence
+
+### Completion Status
+
+Recorded as a docs-only completion record on 2026-06-12. This record completes
+the Gate C production replay-package evidence path under the completion rule
+established by Gate C Record C1 and Gate C Record C2:
+
+> Production Gate C can only be completed by a later docs-only completion record
+> after bounded VPS execution evidence exists and is reviewed.
+
+That precondition is now satisfied: bounded VPS package execution and the
+subsequent package evidence review both classified PASS for a single governed
+run. Accordingly, Gate C (complete replay package authority) is classified
+**COMPLETE** for the production replay-package evidence path, evidenced by the
+governed on-disk package recorded below.
+
+This record is append-only governance evidence. The earlier chain-status
+sections in this map (Gate A Record A2, Gate B Record B1, Gate C Record C1, and
+Gate C Record C2) recorded Gate C as INCOMPLETE; those statements were accurate
+when written and are retained as historical record. This completion record
+supersedes that status for the production replay-package evidence path only.
+
+### Reviewed Evidence
+
+- `run_id`: `run_2026-06-12T13:00:11Z_68d0b9`
+- Package directory (VPS runtime evidence):
+  `/opt/openclaw-stocks/replay_packages/run_2026-06-12T13:00:11Z_68d0b9`
+- Package artifact:
+  `/opt/openclaw-stocks/replay_packages/run_2026-06-12T13:00:11Z_68d0b9/manifest.json`
+- Manifest sha256:
+  `9b11c013d3b4a309541cd42ab74181eb11dd1e6ae10256ec86e71df093e23358`
+- JSONL source:
+  `/opt/openclaw-stocks/logs/run_2026-06-12T13:00:11Z_68d0b9.jsonl`
+- JSONL line count: 4
+- Terminal stage: `completion`
+- Terminal status: `blocked` (capture-eligible under Gate A Record A2)
+- Terminal reason: `before_regular_session_open` (an approved safe
+  market-session guard reason)
+- `last_run_report.json` still matched the package run during evidence review:
+  true
+- `trading_authority`: false
+- `broker_api_authority`: false
+- `order_state_binding`: false
+- `production_gate_c_complete` in package output: false (code never
+  self-declares; completion is recorded here in governance, not by code)
+
+### What This Completion Means
+
+- The end-to-end governed path produced an actual on-disk complete replay
+  package with a known hash, finalized no-overwrite lifecycle, an immutability
+  marker, terminal-completion eligibility derived from JSONL bytes, and
+  `last_run_report.json` alignment, and that package passed evidence review.
+- This satisfies the Gate C Record C1 prerequisites for production Gate C
+  completion for the evidenced run.
+
+### Prerequisite Chain Status After This Record
+
+- Gate A (runtime capture authority — A1 and A2): **COMPLETE**
+- Gate B (package writer/persistence — B1 plus implementation): **COMPLETE**
+- C1 (complete replay package authority governance record): **COMPLETE**
+- C2 (VPS execution authority contract): **COMPLETE**
+- Gate C (complete replay package authority): **COMPLETE** (production
+  replay-package evidence path; this record)
+- Gate D (evaluation prerequisite governance): **NOT STARTED**
+- Unit 12: **BLOCKED**
+
+### Explicit Non-Authorizations
+
+This completion record does not approve or authorize:
+
+- Gate D, or the opening of any evaluation prerequisite governance work
+- Unit 12, evaluation, attribution engine, experiment registry, metric
+  authority, or promotion workflow
+- Broker activation or any broker/API authority
+- Alpaca, IBKR, or TWS work
+- Cleanup, flatten, sell, cancel, order submission, order cancellation, or
+  broker remediation
+- Strategy, risk, or execution behavior changes
+- systemd, scheduler, runtime activation, `.env`, or credential changes
+- Paper trading approval or live trading approval
+
+Gate D remains NOT STARTED and additionally requires its own evaluation
+prerequisite governance (metric/attribution/experiment-registry vocabulary,
+package-set inclusion rules, reproducibility rules, and baseline/candidate
+comparison rules) beyond Gate C completion. Unit 12 remains BLOCKED until the
+Gate D chain is opened and completed.
+
+### VPS Evidence Custody
+
+The VPS `/opt/openclaw-stocks/replay_packages` directory and its contents are
+runtime evidence that lives on the VPS. They must not be committed to Git from
+the VPS or anywhere else. This completion record commits no package artifact, no
+package directory, and no manifest bytes; it records only the reviewed evidence
+metadata above. No replay package was created locally for this record.
+
 ## Drift Risks
 
 Known drift risks to guard:
