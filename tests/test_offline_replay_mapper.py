@@ -16158,3 +16158,265 @@ def test_attribution_vocabulary_gate_d_unit12_status_preserved() -> None:
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Gate D Record D3: Attribution Vocabulary And Versioning Unit" in map_text
+
+
+# ---------------------------------------------------------------------------
+# Gate D experiment identifier + registry authority unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.experiment_registry as experiment_registry
+
+
+def _valid_experiment_record(**overrides: object) -> dict:
+    record = {
+        "experiment_id": "exp_3close-v1_2026",
+        "experiment_registry_version": (
+            experiment_registry.EXPERIMENT_REGISTRY_VERSION
+        ),
+        "experiment_registry_authority": (
+            experiment_registry.EXPERIMENT_REGISTRY_AUTHORITY
+        ),
+        "experiment_status": experiment_registry.EXPERIMENT_STATUS_REGISTERED,
+        "start_scope": "2026-01-01",
+        "end_scope": "2026-06-01",
+        "immutable": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_experiment_registry_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "experiment_registry.py"
+    )
+    assert module_path.exists()
+
+
+def test_experiment_registry_version_and_authority_deterministic_non_empty() -> None:
+    version = experiment_registry.EXPERIMENT_REGISTRY_VERSION
+    authority = experiment_registry.EXPERIMENT_REGISTRY_AUTHORITY
+    assert isinstance(version, str) and version
+    assert isinstance(authority, str) and authority
+    assert version == experiment_registry.EXPERIMENT_REGISTRY_VERSION
+    assert authority == experiment_registry.EXPERIMENT_REGISTRY_AUTHORITY
+    assert experiment_registry.SUPPORTED_EXPERIMENT_REGISTRY_VERSIONS == (version,)
+
+
+def test_experiment_registry_valid_identifiers_validate() -> None:
+    for identifier in ("exp_abc", "exp_3close-v1_2026", "exp_a"):
+        assert experiment_registry.is_valid_experiment_identifier(identifier)
+        result = experiment_registry.validate_experiment_identifier(identifier)
+        assert result["experiment_identifiers"] == (identifier,)
+
+
+def test_experiment_registry_malformed_identifiers_fail_closed() -> None:
+    for bad in ("", "noprefix", "exp_", "exp_BAD", "exp_a/b", "exp_a..b",
+                "exp_order_state_x", "exp_with space", 123, None):
+        assert not experiment_registry.is_valid_experiment_identifier(bad)
+    with pytest.raises(ValueError, match="missing experiment identifier"):
+        experiment_registry.validate_experiment_identifier("")
+    with pytest.raises(ValueError, match="malformed experiment identifier"):
+        experiment_registry.validate_experiment_identifier("exp_BAD")
+
+
+def test_experiment_registry_valid_record_validates() -> None:
+    result = experiment_registry.validate_experiment_registry_record(
+        _valid_experiment_record()
+    )
+    assert result["result_type"] == experiment_registry.EXPERIMENT_REGISTRY_RESULT
+    assert result["experiment_identifiers"] == ("exp_3close-v1_2026",)
+    assert result["experiment_registry_authority"] == (
+        experiment_registry.EXPERIMENT_REGISTRY_AUTHORITY
+    )
+
+
+def test_experiment_registry_record_set_validates_unique() -> None:
+    result = experiment_registry.validate_experiment_registry_record_set(
+        (
+            _valid_experiment_record(),
+            _valid_experiment_record(experiment_id="exp_other_run"),
+        )
+    )
+    assert set(result["experiment_identifiers"]) == {
+        "exp_3close-v1_2026",
+        "exp_other_run",
+    }
+
+
+def test_experiment_registry_unsupported_version_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unsupported experiment registry version"):
+        experiment_registry.validate_experiment_registry_record(
+            _valid_experiment_record(experiment_registry_version="9.9-x")
+        )
+
+
+def test_experiment_registry_missing_or_unknown_authority_fails_closed() -> None:
+    rec = _valid_experiment_record()
+    del rec["experiment_registry_authority"]
+    with pytest.raises(ValueError, match="missing experiment registry authority"):
+        experiment_registry.validate_experiment_registry_record(rec)
+    with pytest.raises(ValueError, match="unknown experiment registry authority"):
+        experiment_registry.validate_experiment_registry_record(
+            _valid_experiment_record(experiment_registry_authority="rogue_authority")
+        )
+
+
+def test_experiment_registry_unknown_status_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unknown experiment status"):
+        experiment_registry.validate_experiment_registry_record(
+            _valid_experiment_record(experiment_status="promoted")
+        )
+
+
+def test_experiment_registry_missing_scope_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing experiment scope"):
+        experiment_registry.validate_experiment_registry_record(
+            _valid_experiment_record(start_scope="")
+        )
+    with pytest.raises(ValueError, match="missing experiment scope"):
+        experiment_registry.validate_experiment_registry_record(
+            _valid_experiment_record(end_scope="")
+        )
+
+
+def test_experiment_registry_mutable_record_fails_closed() -> None:
+    with pytest.raises(ValueError, match="mutable registry record"):
+        experiment_registry.validate_experiment_registry_record(
+            _valid_experiment_record(mutable=True)
+        )
+
+
+def test_experiment_registry_missing_immutability_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing immutability marker"):
+        experiment_registry.validate_experiment_registry_record(
+            _valid_experiment_record(immutable=False)
+        )
+    rec = _valid_experiment_record()
+    del rec["immutable"]
+    with pytest.raises(ValueError, match="missing immutability marker"):
+        experiment_registry.validate_experiment_registry_record(rec)
+
+
+def test_experiment_registry_duplicate_identifier_fails_closed() -> None:
+    with pytest.raises(ValueError, match="duplicate experiment identifier"):
+        experiment_registry.validate_experiment_registry_record_set(
+            (_valid_experiment_record(), _valid_experiment_record())
+        )
+
+
+def test_experiment_registry_empty_set_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty experiment registry record set"):
+        experiment_registry.validate_experiment_registry_record_set(())
+
+
+def test_experiment_registry_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        experiment_registry.validate_experiment_registry_record("not_a_mapping")
+    with pytest.raises(TypeError, match="tuple or list"):
+        experiment_registry.validate_experiment_registry_record_set("not_a_sequence")
+
+
+def test_experiment_registry_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "experiment_execution",
+        "registry_persistence",
+        "attribution_execution",
+        "evaluation_execution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            experiment_registry.validate_experiment_registry_record(
+                _valid_experiment_record(**{field: True})
+            )
+
+
+def test_experiment_registry_output_carries_no_downstream_authority() -> None:
+    result = experiment_registry.validate_experiment_registry_record(
+        _valid_experiment_record()
+    )
+    for key in (
+        "experiment_execution",
+        "registry_persistence",
+        "scoring",
+        "attribution_execution",
+        "evaluation_execution",
+        "package_set_selection",
+        "reproducibility_engine",
+        "baseline_vs_candidate_comparison",
+        "as_of_feature_logic",
+        "filesystem_reads",
+        "package_reads",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = experiment_registry.EXPERIMENT_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_experiment_execution" in boundary
+    assert "no_registry_persistence" in boundary
+    assert "immutable_registry_records_only" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_experiment_registry_module_is_pure_no_filesystem_or_execution() -> None:
+    source = Path(experiment_registry.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, f"experiment_registry.py imports '{forbidden}'"
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".write_text(", ".write_bytes("):
+        assert forbidden_call not in source, (
+            f"experiment_registry.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_experiment_registry_fail_closed_conditions_recorded() -> None:
+    conds = experiment_registry.EXPERIMENT_REGISTRY_FAIL_CLOSED_CONDITIONS
+    assert "malformed_experiment_identifier" in conds
+    assert "unsupported_experiment_registry_version" in conds
+    assert "missing_experiment_registry_authority" in conds
+    assert "mutable_registry_record" in conds
+    assert "duplicate_experiment_identifier" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_experiment_registry_prior_units_unchanged() -> None:
+    # Unit 1 (metric) and Unit 2 (attribution) vocabulary remain intact
+    assert metric_vocabulary.METRIC_VOCABULARY_VERSION == "0.1-metric-vocab"
+    assert metric_vocabulary.KNOWN_METRIC_IDENTIFIERS
+    assert attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION == (
+        "0.1-attribution-vocab"
+    )
+    assert attribution_vocabulary.KNOWN_ATTRIBUTION_IDENTIFIERS
+
+
+def test_experiment_registry_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert (
+        "Gate D Record D4: Experiment Identifier And Registry Authority Unit"
+        in map_text
+    )

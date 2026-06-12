@@ -1763,6 +1763,53 @@ reproducibility logic, baseline-vs-candidate comparison, as-of feature logic,
 scoring, strategy promotion, Unit 12, broker/API work, or any execution/paper/
 live trading authority.
 
+## Gate D Record D4: Experiment Identifier And Registry Authority Unit
+
+### D4 Status
+
+Recorded on 2026-06-12. This is the third Gate D implementation unit ordered by
+Gate D Record D1: experiment identifier and registry authority governance,
+following metric (D2) and attribution (D3) vocabulary. It is **IMPLEMENTED** as
+a pure in-memory, test-guarded module: `tools/replay/experiment_registry.py`.
+
+The module defines deterministic experiment identifier shape rules
+(`EXPERIMENT_ID_PREFIX`, bounded charset, length, and traversal/order_state
+rejection), a deterministic registry version and authority
+(`EXPERIMENT_REGISTRY_VERSION`, `EXPERIMENT_REGISTRY_AUTHORITY`), and pure
+validation helpers (`is_valid_experiment_identifier`,
+`validate_experiment_identifier`, `validate_experiment_registry_record`,
+`validate_experiment_registry_record_set`). It fails closed for missing or
+malformed identifiers, missing or unsupported versions, missing or unknown
+registry authority, unknown experiment status, missing experiment scope,
+mutable registry records, missing immutability markers, duplicate experiment
+identifiers, empty sets, malformed records, and authority-bearing fields. It
+runs no experiments, persists no registry, computes no scores, performs no
+attribution or evaluation execution, reads no files or replay packages, and
+carries no package-set, reproducibility, baseline-vs-candidate, as-of,
+promotion, broker, strategy, risk, execution, paper-trading, or live-trading
+authority.
+
+### D4 Chain Status
+
+- D1 (evaluation prerequisite governance contract): **COMPLETE**
+- D2 (metric vocabulary + versioning unit): **IMPLEMENTED**
+- D3 (attribution vocabulary + versioning unit): **IMPLEMENTED**
+- D4 (experiment identifier + registry authority unit): **IMPLEMENTED** (this
+  record)
+- Remaining Gate D prerequisite units (package-set inclusion/exclusion,
+  reproducibility, candidate identity/parameter versioning, baseline-vs-candidate
+  comparison, as-of feature availability): **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED** (implementation
+  of the full prerequisite chain is incomplete; this is the third of eight
+  units)
+- Unit 12: **BLOCKED**
+
+D4 does not complete Gate D and does not approve experiment execution, registry
+persistence, evaluation execution, attribution execution, package-set
+selection, reproducibility logic, baseline-vs-candidate comparison, as-of
+feature logic, scoring, strategy promotion, Unit 12, broker/API work, or any
+execution/paper/live trading authority.
+
 ## Drift Risks
 
 Known drift risks to guard:
