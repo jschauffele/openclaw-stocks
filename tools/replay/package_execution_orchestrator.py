@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 import hashlib
+import json
 import sys
 from typing import Any, Callable, Mapping, Sequence
 
@@ -949,13 +950,42 @@ def _package_artifact_bytes(run_id: str, package_id: str) -> bytes:
     return canonical_bytes.build_canonical_bytes(canonical_json.canonicalize_json(payload))
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """Deterministic, bounded CLI stub.
+def build_vps_execution_request(run_id: str) -> PackageExecutionRequest:
+    """Build the governed, root-pinned request for a bounded VPS execution.
 
-    This CLI never performs real VPS reads/writes in this gate. ``vps`` mode is
-    rejected and deferred to a separate bounded VPS execution gate. ``tmp_path_test``
-    mode requires programmatic invocation with already-read bytes (tests),
-    because this module performs no direct filesystem reads.
+    Roots are hard-pinned to the governed VPS artifact and package roots; the
+    JSONL and report bytes are read from those governed paths by the production
+    adapter, so the request byte fields are unused placeholders.
+    """
+
+    if not run_id:
+        raise ValueError("canonical_run_id is required")
+    return PackageExecutionRequest(
+        canonical_run_id=run_id,
+        execution_mode=EXECUTION_MODE_VPS,
+        artifact_root_path=GOVERNED_ARTIFACT_ROOT,
+        package_root_path=GOVERNED_PACKAGE_ROOT,
+        jsonl_filename=f"logs/{run_id}.jsonl",
+        jsonl_bytes=b"",
+        last_run_report_bytes=b"",
+        package_dir_path=f"{GOVERNED_PACKAGE_ROOT}/{run_id}",
+        approved_artifact_root_paths=(GOVERNED_ARTIFACT_ROOT,),
+        approved_package_root_paths=(GOVERNED_PACKAGE_ROOT,),
+    )
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Deterministic, bounded CLI for replay package execution.
+
+    ``tmp_path_test`` mode requires programmatic invocation with already-read
+    bytes, so the CLI defers it. ``vps`` mode is fail-closed: it defers with the
+    bounded-gate message unless ``--authorize-vps-package-write`` is explicitly
+    supplied alongside ``--run-id``. When authorized, the bounded write targets
+    only ``/opt/openclaw-stocks/replay_packages/{run_id}`` via the governed
+    reader and the governed vps writer authority; reads occur before any write,
+    so a missing governed artifact fails closed without mutating anything. This
+    CLI performs no broker/API/strategy/risk/execution/live-trading work and
+    never self-declares production Gate C completion.
     """
 
     parser = argparse.ArgumentParser(
@@ -966,17 +996,39 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--execution-mode", required=True, choices=list(ALLOWED_EXECUTION_MODES)
     )
+    parser.add_argument(
+        "--authorize-vps-package-write",
+        action="store_true",
+        help=(
+            "Explicit operator authorization for a single bounded VPS package "
+            "write under /opt/openclaw-stocks/replay_packages/{run_id}."
+        ),
+    )
     args = parser.parse_args(argv)
 
-    if args.execution_mode == EXECUTION_MODE_VPS:
+    if args.execution_mode != EXECUTION_MODE_VPS:
+        print(
+            "tmp_path_test orchestration requires programmatic invocation with "
+            "already-read bytes; the CLI performs no direct filesystem reads."
+        )
+        return 2
+
+    if not args.authorize_vps_package_write:
         print(VPS_EXECUTION_DEFERRED_MESSAGE)
         print(f"candidate: {PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE}")
         return 2
-    print(
-        "tmp_path_test orchestration requires programmatic invocation with "
-        "already-read bytes; the CLI performs no direct filesystem reads."
-    )
-    return 2
+
+    try:
+        request = build_vps_execution_request(args.run_id)
+        result = execute_package_orchestration(
+            request, authorized_vps_execution=True
+        )
+    except (ValueError, OSError) as exc:
+        print(f"vps package execution failed closed: {exc}")
+        return 1
+
+    print(json.dumps(result.evidence_report, indent=2, sort_keys=True, default=str))
+    return 0
 
 
 if __name__ == "__main__":

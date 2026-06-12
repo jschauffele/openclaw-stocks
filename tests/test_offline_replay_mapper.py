@@ -15550,3 +15550,157 @@ def test_vps_writer_boundary_preservation_no_repo_root_replay_packages() -> None
     repo_root = Path(__file__).resolve().parents[1]
     if str(repo_root) != _GOVERNED_VPS_ARTIFACT_ROOT:
         assert not (repo_root / "replay_packages").exists()
+
+
+# ---------------------------------------------------------------------------
+# Bounded VPS package execution CLI authorization tests
+# ---------------------------------------------------------------------------
+
+_VPSCLI_RUN_ID = "run_2026-06-12T05:00:11Z_ebb9b1"
+
+
+class _FakeExecResult:
+    def __init__(self, evidence_report: dict) -> None:
+        self.evidence_report = evidence_report
+
+
+def test_vps_cli_build_request_governed_roots() -> None:
+    request = package_execution_orchestrator.build_vps_execution_request(
+        _VPSCLI_RUN_ID
+    )
+    assert request.execution_mode == "vps"
+    assert request.artifact_root_path == "/opt/openclaw-stocks"
+    assert request.package_root_path == "/opt/openclaw-stocks/replay_packages"
+    assert request.package_dir_path == (
+        f"/opt/openclaw-stocks/replay_packages/{_VPSCLI_RUN_ID}"
+    )
+    assert request.approved_artifact_root_paths == ("/opt/openclaw-stocks",)
+    assert request.approved_package_root_paths == (
+        "/opt/openclaw-stocks/replay_packages",
+    )
+    assert request.jsonl_filename == f"logs/{_VPSCLI_RUN_ID}.jsonl"
+
+
+def test_vps_cli_build_request_requires_run_id() -> None:
+    with pytest.raises(ValueError, match="canonical_run_id is required"):
+        package_execution_orchestrator.build_vps_execution_request("")
+
+
+def test_vps_cli_defers_without_authorization(capsys) -> None:
+    code = package_execution_orchestrator.main(
+        ["--run-id", _VPSCLI_RUN_ID, "--execution-mode", "vps"]
+    )
+    out = capsys.readouterr().out
+    assert code == 2
+    assert "not authorized in this lane" in out
+    assert package_execution_orchestrator.PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE in out
+
+
+def test_vps_cli_tmp_path_mode_defers(capsys) -> None:
+    code = package_execution_orchestrator.main(
+        ["--run-id", _VPSCLI_RUN_ID, "--execution-mode", "tmp_path_test"]
+    )
+    out = capsys.readouterr().out
+    assert code == 2
+    assert "programmatic invocation" in out
+
+
+def test_vps_cli_authorized_passes_governed_request_and_authorization(
+    monkeypatch, capsys
+) -> None:
+    captured: dict = {}
+
+    def _fake_execute(request, *, authorized_vps_execution=False, vps_adapter=None):
+        captured["request"] = request
+        captured["authorized"] = authorized_vps_execution
+        captured["vps_adapter"] = vps_adapter
+        return _FakeExecResult({"run_id": request.canonical_run_id, "execution_mode": "vps"})
+
+    monkeypatch.setattr(
+        package_execution_orchestrator,
+        "execute_package_orchestration",
+        _fake_execute,
+    )
+    code = package_execution_orchestrator.main(
+        [
+            "--run-id",
+            _VPSCLI_RUN_ID,
+            "--execution-mode",
+            "vps",
+            "--authorize-vps-package-write",
+        ]
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    # the bounded write was explicitly authorized and never touched /opt in tests
+    assert captured["authorized"] is True
+    assert captured["vps_adapter"] is None
+    assert captured["request"].execution_mode == "vps"
+    assert captured["request"].canonical_run_id == _VPSCLI_RUN_ID
+    assert captured["request"].package_root_path == (
+        "/opt/openclaw-stocks/replay_packages"
+    )
+    # the failure string does not appear once authority is present
+    assert "not authorized in this lane" not in out
+    # a machine-readable evidence report is emitted
+    assert '"run_id"' in out
+    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+
+
+def test_vps_cli_authorized_fail_closed_returns_nonzero(monkeypatch, capsys) -> None:
+    def _raise_execute(request, *, authorized_vps_execution=False, vps_adapter=None):
+        raise ValueError("governed artifact missing")
+
+    monkeypatch.setattr(
+        package_execution_orchestrator,
+        "execute_package_orchestration",
+        _raise_execute,
+    )
+    code = package_execution_orchestrator.main(
+        [
+            "--run-id",
+            _VPSCLI_RUN_ID,
+            "--execution-mode",
+            "vps",
+            "--authorize-vps-package-write",
+        ]
+    )
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "failed closed" in out
+
+
+def test_vps_cli_authorized_oserror_fail_closed(monkeypatch, capsys) -> None:
+    def _raise_oserror(request, *, authorized_vps_execution=False, vps_adapter=None):
+        raise FileNotFoundError("/opt/openclaw-stocks/logs missing")
+
+    monkeypatch.setattr(
+        package_execution_orchestrator,
+        "execute_package_orchestration",
+        _raise_oserror,
+    )
+    code = package_execution_orchestrator.main(
+        [
+            "--run-id",
+            _VPSCLI_RUN_ID,
+            "--execution-mode",
+            "vps",
+            "--authorize-vps-package-write",
+        ]
+    )
+    assert code == 1
+    assert "failed closed" in capsys.readouterr().out
+
+
+def test_vps_cli_authorization_does_not_complete_production_gate_c() -> None:
+    # the orchestrator result type still hardcodes production_gate_c_complete False
+    result_default = package_execution_orchestrator.PackageExecutionResult(
+        canonical_run_id=_VPSCLI_RUN_ID,
+        execution_mode="vps",
+        terminal_completion_status="blocked",
+        written_artifact_path="x",
+        written_artifact_sha256="y",
+        complete_package_authority_result=None,
+    )
+    assert result_default.production_gate_c_complete is False
+    assert result_default.vps_execution_gate_required is True
