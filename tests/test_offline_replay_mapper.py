@@ -14353,9 +14353,70 @@ def test_complete_package_authority_preserves_package_completeness_boundary() ->
     assert "no_actual_filesystem_writes" in boundary
 
 
-def test_complete_package_authority_no_repo_root_replay_packages() -> None:
+_GOVERNED_VPS_ARTIFACT_ROOT = "/opt/openclaw-stocks"
+_GOVERNED_VPS_PACKAGE_ROOT = "/opt/openclaw-stocks/replay_packages"
+
+
+def _path_inventory(path: Path) -> tuple:
+    """Read-only snapshot of a path: (exists, is_dir, sorted child names).
+
+    This helper never creates, removes, or mutates anything; it only inspects.
+    """
+    if not path.exists():
+        return (False, False, ())
+    if path.is_dir():
+        return (True, True, tuple(sorted(child.name for child in path.iterdir())))
+    return (True, False, ())
+
+
+def _governed_package_root_snapshot() -> tuple:
+    """Read-only snapshot of the governed VPS package root before a test runs."""
+    return _path_inventory(Path(_GOVERNED_VPS_PACKAGE_ROOT))
+
+
+def _assert_no_unsanctioned_replay_packages(
+    before_governed: tuple,
+    selected_run_id: str | None = None,
+) -> None:
+    """Assert the test created or mutated no replay_packages directory.
+
+    - On local / non-VPS checkouts (repo root != /opt/openclaw-stocks), the
+      repo-root ``replay_packages`` directory must remain absent.
+    - On the production VPS checkout (repo root == /opt/openclaw-stocks), the
+      governed production package root may exist (C2 records it as the governed
+      output root), but it must be unchanged from its pre-test snapshot, proving
+      the test neither created nor mutated it.
+    - The selected synthetic package directory must not have been created.
+
+    This assertion never skips and never touches /opt/openclaw-stocks.
+    """
     repo_root = Path(__file__).resolve().parents[1]
-    assert not (repo_root / "replay_packages").exists()
+    governed_root = Path(_GOVERNED_VPS_PACKAGE_ROOT)
+
+    if str(repo_root) != _GOVERNED_VPS_ARTIFACT_ROOT:
+        # local / non-VPS: a repo-root replay_packages directory must never appear
+        assert not (repo_root / "replay_packages").exists()
+
+    # the governed production package root must be byte-for-inventory unchanged
+    after_governed = _governed_package_root_snapshot()
+    assert after_governed == before_governed, (
+        "test must not create or mutate the governed VPS package root "
+        f"{_GOVERNED_VPS_PACKAGE_ROOT}"
+    )
+
+    # the selected synthetic package directory must not have been created
+    if selected_run_id is not None:
+        assert not (governed_root / selected_run_id).exists()
+
+
+def test_complete_package_authority_no_repo_root_replay_packages(
+    tmp_path: Path,
+) -> None:
+    before = _governed_package_root_snapshot()
+    # exercise the CPA tmp_path write mechanics, then prove the governed root
+    # and repo-root replay_packages were untouched
+    _cpa_result(tmp_path)
+    _assert_no_unsanctioned_replay_packages(before, selected_run_id=_CPA_RUN_ID)
 
 
 def test_complete_package_authority_never_claims_production_authority(
@@ -14986,9 +15047,9 @@ def test_orchestrator_gate_status_preserved_in_map() -> None:
 
 
 def test_orchestrator_no_repo_root_replay_packages(tmp_path: Path) -> None:
+    before = _governed_package_root_snapshot()
     _peo_execute(tmp_path)
-    repo_root = Path(__file__).resolve().parents[1]
-    assert not (repo_root / "replay_packages").exists()
+    _assert_no_unsanctioned_replay_packages(before, selected_run_id=_PEO_RUN_ID)
 
 
 # ---------------------------------------------------------------------------
@@ -15238,13 +15299,14 @@ def test_vps_mode_rejects_pre_existing_finalized_package(tmp_path: Path) -> None
 
 
 def test_vps_mode_does_not_touch_opt_or_repo_root(tmp_path: Path) -> None:
+    before = _governed_package_root_snapshot()
     adapter, _ = _make_vps_adapter(tmp_path)
     package_execution_orchestrator.execute_package_orchestration(
         _vps_request(), vps_adapter=adapter
     )
-    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
-    repo_root = Path(__file__).resolve().parents[1]
-    assert not (repo_root / "replay_packages").exists()
+    # the injected adapter writes only under tmp_path; the governed VPS package
+    # root must be unchanged (it may legitimately exist on the VPS per C2)
+    _assert_no_unsanctioned_replay_packages(before, selected_run_id=_VPS_RUN_ID)
 
 
 def test_vps_mode_cli_still_defers() -> None:
