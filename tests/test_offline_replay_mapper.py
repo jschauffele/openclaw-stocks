@@ -14989,3 +14989,299 @@ def test_orchestrator_no_repo_root_replay_packages(tmp_path: Path) -> None:
     _peo_execute(tmp_path)
     repo_root = Path(__file__).resolve().parents[1]
     assert not (repo_root / "replay_packages").exists()
+
+
+# ---------------------------------------------------------------------------
+# Bounded VPS package execution mode implementation tests
+# ---------------------------------------------------------------------------
+
+_VPS_RUN_ID = "run_2026-06-11T15:00:00Z_vps001"
+
+
+def _vps_jsonl_bytes(run_id: str = _VPS_RUN_ID, terminal_status: str = "blocked") -> bytes:
+    lines = [
+        json.dumps(
+            {
+                "run_id": run_id,
+                "event_type": "system",
+                "stage": "startup",
+                "status": "ok",
+            }
+        ),
+        json.dumps(
+            {
+                "run_id": run_id,
+                "event_type": "system",
+                "stage": "completion",
+                "status": terminal_status,
+            }
+        ),
+    ]
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def _vps_report_bytes(run_id: str = _VPS_RUN_ID, status: str = "blocked") -> bytes:
+    return json.dumps({"run_id": run_id, "status": status}).encode("utf-8")
+
+
+def _make_vps_adapter(
+    tmp_path: Path,
+    run_id: str = _VPS_RUN_ID,
+    jsonl_bytes: bytes | None = None,
+    report_bytes: bytes | None = None,
+    create_dir: bool = True,
+):
+    """Build a tmp_path injection adapter with fake governed readers."""
+    artifact_root = tmp_path / "vps_artifact_root"
+    package_root = tmp_path / "vps_package_root"
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    if create_dir:
+        (package_root / run_id).mkdir(parents=True, exist_ok=True)
+    jb = _vps_jsonl_bytes(run_id) if jsonl_bytes is None else jsonl_bytes
+    rb = _vps_report_bytes(run_id) if report_bytes is None else report_bytes
+    calls: dict = {}
+
+    def jsonl_reader(rid: str, art_root: str) -> bytes:
+        calls["jsonl"] = (rid, art_root)
+        return jb
+
+    def report_reader(rid: str, art_root: str) -> bytes:
+        calls["report"] = (rid, art_root)
+        return rb
+
+    adapter = package_execution_orchestrator.VpsExecutionAdapter(
+        artifact_root_path=str(artifact_root),
+        package_root_path=str(package_root),
+        jsonl_reader=jsonl_reader,
+        report_reader=report_reader,
+    )
+    return adapter, calls
+
+
+def _vps_request(run_id: str = _VPS_RUN_ID, **overrides: object):
+    # In vps mode with an injected adapter, request roots/bytes are unused; the
+    # governed /opt strings are supplied only to exercise the production-root
+    # request validation path when no adapter is injected.
+    kwargs = {
+        "canonical_run_id": run_id,
+        "execution_mode": "vps",
+        "artifact_root_path": "/opt/openclaw-stocks",
+        "package_root_path": "/opt/openclaw-stocks/replay_packages",
+        "jsonl_filename": f"logs/{run_id}.jsonl",
+        "jsonl_bytes": b"",
+        "last_run_report_bytes": b"",
+        "package_dir_path": f"/opt/openclaw-stocks/replay_packages/{run_id}",
+        "approved_artifact_root_paths": ("/opt/openclaw-stocks",),
+        "approved_package_root_paths": ("/opt/openclaw-stocks/replay_packages",),
+    }
+    kwargs.update(overrides)
+    return package_execution_orchestrator.PackageExecutionRequest(**kwargs)
+
+
+def test_vps_mode_governed_root_constants_exact() -> None:
+    assert package_execution_orchestrator.GOVERNED_ARTIFACT_ROOT == "/opt/openclaw-stocks"
+    assert package_execution_orchestrator.GOVERNED_PACKAGE_ROOT == (
+        "/opt/openclaw-stocks/replay_packages"
+    )
+    assert package_execution_orchestrator.GOVERNED_PACKAGE_ROOT_LABEL == "replay_packages"
+    # production adapter pins exactly the governed roots and uses real readers
+    prod = package_execution_orchestrator._production_vps_adapter()
+    assert prod.artifact_root_path == "/opt/openclaw-stocks"
+    assert prod.package_root_path == "/opt/openclaw-stocks/replay_packages"
+    assert (
+        prod.jsonl_reader is package_execution_orchestrator._production_jsonl_reader
+    )
+    assert (
+        prod.report_reader is package_execution_orchestrator._production_report_reader
+    )
+
+
+def test_vps_mode_command_surface_present() -> None:
+    assert package_execution_orchestrator.PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE == (
+        "package_execution_orchestrator --run-id <run_id> --execution-mode vps"
+    )
+    assert "vps" in package_execution_orchestrator.ALLOWED_EXECUTION_MODES
+
+
+def test_vps_mode_no_adapter_defers_real_execution() -> None:
+    # production vps path (no injected adapter) is not authorized in this lane
+    with pytest.raises(ValueError, match="not authorized in this lane"):
+        package_execution_orchestrator.execute_package_orchestration(_vps_request())
+
+
+def test_vps_mode_rejects_bad_request_roots() -> None:
+    bad_artifact = _vps_request(artifact_root_path="/not/governed")
+    with pytest.raises(ValueError, match="governed artifact root"):
+        package_execution_orchestrator.execute_package_orchestration(bad_artifact)
+    bad_package = _vps_request(package_root_path="/not/governed/replay_packages")
+    with pytest.raises(ValueError, match="governed package root"):
+        package_execution_orchestrator.execute_package_orchestration(bad_package)
+
+
+def test_vps_mode_injected_adapter_rejects_opt_roots(tmp_path: Path) -> None:
+    bad_adapter = package_execution_orchestrator.VpsExecutionAdapter(
+        artifact_root_path="/opt/openclaw-stocks",
+        package_root_path=str(tmp_path / "x"),
+        jsonl_reader=lambda r, a: _vps_jsonl_bytes(),
+        report_reader=lambda r, a: _vps_report_bytes(),
+    )
+    with pytest.raises(ValueError, match="must not target the governed VPS roots"):
+        package_execution_orchestrator.execute_package_orchestration(
+            _vps_request(), vps_adapter=bad_adapter
+        )
+
+
+def test_vps_mode_injected_adapter_succeeds_local_mechanics(tmp_path: Path) -> None:
+    adapter, calls = _make_vps_adapter(tmp_path)
+    result = package_execution_orchestrator.execute_package_orchestration(
+        _vps_request(), vps_adapter=adapter
+    )
+    assert result.execution_mode == "vps"
+    assert result.complete_package_authority is True
+    assert result.vps_mode_implemented is True
+    assert result.production_gate_c_complete is False
+    assert result.real_vps_package_writes is False
+    assert result.real_vps_runtime_artifact_reads is False
+    assert result.runtime_capture_execution is False
+    assert result.order_state_binding is False
+    assert result.gate_d_authority is False
+    assert result.evaluation_or_promotion is False
+    assert result.broker_api_authority is False
+    assert result.strategy_risk_execution_authority is False
+    assert result.paper_trading_authority is False
+    assert result.live_trading_authority is False
+    assert result.complete_package_authority_result.production_gate_c_complete is False
+    # the governed reader callables were used for both approved families
+    assert calls["jsonl"][0] == _VPS_RUN_ID
+    assert calls["report"][0] == _VPS_RUN_ID
+    assert calls["jsonl"][1] == adapter.artifact_root_path
+    # the write landed under the injected tmp_path package root only
+    assert result.written_artifact_path.startswith(adapter.package_root_path)
+    assert "/opt/openclaw-stocks" not in result.written_artifact_path
+    written = Path(result.written_artifact_path)
+    assert written.exists()
+    assert (
+        hashlib.sha256(written.read_bytes()).hexdigest()
+        == result.written_artifact_sha256
+    )
+
+
+def test_vps_mode_evidence_report_is_machine_readable(tmp_path: Path) -> None:
+    adapter, _calls = _make_vps_adapter(tmp_path)
+    result = package_execution_orchestrator.execute_package_orchestration(
+        _vps_request(), vps_adapter=adapter
+    )
+    report = result.evidence_report
+    assert isinstance(report, dict)
+    assert report["run_id"] == _VPS_RUN_ID
+    assert report["execution_mode"] == "vps"
+    assert report["command_surface"] == (
+        package_execution_orchestrator.PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE
+    )
+    assert report["jsonl_artifact_family"] == f"logs/{_VPS_RUN_ID}.jsonl"
+    assert report["report_artifact_family"] == "last_run_report.json"
+    assert report["terminal_completion_status"] == "blocked"
+    assert report["terminal_completion_eligible"] is True
+    assert report["last_run_report_alignment_status"] == "aligned"
+    assert report["package_writer_result_summary"]["write_performed"] is True
+    assert report["package_writer_result_summary"]["no_overwrite"] is True
+    assert report["package_persistence_result_summary"]["actual_filesystem_writes"] is False
+    assert report["complete_package_authority_result_summary"][
+        "production_gate_c_complete"
+    ] is False
+    assert report["immutability_marker"] == storage_implementation.IMMUTABILITY_MARKER
+    assert report["finalized_lifecycle_status"] == "finalized"
+    assert report["order_state_binding"] is False
+    assert report["production_gate_c_complete"] is False
+    assert report["gate_d_authority"] is False
+    assert report["broker_api_authority"] is False
+    assert report["trading_authority"] is False
+    assert report["written_artifact_sha256"] == result.written_artifact_sha256
+
+
+def test_vps_mode_rejects_error_terminal(tmp_path: Path) -> None:
+    adapter, _ = _make_vps_adapter(
+        tmp_path, jsonl_bytes=_vps_jsonl_bytes(terminal_status="error")
+    )
+    with pytest.raises(ValueError, match="diagnostic only"):
+        package_execution_orchestrator.execute_package_orchestration(
+            _vps_request(), vps_adapter=adapter
+        )
+
+
+def test_vps_mode_rejects_stale_report(tmp_path: Path) -> None:
+    adapter, _ = _make_vps_adapter(
+        tmp_path, report_bytes=_vps_report_bytes(run_id="run_STALE")
+    )
+    with pytest.raises(ValueError, match="stale or mismatched"):
+        package_execution_orchestrator.execute_package_orchestration(
+            _vps_request(), vps_adapter=adapter
+        )
+
+
+def test_vps_mode_rejects_order_state_run_id() -> None:
+    # order_state appearing in the request is rejected before any read
+    bad = _vps_request(jsonl_filename="logs/order_state.jsonl")
+    with pytest.raises(ValueError, match="binding is blocked"):
+        package_execution_orchestrator.execute_package_orchestration(bad)
+
+
+def test_vps_mode_rejects_pre_existing_finalized_package(tmp_path: Path) -> None:
+    adapter, _ = _make_vps_adapter(tmp_path)
+    # pre-create the finalized manifest so the no-overwrite path fails closed
+    pre = Path(adapter.package_root_path) / _VPS_RUN_ID / "manifest.json"
+    pre.write_bytes(b'{"pre":"existing"}')
+    with pytest.raises(ValueError, match="overwrite"):
+        package_execution_orchestrator.execute_package_orchestration(
+            _vps_request(), vps_adapter=adapter
+        )
+
+
+def test_vps_mode_does_not_touch_opt_or_repo_root(tmp_path: Path) -> None:
+    adapter, _ = _make_vps_adapter(tmp_path)
+    package_execution_orchestrator.execute_package_orchestration(
+        _vps_request(), vps_adapter=adapter
+    )
+    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+    repo_root = Path(__file__).resolve().parents[1]
+    assert not (repo_root / "replay_packages").exists()
+
+
+def test_vps_mode_cli_still_defers() -> None:
+    code = package_execution_orchestrator.main(
+        ["--run-id", _VPS_RUN_ID, "--execution-mode", "vps"]
+    )
+    assert code == 2
+
+
+def test_vps_mode_implementation_preserves_guarded_modules() -> None:
+    replay_dir = Path(__file__).resolve().parents[1] / "tools" / "replay"
+    assert not (replay_dir / "package_creator.py").exists()
+    assert not (replay_dir / "manifest_writer.py").exists()
+    assert not (replay_dir / "manifest_generator.py").exists()
+
+
+def test_vps_mode_preserves_package_completeness_boundary() -> None:
+    assert package_completeness.COMPLETE_REPLAY_PACKAGE_AUTHORITY == (
+        "complete_replay_package_authority_metadata_only"
+    )
+    boundary = package_completeness.PACKAGE_COMPLETENESS_AUTHORITY_BOUNDARY
+    assert "no_actual_filesystem_reads" in boundary
+    assert "no_actual_filesystem_writes" in boundary
+
+
+def test_vps_mode_orchestrator_remains_governed_only() -> None:
+    source = Path(package_execution_orchestrator.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+    ):
+        assert forbidden not in source
+    for forbidden_call in ("open(", ".write_text(", ".write_bytes(", "Path("):
+        assert forbidden_call not in source

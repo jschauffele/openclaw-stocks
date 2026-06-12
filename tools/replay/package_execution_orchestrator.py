@@ -34,7 +34,7 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import sys
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
@@ -50,6 +50,7 @@ import tools.replay.package_layout as package_layout
 import tools.replay.package_persistence as package_persistence
 import tools.replay.package_writer as package_writer
 import tools.replay.runtime_artifact_discovery as runtime_artifact_discovery
+import tools.replay.runtime_artifact_file_reader as runtime_artifact_file_reader
 import tools.replay.runtime_artifacts as runtime_artifacts
 import tools.replay.source_artifacts as source_artifacts
 import tools.replay.source_path_ingestion as source_path_ingestion
@@ -183,16 +184,43 @@ class PackageExecutionResult:
     strategy_risk_execution_authority: bool = False
     paper_trading_authority: bool = False
     live_trading_authority: bool = False
+    vps_mode_implemented: bool = False
     governed_package_root: str = GOVERNED_PACKAGE_ROOT
+    evidence_report: Mapping[str, Any] | None = None
     authority_boundary: tuple[str, ...] = (
         PACKAGE_EXECUTION_ORCHESTRATOR_AUTHORITY_BOUNDARY
     )
 
 
+@dataclass(frozen=True)
+class VpsExecutionAdapter:
+    """Test-only / production injection point for vps-mode reads and roots.
+
+    The production adapter (``_production_vps_adapter``) pins the governed VPS
+    roots and reads via ``runtime_artifact_file_reader``. Tests inject a
+    tmp_path adapter with fake reader callables so the vps code path can be
+    exercised without touching ``/opt/openclaw-stocks``.
+    """
+
+    artifact_root_path: str
+    package_root_path: str
+    jsonl_reader: Callable[[str, str], bytes]
+    report_reader: Callable[[str, str], bytes]
+
+
 def execute_package_orchestration(
     request: PackageExecutionRequest,
+    *,
+    vps_adapter: VpsExecutionAdapter | None = None,
+    authorized_vps_execution: bool = False,
 ) -> PackageExecutionResult:
-    """Run the deterministic package-execution chain, or fail closed."""
+    """Run the deterministic package-execution chain, or fail closed.
+
+    ``vps_adapter`` is a test-only injection point allowing the vps code path to
+    be exercised under tmp_path. ``authorized_vps_execution`` is the hook a
+    future bounded VPS execution gate would set to permit real ``/opt`` reads
+    and writes; it is never set in this lane, so production vps mode defers.
+    """
 
     if not request.canonical_run_id:
         raise ValueError("canonical_run_id is required")
@@ -201,45 +229,238 @@ def execute_package_orchestration(
     if request.production_gate_c_claimed:
         raise ValueError(PRODUCTION_GATE_C_COMPLETION_REQUIRES_DOCS_RECORD)
     _reject_order_state(request)
-    _validate_roots_for_mode(request)
 
     if request.execution_mode == EXECUTION_MODE_VPS:
-        # Roots are validated above; real VPS execution is deferred to a separate
-        # bounded gate and never performed here.
-        raise ValueError(VPS_EXECUTION_DEFERRED_MESSAGE)
+        return _execute_vps(request, vps_adapter, authorized_vps_execution)
 
+    _validate_tmp_path_roots(request)
+    return _execute_chain(
+        run_id=request.canonical_run_id,
+        execution_mode=EXECUTION_MODE_TMP_PATH_TEST,
+        artifact_root_path=request.artifact_root_path,
+        package_root_path=request.package_root_path,
+        jsonl_bytes=request.jsonl_bytes,
+        jsonl_filename=request.jsonl_filename,
+        report_bytes=request.last_run_report_bytes,
+        provenance=request.provenance,
+        redaction_status=request.redaction_status,
+        sensitive_data_status=request.sensitive_data_status,
+        real_reads=False,
+        real_writes=False,
+    )
+
+
+def _execute_vps(
+    request: PackageExecutionRequest,
+    vps_adapter: VpsExecutionAdapter | None,
+    authorized_vps_execution: bool,
+) -> PackageExecutionResult:
     run_id = request.canonical_run_id
+    if vps_adapter is None:
+        # Production path: validate the governed request roots, then defer real
+        # /opt reads and writes unless a future bounded VPS execution gate has
+        # explicitly authorized them. This lane never authorizes execution.
+        _validate_vps_request_roots(request)
+        if not authorized_vps_execution:
+            raise ValueError(VPS_EXECUTION_DEFERRED_MESSAGE)
+        adapter = _production_vps_adapter()
+        is_production = True
+    else:
+        if (
+            vps_adapter.artifact_root_path == GOVERNED_ARTIFACT_ROOT
+            or vps_adapter.package_root_path == GOVERNED_PACKAGE_ROOT
+        ):
+            raise ValueError(
+                "injected vps adapter must not target the governed VPS roots in tests"
+            )
+        adapter = vps_adapter
+        is_production = False
 
+    jsonl_bytes = adapter.jsonl_reader(run_id, adapter.artifact_root_path)
+    report_bytes = adapter.report_reader(run_id, adapter.artifact_root_path)
+    return _execute_chain(
+        run_id=run_id,
+        execution_mode=EXECUTION_MODE_VPS,
+        artifact_root_path=adapter.artifact_root_path,
+        package_root_path=adapter.package_root_path,
+        jsonl_bytes=jsonl_bytes,
+        jsonl_filename=f"logs/{run_id}.jsonl",
+        report_bytes=report_bytes,
+        provenance=request.provenance,
+        redaction_status=request.redaction_status,
+        sensitive_data_status=request.sensitive_data_status,
+        real_reads=is_production,
+        real_writes=is_production,
+    )
+
+
+def _execute_chain(
+    *,
+    run_id: str,
+    execution_mode: str,
+    artifact_root_path: str,
+    package_root_path: str,
+    jsonl_bytes: bytes,
+    jsonl_filename: str,
+    report_bytes: bytes,
+    provenance: str,
+    redaction_status: str,
+    sensitive_data_status: str,
+    real_reads: bool,
+    real_writes: bool,
+) -> PackageExecutionResult:
     terminal = evaluate_terminal_completion_jsonl(
         TerminalCompletionEvaluationRequest(
             canonical_run_id=run_id,
-            jsonl_bytes=request.jsonl_bytes,
-            jsonl_filename=request.jsonl_filename,
+            jsonl_bytes=jsonl_bytes,
+            jsonl_filename=jsonl_filename,
             expected_filename_stem=run_id,
         )
     )
     validate_last_run_report_alignment(
         LastRunReportAlignmentRequest(
             canonical_run_id=run_id,
-            report_bytes=request.last_run_report_bytes,
+            report_bytes=report_bytes,
             terminal_completion_status=terminal.terminal_completion_status,
             terminal_completion_eligible=terminal.terminal_completion_eligible,
         )
     )
 
-    evidence = _assemble_governed_evidence(request, run_id)
+    evidence = _assemble_governed_evidence(
+        run_id,
+        package_root_path,
+        jsonl_bytes,
+        provenance,
+        redaction_status,
+        sensitive_data_status,
+    )
     cpa_result = complete_package_authority.build_complete_package_authority_result(
         evidence["cpa_request"]
     )
     writer_result = evidence["writer_result"]
+    evidence_report = _build_evidence_report(
+        run_id=run_id,
+        execution_mode=execution_mode,
+        artifact_root_path=artifact_root_path,
+        package_root_path=package_root_path,
+        terminal=terminal,
+        writer_result=writer_result,
+        persistence_result=evidence["persistence_result"],
+        cpa_result=cpa_result,
+        content_hash=evidence["content_hash"],
+        provenance=provenance,
+        redaction_status=redaction_status,
+    )
     return PackageExecutionResult(
         canonical_run_id=run_id,
-        execution_mode=request.execution_mode,
+        execution_mode=execution_mode,
         terminal_completion_status=terminal.terminal_completion_status,
         written_artifact_path=writer_result["artifact_path"],
         written_artifact_sha256=writer_result["artifact_sha256"],
         complete_package_authority_result=cpa_result,
+        real_vps_runtime_artifact_reads=real_reads,
+        real_vps_package_writes=real_writes,
+        vps_mode_implemented=execution_mode == EXECUTION_MODE_VPS,
+        evidence_report=evidence_report,
     )
+
+
+def _production_jsonl_reader(run_id: str, artifact_root_path: str) -> bytes:
+    result = runtime_artifact_file_reader.read_jsonl_event_stream(
+        canonical_run_id=run_id,
+        artifact_root_path_string=artifact_root_path,
+        source_artifact_authority_result=_source_artifact_result(
+            run_id, "recorded", "not_required"
+        ),
+        runtime_artifact_discovery_result=_discovery_result(
+            run_id, "recorded", "not_required"
+        ),
+    )
+    return result["file_bytes"]
+
+
+def _production_report_reader(run_id: str, artifact_root_path: str) -> bytes:
+    result = runtime_artifact_file_reader.read_last_run_report(
+        canonical_run_id=run_id,
+        artifact_root_path_string=artifact_root_path,
+        source_artifact_authority_result=_source_artifact_result(
+            run_id, "recorded", "not_required"
+        ),
+        runtime_artifact_discovery_result=_discovery_result(
+            run_id, "recorded", "not_required"
+        ),
+    )
+    return result["file_bytes"]
+
+
+def _production_vps_adapter() -> VpsExecutionAdapter:
+    return VpsExecutionAdapter(
+        artifact_root_path=GOVERNED_ARTIFACT_ROOT,
+        package_root_path=GOVERNED_PACKAGE_ROOT,
+        jsonl_reader=_production_jsonl_reader,
+        report_reader=_production_report_reader,
+    )
+
+
+def _build_evidence_report(
+    *,
+    run_id: str,
+    execution_mode: str,
+    artifact_root_path: str,
+    package_root_path: str,
+    terminal: Any,
+    writer_result: Mapping[str, Any],
+    persistence_result: Mapping[str, Any],
+    cpa_result: Any,
+    content_hash: str,
+    provenance: str,
+    redaction_status: str,
+) -> dict[str, Any]:
+    return {
+        "run_id": run_id,
+        "command_surface": PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE,
+        "execution_mode": execution_mode,
+        "artifact_root": artifact_root_path,
+        "package_root": package_root_path,
+        "package_directory": f"{package_root_path}/{run_id}",
+        "jsonl_artifact_family": f"logs/{run_id}.jsonl",
+        "report_artifact_family": "last_run_report.json",
+        "terminal_completion_status": terminal.terminal_completion_status,
+        "terminal_completion_eligible": terminal.terminal_completion_eligible,
+        "last_run_report_alignment_status": "aligned",
+        "package_writer_result_summary": {
+            "write_performed": writer_result.get("write_performed"),
+            "checksum_verified": writer_result.get("checksum_verified"),
+            "no_overwrite": writer_result.get("no_overwrite"),
+            "lifecycle_status": writer_result.get("lifecycle_status"),
+            "artifact_path": writer_result.get("artifact_path"),
+            "artifact_sha256": writer_result.get("artifact_sha256"),
+        },
+        "package_persistence_result_summary": {
+            "result_type": persistence_result.get("result_type"),
+            "lifecycle_status": persistence_result.get("lifecycle_status"),
+            "actual_filesystem_writes": persistence_result.get(
+                "actual_filesystem_writes"
+            ),
+        },
+        "complete_package_authority_result_summary": {
+            "complete_package_authority": cpa_result.complete_package_authority,
+            "production_gate_c_complete": cpa_result.production_gate_c_complete,
+            "vps_execution_gate_required": cpa_result.vps_execution_gate_required,
+        },
+        "written_artifact_sha256": writer_result.get("artifact_sha256"),
+        "content_hash": content_hash,
+        "no_overwrite": writer_result.get("no_overwrite"),
+        "finalized_lifecycle_status": writer_result.get("lifecycle_status"),
+        "immutability_marker": storage_implementation.IMMUTABILITY_MARKER,
+        "redaction_status": redaction_status,
+        "provenance": provenance,
+        "order_state_binding": False,
+        "production_gate_c_complete": False,
+        "gate_d_authority": False,
+        "broker_api_authority": False,
+        "trading_authority": False,
+    }
 
 
 def _reject_order_state(request: PackageExecutionRequest) -> None:
@@ -254,19 +475,18 @@ def _reject_order_state(request: PackageExecutionRequest) -> None:
             raise ValueError(ORDER_STATE_EXECUTION_BLOCKED_MESSAGE)
 
 
-def _validate_roots_for_mode(request: PackageExecutionRequest) -> None:
-    if request.execution_mode == EXECUTION_MODE_VPS:
-        if request.artifact_root_path != GOVERNED_ARTIFACT_ROOT:
-            raise ValueError("vps mode requires the governed artifact root")
-        if request.package_root_path != GOVERNED_PACKAGE_ROOT:
-            raise ValueError("vps mode requires the governed package root")
-        if tuple(request.approved_artifact_root_paths) != (GOVERNED_ARTIFACT_ROOT,):
-            raise ValueError("vps mode requires exactly the governed artifact root")
-        if tuple(request.approved_package_root_paths) != (GOVERNED_PACKAGE_ROOT,):
-            raise ValueError("vps mode requires exactly the governed package root")
-        return
+def _validate_vps_request_roots(request: PackageExecutionRequest) -> None:
+    if request.artifact_root_path != GOVERNED_ARTIFACT_ROOT:
+        raise ValueError("vps mode requires the governed artifact root")
+    if request.package_root_path != GOVERNED_PACKAGE_ROOT:
+        raise ValueError("vps mode requires the governed package root")
+    if tuple(request.approved_artifact_root_paths) != (GOVERNED_ARTIFACT_ROOT,):
+        raise ValueError("vps mode requires exactly the governed artifact root")
+    if tuple(request.approved_package_root_paths) != (GOVERNED_PACKAGE_ROOT,):
+        raise ValueError("vps mode requires exactly the governed package root")
 
-    # tmp_path_test mode
+
+def _validate_tmp_path_roots(request: PackageExecutionRequest) -> None:
     for root in (request.artifact_root_path, request.package_root_path):
         if not root.startswith("/"):
             raise ValueError("tmp_path_test roots must be absolute test paths")
@@ -279,11 +499,13 @@ def _validate_roots_for_mode(request: PackageExecutionRequest) -> None:
 
 
 def _assemble_governed_evidence(
-    request: PackageExecutionRequest,
     run_id: str,
+    package_root_path: str,
+    jsonl_bytes: bytes,
+    provenance: str,
+    redaction_status: str,
+    sensitive_data_status: str,
 ) -> dict[str, Any]:
-    provenance = request.provenance
-    redaction_status = request.redaction_status
     package_id = f"package_{run_id}"
 
     package_creation_result = package_creation.build_draft_package(
@@ -311,7 +533,7 @@ def _assemble_governed_evidence(
 
     writer_result = package_writer.write_package_artifact(
         _package_writer_request(
-            request,
+            package_root_path,
             run_id,
             fsa_result,
             completeness_result,
@@ -342,7 +564,7 @@ def _assemble_governed_evidence(
         source_artifact_authority_result=_source_artifact_result(run_id, provenance, redaction_status),
         source_path_ingestion_result=_source_path_ingestion_result(run_id, provenance, redaction_status),
         runtime_artifact_metadata=_runtime_artifact_metadata(run_id, provenance, redaction_status),
-        approved_file_read_result=_approved_file_read_result(run_id, request.jsonl_bytes, provenance, redaction_status),
+        approved_file_read_result=_approved_file_read_result(run_id, jsonl_bytes, provenance, redaction_status),
         package_layout_result=_package_layout_result(run_id, package_id),
         manifest=package_creation_result["manifest"],
         deterministic_serialization_result=_serialization_result(run_id),
@@ -360,10 +582,15 @@ def _assemble_governed_evidence(
             "observations": "not_applicable",
             "runtime_visibility": "not_applicable",
         },
-        sensitive_data_status=request.sensitive_data_status,
+        sensitive_data_status=sensitive_data_status,
         production_gate_c_claimed=False,
     )
-    return {"cpa_request": cpa_request, "writer_result": writer_result}
+    return {
+        "cpa_request": cpa_request,
+        "writer_result": writer_result,
+        "persistence_result": persistence_result,
+        "content_hash": content_hash,
+    }
 
 
 # --- governed input builders (parameterized by run_id and roots) ---
@@ -523,7 +750,7 @@ def _package_completeness_evidence(
 
 
 def _package_writer_request(
-    request: PackageExecutionRequest,
+    package_root_path: str,
     run_id: str,
     fsa_result: Mapping[str, Any],
     completeness_result: Mapping[str, Any],
@@ -543,8 +770,8 @@ def _package_writer_request(
         "approved_package_paths": (f"{GOVERNED_PACKAGE_ROOT_LABEL}/{run_id}",),
         "package_directory": run_id,
         "approved_package_directories": (run_id,),
-        "storage_root_path": request.package_root_path,
-        "approved_storage_root_paths": (request.package_root_path,),
+        "storage_root_path": package_root_path,
+        "approved_storage_root_paths": (package_root_path,),
         "artifact_relative_path": f"{run_id}/manifest.json",
         "artifact_bytes": artifact_bytes,
         "lifecycle_status": "finalized",
