@@ -14371,3 +14371,621 @@ def test_complete_package_authority_never_claims_production_authority(
     assert result.authority_boundary == (
         complete_package_authority.COMPLETE_PACKAGE_AUTHORITY_BOUNDARY
     )
+
+
+# ---------------------------------------------------------------------------
+# Package execution orchestration (terminal evaluator, report alignment,
+# orchestrator) implementation tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.terminal_completion_evaluator as terminal_completion_evaluator
+import tools.replay.last_run_report_alignment as last_run_report_alignment
+import tools.replay.package_execution_orchestrator as package_execution_orchestrator
+
+_PEO_RUN_ID = "run_2026-06-11T14:00:00Z_pe0001"
+
+
+def _peo_jsonl_lines(run_id: str, terminal_status: str = "blocked") -> list[str]:
+    return [
+        json.dumps(
+            {
+                "run_id": run_id,
+                "event_type": "system",
+                "stage": "startup",
+                "status": "ok",
+            }
+        ),
+        json.dumps(
+            {
+                "run_id": run_id,
+                "event_type": "position",
+                "stage": "reconcile",
+                "status": "mismatch",
+            }
+        ),
+        json.dumps(
+            {
+                "run_id": run_id,
+                "event_type": "system",
+                "stage": "completion",
+                "status": terminal_status,
+            }
+        ),
+    ]
+
+
+def _peo_jsonl_bytes(run_id: str = _PEO_RUN_ID, terminal_status: str = "blocked") -> bytes:
+    return ("\n".join(_peo_jsonl_lines(run_id, terminal_status)) + "\n").encode("utf-8")
+
+
+def _peo_report_bytes(run_id: str = _PEO_RUN_ID, status: str = "blocked") -> bytes:
+    return json.dumps({"run_id": run_id, "status": status}).encode("utf-8")
+
+
+def _tce_request(**overrides: object):
+    kwargs = {
+        "canonical_run_id": _PEO_RUN_ID,
+        "jsonl_bytes": _peo_jsonl_bytes(),
+        "jsonl_filename": f"logs/{_PEO_RUN_ID}.jsonl",
+        "expected_filename_stem": _PEO_RUN_ID,
+    }
+    kwargs.update(overrides)
+    return terminal_completion_evaluator.TerminalCompletionEvaluationRequest(**kwargs)
+
+
+def _evaluate(**overrides: object):
+    return terminal_completion_evaluator.evaluate_terminal_completion_jsonl(
+        _tce_request(**overrides)
+    )
+
+
+def _lrra_request(**overrides: object):
+    kwargs = {
+        "canonical_run_id": _PEO_RUN_ID,
+        "report_bytes": _peo_report_bytes(),
+        "terminal_completion_status": "blocked",
+        "terminal_completion_eligible": True,
+    }
+    kwargs.update(overrides)
+    return last_run_report_alignment.LastRunReportAlignmentRequest(**kwargs)
+
+
+def _align(**overrides: object):
+    return last_run_report_alignment.validate_last_run_report_alignment(
+        _lrra_request(**overrides)
+    )
+
+
+def _peo_request_kwargs(tmp_path: Path) -> dict:
+    package_root = tmp_path / "replay_packages"
+    package_dir = package_root / _PEO_RUN_ID
+    package_dir.mkdir(parents=True)
+    return {
+        "canonical_run_id": _PEO_RUN_ID,
+        "execution_mode": "tmp_path_test",
+        "artifact_root_path": str(tmp_path),
+        "package_root_path": str(package_root),
+        "jsonl_filename": f"logs/{_PEO_RUN_ID}.jsonl",
+        "jsonl_bytes": _peo_jsonl_bytes(),
+        "last_run_report_bytes": _peo_report_bytes(),
+        "package_dir_path": str(package_dir),
+        "approved_artifact_root_paths": (str(tmp_path),),
+        "approved_package_root_paths": (str(package_root),),
+    }
+
+
+def _peo_execute(tmp_path: Path, **overrides: object):
+    kwargs = _peo_request_kwargs(tmp_path)
+    kwargs.update(overrides)
+    request = package_execution_orchestrator.PackageExecutionRequest(**kwargs)
+    return package_execution_orchestrator.execute_package_orchestration(request)
+
+
+def _peo_execute_from(kwargs: dict, **overrides: object):
+    merged = {**kwargs, **overrides}
+    request = package_execution_orchestrator.PackageExecutionRequest(**merged)
+    return package_execution_orchestrator.execute_package_orchestration(request)
+
+
+# --- terminal_completion_evaluator ---
+
+
+def test_terminal_completion_evaluator_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "terminal_completion_evaluator.py"
+    )
+    assert module_path.exists()
+
+
+def test_terminal_completion_evaluator_boundary_markers() -> None:
+    boundary = (
+        terminal_completion_evaluator.TERMINAL_COMPLETION_EVALUATOR_AUTHORITY_BOUNDARY
+    )
+    assert "exactly_one_system_completion_event" in boundary
+    assert "run_id_must_match_filename_stem" in boundary
+    assert "ok_or_blocked_capture_eligible" in boundary
+    assert "error_status_diagnostic_only" in boundary
+    assert "no_runtime_capture_execution" in boundary
+    assert "no_real_vps_runtime_artifact_reads" in boundary
+    assert "no_package_writes" in boundary
+    assert "no_gate_d_authority" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_trading_authority" in boundary
+    assert terminal_completion_evaluator.TERMINAL_COMPLETION_ELIGIBLE_STATUSES == (
+        "ok",
+        "blocked",
+    )
+    assert terminal_completion_evaluator.TERMINAL_COMPLETION_DIAGNOSTIC_ONLY_STATUSES == (
+        "error",
+    )
+
+
+def test_terminal_completion_evaluator_ok_is_eligible() -> None:
+    result = _evaluate(jsonl_bytes=_peo_jsonl_bytes(terminal_status="ok"))
+    assert result.terminal_completion_status == "ok"
+    assert result.terminal_completion_eligible is True
+    assert result.terminal_event_count == 1
+
+
+def test_terminal_completion_evaluator_blocked_is_eligible() -> None:
+    result = _evaluate()
+    assert result.terminal_completion_status == "blocked"
+    assert result.terminal_completion_eligible is True
+
+
+def test_terminal_completion_evaluator_error_fails_closed() -> None:
+    with pytest.raises(ValueError, match="diagnostic only"):
+        _evaluate(jsonl_bytes=_peo_jsonl_bytes(terminal_status="error"))
+
+
+def test_terminal_completion_evaluator_zero_completion_fails() -> None:
+    only_startup = json.dumps(
+        {
+            "run_id": _PEO_RUN_ID,
+            "event_type": "system",
+            "stage": "startup",
+            "status": "ok",
+        }
+    )
+    with pytest.raises(ValueError, match="zero terminal completion"):
+        _evaluate(jsonl_bytes=(only_startup + "\n").encode("utf-8"))
+
+
+def test_terminal_completion_evaluator_duplicate_completion_fails() -> None:
+    completion = json.dumps(
+        {
+            "run_id": _PEO_RUN_ID,
+            "event_type": "system",
+            "stage": "completion",
+            "status": "blocked",
+        }
+    )
+    body = (completion + "\n" + completion + "\n").encode("utf-8")
+    with pytest.raises(ValueError, match="duplicate terminal completion"):
+        _evaluate(jsonl_bytes=body)
+
+
+def test_terminal_completion_evaluator_mixed_run_id_fails() -> None:
+    lines = _peo_jsonl_lines(_PEO_RUN_ID)
+    mixed = json.dumps(
+        {
+            "run_id": "run_OTHER",
+            "event_type": "data",
+            "stage": "market_input_captured",
+            "status": "ok",
+        }
+    )
+    body = ("\n".join([lines[0], mixed, lines[2]]) + "\n").encode("utf-8")
+    with pytest.raises(ValueError, match="mixed run_id"):
+        _evaluate(jsonl_bytes=body)
+
+
+def test_terminal_completion_evaluator_stem_mismatch_fails() -> None:
+    with pytest.raises(ValueError, match="stem"):
+        _evaluate(jsonl_filename="logs/run_DIFFERENT.jsonl")
+
+
+def test_terminal_completion_evaluator_non_jsonl_filename_fails() -> None:
+    with pytest.raises(ValueError, match="logs/.*jsonl|stem|.jsonl"):
+        _evaluate(jsonl_filename=f"logs/{_PEO_RUN_ID}.txt")
+
+
+def test_terminal_completion_evaluator_missing_run_id_line_fails() -> None:
+    no_run_id = json.dumps(
+        {"event_type": "system", "stage": "completion", "status": "ok"}
+    )
+    with pytest.raises(ValueError, match="missing run_id"):
+        _evaluate(jsonl_bytes=(no_run_id + "\n").encode("utf-8"))
+
+
+def test_terminal_completion_evaluator_missing_canonical_run_id_fails() -> None:
+    with pytest.raises(ValueError, match="canonical_run_id"):
+        _evaluate(canonical_run_id="")
+
+
+def test_terminal_completion_evaluator_malformed_json_fails() -> None:
+    with pytest.raises(ValueError, match="malformed json"):
+        _evaluate(jsonl_bytes=b"{not valid json}\n")
+
+
+def test_terminal_completion_evaluator_empty_jsonl_fails() -> None:
+    with pytest.raises(ValueError, match="empty jsonl"):
+        _evaluate(jsonl_bytes=b"")
+
+
+def test_terminal_completion_evaluator_non_object_record_fails() -> None:
+    with pytest.raises(ValueError, match="non-object"):
+        _evaluate(jsonl_bytes=b'["not","object"]\n')
+
+
+def test_terminal_completion_evaluator_unknown_status_fails() -> None:
+    weird = json.dumps(
+        {
+            "run_id": _PEO_RUN_ID,
+            "event_type": "system",
+            "stage": "completion",
+            "status": "mystery",
+        }
+    )
+    with pytest.raises(ValueError, match="unknown terminal completion"):
+        _evaluate(jsonl_bytes=(weird + "\n").encode("utf-8"))
+
+
+def test_terminal_completion_evaluator_result_no_downstream_authority() -> None:
+    result = _evaluate()
+    assert result.runtime_capture_execution is False
+    assert result.real_vps_runtime_artifact_reads is False
+    assert result.package_writes is False
+    assert result.gate_d_authority is False
+    assert result.evaluation_or_promotion is False
+    assert result.broker_api_authority is False
+    assert result.trading_authority is False
+
+
+# --- last_run_report_alignment ---
+
+
+def test_last_run_report_alignment_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "last_run_report_alignment.py"
+    )
+    assert module_path.exists()
+
+
+def test_last_run_report_alignment_boundary_markers() -> None:
+    boundary = (
+        last_run_report_alignment.LAST_RUN_REPORT_ALIGNMENT_AUTHORITY_BOUNDARY
+    )
+    assert "last_run_report_run_id_must_match_jsonl_stem" in boundary
+    assert "stale_report_fails_closed" in boundary
+    assert "no_runtime_capture_execution" in boundary
+    assert "no_real_vps_runtime_artifact_reads" in boundary
+    assert "no_package_writes" in boundary
+    assert "no_gate_d_authority" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_trading_authority" in boundary
+
+
+def test_last_run_report_alignment_valid_matching_report() -> None:
+    result = _align()
+    assert result.aligned is True
+    assert result.report_run_id == _PEO_RUN_ID
+    assert result.report_status == "blocked"
+
+
+def test_last_run_report_alignment_stale_run_id_fails() -> None:
+    with pytest.raises(ValueError, match="stale or mismatched"):
+        _align(report_bytes=_peo_report_bytes(run_id="run_STALE"))
+
+
+def test_last_run_report_alignment_status_contradiction_fails() -> None:
+    with pytest.raises(ValueError, match="contradicts terminal completion"):
+        _align(report_bytes=_peo_report_bytes(status="ok"))
+
+
+def test_last_run_report_alignment_error_status_fails() -> None:
+    with pytest.raises(ValueError, match="error status is not packageable"):
+        _align(
+            report_bytes=_peo_report_bytes(status="error"),
+            terminal_completion_status="error",
+        )
+
+
+def test_last_run_report_alignment_malformed_json_fails() -> None:
+    with pytest.raises(ValueError, match="malformed json"):
+        _align(report_bytes=b"{not json}")
+
+
+def test_last_run_report_alignment_non_object_fails() -> None:
+    with pytest.raises(ValueError, match="non-object"):
+        _align(report_bytes=b'["x"]')
+
+
+def test_last_run_report_alignment_result_no_downstream_authority() -> None:
+    result = _align()
+    assert result.runtime_capture_execution is False
+    assert result.real_vps_runtime_artifact_reads is False
+    assert result.package_writes is False
+    assert result.gate_d_authority is False
+    assert result.evaluation_or_promotion is False
+    assert result.broker_api_authority is False
+    assert result.trading_authority is False
+
+
+# --- package_execution_orchestrator ---
+
+
+def test_package_execution_orchestrator_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "package_execution_orchestrator.py"
+    )
+    assert module_path.exists()
+
+
+def test_package_execution_orchestrator_boundary_markers() -> None:
+    boundary = (
+        package_execution_orchestrator.PACKAGE_EXECUTION_ORCHESTRATOR_AUTHORITY_BOUNDARY
+    )
+    assert "terminal_completion_derived_from_jsonl_bytes" in boundary
+    assert "package_output_root_hard_pinned" in boundary
+    assert "tmp_path_tests_do_not_satisfy_production_gate_c" in boundary
+    assert "no_runtime_capture_execution" in boundary
+    assert "no_order_state_binding" in boundary
+    assert "no_gate_d_authority" in boundary
+    assert "no_evaluation_or_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_strategy_risk_execution_authority" in boundary
+    assert "no_paper_trading_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+    assert package_execution_orchestrator.GOVERNED_ARTIFACT_ROOT == (
+        "/opt/openclaw-stocks"
+    )
+    assert package_execution_orchestrator.GOVERNED_PACKAGE_ROOT == (
+        "/opt/openclaw-stocks/replay_packages"
+    )
+
+
+def test_package_execution_orchestrator_valid_tmp_path_mechanics(
+    tmp_path: Path,
+) -> None:
+    result = _peo_execute(tmp_path)
+    assert result.result_type == (
+        package_execution_orchestrator.PACKAGE_EXECUTION_ORCHESTRATOR_RESULT
+    )
+    assert result.complete_package_authority is True
+    assert result.production_gate_c_complete is False
+    assert result.vps_execution_gate_required is True
+    assert result.real_vps_package_writes is False
+    assert result.real_vps_runtime_artifact_reads is False
+    assert result.runtime_capture_execution is False
+    assert result.order_state_binding is False
+    assert result.gate_d_authority is False
+    assert result.evaluation_or_promotion is False
+    assert result.broker_api_authority is False
+    assert result.strategy_risk_execution_authority is False
+    assert result.paper_trading_authority is False
+    assert result.live_trading_authority is False
+    assert result.terminal_completion_status == "blocked"
+    assert result.complete_package_authority_result.production_gate_c_complete is False
+    # the written artifact lives under the tmp_path package root only
+    assert str(tmp_path) in result.written_artifact_path
+    assert result.written_artifact_path.endswith(f"{_PEO_RUN_ID}/manifest.json")
+    written = Path(result.written_artifact_path)
+    assert written.exists()
+    assert (
+        hashlib.sha256(written.read_bytes()).hexdigest()
+        == result.written_artifact_sha256
+    )
+
+
+def test_package_execution_orchestrator_ok_terminal_succeeds(tmp_path: Path) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    result = _peo_execute_from(
+        kwargs,
+        jsonl_bytes=_peo_jsonl_bytes(terminal_status="ok"),
+        last_run_report_bytes=_peo_report_bytes(status="ok"),
+    )
+    assert result.complete_package_authority is True
+    assert result.terminal_completion_status == "ok"
+    assert result.production_gate_c_complete is False
+
+
+def test_package_execution_orchestrator_vps_rejects_bad_artifact_root(
+    tmp_path: Path,
+) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="governed artifact root"):
+        _peo_execute_from(
+            kwargs,
+            execution_mode="vps",
+            artifact_root_path="/not/governed",
+            package_root_path="/opt/openclaw-stocks/replay_packages",
+            approved_artifact_root_paths=("/not/governed",),
+            approved_package_root_paths=("/opt/openclaw-stocks/replay_packages",),
+        )
+
+
+def test_package_execution_orchestrator_vps_rejects_bad_package_root(
+    tmp_path: Path,
+) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="governed package root"):
+        _peo_execute_from(
+            kwargs,
+            execution_mode="vps",
+            artifact_root_path="/opt/openclaw-stocks",
+            package_root_path="/not/governed/replay_packages",
+            approved_artifact_root_paths=("/opt/openclaw-stocks",),
+            approved_package_root_paths=("/not/governed/replay_packages",),
+        )
+
+
+def test_package_execution_orchestrator_vps_pinned_still_deferred(
+    tmp_path: Path,
+) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="not authorized in this lane"):
+        _peo_execute_from(
+            kwargs,
+            execution_mode="vps",
+            artifact_root_path="/opt/openclaw-stocks",
+            package_root_path="/opt/openclaw-stocks/replay_packages",
+            approved_artifact_root_paths=("/opt/openclaw-stocks",),
+            approved_package_root_paths=("/opt/openclaw-stocks/replay_packages",),
+        )
+
+
+def test_package_execution_orchestrator_tmp_rejects_opt_artifact_root(
+    tmp_path: Path,
+) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="governed VPS artifact root"):
+        _peo_execute_from(kwargs, artifact_root_path="/opt/openclaw-stocks")
+
+
+def test_package_execution_orchestrator_tmp_rejects_opt_package_root(
+    tmp_path: Path,
+) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="governed VPS package root"):
+        _peo_execute_from(
+            kwargs, package_root_path="/opt/openclaw-stocks/replay_packages"
+        )
+
+
+def test_package_execution_orchestrator_tmp_rejects_repo_root_replay_packages(
+    tmp_path: Path,
+) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    # the repo-root replay_packages directory is the bare repo-relative form
+    with pytest.raises(ValueError, match="absolute test paths"):
+        _peo_execute_from(kwargs, package_root_path="replay_packages")
+
+
+def test_package_execution_orchestrator_unknown_mode_fails(tmp_path: Path) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="unknown execution_mode"):
+        _peo_execute_from(kwargs, execution_mode="bogus_mode")
+
+
+def test_package_execution_orchestrator_production_claim_fails(tmp_path: Path) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="vps execution gate"):
+        _peo_execute_from(kwargs, production_gate_c_claimed=True)
+
+
+def test_package_execution_orchestrator_order_state_binding_fails(
+    tmp_path: Path,
+) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="binding is blocked"):
+        _peo_execute_from(kwargs, jsonl_filename="logs/order_state.jsonl")
+
+
+def test_package_execution_orchestrator_error_terminal_fails(tmp_path: Path) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="diagnostic only"):
+        _peo_execute_from(kwargs, jsonl_bytes=_peo_jsonl_bytes(terminal_status="error"))
+
+
+def test_package_execution_orchestrator_stale_report_fails(tmp_path: Path) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="stale or mismatched"):
+        _peo_execute_from(kwargs, last_run_report_bytes=_peo_report_bytes(run_id="run_STALE"))
+
+
+def test_package_execution_orchestrator_malformed_jsonl_fails(tmp_path: Path) -> None:
+    kwargs = _peo_request_kwargs(tmp_path)
+    with pytest.raises(ValueError, match="malformed json"):
+        _peo_execute_from(kwargs, jsonl_bytes=b"{bad}\n")
+
+
+def test_package_execution_orchestrator_cli_vps_deferred() -> None:
+    code = package_execution_orchestrator.main(
+        ["--run-id", _PEO_RUN_ID, "--execution-mode", "vps"]
+    )
+    assert code == 2
+
+
+def test_package_execution_orchestrator_cli_tmp_requires_programmatic() -> None:
+    code = package_execution_orchestrator.main(
+        ["--run-id", _PEO_RUN_ID, "--execution-mode", "tmp_path_test"]
+    )
+    assert code == 2
+
+
+def test_package_execution_orchestrator_module_is_governed_only() -> None:
+    for module in (
+        terminal_completion_evaluator,
+        last_run_report_alignment,
+        package_execution_orchestrator,
+    ):
+        source = Path(module.__file__).read_text(encoding="utf-8")  # type: ignore[arg-type]
+        for forbidden in (
+            "import os",
+            "import pathlib",
+            "import glob",
+            "import shutil",
+            "import subprocess",
+            "import requests",
+        ):
+            assert forbidden not in source, (
+                f"{Path(module.__file__).name} contains forbidden import: '{forbidden}'"
+            )
+        for forbidden_call in ("open(", ".write_text(", ".write_bytes(", "Path("):
+            assert forbidden_call not in source, (
+                f"{Path(module.__file__).name} contains forbidden call: "
+                f"'{forbidden_call}'"
+            )
+
+
+# --- boundary preservation ---
+
+
+def test_orchestrator_guarded_modules_remain_absent() -> None:
+    replay_dir = Path(__file__).resolve().parents[1] / "tools" / "replay"
+    assert not (replay_dir / "package_creator.py").exists()
+    assert not (replay_dir / "manifest_writer.py").exists()
+    assert not (replay_dir / "manifest_generator.py").exists()
+
+
+def test_orchestrator_preserves_package_completeness_boundary() -> None:
+    assert package_completeness.COMPLETE_REPLAY_PACKAGE_AUTHORITY == (
+        "complete_replay_package_authority_metadata_only"
+    )
+    boundary = package_completeness.PACKAGE_COMPLETENESS_AUTHORITY_BOUNDARY
+    assert "no_actual_filesystem_reads" in boundary
+    assert "no_actual_filesystem_writes" in boundary
+
+
+def test_orchestrator_complete_package_authority_production_flag_hardcoded() -> None:
+    result_default = complete_package_authority.CompletePackageAuthorityResult(
+        canonical_run_id=_PEO_RUN_ID,
+        content_hash="x",
+        storage_lifecycle_status="finalized",
+        immutability_marker=storage_implementation.IMMUTABILITY_MARKER,
+    )
+    assert result_default.production_gate_c_complete is False
+    assert result_default.vps_execution_gate_required is True
+
+
+def test_orchestrator_gate_status_preserved_in_map() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate C (complete replay package authority): **INCOMPLETE**" in map_text
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+
+
+def test_orchestrator_no_repo_root_replay_packages(tmp_path: Path) -> None:
+    _peo_execute(tmp_path)
+    repo_root = Path(__file__).resolve().parents[1]
+    assert not (repo_root / "replay_packages").exists()
