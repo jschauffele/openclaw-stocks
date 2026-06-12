@@ -1254,6 +1254,234 @@ C1 does not authorize:
 - Sell
 - Broker remediation
 
+## Gate C Record C2: VPS Execution Authority Contract
+
+### C2 Status
+
+Recorded as a docs-only governance record on 2026-06-11. This is the bounded
+VPS execution authority contract, recorded now that the package execution
+orchestrator interface is source-controlled and the future command shape is
+nameable.
+
+C2 is **COMPLETE** as a governance contract record only. C2 does not mark
+production Gate C complete, does not approve immediate VPS execution, does not
+implement VPS mode, and does not open Gate D or Unit 12.
+
+C2 does not imply that the current `package_execution_orchestrator` CLI already
+performs VPS package execution. The source-controlled command shape is
+nameable, but `vps` mode currently **defers and refuses** real execution: both
+`execute_package_orchestration(...)` and `main(...)` fail closed in `vps` mode
+(`execute_package_orchestration` raises `VPS_EXECUTION_DEFERRED_MESSAGE`; the
+CLI prints the deferral and returns exit code 2). Real execution remains
+blocked until a later implementation gate enables the bounded VPS read/write
+path.
+
+### C2 Gate Prerequisite Chain Status
+
+- Source-reference/source-path vocabulary: **COMPLETE**
+- Vocabulary boundary verifier: **COMPLETE**
+- Gate A (runtime capture authority — A1 and A2): **COMPLETE**
+- Gate B (package writer/persistence — B1 plus implementation): **COMPLETE**
+- C1 (complete replay package authority governance record): **COMPLETE**
+- Local complete package authority module: **IMPLEMENTED**
+- Package execution orchestrator, terminal completion evaluator, last_run_report
+  alignment checker: **IMPLEMENTED**
+- C2 VPS execution authority contract: **COMPLETE** (this record, governance
+  contract only)
+- Gate C (complete replay package authority): **INCOMPLETE** (production
+  completion not recorded; bounded VPS execution evidence does not exist)
+- Gate D (evaluation prerequisite governance): **NOT STARTED**
+- Unit 12: **BLOCKED** (production Gate C incomplete, Gate D not started)
+
+### C2 Future Bounded VPS Command Shape
+
+The future bounded VPS package-execution command shape is:
+
+```
+python -m tools.replay.package_execution_orchestrator --run-id <run_id> --execution-mode vps
+```
+
+This command shape is source-controlled authority metadata
+(`PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE` in
+`tools/replay/package_execution_orchestrator.py`) and is recorded as the
+expected future execution interface. It does not execute today.
+
+Actual execution remains blocked until all of the following occur in order:
+
+- A later local implementation gate wires `vps` mode to governed runtime
+  artifact reads and governed package writes.
+- That implementation is committed, pushed, and VPS-synced.
+- A separate explicit VPS execution gate is opened by the operator.
+
+### C2 Governed Roots
+
+The exact governed roots for future VPS execution are:
+
+- Artifact root: `/opt/openclaw-stocks`
+- Package output root: `/opt/openclaw-stocks/replay_packages`
+- Package directory family: `/opt/openclaw-stocks/replay_packages/{run_id}`
+
+Approved artifact families (read-only, governed):
+
+- `logs/{run_id}.jsonl` — canonical JSONL event log per run
+- `last_run_report.json` — derived operational summary, matched to JSONL run_id
+
+Blocked artifact:
+
+- `order_state.json` — reads, writes, and complete-package binding remain
+  fail-closed pending a later explicit binding gate.
+
+No other artifact family may be read or bound without a later explicit gate.
+
+### C2 Eligible-Run Selection Rule
+
+- The `run_id` must be explicitly supplied by the operator.
+- The `run_id` must correspond to `logs/{run_id}.jsonl`.
+- The JSONL filename stem must match the canonical `run_id`.
+- Every JSONL line carrying `run_id`/`canonical_run_id` must match the canonical
+  `run_id`.
+- Terminal completion status must be derived from JSONL bytes by
+  `terminal_completion_evaluator`, not hand-asserted.
+- Exactly one event with `event_type == "system"` and `stage == "completion"`
+  must exist.
+- Terminal status `ok` is eligible.
+- Terminal status `blocked` is eligible, subject to existing fail-closed
+  alignment guards.
+- Terminal status `error` is diagnostic only and not package-eligible.
+- Zero, duplicate, malformed, missing, unknown, mixed-run, stale, or ambiguous
+  completion evidence fails closed.
+
+### C2 last_run_report Alignment Rule
+
+- `last_run_report.json` must be parsed from bytes by
+  `last_run_report_alignment`.
+- The report `run_id`/`canonical_run_id` must match the canonical `run_id` and
+  the JSONL filename stem.
+- A stale report (run_id mismatch or absent) fails closed.
+- The report status must not contradict the JSONL-derived terminal status.
+- A report `error` status fails closed.
+- Missing optional provenance in `last_run_report.json` may be recorded as
+  `not_present` metadata, but cannot be treated as production provenance unless
+  separately provided by the package evidence chain.
+
+### C2 Future VPS Execution Evidence Requirements
+
+A future bounded VPS execution gate must produce and preserve:
+
+- VPS repo alignment at the expected commit.
+- Clean VPS tree before and after.
+- venv Python validation.
+- Verifier pass.
+- Test suite pass.
+- Package output root state before execution.
+- No pre-existing package directory for the selected `run_id` unless explicitly
+  handled by a no-overwrite / fail-closed policy.
+- JSONL read evidence from the approved file-reader path.
+- `last_run_report.json` read evidence from the approved file-reader path.
+- Terminal completion evaluation result derived from JSONL bytes.
+- `last_run_report` alignment result derived from bytes.
+- Manifest evidence.
+- Deterministic serialization evidence.
+- Hash computation evidence.
+- Integrity validation evidence.
+- Package writer result.
+- Package persistence result.
+- Complete package authority result.
+- Written package path.
+- Written artifact sha256 digests.
+- Post-write re-read hash verification.
+- Finalized lifecycle status.
+- No-overwrite finalization evidence.
+- Immutability marker.
+- Provenance.
+- Redaction status.
+- Explicit absent/not_applicable declarations for optional artifacts.
+- No order_state binding.
+- A final machine-readable execution evidence report.
+
+### C2 Required Future Implementation Before Execution
+
+Before a real VPS execution gate may run, a later local implementation gate
+must enable the current orchestrator's `vps` mode to:
+
+- Read `logs/{run_id}.jsonl` via
+  `runtime_artifact_file_reader.read_jsonl_event_stream`.
+- Read `last_run_report.json` via
+  `runtime_artifact_file_reader.read_last_run_report`.
+- Pin `artifact_root_path` exactly to `/opt/openclaw-stocks`.
+- Pin `package_root_path` exactly to `/opt/openclaw-stocks/replay_packages`.
+- Reject all non-source-controlled roots in `vps` mode.
+- Write only under `/opt/openclaw-stocks/replay_packages/{run_id}`.
+- Reject pre-existing finalized package directories unless a later explicit
+  no-overwrite-safe policy allows otherwise.
+- Produce a machine-readable evidence report.
+- Continue to reject `order_state.json`.
+- Continue to return `production_gate_c_complete=False` from code, because
+  production Gate C completion is recorded by governance after evidence review,
+  not self-declared by code.
+
+### C2 Production Gate C Completion Rule
+
+- Production Gate C remains **INCOMPLETE** after C2.
+- Production Gate C can only be completed by a later docs-only completion record
+  after bounded VPS execution evidence exists and is reviewed.
+- Code must not self-declare production Gate C completion.
+- `complete_package_authority.py` and `package_execution_orchestrator.py` must
+  continue to keep `production_gate_c_complete=False`.
+
+### C2 Gate D and Unit 12 Status
+
+- Gate D remains **NOT STARTED**.
+- Gate D requires production Gate C completion plus finalized immutable evidence
+  plus separate evaluation prerequisite governance.
+- Unit 12 remains **BLOCKED** after C2.
+- No evaluation, attribution engine, experiment registry, promotion workflow,
+  metric authority, broker/API behavior, strategy/risk/execution behavior,
+  paper trading, or live trading is approved by C2.
+
+### C2 Non-Authorization Statement
+
+C2 does not authorize:
+
+- Immediate VPS execution
+- Real VPS runtime artifact reads
+- Real VPS package writes
+- Runtime capture execution
+- order_state.json reads
+- order_state.json writes
+- order_state.json binding
+- Source path ingestion against the real filesystem
+- Arbitrary file path ingestion
+- Artifact discovery outside approved families
+- Package creation outside later approved gates
+- Filesystem-backed package persistence outside later approved gates
+- Immutable production evidence creation
+- Production Gate C completion
+- Gate D
+- Unit 12
+- Evaluation implementation
+- Attribution engine implementation
+- Experiment registry implementation
+- Promotion workflow
+- Broker/API/TWS/Alpaca/IBKR behavior
+- Strategy behavior changes
+- Risk behavior changes
+- Execution behavior changes
+- Config changes
+- Credential changes
+- `.env` changes
+- systemd changes
+- Scheduler changes
+- Deployment changes
+- Paper trading approval
+- Live trading approval
+- Order submission
+- Order cancellation
+- Cleanup
+- Flatten
+- Sell
+- Broker remediation
+
 ## Drift Risks
 
 Known drift risks to guard:
