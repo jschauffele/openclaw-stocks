@@ -15347,3 +15347,206 @@ def test_vps_mode_orchestrator_remains_governed_only() -> None:
         assert forbidden not in source
     for forbidden_call in ("open(", ".write_text(", ".write_bytes(", "Path("):
         assert forbidden_call not in source
+
+
+# ---------------------------------------------------------------------------
+# Governed VPS package writer authority tests
+# ---------------------------------------------------------------------------
+
+_WA_RUN_ID = "run_2026-06-12T05:00:11Z_ebb9b1"
+
+
+def _vps_writer_input(**overrides: object) -> dict:
+    """A filesystem_writer request shaped for the governed VPS package root.
+
+    These dicts exercise the pure (no-filesystem) vps writer authority validator
+    only. No test calls write_replay_package_artifact with this input, so no
+    test touches /opt/openclaw-stocks.
+    """
+    base = {
+        "canonical_run_id": _WA_RUN_ID,
+        "filesystem_storage_authority_result": {
+            "evidence_only": True,
+            "actual_filesystem_writes": False,
+        },
+        "package_completeness_result": {
+            "package_completeness": True,
+            "complete_replay_package_authority": True,
+        },
+        "storage_implementation_result": {
+            "evidence_only": True,
+            "actual_filesystem_writes": False,
+            "canonical_run_id": _WA_RUN_ID,
+        },
+        "storage_root": "replay_packages",
+        "approved_storage_roots": ("replay_packages",),
+        "package_path": f"replay_packages/{_WA_RUN_ID}",
+        "approved_package_paths": (f"replay_packages/{_WA_RUN_ID}",),
+        "package_directory": _WA_RUN_ID,
+        "approved_package_directories": (_WA_RUN_ID,),
+        "storage_root_path": "/opt/openclaw-stocks/replay_packages",
+        "approved_storage_root_paths": ("/opt/openclaw-stocks/replay_packages",),
+        "artifact_relative_path": f"{_WA_RUN_ID}/manifest.json",
+        "artifact_bytes": b'{"canonical_run_id":"x"}',
+        "lifecycle_status": "finalized",
+        "provenance": "recorded",
+        "redaction_status": "not_required",
+        "source_references": ("event_jsonl",),
+        "known_source_references": ("event_jsonl",),
+        "input_run_ids": (_WA_RUN_ID,),
+        "allow_absolute_storage_root": True,
+        "writer_authority_mode": "vps",
+    }
+    base.update(overrides)
+    return base
+
+
+def _vps_writer_authority(**overrides: object) -> None:
+    normalized = filesystem_writer.FilesystemWriterInput(
+        **_vps_writer_input(**overrides)
+    )
+    filesystem_writer._validate_vps_writer_authority(normalized)
+
+
+def test_vps_writer_constants_exact() -> None:
+    assert filesystem_writer.GOVERNED_VPS_ARTIFACT_ROOT_PATH == "/opt/openclaw-stocks"
+    assert filesystem_writer.GOVERNED_VPS_PACKAGE_ROOT_PATH == (
+        "/opt/openclaw-stocks/replay_packages"
+    )
+    assert filesystem_writer.WRITER_AUTHORITY_MODE_VPS == "vps"
+    assert filesystem_writer.WRITER_AUTHORITY_MODE_TMP_PATH_TEST == "tmp_path_test"
+
+
+def test_vps_writer_authority_approves_governed_path() -> None:
+    # the exact previously-failing target is approved under explicit vps authority
+    _vps_writer_authority()  # must not raise
+
+
+def test_vps_writer_authority_requires_vps_mode_for_governed_root(
+    tmp_path: Path,
+) -> None:
+    # a fully valid writer request that points storage_root_path at the governed
+    # VPS root is rejected in default tmp_path_test mode before any write occurs
+    request = _pw_filesystem_writer_input(tmp_path)
+    request["storage_root_path"] = "/opt/openclaw-stocks/replay_packages"
+    request["approved_storage_root_paths"] = ("/opt/openclaw-stocks/replay_packages",)
+    request["writer_authority_mode"] = "tmp_path_test"
+    with pytest.raises(ValueError, match="must not target the governed VPS root"):
+        filesystem_writer.write_replay_package_artifact(request)
+    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+
+
+def test_vps_writer_authority_rejects_wrong_package_root() -> None:
+    with pytest.raises(ValueError, match="governed package root"):
+        _vps_writer_authority(
+            storage_root_path="/opt/openclaw-stocks/other_packages",
+            approved_storage_root_paths=("/opt/openclaw-stocks/other_packages",),
+        )
+
+
+def test_vps_writer_authority_rejects_arbitrary_absolute_root() -> None:
+    with pytest.raises(ValueError, match="governed package root"):
+        _vps_writer_authority(
+            storage_root_path="/tmp/evil/replay_packages",
+            approved_storage_root_paths=("/tmp/evil/replay_packages",),
+        )
+
+
+def test_vps_writer_authority_rejects_extra_approved_root() -> None:
+    with pytest.raises(ValueError, match="exactly the governed package root"):
+        _vps_writer_authority(
+            approved_storage_root_paths=(
+                "/opt/openclaw-stocks/replay_packages",
+                "/opt/openclaw-stocks/other",
+            ),
+        )
+
+
+def test_vps_writer_authority_rejects_run_id_dir_mismatch() -> None:
+    with pytest.raises(ValueError, match="must equal canonical_run_id"):
+        _vps_writer_authority(package_directory="run_DIFFERENT")
+
+
+def test_vps_writer_authority_rejects_traversal_artifact() -> None:
+    with pytest.raises(ValueError, match="under the run package directory"):
+        _vps_writer_authority(artifact_relative_path="../escape/manifest.json")
+
+
+def test_vps_writer_authority_rejects_order_state_artifact() -> None:
+    with pytest.raises(ValueError, match="order_state.json vps write is blocked"):
+        _vps_writer_authority(
+            artifact_relative_path=f"{_WA_RUN_ID}/order_state.json"
+        )
+
+
+def test_vps_writer_authority_rejects_order_state_run_id() -> None:
+    with pytest.raises(ValueError, match="unapproved vps run_id"):
+        _vps_writer_authority(
+            canonical_run_id="order_state",
+            package_directory="order_state",
+            artifact_relative_path="order_state/manifest.json",
+            input_run_ids=("order_state",),
+            storage_implementation_result={
+                "evidence_only": True,
+                "actual_filesystem_writes": False,
+                "canonical_run_id": "order_state",
+            },
+        )
+
+
+def test_vps_writer_authority_rejects_run_id_with_slash() -> None:
+    with pytest.raises(ValueError, match="unapproved vps run_id"):
+        _vps_writer_authority(canonical_run_id="run_a/../b")
+
+
+def test_vps_writer_authority_requires_absolute_authority() -> None:
+    with pytest.raises(ValueError, match="absolute governed root authority"):
+        _vps_writer_authority(allow_absolute_storage_root=False)
+
+
+def test_vps_writer_authority_rejects_missing_run_id() -> None:
+    with pytest.raises(ValueError, match="canonical_run_id is required"):
+        _vps_writer_authority(
+            canonical_run_id="",
+            package_directory="",
+        )
+
+
+def test_vps_writer_unknown_authority_mode_fails(tmp_path: Path) -> None:
+    # an unknown writer_authority_mode must fail closed at validation time
+    package_root = tmp_path / "replay_packages"
+    (package_root / _PEO_RUN_ID).mkdir(parents=True)
+    request = _pw_filesystem_writer_input(tmp_path)
+    request["writer_authority_mode"] = "bogus_mode"
+    with pytest.raises(ValueError, match="unknown writer authority mode"):
+        filesystem_writer.write_replay_package_artifact(request)
+
+
+def test_vps_writer_tmp_path_mechanics_unchanged(tmp_path: Path) -> None:
+    # default tmp_path_test mode still writes only under tmp_path
+    request = _pw_filesystem_writer_input(tmp_path)
+    result = filesystem_writer.write_replay_package_artifact(request)
+    assert result["write_performed"] is True
+    assert str(tmp_path) in result["artifact_path"]
+    assert "/opt/openclaw-stocks" not in result["artifact_path"]
+
+
+def test_vps_writer_authority_does_not_touch_opt() -> None:
+    # exercising the pure validator must never create or read /opt
+    _vps_writer_authority()
+    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+
+
+def test_vps_writer_orchestrator_production_uses_vps_writer_mode() -> None:
+    # the production vps path threads the narrow vps writer authority mode,
+    # while injected-adapter tests use tmp_path mechanics
+    assert package_execution_orchestrator.WRITER_AUTHORITY_MODE_VPS == "vps"
+    assert package_execution_orchestrator.WRITER_AUTHORITY_MODE_TMP_PATH_TEST == (
+        "tmp_path_test"
+    )
+
+
+def test_vps_writer_boundary_preservation_no_repo_root_replay_packages() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    if str(repo_root) != _GOVERNED_VPS_ARTIFACT_ROOT:
+        assert not (repo_root / "replay_packages").exists()

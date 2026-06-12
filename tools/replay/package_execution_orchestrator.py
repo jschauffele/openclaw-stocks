@@ -40,6 +40,7 @@ import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
 import tools.replay.complete_package_authority as complete_package_authority
 import tools.replay.filesystem_storage_authority as filesystem_storage_authority
+import tools.replay.filesystem_writer as filesystem_writer
 import tools.replay.hash_computation as hash_computation
 import tools.replay.hashing as hashing
 import tools.replay.integrity_validation as integrity_validation
@@ -95,6 +96,12 @@ ALLOWED_EXECUTION_MODES: tuple[str, ...] = (
     EXECUTION_MODE_TMP_PATH_TEST,
     EXECUTION_MODE_VPS,
 )
+
+# Writer authority modes passed through to filesystem_writer. Only a real
+# (non-injected) production vps execution uses the narrow vps writer authority;
+# tmp_path_test mechanics and injected-adapter vps tests use tmp_path mechanics.
+WRITER_AUTHORITY_MODE_TMP_PATH_TEST = filesystem_writer.WRITER_AUTHORITY_MODE_TMP_PATH_TEST
+WRITER_AUTHORITY_MODE_VPS = filesystem_writer.WRITER_AUTHORITY_MODE_VPS
 
 _EVENT_JSONL_REF = "event_jsonl"
 _DRAFT_PACKAGE_REF = "draft_package"
@@ -247,6 +254,7 @@ def execute_package_orchestration(
         sensitive_data_status=request.sensitive_data_status,
         real_reads=False,
         real_writes=False,
+        writer_authority_mode=WRITER_AUTHORITY_MODE_TMP_PATH_TEST,
     )
 
 
@@ -278,6 +286,13 @@ def _execute_vps(
 
     jsonl_bytes = adapter.jsonl_reader(run_id, adapter.artifact_root_path)
     report_bytes = adapter.report_reader(run_id, adapter.artifact_root_path)
+    # Real /opt writes use the narrow vps writer authority; injected tmp_path
+    # adapters reuse the tmp_path_test writer mechanics.
+    writer_authority_mode = (
+        WRITER_AUTHORITY_MODE_VPS
+        if is_production
+        else WRITER_AUTHORITY_MODE_TMP_PATH_TEST
+    )
     return _execute_chain(
         run_id=run_id,
         execution_mode=EXECUTION_MODE_VPS,
@@ -291,6 +306,7 @@ def _execute_vps(
         sensitive_data_status=request.sensitive_data_status,
         real_reads=is_production,
         real_writes=is_production,
+        writer_authority_mode=writer_authority_mode,
     )
 
 
@@ -308,6 +324,7 @@ def _execute_chain(
     sensitive_data_status: str,
     real_reads: bool,
     real_writes: bool,
+    writer_authority_mode: str,
 ) -> PackageExecutionResult:
     terminal = evaluate_terminal_completion_jsonl(
         TerminalCompletionEvaluationRequest(
@@ -333,6 +350,7 @@ def _execute_chain(
         provenance,
         redaction_status,
         sensitive_data_status,
+        writer_authority_mode,
     )
     cpa_result = complete_package_authority.build_complete_package_authority_result(
         evidence["cpa_request"]
@@ -505,6 +523,7 @@ def _assemble_governed_evidence(
     provenance: str,
     redaction_status: str,
     sensitive_data_status: str,
+    writer_authority_mode: str,
 ) -> dict[str, Any]:
     package_id = f"package_{run_id}"
 
@@ -541,6 +560,7 @@ def _assemble_governed_evidence(
             artifact_bytes,
             provenance,
             redaction_status,
+            writer_authority_mode,
         )
     )
     persistence_result = package_persistence.build_package_persistence_result(
@@ -758,9 +778,11 @@ def _package_writer_request(
     artifact_bytes: bytes,
     provenance: str,
     redaction_status: str,
+    writer_authority_mode: str,
 ) -> dict[str, Any]:
     return {
         "canonical_run_id": run_id,
+        "writer_authority_mode": writer_authority_mode,
         "filesystem_storage_authority_result": fsa_result,
         "package_completeness_result": completeness_result,
         "storage_implementation_result": storage_impl_result,

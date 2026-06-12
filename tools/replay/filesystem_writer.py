@@ -38,6 +38,19 @@ WRITER_RESULT = "filesystem_writer_result"
 WRITER_HASH_ALGORITHM = "sha256"
 ACCEPTABLE_WRITER_LIFECYCLE_STATES: tuple[str, ...] = ("finalized",)
 
+# Writer authority modes. The default keeps the historical tmp_path-only
+# mechanics (the package directory must already exist and the governed VPS root
+# is never writable). The vps mode is the narrow extension that authorizes a
+# write under exactly /opt/openclaw-stocks/replay_packages/{run_id}.
+WRITER_AUTHORITY_MODE_TMP_PATH_TEST = "tmp_path_test"
+WRITER_AUTHORITY_MODE_VPS = "vps"
+ACCEPTABLE_WRITER_AUTHORITY_MODES: tuple[str, ...] = (
+    WRITER_AUTHORITY_MODE_TMP_PATH_TEST,
+    WRITER_AUTHORITY_MODE_VPS,
+)
+GOVERNED_VPS_ARTIFACT_ROOT_PATH = "/opt/openclaw-stocks"
+GOVERNED_VPS_PACKAGE_ROOT_PATH = "/opt/openclaw-stocks/replay_packages"
+
 FILESYSTEM_WRITER_AUTHORITY_BOUNDARY: tuple[str, ...] = (
     "deterministic_filesystem_writer_only",
     "approved_local_paths_only",
@@ -186,6 +199,7 @@ class FilesystemWriterInput:
     rollback_marker: str = "rollback_marker_recorded"
     symlink_status: str = "not_symlink"
     repo_relative: bool = True
+    writer_authority_mode: str = WRITER_AUTHORITY_MODE_TMP_PATH_TEST
     sensitive_data_status: str = "clear"
     stale_input: bool = False
     malformed_input: bool = False
@@ -249,6 +263,13 @@ def write_replay_package_artifact(
 
     normalized = _normalize_writer_input(writer_input)
     target_path = _validate_writer_input(normalized)
+    if normalized.writer_authority_mode == WRITER_AUTHORITY_MODE_VPS:
+        # Validation already pinned the governed root and confirmed the package
+        # directory is absent; create the bounded {run_id} package directory.
+        package_dir_path = (
+            Path(normalized.storage_root_path) / normalized.package_directory
+        )
+        package_dir_path.mkdir(parents=True, exist_ok=False)
     temporary_path = _temporary_path_for(target_path)
     if temporary_path.exists():
         raise ValueError("non-atomic write path")
@@ -411,6 +432,8 @@ def _validate_target_path(
     writer_input: FilesystemWriterInput,
     target_path: Path,
 ) -> None:
+    if writer_input.writer_authority_mode not in ACCEPTABLE_WRITER_AUTHORITY_MODES:
+        raise ValueError("unknown writer authority mode")
     storage_root_path = Path(writer_input.storage_root_path)
     package_dir_path = storage_root_path / writer_input.package_directory
     if not _is_relative_to(target_path, package_dir_path):
@@ -421,14 +444,61 @@ def _validate_target_path(
         raise ValueError("symlink ambiguity")
     if writer_input.repo_relative is not True:
         raise ValueError("non-repo path ambiguity")
+
+    if writer_input.writer_authority_mode == WRITER_AUTHORITY_MODE_VPS:
+        _validate_vps_writer_authority(writer_input)
+        # Bounded VPS execution creates a fresh package directory. A pre-existing
+        # governed package directory for the run fails closed (no-overwrite-safe).
+        if package_dir_path.exists():
+            raise ValueError("pre-existing vps package directory")
+        return
+
+    # tmp_path_test (default): the governed VPS root is never writable here, and
+    # the package directory must already exist (created by the test harness).
+    if str(storage_root_path) == GOVERNED_VPS_PACKAGE_ROOT_PATH:
+        raise ValueError("tmp_path_test writer must not target the governed VPS root")
     if target_path.exists() and not writer_input.overwrite_existing:
         raise ValueError("attempted overwrite")
     if target_path.exists() and writer_input.lifecycle_status == "finalized":
         raise ValueError("no-overwrite violation")
     if not package_dir_path.exists():
         raise ValueError("unapproved package directory")
-    if not package_dir_path.is_dir():
-        raise ValueError("unapproved package directory")
+
+
+def _validate_vps_writer_authority(writer_input: FilesystemWriterInput) -> None:
+    """Pure (no-filesystem) authority check for a bounded VPS package write.
+
+    Approves a write only when the target is exactly
+    /opt/openclaw-stocks/replay_packages/{canonical_run_id}/<artifact>. Every
+    other root, run_id, or path shape fails closed.
+    """
+
+    run_id = writer_input.canonical_run_id
+    if not run_id:
+        raise ValueError("canonical_run_id is required")
+    if "/" in run_id or ".." in run_id or "order_state" in run_id:
+        raise ValueError("unapproved vps run_id")
+    if str(Path(writer_input.storage_root_path)) != GOVERNED_VPS_PACKAGE_ROOT_PATH:
+        raise ValueError("vps writer requires the governed package root")
+    if tuple(writer_input.approved_storage_root_paths) != (
+        GOVERNED_VPS_PACKAGE_ROOT_PATH,
+    ):
+        raise ValueError("vps writer requires exactly the governed package root")
+    if writer_input.package_directory != run_id:
+        raise ValueError("vps package directory must equal canonical_run_id")
+    if not writer_input.allow_absolute_storage_root:
+        raise ValueError("vps writer requires absolute governed root authority")
+    expected_prefix = f"{run_id}/"
+    if not writer_input.artifact_relative_path.startswith(expected_prefix):
+        raise ValueError("vps artifact must be under the run package directory")
+    if "order_state" in writer_input.artifact_relative_path:
+        raise ValueError("order_state.json vps write is blocked")
+    governed_package_dir = Path(GOVERNED_VPS_PACKAGE_ROOT_PATH) / run_id
+    target_path = (
+        Path(writer_input.storage_root_path) / writer_input.artifact_relative_path
+    )
+    if not _is_relative_to_pure(target_path, governed_package_dir):
+        raise ValueError("vps target escapes the governed package directory")
 
 
 def _build_result(
@@ -479,6 +549,15 @@ def _sha256(payload: bytes) -> str:
 def _is_relative_to(candidate: Path, root: Path) -> bool:
     try:
         candidate.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _is_relative_to_pure(candidate: Path, root: Path) -> bool:
+    """Pure path-containment check that does not touch the filesystem."""
+    try:
+        candidate.relative_to(root)
     except ValueError:
         return False
     return True
