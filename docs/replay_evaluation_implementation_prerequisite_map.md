@@ -3174,3 +3174,82 @@ validation, or any prior validation.
 - Active lane remains **STOP / NO ACTION** after validation.
 - Gate D overall remains **NOT COMPLETE → PARKED**. Gate D overall remains
   **NOT COMPLETE**.
+
+## Gate D Record: Candidate Test Harness Schema (Narrow Implementation)
+
+Module: `tools/replay/candidate_test_harness_schema.py`
+(`validate_candidate_test_harness`,
+`CANDIDATE_TEST_HARNESS_SCHEMA_VERSION = "0.1-candidate-test-harness-schema"`).
+
+Authorized solely by the Gate D Record D17 Candidate Test Harness Contract and
+the candidate test harness schema readiness audit
+(READY_FOR_SEPARATE_IMPLEMENTATION_GATE, narrow pure-schema scope only). This
+record documents an implementation, not a Gate D advancement.
+
+### What it is
+
+A deterministic, fail-closed, **pure in-memory** validator over already-loaded
+candidate test harness metadata. One harness record *declares* which candidate
+governance invariants a future test harness is expected to cover, the candidate
+subject references it pertains to, and its pure/in-memory authority boundary. The
+validator requires a governed harness identifier (`candidate_test_harness_*`),
+valid subject references (`candidate_artifact_id`, `replay_input_adapter_id`,
+`candidate_baseline_link_id`, `baseline_strategy_id`, each validated via its
+composed governance module), a well-formed `run_id`, a package hash **reference
+string** (never a filesystem path — path-like values fail closed), a non-empty
+`source_commit`, valid UTC ISO-8601 `asof_timestamp_utc <= decision_timestamp_
+utc`, `integrity_attestation_status="attested"`, `reproducibility_declaration_
+status="declared"`, and `no_baseline_mutation_attestation=True`.
+
+It **declares expected invariant coverage only**: `expected_invariants` must be
+non-empty, drawn exclusively from a fixed `KNOWN_EXPECTED_INVARIANTS` tuple
+mirroring the D17 contract verbatim (deterministic candidate artifact
+validation, candidate identity/version validation, replay input adapter
+fail-closed behavior, baseline no-mutation enforcement, as-of enforcement,
+reproducibility/integrity declaration enforcement, D14 ledger membership
+compatibility, broker/order/live-execution exclusion), and must cover the full
+set. It requires `harness_purity_status="pure_in_memory"` and
+`no_filesystem_or_package_read_until_separate_gate=True`. Future/leaked/
+post-decision markers, production/approved/live/promoted/mutable markers,
+**test-as-promotion-evidence markers**, broker/order/API/live-execution fields
+(presence), and any authority-bearing field (test_execution, replay/comparison/
+evaluation execution, scoring, promotion, candidate generation, package
+reads/writes/discovery, filesystem reads, path resolution, runtime, broker,
+paper, live) all fail closed. The validator returns non-authoritative metadata
+only, with every downstream authority flag `False`.
+
+### What it is NOT (non-authorizations)
+
+This module is research metadata schema validation only. It **does not execute
+tests** and **does not treat tests as promotion evidence**. It carries:
+
+- no package reads
+- no filesystem reads / no path resolution
+- no package discovery / no package mutation
+- no replay execution
+- no candidate generation
+- no comparison / scoring / evaluation
+- no promotion
+- no Unit 12
+- no runtime / systemd / timer / service authority
+- no broker / API / TWS / Alpaca / IBKR / order-state authority
+- no paper trading authority
+- no live trading authority
+
+Validating a harness record here authorizes nothing downstream and does not
+satisfy any precondition for candidate-evidence execution, which remains
+UNIMPLEMENTED and UNAPPROVED. Composition with existing governance modules does
+not change any composed module's behavior. Implementation authority is not
+inferred from D18, replay-input-adapter, candidate-baseline-linkage, or any prior
+validation.
+
+### Status after this implementation
+
+- Candidate test harness schema implementation is **pure in-memory only**,
+  **validates already-loaded harness metadata only**, and **declares expected
+  invariant coverage only**.
+- It **does not execute tests** and **does not treat tests as promotion
+  evidence**.
+- Active lane remains **STOP / NO ACTION** after validation.
+- Gate D overall remains **NOT COMPLETE → PARKED**. Gate D overall remains
+  **NOT COMPLETE**.

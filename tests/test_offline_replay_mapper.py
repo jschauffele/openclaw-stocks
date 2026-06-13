@@ -19673,3 +19673,397 @@ def test_candidate_baseline_linkage_record_present_and_parking_preserved() -> No
     assert "Gate D overall remains **NOT COMPLETE → PARKED**" in map_text
     # parking record pins preserved (append-only, not rewritten)
     assert "Active lane: **STOP / NO ACTION**" in map_text
+
+
+import tools.replay.candidate_test_harness_schema as candidate_test_harness_schema
+
+
+_FULL_INVARIANT_SET = (
+    "deterministic_candidate_artifact_validation",
+    "candidate_identity_version_validation",
+    "replay_input_adapter_fail_closed",
+    "baseline_no_mutation_enforcement",
+    "asof_enforcement",
+    "reproducibility_integrity_declaration_enforcement",
+    "d14_ledger_membership_compatibility",
+    "broker_order_live_execution_exclusion",
+)
+
+
+def _valid_candidate_test_harness(**overrides: object) -> dict:
+    record = {
+        "candidate_test_harness_id": "candidate_test_harness_3close_v2_001",
+        "candidate_artifact_id": "cand_artifact_3close_v2_001",
+        "replay_input_adapter_id": "replay_input_3close_v1_001",
+        "candidate_baseline_link_id": "candidate_baseline_link_3close_v2_001",
+        "baseline_strategy_id": "baseline_strategy_3close_v1",
+        "run_id": "run_2026-06-12T13:00:11Z_68d0b9",
+        "package_reference": "pkg:run_2026-06-12T13:00:11Z_68d0b9",
+        "source_commit": "252eeea0af2b9a9047314b889a565b45f63e4c22",
+        "expected_invariants": list(_FULL_INVARIANT_SET),
+        "harness_purity_status": "pure_in_memory",
+        "no_filesystem_or_package_read_until_separate_gate": True,
+        "asof_timestamp_utc": "2026-06-12T13:00:00Z",
+        "decision_timestamp_utc": "2026-06-12T13:00:11Z",
+        "integrity_attestation_status": "attested",
+        "reproducibility_declaration_status": "declared",
+        "no_baseline_mutation_attestation": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_candidate_test_harness_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "candidate_test_harness_schema.py"
+    )
+    assert module_path.exists()
+
+
+def test_candidate_test_harness_version_deterministic_non_empty() -> None:
+    version = candidate_test_harness_schema.CANDIDATE_TEST_HARNESS_SCHEMA_VERSION
+    assert isinstance(version, str) and version
+    assert (
+        candidate_test_harness_schema.SUPPORTED_CANDIDATE_TEST_HARNESS_SCHEMA_VERSIONS
+        == (version,)
+    )
+
+
+def test_candidate_test_harness_known_invariants_match_d17() -> None:
+    assert (
+        candidate_test_harness_schema.KNOWN_EXPECTED_INVARIANTS
+        == _FULL_INVARIANT_SET
+    )
+
+
+def test_candidate_test_harness_valid_record_validates() -> None:
+    result = candidate_test_harness_schema.validate_candidate_test_harness(
+        _valid_candidate_test_harness()
+    )
+    assert result["result_type"] == (
+        candidate_test_harness_schema.CANDIDATE_TEST_HARNESS_SCHEMA_RESULT
+    )
+    assert result["candidate_test_harness_id"] == "candidate_test_harness_3close_v2_001"
+    assert result["declares_full_invariant_coverage"] is True
+    # tuple form of full set accepted; equal asof and decision allowed
+    candidate_test_harness_schema.validate_candidate_test_harness(
+        _valid_candidate_test_harness(
+            expected_invariants=_FULL_INVARIANT_SET,
+            asof_timestamp_utc="2026-06-12T13:00:11Z",
+        )
+    )
+
+
+def test_candidate_test_harness_non_mapping_fail_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        candidate_test_harness_schema.validate_candidate_test_harness("x")
+
+
+def test_candidate_test_harness_missing_required_fields_fail_closed() -> None:
+    for field in (
+        "candidate_test_harness_id",
+        "candidate_artifact_id",
+        "replay_input_adapter_id",
+        "candidate_baseline_link_id",
+        "baseline_strategy_id",
+        "run_id",
+        "package_reference",
+        "source_commit",
+        "harness_purity_status",
+        "asof_timestamp_utc",
+        "decision_timestamp_utc",
+    ):
+        rec = _valid_candidate_test_harness()
+        del rec[field]
+        with pytest.raises(ValueError, match="missing required field"):
+            candidate_test_harness_schema.validate_candidate_test_harness(rec)
+
+
+def test_candidate_test_harness_malformed_harness_id_fail_closed() -> None:
+    for bad in ("bad_id", "candidate_test_harness_", "candidate_test_harness_../x",
+                "candidate_test_harness_order_state"):
+        with pytest.raises(ValueError, match="malformed candidate test harness id"):
+            candidate_test_harness_schema.validate_candidate_test_harness(
+                _valid_candidate_test_harness(candidate_test_harness_id=bad)
+            )
+
+
+def test_candidate_test_harness_malformed_subject_ids_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed candidate artifact id"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(candidate_artifact_id="prod_x")
+        )
+    with pytest.raises(ValueError, match="malformed replay input adapter id"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(replay_input_adapter_id="adapter_x")
+        )
+    with pytest.raises(ValueError, match="malformed candidate baseline link id"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(candidate_baseline_link_id="link_x")
+        )
+    with pytest.raises(ValueError, match="malformed baseline strategy id"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(baseline_strategy_id="cand_strategy_x")
+        )
+
+
+def test_candidate_test_harness_malformed_run_id_fail_closed() -> None:
+    for bad in ("2026-06-12", "run_", "run_../x", "run_a/b"):
+        with pytest.raises(ValueError, match="malformed run_id"):
+            candidate_test_harness_schema.validate_candidate_test_harness(
+                _valid_candidate_test_harness(run_id=bad)
+            )
+
+
+def test_candidate_test_harness_path_like_package_reference_fail_closed() -> None:
+    for bad in ("/opt/openclaw-stocks/replay_packages/x", "../x", "a\\b", " pkg:x"):
+        with pytest.raises(ValueError, match="malformed package reference"):
+            candidate_test_harness_schema.validate_candidate_test_harness(
+                _valid_candidate_test_harness(package_reference=bad)
+            )
+
+
+def test_candidate_test_harness_missing_source_commit_fail_closed() -> None:
+    rec = _valid_candidate_test_harness()
+    rec["source_commit"] = ""
+    with pytest.raises(ValueError, match="missing required field"):
+        candidate_test_harness_schema.validate_candidate_test_harness(rec)
+
+
+def test_candidate_test_harness_invariant_violations_fail_closed() -> None:
+    # missing / empty
+    with pytest.raises(ValueError, match="missing expected invariants"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(expected_invariants=[])
+        )
+    rec = _valid_candidate_test_harness()
+    del rec["expected_invariants"]
+    with pytest.raises(ValueError, match="missing expected invariants"):
+        candidate_test_harness_schema.validate_candidate_test_harness(rec)
+    # unknown invariant
+    with pytest.raises(ValueError, match="unknown expected invariant"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(
+                expected_invariants=list(_FULL_INVARIANT_SET) + ["scoring_invariant"]
+            )
+        )
+    # incomplete coverage
+    with pytest.raises(ValueError, match="incomplete expected invariant coverage"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(
+                expected_invariants=list(_FULL_INVARIANT_SET[:-1])
+            )
+        )
+
+
+def test_candidate_test_harness_non_pure_status_fail_closed() -> None:
+    with pytest.raises(ValueError, match="harness_purity_status must be 'pure_in_memory'"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(harness_purity_status="filesystem_read")
+        )
+
+
+def test_candidate_test_harness_filesystem_read_declaration_fail_closed() -> None:
+    with pytest.raises(
+        ValueError, match="no_filesystem_or_package_read_until_separate_gate"
+    ):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(
+                no_filesystem_or_package_read_until_separate_gate=False
+            )
+        )
+
+
+def test_candidate_test_harness_malformed_timestamp_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed timestamp"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(decision_timestamp_utc="2026/06/12")
+        )
+
+
+def test_candidate_test_harness_asof_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="as-of timestamp is after decision time"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(asof_timestamp_utc="2026-06-12T13:00:12Z")
+        )
+
+
+def test_candidate_test_harness_integrity_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="integrity_attestation_status"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(integrity_attestation_status="unattested")
+        )
+
+
+def test_candidate_test_harness_reproducibility_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="reproducibility_declaration_status"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(
+                reproducibility_declaration_status="missing"
+            )
+        )
+
+
+def test_candidate_test_harness_no_mutation_attestation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="no_baseline_mutation_attestation"):
+        candidate_test_harness_schema.validate_candidate_test_harness(
+            _valid_candidate_test_harness(no_baseline_mutation_attestation=False)
+        )
+
+
+def test_candidate_test_harness_production_markers_fail_closed() -> None:
+    for field in ("production", "approved", "live", "promoted", "mutable",
+                  "mutable_evidence", "future_dated", "leaked", "post_decision"):
+        with pytest.raises(ValueError, match="marker present"):
+            candidate_test_harness_schema.validate_candidate_test_harness(
+                _valid_candidate_test_harness(**{field: True})
+            )
+
+
+def test_candidate_test_harness_promotion_evidence_markers_fail_closed() -> None:
+    for field in ("tests_as_promotion_evidence", "test_as_promotion_evidence",
+                  "tests_prove_promotion", "promotion_evidence"):
+        with pytest.raises(ValueError, match="marker present"):
+            candidate_test_harness_schema.validate_candidate_test_harness(
+                _valid_candidate_test_harness(**{field: True})
+            )
+
+
+def test_candidate_test_harness_broker_order_live_fields_fail_closed() -> None:
+    for field in (
+        "broker",
+        "alpaca",
+        "ibkr",
+        "tws",
+        "order_submission",
+        "order_state",
+        "order_state_binding",
+        "paper_trading",
+        "live_trading",
+    ):
+        with pytest.raises(ValueError, match="broker/order/live field present"):
+            candidate_test_harness_schema.validate_candidate_test_harness(
+                _valid_candidate_test_harness(**{field: "x"})
+            )
+
+
+def test_candidate_test_harness_authority_fields_fail_closed() -> None:
+    for field in (
+        "test_execution",
+        "replay_execution",
+        "comparison_execution",
+        "scoring",
+        "evaluation_execution",
+        "promotion",
+        "candidate_generation",
+        "package_reads",
+        "package_writes",
+        "package_discovery",
+        "filesystem_reads",
+        "path_resolution",
+        "runtime_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            candidate_test_harness_schema.validate_candidate_test_harness(
+                _valid_candidate_test_harness(**{field: True})
+            )
+
+
+def test_candidate_test_harness_output_no_downstream_authority() -> None:
+    result = candidate_test_harness_schema.validate_candidate_test_harness(
+        _valid_candidate_test_harness()
+    )
+    for key in (
+        "test_execution",
+        "tests_as_promotion_evidence",
+        "candidate_generation",
+        "replay_execution",
+        "comparison_execution",
+        "scoring",
+        "evaluation_execution",
+        "promotion_authority",
+        "package_reads",
+        "package_writes",
+        "package_discovery",
+        "filesystem_reads",
+        "path_resolution",
+        "baseline_mutation",
+        "unit_12",
+        "runtime_authority",
+        "broker_api_authority",
+        "order_state_binding",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = candidate_test_harness_schema.CANDIDATE_TEST_HARNESS_AUTHORITY_BOUNDARY
+    for marker in (
+        "no_test_execution",
+        "no_tests_as_promotion_evidence",
+        "pure_in_memory_until_separate_gate",
+        "declares_expected_invariant_coverage_only",
+        "no_comparison_execution",
+        "no_scoring",
+        "no_promotion_or_strategy_promotion",
+        "no_unit_12",
+        "no_package_reads",
+        "no_live_trading_authority",
+    ):
+        assert marker in boundary
+
+
+def test_candidate_test_harness_module_is_pure_no_filesystem() -> None:
+    source = Path(candidate_test_harness_schema.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"candidate_test_harness_schema.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"candidate_test_harness_schema.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_candidate_test_harness_composed_modules_unchanged() -> None:
+    assert replay_input_adapter_schema.REPLAY_INPUT_ADAPTER_SCHEMA_VERSION == (
+        "0.1-replay-input-adapter-schema"
+    )
+    assert candidate_decision_artifact.CANDIDATE_DECISION_ARTIFACT_VERSION == (
+        "0.1-candidate-decision-artifact"
+    )
+    assert (
+        candidate_baseline_linkage_schema.CANDIDATE_BASELINE_LINKAGE_SCHEMA_VERSION
+        == "0.1-candidate-baseline-linkage-schema"
+    )
+
+
+def test_candidate_test_harness_record_present_and_parking_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert (
+        "Gate D Record: Candidate Test Harness Schema (Narrow Implementation)"
+        in map_text
+    )
+    assert "validates already-loaded harness metadata only" in map_text
+    assert "declares expected invariant coverage only" in map_text
+    assert "does not execute tests" in map_text
+    assert "does not treat tests as promotion evidence" in map_text
+    assert "Active lane remains **STOP / NO ACTION**" in map_text
+    assert "Gate D overall remains **NOT COMPLETE → PARKED**" in map_text
+    # parking record pins preserved (append-only, not rewritten)
+    assert "Active lane: **STOP / NO ACTION**" in map_text
