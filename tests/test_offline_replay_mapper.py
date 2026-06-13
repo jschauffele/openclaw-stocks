@@ -18620,3 +18620,29 @@ def test_d14_ledger_record_present_and_status_preserved() -> None:
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Unit 12: **BLOCKED**" in map_text
+
+
+def test_d15_candidate_evidence_design_record_present_and_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert (
+        "Gate D Record D15: Candidate-Evidence Mechanism Design Record" in map_text
+    )
+    assert (
+        "Any future candidate-evidence mechanism must be governed before any"
+        in map_text
+    )
+    assert "`candidate_strategy_id`" in map_text
+    assert "`parameter_version`" in map_text
+    assert "Never retroactively relabel production baseline packages" in map_text
+    assert "Offline candidate replay from immutable baseline evidence" in map_text
+    assert "Shadow candidate decision generation without broker/order authority" in (
+        map_text
+    )
+    assert "Candidate execution remains **UNIMPLEMENTED** and **UNAPPROVED**" in (
+        map_text
+    )
+    assert "feasibility audit" in map_text
+    assert "Evaluation/scoring execution: **BLOCKED**" in map_text
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Unit 12: **BLOCKED**" in map_text

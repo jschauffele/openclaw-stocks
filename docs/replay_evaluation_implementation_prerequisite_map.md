@@ -2511,6 +2511,120 @@ trading approval, or live trading approval.
 - Strategy/risk/execution behavior: **UNCHANGED**.
 - Paper trading and live trading: **UNAPPROVED**.
 
+## Gate D Record D15: Candidate-Evidence Mechanism Design Record
+
+### D15 Status
+
+Recorded on 2026-06-13 as a docs-only governance/design record. D15 defines how
+future candidate evidence may be produced or represented before any
+baseline-vs-candidate comparison can exist. It implements no candidate replay
+execution, no candidate package construction, no scoring, no evaluation, no
+promotion, no broker/order authority, and no trading behavior.
+
+D15 satisfies the Gate D Record D12 requirement for a candidate-evidence
+mechanism decision at the design-record level only. It does not produce candidate
+evidence and does not open any candidate execution lane.
+
+### D15 Candidate-Evidence Mechanism Requirements
+
+Any future candidate-evidence mechanism must be governed before any
+baseline-vs-candidate pair can exist. At minimum, candidate evidence must:
+
+- Carry an explicit `candidate_strategy_id` compatible with Unit 6 candidate
+  strategy identity governance (`tools/replay/candidate_strategy_governance.py`).
+- Carry an explicit `parameter_version` compatible with Unit 6 parameter
+  versioning.
+- Be distinguishable from baseline evidence in D14 ledger membership
+  (`evidence_membership == candidate`) and in Unit 7 comparison governance.
+- Be reproducible from pinned source inputs and a pinned `source_commit`.
+- Use as-of decision-time evidence only, with no future, leaked, or
+  post-decision data.
+- Never mutate baseline packages.
+- Never retroactively relabel production baseline packages as candidates.
+- Never depend on broker/API/order-state/live execution.
+- Be compatible with D14 package capture ledger membership and Unit 6/Unit 7
+  candidate/comparison governance.
+- Preserve package-set, reproducibility, as-of, and integrity declarations
+  required by D5, D6, D9, and D14.
+
+### D15 Possible Future Mechanisms
+
+D15 separates possible future mechanisms without approving any of them:
+
+- **Offline candidate replay from immutable baseline evidence**: a future
+  governed replay mechanism may derive deterministic candidate decisions from
+  already-finalized immutable baseline replay inputs, preserving the original
+  baseline evidence and recording candidate outputs as separate evidence.
+- **Shadow candidate decision generation without broker/order authority**: a
+  future governed shadow mechanism may generate candidate decision artifacts
+  from approved as-of inputs, but it must not submit orders, bind order state,
+  call broker APIs, mutate runtime state, or affect production behavior.
+- **Candidate package construction from governed replay inputs**: a future
+  governed package mechanism may construct candidate evidence packages from
+  approved replay inputs and candidate strategy metadata, but only after a
+  separate package-construction gate defines storage, immutability, provenance,
+  and ledger rules for candidate artifacts.
+- **Explicit exclusion at this stage**: live or paper broker execution is not an
+  approved candidate-evidence mechanism. Broker/API/TWS/Alpaca/IBKR execution,
+  order submission, order cancellation, order-state binding, paper trading, and
+  live trading remain outside D15.
+
+### D15 Minimum Future Candidate-Evidence Acceptance Criteria
+
+Before candidate evidence may be accepted for any future baseline-vs-candidate
+pairing declaration, it must provide:
+
+- A deterministic candidate decision artifact.
+- `candidate_strategy_id` present.
+- `parameter_version` present.
+- `source_commit` pinned.
+- Input package/run scope declared.
+- Baseline package reference declared where applicable.
+- Reproducibility declaration present.
+- As-of declaration present.
+- Integrity attestation present.
+- No future, leaked, or post-decision evidence.
+- No package mutation.
+- No mixed `run_id`.
+- No broker/order-state binding.
+
+Candidate evidence that lacks any required identity, version, reproducibility,
+as-of, integrity, run-scope, or baseline-reference metadata remains ineligible
+for future pairing. Candidate evidence that depends on broker/order/live
+execution, mutates baseline packages, relabels baseline packages as candidates,
+or uses leaked/post-decision data must fail closed.
+
+### D15 Status Carry-Forward
+
+- Candidate execution remains **UNIMPLEMENTED** and **UNAPPROVED**.
+- Candidate package construction remains **UNIMPLEMENTED** and **UNAPPROVED**.
+- Package capture remains time-gated until an eligible regular-session
+  production run exists and passes D13.
+- Evaluation/scoring execution: **BLOCKED**.
+- Unit 12: **BLOCKED**.
+- Promotion authority: **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS authority: **UNAPPROVED**.
+- Strategy/risk/execution behavior: **UNCHANGED**.
+- Paper trading and live trading: **UNAPPROVED**.
+
+### D15 Recommended Next Lane
+
+The next candidate-evidence lane should be a **read-only candidate-mechanism
+feasibility audit** or a **docs-only candidate-evidence mechanism contract**.
+It must not execute candidate replay, create candidate packages, score, evaluate,
+open Unit 12, approve promotion, touch broker/API/order-state systems, or change
+strategy/risk/execution behavior.
+
+### D15 Non-Authorization Statement
+
+D15 does not authorize candidate replay execution, candidate decision
+generation, candidate package construction, package capture execution, package
+artifact reads, package mutation, evaluation or scoring execution, Unit 12,
+promotion authority, broker/API/TWS/Alpaca/IBKR authority, order-state binding,
+strategy/risk/execution behavior changes, systemd/scheduler/runtime activation,
+`.env`/credential changes, order submission, cancellation, cleanup, paper
+trading approval, or live trading approval.
+
 ## Drift Risks
 
 Known drift risks to guard:
