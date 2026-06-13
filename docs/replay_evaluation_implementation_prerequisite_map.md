@@ -2248,6 +2248,111 @@ trading approval, or live trading approval. Unit 12 remains BLOCKED until the
 minimum sufficiency criteria are met and a separately governed evaluation-execution
 gate is recorded; no such gate is opened here.
 
+## Gate D Record D12: Evidence-Expansion / Governed Package Capture Plan
+
+### D12 Status
+
+Recorded as a docs-only governance record on 2026-06-12. This record source-
+controls the evidence-expansion / governed package capture plan that follows the
+Gate D Record D11 sufficiency decision. It plans capture targets only; it
+captures nothing, scores nothing, and approves no execution.
+
+- Current evidence remains **INSUFFICIENT** for trustworthy baseline-vs-candidate
+  scoring (per D11).
+- The D11 minimum sufficiency criteria remain **controlling**; D12 operationalizes
+  them as capture targets and does not relax them.
+- The immediate next objective is **evidence expansion, not evaluation
+  execution**.
+- Production baseline package capture alone **cannot satisfy full
+  baseline-vs-candidate sufficiency**.
+- A **separate governed candidate-evidence mechanism is required** before a
+  baseline-vs-candidate pair can exist; that mechanism does not yet exist and is
+  a distinct future gate beyond package capture (and is not evaluation
+  execution).
+- Unit 12 remains **BLOCKED**.
+- Evaluation/scoring execution remains **BLOCKED**.
+- Promotion authority remains **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS authority remains **UNAPPROVED**.
+- Strategy/risk/execution behavior remains **UNCHANGED** (no production behavior
+  change).
+- Paper trading and live trading remain **UNAPPROVED**.
+
+### D12 Minimum Package-Capture Expansion Targets
+
+- At least **8 to 12** finalized immutable governed baseline packages before any
+  sufficiency re-assessment.
+- Regular-session coverage over **at least 3 distinct trading days**.
+- **Market-closed-only packages do not count** toward the scoring sufficiency
+  count (they may be retained as evidence but are excluded from the count).
+- **Decision diversity** across available production outcomes where applicable
+  (for example `ok` submitted/dry-run and `blocked` runs with distinct reasons
+  such as duplicate, risk, or reconciliation).
+- A **package inventory** recording, for each package: `run_id`, `sha256`,
+  session class, terminal status, terminal reason, decision outcome,
+  reproducibility declaration, as-of declaration, and integrity attestation.
+
+### D12 Per-Package Inclusion Requirements
+
+Every package counted toward sufficiency must be:
+
+- A finalized immutable package.
+- run_id-aligned (JSONL filename stem equals the canonical run_id; every JSONL
+  line `run_id` matches).
+- Hash-verified (known sha256; written-byte hash matches).
+- Terminal-completion eligible (exactly one `event_type == "system"` /
+  `stage == "completion"` event; status `ok` or `blocked` per Gate A Record A2).
+- Free of any order_state binding.
+- Reproducibility-declaration compatible with Unit 5
+  (`tools/replay/reproducibility_governance.py`).
+- As-of decision-time compliant with Unit 8
+  (`tools/replay/asof_evidence_governance.py`):
+  `available_at_timestamp <= decision_timestamp`.
+- Metric and attribution vocabulary compatible with Unit 1
+  (`tools/replay/metric_vocabulary.py`) and Unit 2
+  (`tools/replay/attribution_vocabulary.py`).
+
+### D12 Exclusion Rules
+
+The following packages are excluded from scoring sufficiency:
+
+- Market-closed-only packages (do not count toward scoring sufficiency).
+- Draft or incomplete packages.
+- Mutable packages.
+- Stale packages.
+- Mixed-run-id packages.
+- Unhashable or hash-mismatch packages.
+- Invalidated packages.
+- Error-terminal packages.
+- Future-dated, leaked, or post-decision evidence.
+
+### D12 Required Pre-Reassessment Artifacts
+
+Before evidence sufficiency may be re-assessed, the following must exist as
+source-controlled records:
+
+- A package inventory table (or equivalent source-controlled record).
+- A baseline package membership declaration.
+- A candidate-evidence mechanism decision (recording how candidate packages
+  will be governed and produced, since production capture cannot produce them).
+- At least one future baseline-vs-candidate pairing declaration before any
+  scoring lane may open (per Unit 7,
+  `tools/replay/baseline_candidate_comparison_governance.py`).
+- Integrity attestations (no mutation, no hash mismatch, no mixed run_id, no
+  future/leaked evidence).
+- A fresh evidence-sufficiency re-assessment against the D11 criteria.
+
+### D12 Non-Authorization Statement
+
+D12 does not authorize evaluation or scoring execution, evidence capture
+execution, package creation, Unit 12, promotion authority, broker/API/TWS/Alpaca/
+IBKR authority, strategy/risk/execution behavior changes, attribution/experiment/
+comparison/as-of computation execution, package reading/discovery/selection,
+systemd/scheduler/runtime-activation/`.env`/credential changes, cleanup, flatten,
+sell, cancel, order submission, order cancellation, broker remediation, paper
+trading approval, or live trading approval. The bounded VPS package-capture
+execution gate(s) and the separate governed candidate-evidence mechanism are
+distinct future gates; none is opened here. Unit 12 remains BLOCKED.
+
 ## Drift Risks
 
 Known drift risks to guard:

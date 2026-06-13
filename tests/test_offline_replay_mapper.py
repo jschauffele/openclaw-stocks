@@ -18035,3 +18035,23 @@ def test_gate_d_evidence_set_sufficiency_decision_present() -> None:
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Unit 12: **BLOCKED**" in map_text
+
+
+def test_gate_d_evidence_expansion_capture_plan_present() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    # D12 records the evidence-expansion capture plan...
+    assert (
+        "Gate D Record D12: Evidence-Expansion / Governed Package Capture Plan"
+        in map_text
+    )
+    assert "At least **8 to 12** finalized immutable governed baseline packages" in (
+        map_text
+    )
+    assert "separate governed candidate-evidence mechanism is required" in map_text
+    assert "Market-closed-only packages do not count" in map_text
+    # ...while keeping everything downstream blocked / unapproved
+    assert "Evaluation/scoring execution remains **BLOCKED**" in map_text
+    # ...without disturbing the historical pinned status strings
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Unit 12: **BLOCKED**" in map_text
