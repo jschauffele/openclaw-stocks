@@ -2905,3 +2905,70 @@ promotion authority, broker/API/TWS/Alpaca/IBKR authority, order-state binding,
 strategy/risk/execution behavior changes, systemd/scheduler/runtime activation,
 `.env`/credential changes, order submission, cancellation, cleanup, paper
 trading approval, or live trading approval.
+
+## Gate D Record D18: Candidate Decision Artifact Schema (Narrow Implementation)
+
+### D18 Status
+
+Recorded on 2026-06-13. This is the narrow implementation record for the
+candidate decision artifact schema authorized by the D18 implementation-readiness
+audit (classification `READY_FOR_SEPARATE_IMPLEMENTATION_GATE`, pure-schema scope
+only). That audit cleared the prior "BLOCKED pending explicit
+implementation-readiness audit" blocker for this narrow pure-schema scope only;
+the broader candidate-evidence-generation, replay-adapter, and
+package-construction work remains blocked. D18 is **IMPLEMENTED** as a pure
+in-memory, test-guarded module: `tools/replay/candidate_decision_artifact.py`.
+D18 schema implementation is complete only if its tests pass.
+
+The module implements the Gate D Record D17 Candidate Decision Artifact Contract
+as a deterministic, fail-closed validator over already-loaded candidate decision
+artifact metadata. It validates the D17 fields (`candidate_artifact_id`,
+`candidate_strategy_id`, `candidate_parameter_version`, `source_commit`,
+`input_run_id` / `input_package_reference`, `baseline_package_reference`,
+`decision_timestamp_utc`, `asof_timestamp_utc`, `decision_signal`,
+`proposed_action`, `decision_reason`, `deterministic_inputs_reference`,
+`reproducibility_declaration_status`, `asof_declaration_status`,
+`integrity_attestation_status`, `no_broker_order_state_binding`,
+`no_mutation_attestation`). Candidate identity composes with Unit 6
+(`cand_strategy_*`); as-of ordering enforces
+`asof_timestamp_utc <= decision_timestamp_utc`. It fails closed for missing or
+malformed required fields, malformed candidate artifact / strategy identifiers,
+missing input reference, malformed timestamps, as-of violations, missing or
+invalid reproducibility / as-of / integrity declarations, missing
+no-broker-order-state-binding or no-mutation attestations,
+production/approved/live/promoted/mutable markers, future/leaked/post-decision
+markers, broker/order/live fields, and authority-bearing fields.
+
+### D18 Non-Authorization Statement
+
+- D18 does not authorize candidate generation.
+- D18 does not authorize replay adapter execution.
+- D18 does not authorize package reads or package writes.
+- D18 does not authorize scoring or evaluation execution.
+- D18 does not open Unit 12.
+- D18 does not authorize broker/API/TWS/Alpaca/IBKR, order-state binding,
+  runtime activation, paper trading, or live trading.
+- D18 does not authorize comparison/scoring execution, promotion, or
+  strategy/risk/execution behavior changes.
+
+The validator returns non-authoritative research-evidence metadata only and
+creates no scoring, promotion, replay, package-read, package-write, runtime,
+broker, paper, or live authority.
+
+### D18 Status Carry-Forward
+
+- Gate D overall remains **NOT COMPLETE**.
+- Candidate generation, candidate replay execution, and candidate package
+  construction remain **UNIMPLEMENTED** and **UNAPPROVED**.
+- Package capture remains time-gated until an eligible regular-session
+  production run exists and passes D13.
+- Evaluation/scoring execution: **BLOCKED**.
+- Unit 12: **BLOCKED**.
+- Promotion authority: **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS/order-state authority: **UNAPPROVED**.
+- Strategy/risk/execution behavior: **UNCHANGED**.
+- Paper trading and live trading: **UNAPPROVED**.
+
+The D17 replay-input-adapter, candidate-generation, and package-construction
+contracts remain distinct future gates; D18 implements only the candidate
+decision artifact schema/validator and opens none of them.

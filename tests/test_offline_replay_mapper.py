@@ -18714,3 +18714,287 @@ def test_gate_d_status_semantics_reconciliation_present() -> None:
     assert "Promotion/broker/execution/paper/live authority remains **UNAPPROVED**" in (
         map_text
     )
+
+
+# ---------------------------------------------------------------------------
+# Gate D D18 candidate decision artifact schema tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.candidate_decision_artifact as candidate_decision_artifact
+
+
+def _valid_candidate_decision_artifact(**overrides: object) -> dict:
+    record = {
+        "candidate_artifact_id": "cand_artifact_3close_v2_001",
+        "candidate_strategy_id": "cand_strategy_3close_v2",
+        "candidate_parameter_version": "2.0",
+        "source_commit": "2ffd2695ad04a50221229441007aad64b1d8cf43",
+        "input_run_id": "run_2026-06-12T13:00:11Z_68d0b9",
+        "baseline_package_reference": "baseline_strategy_3close_v1",
+        "decision_timestamp_utc": "2026-06-12T13:00:11Z",
+        "asof_timestamp_utc": "2026-06-12T13:00:00Z",
+        "decision_signal": "hold",
+        "proposed_action": "no_op",
+        "decision_reason": "three_close_not_confirmed",
+        "deterministic_inputs_reference": "inputs:run_2026-06-12T13:00:11Z_68d0b9",
+        "reproducibility_declaration_status": "declared",
+        "asof_declaration_status": "declared",
+        "integrity_attestation_status": "attested",
+        "no_broker_order_state_binding": True,
+        "no_mutation_attestation": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_candidate_decision_artifact_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "candidate_decision_artifact.py"
+    )
+    assert module_path.exists()
+
+
+def test_candidate_decision_artifact_version_deterministic_non_empty() -> None:
+    version = candidate_decision_artifact.CANDIDATE_DECISION_ARTIFACT_VERSION
+    assert isinstance(version, str) and version
+    assert version == candidate_decision_artifact.CANDIDATE_DECISION_ARTIFACT_VERSION
+    assert (
+        candidate_decision_artifact.SUPPORTED_CANDIDATE_DECISION_ARTIFACT_VERSIONS
+        == (version,)
+    )
+
+
+def test_candidate_decision_artifact_valid_record_validates() -> None:
+    result = candidate_decision_artifact.validate_candidate_decision_artifact(
+        _valid_candidate_decision_artifact()
+    )
+    assert result["result_type"] == (
+        candidate_decision_artifact.CANDIDATE_DECISION_ARTIFACT_RESULT
+    )
+    assert result["candidate_artifact_id"] == "cand_artifact_3close_v2_001"
+    assert result["candidate_strategy_id"] == "cand_strategy_3close_v2"
+    # input_package_reference is an accepted alternative to input_run_id
+    alt = _valid_candidate_decision_artifact()
+    del alt["input_run_id"]
+    alt["input_package_reference"] = "pkg:run_2026-06-12T13:00:11Z_68d0b9"
+    candidate_decision_artifact.validate_candidate_decision_artifact(alt)
+
+
+def test_candidate_decision_artifact_missing_required_fields_fail_closed() -> None:
+    for field in (
+        "candidate_artifact_id",
+        "candidate_strategy_id",
+        "candidate_parameter_version",
+        "source_commit",
+        "decision_timestamp_utc",
+        "asof_timestamp_utc",
+        "decision_signal",
+        "proposed_action",
+        "decision_reason",
+        "deterministic_inputs_reference",
+    ):
+        rec = _valid_candidate_decision_artifact()
+        del rec[field]
+        with pytest.raises(ValueError, match="missing required field"):
+            candidate_decision_artifact.validate_candidate_decision_artifact(rec)
+
+
+def test_candidate_decision_artifact_missing_input_reference_fail_closed() -> None:
+    rec = _valid_candidate_decision_artifact()
+    del rec["input_run_id"]
+    with pytest.raises(ValueError, match="missing input reference"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(rec)
+
+
+def test_candidate_decision_artifact_malformed_identifiers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed candidate artifact id"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(candidate_artifact_id="bad_id")
+        )
+    with pytest.raises(ValueError, match="malformed candidate strategy id"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(candidate_strategy_id="prod_strategy_x")
+        )
+
+
+def test_candidate_decision_artifact_malformed_timestamp_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed timestamp"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(decision_timestamp_utc="2026/06/12")
+        )
+
+
+def test_candidate_decision_artifact_asof_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="as-of timestamp is after decision time"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(asof_timestamp_utc="2026-06-12T13:00:12Z")
+        )
+
+
+def test_candidate_decision_artifact_reproducibility_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="reproducibility_declaration_status"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(
+                reproducibility_declaration_status="missing"
+            )
+        )
+
+
+def test_candidate_decision_artifact_asof_declaration_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="asof_declaration_status"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(asof_declaration_status="")
+        )
+
+
+def test_candidate_decision_artifact_integrity_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="integrity_attestation_status"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(integrity_attestation_status="unattested")
+        )
+
+
+def test_candidate_decision_artifact_mutation_attestation_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="no_mutation_attestation"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(no_mutation_attestation=False)
+        )
+    with pytest.raises(ValueError, match="no_broker_order_state_binding"):
+        candidate_decision_artifact.validate_candidate_decision_artifact(
+            _valid_candidate_decision_artifact(no_broker_order_state_binding=False)
+        )
+
+
+def test_candidate_decision_artifact_broker_order_live_fields_fail_closed() -> None:
+    for field in (
+        "broker",
+        "ibkr",
+        "tws",
+        "alpaca",
+        "order_submission",
+        "order_state",
+        "order_state_binding",
+        "live_trading",
+        "paper_trading",
+    ):
+        with pytest.raises(ValueError, match="broker/order/live field present"):
+            candidate_decision_artifact.validate_candidate_decision_artifact(
+                _valid_candidate_decision_artifact(**{field: "x"})
+            )
+
+
+def test_candidate_decision_artifact_production_markers_fail_closed() -> None:
+    for field in ("production", "approved", "live", "promoted", "mutable",
+                  "future_dated", "leaked", "post_decision"):
+        with pytest.raises(ValueError, match="marker present"):
+            candidate_decision_artifact.validate_candidate_decision_artifact(
+                _valid_candidate_decision_artifact(**{field: True})
+            )
+
+
+def test_candidate_decision_artifact_authority_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "evaluation_execution",
+        "replay_execution",
+        "candidate_generation",
+        "package_reads",
+        "package_writes",
+        "promotion_authority",
+        "runtime_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            candidate_decision_artifact.validate_candidate_decision_artifact(
+                _valid_candidate_decision_artifact(**{field: True})
+            )
+
+
+def test_candidate_decision_artifact_malformed_record_fail_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        candidate_decision_artifact.validate_candidate_decision_artifact("x")
+
+
+def test_candidate_decision_artifact_output_no_downstream_authority() -> None:
+    result = candidate_decision_artifact.validate_candidate_decision_artifact(
+        _valid_candidate_decision_artifact()
+    )
+    for key in (
+        "candidate_generation",
+        "replay_execution",
+        "comparison_execution",
+        "scoring",
+        "evaluation_execution",
+        "package_reads",
+        "package_writes",
+        "filesystem_reads",
+        "runtime_authority",
+        "promotion_authority",
+        "broker_api_authority",
+        "order_state_binding",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = candidate_decision_artifact.CANDIDATE_DECISION_ARTIFACT_AUTHORITY_BOUNDARY
+    assert "no_candidate_generation" in boundary
+    assert "no_replay_execution" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_package_writes" in boundary
+    assert "no_scoring" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_broker_api_authority" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_candidate_decision_artifact_module_is_pure_no_filesystem() -> None:
+    source = Path(candidate_decision_artifact.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"candidate_decision_artifact.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"candidate_decision_artifact.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_candidate_decision_artifact_unit6_unchanged() -> None:
+    assert candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION == (
+        "0.1-candidate-strategy"
+    )
+    assert candidate_strategy_governance.is_valid_candidate_strategy_identifier(
+        "cand_strategy_x"
+    )
+
+
+def test_d18_record_present_and_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert (
+        "Gate D Record D18: Candidate Decision Artifact Schema (Narrow Implementation)"
+        in map_text
+    )
+    assert "Gate D overall remains **NOT COMPLETE**" in map_text
+    assert "D18 does not open Unit 12" in map_text
+    # historical reconciliation pins remain intact
+    assert "Gate D overall is **NOT COMPLETE**" in map_text
+    assert (
+        "D18 candidate evidence schema implementation is **BLOCKED** pending an"
+        in map_text
+    )
+    assert "Unit 12: **BLOCKED**" in map_text
