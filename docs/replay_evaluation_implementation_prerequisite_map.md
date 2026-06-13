@@ -2015,6 +2015,64 @@ selection execution, attribution execution, experiment execution, as-of feature
 logic, strategy promotion, Unit 12, broker/API work, or any execution/paper/
 live trading authority.
 
+## Gate D Record D9: As-Of Feature Availability And Decision-Time Evidence Unit
+
+### D9 Status
+
+Recorded on 2026-06-12. This is the eighth and final Gate D implementation unit
+ordered by Gate D Record D1: as-of feature availability + decision-time evidence
+rules governance, following metric (D2) through baseline-vs-candidate comparison
+(D8). It is **IMPLEMENTED** as a pure in-memory, test-guarded module:
+`tools/replay/asof_evidence_governance.py`.
+
+The module defines deterministic as-of evidence, decision-time evidence, and
+feature availability rule identifiers, a governed version
+(`ASOF_GOVERNANCE_VERSION`), and pure validators (`is_known_asof_evidence_rule`,
+`is_known_decision_time_rule`, `is_known_feature_availability_rule`,
+`is_known_asof_rule`, `validate_asof_rule_record`,
+`validate_asof_evidence_record`). It enforces the no-look-ahead rule —
+`available_at_timestamp <= decision_timestamp` — over caller-supplied canonical
+UTC ISO-8601 timestamps, and requires decision-timestamp, availability-timestamp
+(and, where present, observation-timestamp) declarations, an explicit
+no-look-ahead declaration, an immutable evidence marker, and a reproducibility
+declaration. It fails closed for missing or unsupported versions, unknown or
+duplicate rule identifiers, empty rule sets, malformed records, missing decision
+or availability timestamps, malformed timestamps, evidence availability after
+decision time, post-decision observation, future-dated / post-decision / leaked
+/ mutable evidence markers, missing no-look-ahead / immutability /
+reproducibility declarations, and authority-bearing fields. It computes no as-of
+features, generates no features, executes no comparison, computes no scores,
+runs no strategy/signal/risk/execution/replay/evaluation logic, reads/discovers/
+selects no packages, touches no filesystem, and carries no attribution-execution,
+experiment-execution, promotion, broker, strategy/risk/execution, paper-trading,
+or live-trading authority.
+
+### D9 Chain Status
+
+- D1 (evaluation prerequisite governance contract): **COMPLETE**
+- D2 (metric vocabulary + versioning unit): **IMPLEMENTED**
+- D3 (attribution vocabulary + versioning unit): **IMPLEMENTED**
+- D4 (experiment identifier + registry authority unit): **IMPLEMENTED**
+- D5 (package-set inclusion/exclusion rules unit): **IMPLEMENTED**
+- D6 (reproducibility rules unit): **IMPLEMENTED**
+- D7 (candidate strategy identity + parameter versioning unit): **IMPLEMENTED**
+- D8 (baseline-vs-candidate comparison rules unit): **IMPLEMENTED**
+- D9 (as-of feature availability + decision-time evidence unit): **IMPLEMENTED**
+  (this record; the eighth and final Gate D prerequisite-governance unit)
+- Gate D (evaluation prerequisite governance): **NOT STARTED** (all eight
+  prerequisite-governance units are now implemented as pure in-memory vocabulary;
+  overall Gate D completion, finalized immutable evidence-set sufficiency, and
+  any evaluation/scoring engine remain separate later gates and are not opened
+  here)
+- Unit 12: **BLOCKED**
+
+D9 does not complete Gate D and does not approve as-of computation execution,
+feature generation, comparison execution, scoring, strategy behavior, signal
+generation, risk logic, execution logic, replay execution, evaluation execution,
+package reading, package discovery, package selection execution, attribution
+execution, experiment execution, strategy promotion, Unit 12, broker/API work,
+or any execution/paper/live trading authority.
+
 ## Drift Risks
 
 Known drift risks to guard:

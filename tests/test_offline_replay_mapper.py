@@ -17686,3 +17686,318 @@ def test_comparison_governance_gate_d_unit12_status_preserved() -> None:
     assert (
         "Gate D Record D8: Baseline-vs-Candidate Comparison Rules Unit" in map_text
     )
+
+
+# ---------------------------------------------------------------------------
+# Gate D as-of feature availability + decision-time evidence unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.asof_evidence_governance as asof_evidence_governance
+
+
+def _valid_asof_record(**overrides: object) -> dict:
+    record = {
+        "asof_governance_version": (
+            asof_evidence_governance.ASOF_GOVERNANCE_VERSION
+        ),
+        "asof_rules": (
+            asof_evidence_governance.ASOF_AVAILABILITY_BEFORE_DECISION,
+            asof_evidence_governance.FEATURE_AVAILABILITY_PROVEN,
+        ),
+        "decision_timestamp": "2026-05-29T19:45:04Z",
+        "available_at_timestamp": "2026-05-29T19:44:00Z",
+        "observation_timestamp": "2026-05-29T19:44:00Z",
+        "no_look_ahead": True,
+        "immutable_evidence": True,
+        "reproducibility_declared": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_asof_governance_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "asof_evidence_governance.py"
+    )
+    assert module_path.exists()
+
+
+def test_asof_governance_version_deterministic_and_non_empty() -> None:
+    version = asof_evidence_governance.ASOF_GOVERNANCE_VERSION
+    assert isinstance(version, str) and version
+    assert version == asof_evidence_governance.ASOF_GOVERNANCE_VERSION
+    assert asof_evidence_governance.SUPPORTED_ASOF_GOVERNANCE_VERSIONS == (version,)
+
+
+def test_asof_governance_known_rule_families_validate() -> None:
+    assert asof_evidence_governance.is_known_asof_evidence_rule(
+        asof_evidence_governance.ASOF_NO_LOOK_AHEAD
+    )
+    assert asof_evidence_governance.is_known_decision_time_rule(
+        asof_evidence_governance.DECISION_TIME_DECLARED
+    )
+    assert asof_evidence_governance.is_known_feature_availability_rule(
+        asof_evidence_governance.FEATURE_PROVENANCE_VERSIONED
+    )
+    for rule in asof_evidence_governance.KNOWN_ASOF_RULES:
+        assert asof_evidence_governance.is_known_asof_rule(rule)
+    assert not asof_evidence_governance.is_known_asof_rule("not_a_rule")
+    assert len(set(asof_evidence_governance.KNOWN_ASOF_RULES)) == len(
+        asof_evidence_governance.KNOWN_ASOF_RULES
+    )
+
+
+def test_asof_governance_valid_record_validates() -> None:
+    result = asof_evidence_governance.validate_asof_evidence_record(
+        _valid_asof_record()
+    )
+    assert result["result_type"] == asof_evidence_governance.ASOF_GOVERNANCE_RESULT
+    assert result["no_look_ahead_enforced"] is True
+    assert result["decision_timestamp"] == "2026-05-29T19:45:04Z"
+
+
+def test_asof_governance_valid_rule_record_validates() -> None:
+    result = asof_evidence_governance.validate_asof_rule_record(
+        {
+            "asof_governance_version": (
+                asof_evidence_governance.ASOF_GOVERNANCE_VERSION
+            ),
+            "rule_identifier": asof_evidence_governance.ASOF_NO_LOOK_AHEAD,
+        }
+    )
+    assert result["asof_rules"] == (asof_evidence_governance.ASOF_NO_LOOK_AHEAD,)
+
+
+def test_asof_governance_equal_timestamp_boundary_allowed() -> None:
+    # available_at == decision_timestamp is eligible (no look-ahead)
+    result = asof_evidence_governance.validate_asof_evidence_record(
+        _valid_asof_record(available_at_timestamp="2026-05-29T19:45:04Z")
+    )
+    assert result["available_at_timestamp"] == "2026-05-29T19:45:04Z"
+
+
+def test_asof_governance_version_failures_fail_closed() -> None:
+    rec = _valid_asof_record()
+    del rec["asof_governance_version"]
+    with pytest.raises(ValueError, match="missing as-of governance version"):
+        asof_evidence_governance.validate_asof_evidence_record(rec)
+    with pytest.raises(ValueError, match="unsupported as-of governance version"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(asof_governance_version="9.9-x")
+        )
+
+
+def test_asof_governance_unknown_or_duplicate_rules_fail_closed() -> None:
+    with pytest.raises(ValueError, match="unknown rule identifier"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(asof_rules=("bogus_rule",))
+        )
+    with pytest.raises(ValueError, match="duplicate rule identifier"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(
+                asof_rules=(
+                    asof_evidence_governance.ASOF_NO_LOOK_AHEAD,
+                    asof_evidence_governance.ASOF_NO_LOOK_AHEAD,
+                )
+            )
+        )
+
+
+def test_asof_governance_empty_rule_set_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty rule set"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(asof_rules=())
+        )
+
+
+def test_asof_governance_missing_timestamps_fail_closed() -> None:
+    rec = _valid_asof_record()
+    del rec["decision_timestamp"]
+    with pytest.raises(ValueError, match="missing decision timestamp"):
+        asof_evidence_governance.validate_asof_evidence_record(rec)
+    rec2 = _valid_asof_record()
+    del rec2["available_at_timestamp"]
+    with pytest.raises(ValueError, match="missing available_at timestamp"):
+        asof_evidence_governance.validate_asof_evidence_record(rec2)
+
+
+def test_asof_governance_malformed_timestamp_fails_closed() -> None:
+    with pytest.raises(ValueError, match="malformed timestamp"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(decision_timestamp="2026/05/29 19:45")
+        )
+
+
+def test_asof_governance_availability_after_decision_fails_closed() -> None:
+    with pytest.raises(ValueError, match="evidence availability after decision time"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(available_at_timestamp="2026-05-29T19:46:00Z")
+        )
+
+
+def test_asof_governance_post_decision_observation_fails_closed() -> None:
+    with pytest.raises(ValueError, match="post-decision evidence"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(observation_timestamp="2026-05-29T19:46:00Z")
+        )
+
+
+def test_asof_governance_look_ahead_markers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="future-dated evidence marker"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(future_dated=True)
+        )
+    with pytest.raises(ValueError, match="post-decision evidence marker"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(post_decision=True)
+        )
+    with pytest.raises(ValueError, match="leaked evidence marker"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(leaked=True)
+        )
+    with pytest.raises(ValueError, match="mutable evidence marker"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(mutable_evidence=True)
+        )
+
+
+def test_asof_governance_missing_declarations_fail_closed() -> None:
+    with pytest.raises(ValueError, match="missing no-look-ahead declaration"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(no_look_ahead=False)
+        )
+    with pytest.raises(ValueError, match="missing immutability declaration"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(immutable_evidence=False)
+        )
+    with pytest.raises(ValueError, match="missing reproducibility declaration"):
+        asof_evidence_governance.validate_asof_evidence_record(
+            _valid_asof_record(reproducibility_declared=False)
+        )
+
+
+def test_asof_governance_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        asof_evidence_governance.validate_asof_evidence_record("x")
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        asof_evidence_governance.validate_asof_rule_record("x")
+
+
+def test_asof_governance_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "asof_computation_execution",
+        "feature_generation",
+        "comparison_execution",
+        "evaluation_execution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            asof_evidence_governance.validate_asof_evidence_record(
+                _valid_asof_record(**{field: True})
+            )
+
+
+def test_asof_governance_output_carries_no_downstream_authority() -> None:
+    result = asof_evidence_governance.validate_asof_evidence_record(
+        _valid_asof_record()
+    )
+    for key in (
+        "asof_computation_execution",
+        "feature_generation",
+        "comparison_execution",
+        "scoring",
+        "strategy_behavior",
+        "signal_generation",
+        "risk_logic",
+        "execution_logic",
+        "replay_execution",
+        "evaluation_execution",
+        "package_reads",
+        "package_discovery",
+        "package_selection_execution",
+        "filesystem_reads",
+        "attribution_execution",
+        "experiment_execution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = asof_evidence_governance.ASOF_GOVERNANCE_AUTHORITY_BOUNDARY
+    assert "no_look_ahead_enforced" in boundary
+    assert "no_asof_computation_execution" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_asof_governance_module_is_pure_no_filesystem_or_execution() -> None:
+    source = Path(asof_evidence_governance.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"asof_evidence_governance.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"asof_evidence_governance.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_asof_governance_fail_closed_conditions_recorded() -> None:
+    conds = asof_evidence_governance.ASOF_GOVERNANCE_FAIL_CLOSED_CONDITIONS
+    assert "unsupported_asof_governance_version" in conds
+    assert "missing_decision_timestamp" in conds
+    assert "missing_available_at_timestamp" in conds
+    assert "evidence_availability_after_decision_time" in conds
+    assert "future_dated_evidence_marker" in conds
+    assert "leaked_evidence_marker" in conds
+    assert "missing_no_look_ahead_declaration" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_asof_governance_prior_units_unchanged() -> None:
+    assert metric_vocabulary.METRIC_VOCABULARY_VERSION == "0.1-metric-vocab"
+    assert attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION == (
+        "0.1-attribution-vocab"
+    )
+    assert experiment_registry.EXPERIMENT_REGISTRY_VERSION == "0.1-experiment-registry"
+    assert package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION == "0.1-package-set"
+    assert reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_VERSION == (
+        "0.1-reproducibility"
+    )
+    assert candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION == (
+        "0.1-candidate-strategy"
+    )
+    assert comparison_governance.COMPARISON_GOVERNANCE_VERSION == "0.1-comparison"
+
+
+def test_asof_governance_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert (
+        "Gate D Record D9: As-Of Feature Availability And Decision-Time Evidence Unit"
+        in map_text
+    )
