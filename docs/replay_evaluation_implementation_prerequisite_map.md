@@ -2418,6 +2418,99 @@ D13 does not authorize package capture execution, evaluation/scoring execution,
 Unit 12, promotion, broker/execution, strategy/risk/execution behavior changes,
 paper trading, or live trading.
 
+## Gate D Record D14: Package Inventory / Capture Ledger Schema
+
+### D14 Status
+
+Recorded on 2026-06-13. This is the implementation record for the deterministic
+package inventory / capture ledger schema required by Gate D Record D12 before
+any future evidence-sufficiency reassessment. It is **IMPLEMENTED** as a pure
+in-memory, test-guarded schema/validation module:
+`tools/replay/package_capture_ledger.py`.
+
+D14 creates no package inventory entries and reads no replay package artifacts.
+It defines the source-controlled schema for future governed records only.
+
+### D14 Ledger Fields
+
+Every future package capture ledger record must carry, at minimum:
+
+- `run_id`
+- `package_sha256`
+- `package_path_or_relative_reference`
+- `capture_timestamp_utc`
+- `source_commit`
+- `session_class`
+- `terminal_status`
+- `terminal_reason`
+- `decision_outcome`
+- `evidence_membership` (`baseline`, `candidate`, `excluded`, or `unknown`)
+- `strategy_id`
+- `parameter_version`
+- `reproducibility_declaration_status`
+- `asof_declaration_status`
+- `integrity_attestation_status`
+- `inclusion_status`
+- `exclusion_reason` if excluded
+- `notes`
+
+The validation schema also requires control metadata proving finalized immutable
+package status, run_id alignment, hash verification, complete package authority,
+non-draft / non-mutable / non-stale state, no mixed `run_id`, no hash mismatch,
+and no future-dated, leaked, or post-decision evidence.
+
+### D14 Validation Rules
+
+`validate_package_capture_ledger_record(...)` validates already-loaded metadata
+only and fails closed when:
+
+- The ledger schema version is missing or unsupported.
+- Any required ledger field is missing.
+- `run_id`, `package_sha256`, package reference, capture timestamp, or source
+  commit is malformed.
+- `session_class`, `terminal_status`, `decision_outcome`,
+  `evidence_membership`, declaration status, integrity status, or inclusion
+  status is unknown.
+- The package is not finalized and immutable.
+- The package is draft, incomplete, mutable, stale, mixed-run-id, hash-mismatch,
+  or error-terminal evidence.
+- The package has future-dated, leaked, or post-decision evidence.
+- Reproducibility, as-of, or integrity declarations are missing.
+- A market/session-ineligible package is not marked excluded.
+- A non-regular-session package attempts to count toward sufficiency.
+- An excluded record lacks an exclusion reason.
+- Any authority-bearing field is present.
+
+### D14 D12/D13 Preservation
+
+- Market-closed-only packages do not count toward scoring sufficiency.
+- Market/session-ineligible packages are excluded from sufficiency counts.
+- Finalized immutable packages only may validate.
+- Hash mismatch, mixed `run_id`, stale, mutable, draft, incomplete, and
+  error-terminal packages fail closed.
+- Future-dated, leaked, or post-decision evidence fails closed.
+- D13 remains complete and unchanged; D14 does not reopen or weaken the
+  capture-time eligibility guard.
+
+### D14 Non-Authorization Statement
+
+D14 does not authorize package capture execution, package artifact reads,
+package discovery, package selection, ledger persistence/writes, evaluation or
+scoring execution, Unit 12, promotion authority, broker/API/TWS/Alpaca/IBKR
+authority, strategy/risk/execution behavior changes, attribution/experiment/
+comparison/as-of computation execution, systemd/scheduler/runtime activation,
+`.env`/credential changes, order submission, cancellation, cleanup, paper
+trading approval, or live trading approval.
+
+- Package capture remains time-gated until an eligible regular-session
+  production run exists and passes D13.
+- Evaluation/scoring execution: **BLOCKED**.
+- Unit 12: **BLOCKED**.
+- Promotion authority: **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS authority: **UNAPPROVED**.
+- Strategy/risk/execution behavior: **UNCHANGED**.
+- Paper trading and live trading: **UNAPPROVED**.
+
 ## Drift Risks
 
 Known drift risks to guard:

@@ -18365,3 +18365,258 @@ def test_d13_guard_record_present_and_status_preserved() -> None:
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Unit 12: **BLOCKED**" in map_text
+
+
+# ---------------------------------------------------------------------------
+# Gate D D14 package inventory / capture ledger schema tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.package_capture_ledger as package_capture_ledger
+
+
+def _valid_ledger_record(**overrides: object) -> dict:
+    record = {
+        "package_capture_ledger_version": (
+            package_capture_ledger.PACKAGE_CAPTURE_LEDGER_VERSION
+        ),
+        "run_id": "run_2026-06-15T16:00:00Z_ab12cd",
+        "package_sha256": "a" * 64,
+        "package_path_or_relative_reference": (
+            "replay_packages/run_2026-06-15T16:00:00Z_ab12cd/manifest.json"
+        ),
+        "capture_timestamp_utc": "2026-06-15T16:01:00Z",
+        "source_commit": "b" * 40,
+        "session_class": package_capture_ledger.SESSION_CLASS_REGULAR,
+        "terminal_status": package_capture_ledger.TERMINAL_STATUS_OK,
+        "terminal_reason": "",
+        "decision_outcome": package_capture_ledger.DECISION_OUTCOME_DRY_RUN,
+        "evidence_membership": (
+            package_capture_ledger.EVIDENCE_MEMBERSHIP_BASELINE
+        ),
+        "strategy_id": "baseline_strategy_current",
+        "parameter_version": "baseline_paramset_current",
+        "reproducibility_declaration_status": (
+            package_capture_ledger.DECLARATION_STATUS_DECLARED
+        ),
+        "asof_declaration_status": (
+            package_capture_ledger.DECLARATION_STATUS_DECLARED
+        ),
+        "integrity_attestation_status": (
+            package_capture_ledger.INTEGRITY_STATUS_ATTESTED
+        ),
+        "inclusion_status": package_capture_ledger.INCLUSION_STATUS_INCLUDED,
+        "exclusion_reason": "",
+        "notes": "",
+        "finalized": True,
+        "immutable": True,
+        "lifecycle_status": "finalized",
+        "run_id_aligned": True,
+        "hash_verified": True,
+        "complete_package_authority": True,
+        "draft": False,
+        "mutable": False,
+        "stale": False,
+        "mixed_run_id": False,
+        "hash_mismatch": False,
+        "future_dated": False,
+        "leaked": False,
+        "post_decision": False,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_package_capture_ledger_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "package_capture_ledger.py"
+    )
+    assert module_path.exists()
+
+
+def test_package_capture_ledger_schema_fields_defined() -> None:
+    fields = package_capture_ledger.PACKAGE_CAPTURE_LEDGER_REQUIRED_FIELDS
+    for field in (
+        "run_id",
+        "package_sha256",
+        "package_path_or_relative_reference",
+        "capture_timestamp_utc",
+        "source_commit",
+        "session_class",
+        "terminal_status",
+        "terminal_reason",
+        "decision_outcome",
+        "evidence_membership",
+        "strategy_id",
+        "parameter_version",
+        "reproducibility_declaration_status",
+        "asof_declaration_status",
+        "integrity_attestation_status",
+        "inclusion_status",
+        "exclusion_reason",
+        "notes",
+    ):
+        assert field in fields
+    assert package_capture_ledger.KNOWN_EVIDENCE_MEMBERSHIPS == (
+        "baseline",
+        "candidate",
+        "excluded",
+        "unknown",
+    )
+
+
+def test_package_capture_ledger_valid_included_regular_session_counts() -> None:
+    result = package_capture_ledger.validate_package_capture_ledger_record(
+        _valid_ledger_record()
+    )
+    assert result["result_type"] == (
+        package_capture_ledger.PACKAGE_CAPTURE_LEDGER_RESULT
+    )
+    assert result["sufficiency_count_eligible"] is True
+    assert result["market_session_ineligible_excluded"] is False
+
+
+def test_package_capture_ledger_market_session_records_must_be_excluded() -> None:
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        package_capture_ledger.validate_package_capture_ledger_record(
+            _valid_ledger_record(
+                session_class=package_capture_ledger.SESSION_CLASS_MARKET_CLOSED,
+                terminal_reason="market_closed",
+            )
+        )
+    result = package_capture_ledger.validate_package_capture_ledger_record(
+        _valid_ledger_record(
+            session_class=package_capture_ledger.SESSION_CLASS_MARKET_CLOSED,
+            terminal_reason="market_closed",
+            evidence_membership=package_capture_ledger.EVIDENCE_MEMBERSHIP_EXCLUDED,
+            inclusion_status=package_capture_ledger.INCLUSION_STATUS_EXCLUDED,
+            exclusion_reason="market_session_ineligible",
+        )
+    )
+    assert result["sufficiency_count_eligible"] is False
+    assert result["market_session_ineligible_excluded"] is True
+
+
+def test_package_capture_ledger_finalize_integrity_and_asof_rules_fail_closed() -> None:
+    cases = (
+        ({"finalized": False}, "finalized immutable"),
+        ({"draft": True}, "draft or incomplete"),
+        ({"mutable": True}, "mutable package marker"),
+        ({"stale": True}, "stale package marker"),
+        ({"mixed_run_id": True}, "mixed run_id"),
+        ({"hash_mismatch": True}, "hash mismatch"),
+        ({"terminal_status": "error"}, "error-terminal package"),
+        ({"future_dated": True}, "future-dated, leaked, or post-decision"),
+        (
+            {"reproducibility_declaration_status": "missing"},
+            "missing reproducibility declaration",
+        ),
+        ({"asof_declaration_status": "missing"}, "missing as-of declaration"),
+        ({"integrity_attestation_status": "missing"}, "missing integrity"),
+    )
+    for overrides, message in cases:
+        with pytest.raises(ValueError, match=message):
+            package_capture_ledger.validate_package_capture_ledger_record(
+                _valid_ledger_record(**overrides)
+            )
+
+
+def test_package_capture_ledger_identity_and_required_fields_fail_closed() -> None:
+    rec = _valid_ledger_record()
+    del rec["run_id"]
+    with pytest.raises(ValueError, match="missing required ledger field"):
+        package_capture_ledger.validate_package_capture_ledger_record(rec)
+    with pytest.raises(ValueError, match="malformed package sha256"):
+        package_capture_ledger.validate_package_capture_ledger_record(
+            _valid_ledger_record(package_sha256="not_sha")
+        )
+    with pytest.raises(ValueError, match="malformed package reference"):
+        package_capture_ledger.validate_package_capture_ledger_record(
+            _valid_ledger_record(package_path_or_relative_reference="/opt/package")
+        )
+    with pytest.raises(ValueError, match="malformed capture timestamp UTC"):
+        package_capture_ledger.validate_package_capture_ledger_record(
+            _valid_ledger_record(capture_timestamp_utc="2026/06/15 16:01")
+        )
+
+
+def test_package_capture_ledger_excluded_records_require_reason() -> None:
+    with pytest.raises(ValueError, match="missing exclusion reason"):
+        package_capture_ledger.validate_package_capture_ledger_record(
+            _valid_ledger_record(
+                evidence_membership=package_capture_ledger.EVIDENCE_MEMBERSHIP_EXCLUDED,
+                inclusion_status=package_capture_ledger.INCLUSION_STATUS_EXCLUDED,
+                exclusion_reason="",
+            )
+        )
+
+
+def test_package_capture_ledger_output_carries_no_downstream_authority() -> None:
+    result = package_capture_ledger.validate_package_capture_ledger_record(
+        _valid_ledger_record()
+    )
+    for key in (
+        "package_reads",
+        "package_discovery",
+        "package_capture_execution",
+        "ledger_writes",
+        "filesystem_reads",
+        "scoring",
+        "evaluation_execution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = package_capture_ledger.PACKAGE_CAPTURE_LEDGER_AUTHORITY_BOUNDARY
+    assert "no_package_reads" in boundary
+    assert "no_package_capture_execution" in boundary
+    assert "no_scoring" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_package_capture_ledger_module_is_pure_no_filesystem_or_capture() -> None:
+    source = Path(package_capture_ledger.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"package_capture_ledger.py imports '{forbidden}'"
+        )
+    for forbidden_call in (
+        "open(",
+        ".read_bytes(",
+        ".read_text(",
+        "Path(",
+        ".mkdir(",
+        ".glob(",
+        ".iterdir(",
+    ):
+        assert forbidden_call not in source, (
+            f"package_capture_ledger.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_d14_ledger_record_present_and_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D Record D14: Package Inventory / Capture Ledger Schema" in map_text
+    assert "tools/replay/package_capture_ledger.py" in map_text
+    assert "Market-closed-only packages do not count" in map_text
+    assert "Package capture remains time-gated" in map_text
+    assert "Evaluation/scoring execution: **BLOCKED**" in map_text
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Unit 12: **BLOCKED**" in map_text
