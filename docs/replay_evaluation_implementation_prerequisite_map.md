@@ -2233,8 +2233,8 @@ The next later lane is an **evidence-expansion / additional governed package
 capture plan** — capturing multiple finalized immutable governed packages over
 real regular-session decision runs through the existing bounded VPS
 package-execution path until the minimum sufficiency criteria are met. That lane
-is operational and is **not** evaluation execution: it does not score, evaluate,
-compare, promote, or open Unit 12.
+is a planned operational evidence lane and is **not** evaluation execution: it
+does not score, evaluate, compare, promote, or open Unit 12.
 
 ### D11 Non-Authorization Statement
 
@@ -2802,15 +2802,103 @@ authorizes any filesystem/package-read behavior.
 
 ### D17 Recommended Next Lane
 
-The next lane should be a **pure in-memory candidate-evidence contract/schema
-audit or implementation** only after D17 is pushed and VPS-validated. It must
-not execute candidate replay, generate candidate artifacts, create candidate
+The next lane should be an explicit **implementation-readiness audit** for a
+pure in-memory candidate-evidence contract/schema. D17 push/VPS validation alone
+does not authorize implementation. Any later implementation lane requires a
+separate readiness audit that explicitly authorizes implementation. It must not
+execute candidate replay, generate candidate artifacts, create candidate
 packages, score, evaluate, open Unit 12, approve promotion, touch broker/API/
 order-state systems, or change strategy/risk/execution behavior.
 
 ### D17 Non-Authorization Statement
 
 D17 does not authorize candidate replay execution, candidate artifact
+generation, candidate package construction, package capture execution, package
+artifact reads, package mutation, evaluation or scoring execution, Unit 12,
+promotion authority, broker/API/TWS/Alpaca/IBKR authority, order-state binding,
+strategy/risk/execution behavior changes, systemd/scheduler/runtime activation,
+`.env`/credential changes, order submission, cancellation, cleanup, paper
+trading approval, or live trading approval.
+
+## Gate D Status-Semantics Reconciliation Record
+
+### Status-Semantics Correction
+
+Recorded on 2026-06-13 as an append-only correction record. This record
+supersedes any current-status reading that treats docs/code/test/VPS validation
+as full workflow completion, evidence sufficiency, operational proof, or Gate D
+completion.
+
+Gate D overall is **NOT COMPLETE**. Gate D remains incomplete and blocked
+pending governed regular-session evidence, eligible-session operational proof,
+ledger/evidence inventory population, candidate mechanism implementation
+readiness, evidence sufficiency reassessment, and separately approved
+evaluation/scoring authority.
+
+Status terms are pinned as follows:
+
+- **Record complete** means a governance/docs record exists and is validated.
+- **Implementation complete** means a bounded implementation artifact exists
+  and is tested.
+- **VPS validated** means the artifact/test suite passed on VPS.
+- **Operationally proven** means the workflow has succeeded under the real
+  operational condition it governs.
+- **Evidence sufficient** means required governed evidence exists and has been
+  reassessed.
+- **Gate complete** requires all applicable prerequisites, evidence,
+  operational proof, and blockers to be cleared.
+
+Hard rule: do not classify any Gate D lane as **complete** without specifying
+whether that means record complete, implementation complete, VPS validated,
+operationally proven, evidence sufficient, or gate complete.
+
+Hard rule: no implementation lane may follow a docs-only contract unless a
+separate readiness audit explicitly authorizes implementation.
+
+### Corrected Gate D Status Table
+
+| Lane | Record/artifact status | Implementation status | VPS validation status | Operational status | Evidence status | Blocker | Next valid action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| D12 | Plan/requirements record validated and VPS-synced. | No new evidence workflow implementation completed by D12 itself. | Record synced/validated only. | Actual governed regular-session package capture workflow remains incomplete. | Governed regular-session package evidence and sufficiency remain incomplete. | Eligible regular-session production run and D13 pass required before capture can resume. | Wait for eligible regular-session production run, then execute only separately authorized governed capture. |
+| D13 | Market-session guard record exists. | Guard implementation exists and is test-guarded. | Guard implementation is VPS-validated. | Eligible-session capture workflow is not operationally proven. | Does not create evidence sufficiency. | Regular-session capture must succeed under real eligible conditions. | Operational proof of eligible-session governed capture when time-gated condition is met. |
+| D14 | Ledger schema record exists. | Ledger schema validator implementation exists and is test-guarded. | Ledger schema implementation is VPS-validated. | Ledger population workflow is not complete. | Evidence inventory is not populated/complete. | Finalized immutable governed package evidence remains insufficient. | Populate only future source-controlled ledger records after governed evidence exists. |
+| D15 | Docs/design record complete. | Candidate mechanism is not implemented. | Record validation only. | No candidate mechanism operational proof. | No candidate evidence produced. | Candidate implementation remains unapproved. | Readiness/contract work only; no candidate execution. |
+| D16 | Read-only audit complete with `D16_PARTIAL_FEASIBILITY_CONTRACT_REQUIRED`. | No implementation authority. | Not an implementation artifact. | No operational proof. | No evidence produced. | Contract required before implementation readiness can be considered. | Use audit finding to support a contract/readiness audit, not execution. |
+| D17 | Docs-only candidate-evidence contract is validated/VPS-validated as a contract record. | Candidate implementation is not authorized by D17. | Contract record validation only. | No candidate mechanism operational proof. | No candidate evidence produced. | Separate implementation-readiness audit required before D18 or any schema implementation. | Run explicit implementation-readiness audit; no implementation yet. |
+| D18 | No D18 candidate-evidence schema record is approved here. | **BLOCKED** pending explicit implementation-readiness audit. | Not applicable. | Not operationally proven. | No candidate evidence produced. | D17 contract alone is insufficient implementation authority. | Implementation-readiness audit only. |
+| Gate D overall | Governance records and some bounded artifacts exist, but Gate D is not complete. | Overall Gate D implementation/evaluation workflow incomplete. | Some prior artifacts are VPS-validated; this is not gate completion. | Regular-session evidence workflow and candidate mechanism are not operationally proven. | Evidence sufficiency is not met/reassessed. | Candidate execution, evaluation/scoring, Unit 12, promotion, broker/execution/paper/live remain blocked. | Regular-session evidence capture when eligible, readiness audits, and later sufficiency reassessment; no scoring/Unit 12. |
+
+### Corrected Current Institutional Status
+
+- D12 evidence-expansion / governed package capture is **NOT COMPLETE** as an
+  evidence workflow. Only the plan/requirements record is complete and
+  validated. Actual governed regular-session package evidence remains
+  insufficient.
+- D13 market-session capture eligibility guard implementation is
+  VPS-validated, but the eligible regular-session capture workflow is
+  **NOT OPERATIONALLY PROVEN**.
+- D14 package capture ledger schema is VPS-validated, but ledger population and
+  evidence inventory are **NOT COMPLETE**.
+- D15 candidate-evidence mechanism design is docs/design only. Candidate
+  mechanism is **NOT IMPLEMENTED**.
+- D16 is a read-only audit only. It authorized a contract direction, not
+  implementation.
+- D17 is a docs-only candidate-evidence mechanism contract. It is
+  VPS-validated as a contract record only and does **NOT** authorize
+  implementation by itself.
+- D18 candidate evidence schema implementation is **BLOCKED** pending an
+  explicit implementation-readiness audit.
+- Candidate execution remains **BLOCKED**.
+- Package capture remains time-gated and incomplete until an eligible
+  regular-session production run exists and passes D13.
+- Evaluation/scoring remains **BLOCKED**.
+- Unit 12 remains **BLOCKED**.
+- Promotion/broker/execution/paper/live authority remains **UNAPPROVED**.
+
+### Status-Semantics Non-Authorization Statement
+
+This reconciliation record does not authorize D18 implementation, candidate
+schema implementation, candidate replay execution, candidate artifact
 generation, candidate package construction, package capture execution, package
 artifact reads, package mutation, evaluation or scoring execution, Unit 12,
 promotion authority, broker/API/TWS/Alpaca/IBKR authority, order-state binding,

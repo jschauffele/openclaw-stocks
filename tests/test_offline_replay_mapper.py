@@ -18672,3 +18672,45 @@ def test_d17_candidate_evidence_contract_record_present_and_status_preserved() -
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Unit 12: **BLOCKED**" in map_text
+
+
+def test_gate_d_status_semantics_reconciliation_present() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D Status-Semantics Reconciliation Record" in map_text
+    assert "Gate D overall is **NOT COMPLETE**" in map_text
+    assert "Record complete" in map_text
+    assert "Implementation complete" in map_text
+    assert "VPS validated" in map_text
+    assert "Operationally proven" in map_text
+    assert "Evidence sufficient" in map_text
+    assert "Gate complete" in map_text
+    assert (
+        "do not classify any Gate D lane as **complete** without specifying"
+        in map_text
+    )
+    assert (
+        "no implementation lane may follow a docs-only contract unless a"
+        in map_text
+    )
+    assert (
+        "| Lane | Record/artifact status | Implementation status | VPS validation "
+        "status | Operational status | Evidence status | Blocker | Next valid action |"
+        in map_text
+    )
+    assert "D12 evidence-expansion / governed package capture is **NOT COMPLETE**" in (
+        map_text
+    )
+    assert "evidence workflow" in map_text
+    assert "eligible regular-session capture workflow is" in map_text
+    assert "**NOT OPERATIONALLY PROVEN**" in map_text
+    assert (
+        "D18 candidate evidence schema implementation is **BLOCKED** pending an"
+        in map_text
+    )
+    assert "D17 contract alone is insufficient implementation authority" in map_text
+    assert "Candidate execution remains **BLOCKED**" in map_text
+    assert "Evaluation/scoring remains **BLOCKED**" in map_text
+    assert "Unit 12 remains **BLOCKED**" in map_text
+    assert "Promotion/broker/execution/paper/live authority remains **UNAPPROVED**" in (
+        map_text
+    )
