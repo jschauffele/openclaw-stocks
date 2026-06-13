@@ -17342,3 +17342,347 @@ def test_candidate_strategy_governance_gate_d_unit12_status_preserved() -> None:
         "Gate D Record D7: Candidate Strategy Identity And Parameter Versioning Unit"
         in map_text
     )
+
+
+# ---------------------------------------------------------------------------
+# Gate D baseline-vs-candidate comparison rules unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.baseline_candidate_comparison_governance as comparison_governance
+
+
+def _valid_baseline(**overrides: object) -> dict:
+    record = {
+        "strategy_id": "baseline_strategy_3close_v1",
+        "strategy_version": "1.0",
+        "is_baseline": True,
+        "parameter_set_id": "baseline_paramset_a",
+        "parameter_set_version": "1.0",
+        "run_scope": "2026-01..2026-06",
+        "immutable_evidence": True,
+        "reproducibility_declared": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def _valid_candidate(**overrides: object) -> dict:
+    record = {
+        "strategy_id": "cand_strategy_3close_v2",
+        "strategy_version": "2.0",
+        "is_candidate": True,
+        "parameter_set_id": "cand_paramset_b",
+        "parameter_set_version": "2.0",
+        "run_scope": "2026-01..2026-06",
+        "immutable_evidence": True,
+        "reproducibility_declared": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def _valid_pairing(**overrides: object) -> dict:
+    record = {
+        "comparison_governance_version": (
+            comparison_governance.COMPARISON_GOVERNANCE_VERSION
+        ),
+        "comparison_rules": comparison_governance.KNOWN_COMPARISON_RULES,
+        "baseline": _valid_baseline(),
+        "candidate": _valid_candidate(),
+    }
+    record.update(overrides)
+    return record
+
+
+def test_comparison_governance_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "baseline_candidate_comparison_governance.py"
+    )
+    assert module_path.exists()
+
+
+def test_comparison_governance_version_deterministic_and_non_empty() -> None:
+    version = comparison_governance.COMPARISON_GOVERNANCE_VERSION
+    assert isinstance(version, str) and version
+    assert version == comparison_governance.COMPARISON_GOVERNANCE_VERSION
+    assert comparison_governance.SUPPORTED_COMPARISON_GOVERNANCE_VERSIONS == (
+        version,
+    )
+
+
+def test_comparison_governance_known_rules_unique_non_empty() -> None:
+    rules = comparison_governance.KNOWN_COMPARISON_RULES
+    assert rules
+    assert len(set(rules)) == len(rules)
+    for rule in rules:
+        assert comparison_governance.is_known_comparison_rule(rule)
+    assert not comparison_governance.is_known_comparison_rule("not_a_rule")
+
+
+def test_comparison_governance_valid_rule_record_validates() -> None:
+    result = comparison_governance.validate_comparison_rule_record(
+        {
+            "comparison_governance_version": (
+                comparison_governance.COMPARISON_GOVERNANCE_VERSION
+            ),
+            "rule_identifier": comparison_governance.COMPARE_IMMUTABLE_EVIDENCE,
+        }
+    )
+    assert result["comparison_rules"] == (
+        comparison_governance.COMPARE_IMMUTABLE_EVIDENCE,
+    )
+
+
+def test_comparison_governance_valid_pairing_validates() -> None:
+    result = comparison_governance.validate_baseline_candidate_pairing_record(
+        _valid_pairing()
+    )
+    assert result["result_type"] == (
+        comparison_governance.COMPARISON_GOVERNANCE_RESULT
+    )
+    assert result["baseline_strategy_id"] == "baseline_strategy_3close_v1"
+    assert result["candidate_strategy_id"] == "cand_strategy_3close_v2"
+
+
+def test_comparison_governance_version_failures_fail_closed() -> None:
+    rec = _valid_pairing()
+    del rec["comparison_governance_version"]
+    with pytest.raises(ValueError, match="missing comparison governance version"):
+        comparison_governance.validate_baseline_candidate_pairing_record(rec)
+    with pytest.raises(ValueError, match="unsupported comparison governance version"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(comparison_governance_version="9.9-x")
+        )
+
+
+def test_comparison_governance_unknown_or_duplicate_rules_fail_closed() -> None:
+    with pytest.raises(ValueError, match="unknown rule identifier"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(comparison_rules=("bogus_rule",))
+        )
+    with pytest.raises(ValueError, match="duplicate rule identifier"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(
+                comparison_rules=(
+                    comparison_governance.COMPARE_RUN_SCOPE_ALIGNED,
+                    comparison_governance.COMPARE_RUN_SCOPE_ALIGNED,
+                )
+            )
+        )
+
+
+def test_comparison_governance_empty_rule_set_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty rule set"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(comparison_rules=())
+        )
+
+
+def test_comparison_governance_malformed_identifiers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed baseline identifier"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(baseline=_valid_baseline(strategy_id="cand_strategy_x"))
+        )
+    with pytest.raises(ValueError, match="malformed candidate identifier"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(candidate=_valid_candidate(strategy_id="baseline_strategy_x"))
+        )
+
+
+def test_comparison_governance_candidate_marker_on_baseline_fails_closed() -> None:
+    with pytest.raises(ValueError, match="candidate marker on baseline record"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(baseline=_valid_baseline(is_candidate=True))
+        )
+
+
+def test_comparison_governance_production_marker_on_candidate_fails_closed() -> None:
+    for field in ("production", "approved", "live", "promoted"):
+        with pytest.raises(
+            ValueError, match="production/approved/live marker on candidate"
+        ):
+            comparison_governance.validate_baseline_candidate_pairing_record(
+                _valid_pairing(candidate=_valid_candidate(**{field: True}))
+            )
+
+
+def test_comparison_governance_missing_markers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="missing baseline marker"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(baseline=_valid_baseline(is_baseline=False))
+        )
+    with pytest.raises(ValueError, match="missing candidate marker"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(candidate=_valid_candidate(is_candidate=False))
+        )
+
+
+def test_comparison_governance_mismatched_run_scope_fails_closed() -> None:
+    with pytest.raises(ValueError, match="mismatched run scope"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(candidate=_valid_candidate(run_scope="2025-01..2025-06"))
+        )
+
+
+def test_comparison_governance_missing_evidence_declarations_fail_closed() -> None:
+    with pytest.raises(ValueError, match="missing immutability declaration"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(baseline=_valid_baseline(immutable_evidence=False))
+        )
+    with pytest.raises(ValueError, match="mutable evidence marker"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(candidate=_valid_candidate(mutable_evidence=True))
+        )
+    with pytest.raises(ValueError, match="missing reproducibility declaration"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(candidate=_valid_candidate(reproducibility_declared=False))
+        )
+
+
+def test_comparison_governance_missing_versions_fail_closed() -> None:
+    base = _valid_baseline()
+    del base["strategy_version"]
+    with pytest.raises(ValueError, match="missing strategy version"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(baseline=base)
+        )
+    cand = _valid_candidate()
+    del cand["parameter_set_version"]
+    with pytest.raises(ValueError, match="missing parameter set version"):
+        comparison_governance.validate_baseline_candidate_pairing_record(
+            _valid_pairing(candidate=cand)
+        )
+
+
+def test_comparison_governance_missing_records_fail_closed() -> None:
+    rec = _valid_pairing()
+    del rec["baseline"]
+    with pytest.raises(ValueError, match="missing baseline record"):
+        comparison_governance.validate_baseline_candidate_pairing_record(rec)
+    rec2 = _valid_pairing()
+    del rec2["candidate"]
+    with pytest.raises(ValueError, match="missing candidate record"):
+        comparison_governance.validate_baseline_candidate_pairing_record(rec2)
+
+
+def test_comparison_governance_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        comparison_governance.validate_baseline_candidate_pairing_record("x")
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        comparison_governance.validate_comparison_rule_record("x")
+
+
+def test_comparison_governance_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "comparison_execution",
+        "strategy_behavior",
+        "evaluation_execution",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            comparison_governance.validate_baseline_candidate_pairing_record(
+                _valid_pairing(**{field: True})
+            )
+
+
+def test_comparison_governance_output_carries_no_downstream_authority() -> None:
+    result = comparison_governance.validate_baseline_candidate_pairing_record(
+        _valid_pairing()
+    )
+    for key in (
+        "comparison_execution",
+        "scoring",
+        "strategy_behavior",
+        "signal_generation",
+        "risk_logic",
+        "execution_logic",
+        "replay_execution",
+        "evaluation_execution",
+        "package_reads",
+        "package_discovery",
+        "package_selection_execution",
+        "filesystem_reads",
+        "attribution_execution",
+        "experiment_execution",
+        "as_of_feature_logic",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = comparison_governance.COMPARISON_GOVERNANCE_AUTHORITY_BOUNDARY
+    assert "no_comparison_execution" in boundary
+    assert "baseline_distinct_from_candidate" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_comparison_governance_module_is_pure_no_filesystem_or_execution() -> None:
+    source = Path(comparison_governance.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"baseline_candidate_comparison_governance.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            "baseline_candidate_comparison_governance.py contains forbidden call "
+            f"'{forbidden_call}'"
+        )
+
+
+def test_comparison_governance_fail_closed_conditions_recorded() -> None:
+    conds = comparison_governance.COMPARISON_GOVERNANCE_FAIL_CLOSED_CONDITIONS
+    assert "unsupported_comparison_governance_version" in conds
+    assert "candidate_marker_on_baseline" in conds
+    assert "production_approved_live_marker_on_candidate" in conds
+    assert "mismatched_run_scope" in conds
+    assert "mutable_evidence_marker" in conds
+    assert "missing_reproducibility_declaration" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_comparison_governance_prior_units_unchanged() -> None:
+    assert metric_vocabulary.METRIC_VOCABULARY_VERSION == "0.1-metric-vocab"
+    assert attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION == (
+        "0.1-attribution-vocab"
+    )
+    assert experiment_registry.EXPERIMENT_REGISTRY_VERSION == "0.1-experiment-registry"
+    assert package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION == "0.1-package-set"
+    assert reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_VERSION == (
+        "0.1-reproducibility"
+    )
+    assert candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION == (
+        "0.1-candidate-strategy"
+    )
+
+
+def test_comparison_governance_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert (
+        "Gate D Record D8: Baseline-vs-Candidate Comparison Rules Unit" in map_text
+    )

@@ -1957,6 +1957,64 @@ scoring, attribution execution, experiment execution, baseline-vs-candidate
 comparison, as-of feature logic, strategy promotion, Unit 12, broker/API work,
 or any execution/paper/live trading authority.
 
+## Gate D Record D8: Baseline-vs-Candidate Comparison Rules Unit
+
+### D8 Status
+
+Recorded on 2026-06-12. This is the seventh Gate D implementation unit ordered
+by Gate D Record D1: baseline-vs-candidate comparison rules governance,
+following metric (D2), attribution (D3), experiment registry (D4), package-set
+(D5), reproducibility (D6), and candidate strategy (D7). It is **IMPLEMENTED**
+as a pure in-memory, test-guarded module:
+`tools/replay/baseline_candidate_comparison_governance.py`.
+
+The module defines deterministic comparison rule identifiers, baseline strategy
+and parameter-set identity rules (namespaced `baseline_*`, distinct from the
+candidate `cand_*` namespace), candidate identity pairing rules (composed with
+the Unit 6 candidate identity validators), a governed version
+(`COMPARISON_GOVERNANCE_VERSION`), and pure validators
+(`is_known_comparison_rule`, `is_valid_baseline_strategy_identifier`,
+`is_valid_baseline_parameter_set_identifier`, `validate_comparison_rule_record`,
+`validate_baseline_candidate_pairing_record`). It requires baseline records to
+be baseline-marked (and not candidate-marked), candidate records to be
+candidate-marked (and not production/approved/live-marked), and both to declare
+matching run scope, immutable evidence, reproducibility, strategy identity and
+version, and parameter-set identity and version. It fails closed for missing or
+unsupported versions, unknown or duplicate rule identifiers, empty rule sets,
+malformed baseline or candidate identifiers, missing baseline or candidate
+markers, candidate markers on baseline records, production/approved/live markers
+on candidate records, mismatched run scope, mutable evidence markers, missing
+immutability or reproducibility declarations, missing strategy or parameter-set
+versions, malformed records, and authority-bearing fields. It executes no
+comparison, computes no scores, runs no strategy/signal/risk/execution/replay/
+evaluation logic, reads/discovers/selects no packages, touches no filesystem,
+and carries no attribution-execution, experiment-execution, as-of, promotion,
+broker, strategy/risk/execution, paper-trading, or live-trading authority.
+
+### D8 Chain Status
+
+- D1 (evaluation prerequisite governance contract): **COMPLETE**
+- D2 (metric vocabulary + versioning unit): **IMPLEMENTED**
+- D3 (attribution vocabulary + versioning unit): **IMPLEMENTED**
+- D4 (experiment identifier + registry authority unit): **IMPLEMENTED**
+- D5 (package-set inclusion/exclusion rules unit): **IMPLEMENTED**
+- D6 (reproducibility rules unit): **IMPLEMENTED**
+- D7 (candidate strategy identity + parameter versioning unit): **IMPLEMENTED**
+- D8 (baseline-vs-candidate comparison rules unit): **IMPLEMENTED** (this record)
+- Remaining Gate D prerequisite unit (as-of feature availability and
+  decision-time evidence rules): **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED** (implementation
+  of the full prerequisite chain is incomplete; this is the seventh of eight
+  units)
+- Unit 12: **BLOCKED**
+
+D8 does not complete Gate D and does not approve comparison execution, scoring,
+strategy behavior, signal generation, risk logic, execution logic, replay
+execution, evaluation execution, package reading, package discovery, package
+selection execution, attribution execution, experiment execution, as-of feature
+logic, strategy promotion, Unit 12, broker/API work, or any execution/paper/
+live trading authority.
+
 ## Drift Risks
 
 Known drift risks to guard:
