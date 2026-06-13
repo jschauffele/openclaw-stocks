@@ -18998,3 +18998,37 @@ def test_d18_record_present_and_status_preserved() -> None:
         in map_text
     )
     assert "Unit 12: **BLOCKED**" in map_text
+
+
+def test_post_d18_lane_parking_active_lane_reset_record_present() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert (
+        "Gate D Post-D18 Lane Parking / Active-Lane Reset Record" in map_text
+    )
+    # active lane reset to STOP / NO ACTION
+    assert "Active lane: **STOP / NO ACTION**" in map_text
+    assert "Gate D overall: **NOT COMPLETE → PARKED**" in map_text
+    assert "Gate D overall remains **NOT COMPLETE**" in map_text
+    # D18 narrow schema VPS-validated but non-authoritative
+    assert (
+        "schema implementation COMPLETE\n  and VPS-VALIDATED**, but **NON-AUTHORITATIVE**"
+        in map_text
+    )
+    assert "VPS_D18_VALIDATION_PASS" in map_text
+    # downstream blocked list
+    for blocked in (
+        "candidate generation",
+        "replay adapter execution",
+        "comparison/scoring/evaluation execution",
+        "Unit 12",
+        "order-state authority",
+        "paper trading",
+        "live trading",
+    ):
+        assert blocked in map_text, f"missing blocked item: {blocked}"
+    # historical reconciliation pins preserved (append-only, not rewritten)
+    assert "Gate D overall is **NOT COMPLETE**" in map_text
+    assert (
+        "D18 candidate evidence schema implementation is **BLOCKED** pending an"
+        in map_text
+    )

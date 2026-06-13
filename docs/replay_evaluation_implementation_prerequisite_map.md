@@ -2972,3 +2972,73 @@ broker, paper, or live authority.
 The D17 replay-input-adapter, candidate-generation, and package-construction
 contracts remain distinct future gates; D18 implements only the candidate
 decision artifact schema/validator and opens none of them.
+
+## Gate D Post-D18 Lane Parking / Active-Lane Reset Record
+
+### Parking Status
+
+Recorded as an append-only governance record on 2026-06-13. This record is
+governance documentation only: it changes no runtime behavior, strategy, risk,
+execution, broker behavior, package capture, replay, scoring, scheduler/systemd,
+or Unit 12, and it neither edits nor weakens any production module.
+
+This record **reconciles** the earlier Gate D Status-Semantics Reconciliation
+Record — which stated "D18 candidate evidence schema implementation is
+**BLOCKED** pending an explicit implementation-readiness audit" and "No D18
+candidate-evidence schema record is approved here" — with the later fact that the
+D18 implementation-readiness audit ran (classification
+`READY_FOR_SEPARATE_IMPLEMENTATION_GATE`) and the **D18 narrow candidate decision
+artifact schema implementation is now complete and VPS-validated**
+(`VPS_D18_VALIDATION_PASS`) as a pure in-memory schema + fail-closed validator
+only. The older reconciliation text is retained verbatim as accurate point-in-time
+history and is not rewritten; that blocker was cleared only for the narrow
+pure-schema scope, and D18 grants no downstream authority.
+
+### Active Lane
+
+- Active lane: **STOP / NO ACTION**.
+- Gate D overall: **NOT COMPLETE → PARKED**.
+
+The default institutional action after D18 validation is to hold at STOP / NO
+ACTION. No Gate D lane continues by momentum. Advancement requires an explicitly
+operator-opened next governed lane, or the time-gated eligible regular-session
+governed capture under separate authorization.
+
+### Per-Lane Parking Classifications
+
+- **D12** — Evidence workflow **NOT COMPLETE**; **RECORD ONLY** and
+  **TIME-GATED** on eligible regular-session governed package evidence existing
+  and passing D13.
+- **D13** — Market-session capture eligibility guard **implementation
+  VPS-VALIDATED**; eligible-session governed capture is **NOT OPERATIONALLY
+  PROVEN** and **TIME-GATED** on real eligible conditions.
+- **D14** — Package inventory / capture ledger schema **VPS-VALIDATED**;
+  inventory / evidence population is **INCOMPLETE** and **EVIDENCE-DEPENDENT**.
+- **D15** — Candidate-evidence mechanism **DOCS/DESIGN RECORD ONLY**; candidate
+  mechanism **NOT IMPLEMENTED**.
+- **D16** — **READ-ONLY AUDIT ONLY** (`D16_PARTIAL_FEASIBILITY_CONTRACT_REQUIRED`);
+  **NO IMPLEMENTATION AUTHORITY**.
+- **D17** — Candidate-evidence mechanism **DOCS CONTRACT ONLY**; does **NOT
+  authorize implementation by itself**.
+- **D18** — Narrow candidate decision artifact **schema implementation COMPLETE
+  and VPS-VALIDATED**, but **NON-AUTHORITATIVE** (pure in-memory schema/validator
+  only).
+
+### D18 Non-Authorization (Restated)
+
+D18 grants no candidate generation, replay adapter execution, package reads,
+package writes, comparison/scoring/evaluation execution, Unit 12, promotion,
+runtime, scheduler/systemd, broker/API/TWS/Alpaca/IBKR, order-state binding,
+paper trading, or live trading authority.
+
+### Downstream Blocked Work
+
+The following remain **BLOCKED / UNAPPROVED** and are not opened by this record:
+candidate generation, replay adapter execution, candidate package construction,
+comparison/scoring/evaluation execution, evidence-set sufficiency reassessment
+(no new governed evidence exists), Unit 12, promotion authority,
+broker/API/TWS/Alpaca/IBKR/order-state authority, package capture (time-gated),
+strategy/risk/execution behavior changes, scheduler/systemd/runtime activation,
+`.env`/credential changes, order submission, order cancellation, cleanup,
+flatten, sell, broker remediation, paper trading approval, and live trading
+approval. Gate D overall remains **NOT COMPLETE**.
