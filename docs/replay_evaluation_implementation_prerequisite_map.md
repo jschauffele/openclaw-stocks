@@ -3253,3 +3253,59 @@ validation.
 - Active lane remains **STOP / NO ACTION** after validation.
 - Gate D overall remains **NOT COMPLETE → PARKED**. Gate D overall remains
   **NOT COMPLETE**.
+
+## Gate D Post-Schema Consolidation Record
+
+Docs/test-only consolidation record. It records the joint status of the four
+post-D18 candidate-track pure-schema modules after the Gate D post-schema
+consolidation/status audit (classified PASS). It implements nothing, changes no
+module behavior, and authorizes nothing. It does not advance Gate D.
+
+### Implemented post-D18 pure-schema modules (all NON-AUTHORITATIVE)
+
+- **Candidate decision artifact schema** (`tools/replay/candidate_decision_artifact.py`)
+  — **IMPLEMENTED and VPS-VALIDATED**, **non-authoritative**.
+- **Replay-input-adapter schema** (`tools/replay/replay_input_adapter_schema.py`)
+  — **IMPLEMENTED and VPS-VALIDATED**, **non-authoritative**.
+- **Candidate-vs-baseline linkage schema**
+  (`tools/replay/candidate_baseline_linkage_schema.py`)
+  — **IMPLEMENTED and VPS-VALIDATED**, **non-authoritative**.
+- **Candidate test harness schema** (`tools/replay/candidate_test_harness_schema.py`)
+  — **IMPLEMENTED and VPS-VALIDATED**, **non-authoritative**.
+
+### What the four schemas authorize
+
+The four schemas authorize **only deterministic pure in-memory validation of
+already-loaded metadata records** of their respective kinds. Validating a record
+produces non-authoritative metadata, not an action, an approval, or evidence.
+
+### What the four schemas do NOT authorize
+
+- They do **not** authorize package reads / writes / discovery / mutation.
+- They do **not** authorize filesystem reads or path resolution.
+- They do **not** authorize test execution or tests-as-promotion-evidence.
+- They do **not** authorize replay execution.
+- They do **not** authorize candidate generation.
+- They do **not** authorize comparison / scoring / evaluation.
+- They do **not** authorize promotion.
+- They do **not** authorize Unit 12.
+- They do **not** authorize runtime / systemd / timer / service changes.
+- They do **not** authorize broker / API / TWS / Alpaca / IBKR / order-state.
+- They do **not** authorize paper / live trading.
+
+Downstream authority is not inferred from any schema validation.
+
+### Remaining Gate D blockers (unchanged)
+
+- **D11** evidence remains **INSUFFICIENT** and **controlling**.
+- **D12 / D13** remain **TIME-GATED** on a real eligible regular-session governed
+  evidence capture passing D13 under separate authorization.
+- **D14** package inventory remains **EVIDENCE-DEPENDENT** and **unpopulated**.
+- The candidate-evidence execution mechanism remains **UNIMPLEMENTED /
+  UNAPPROVED**.
+
+### Status after this consolidation
+
+- Gate D remains **NOT COMPLETE → PARKED**. Gate D overall remains **NOT
+  COMPLETE**.
+- Active lane remains **STOP / NO ACTION**.

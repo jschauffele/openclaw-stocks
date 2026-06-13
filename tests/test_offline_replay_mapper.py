@@ -20067,3 +20067,47 @@ def test_candidate_test_harness_record_present_and_parking_preserved() -> None:
     assert "Gate D overall remains **NOT COMPLETE → PARKED**" in map_text
     # parking record pins preserved (append-only, not rewritten)
     assert "Active lane: **STOP / NO ACTION**" in map_text
+
+
+def test_gate_d_post_schema_consolidation_record_present() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D Post-Schema Consolidation Record" in map_text
+    # all four schema module names
+    for module in (
+        "tools/replay/candidate_decision_artifact.py",
+        "tools/replay/replay_input_adapter_schema.py",
+        "tools/replay/candidate_baseline_linkage_schema.py",
+        "tools/replay/candidate_test_harness_schema.py",
+    ):
+        assert module in map_text, f"missing schema module name: {module}"
+    # implemented / VPS-validated / non-authoritative language
+    assert "IMPLEMENTED and VPS-VALIDATED" in map_text
+    assert "non-authoritative" in map_text
+    assert (
+        "deterministic pure in-memory validation of\nalready-loaded metadata records"
+        in map_text
+    )
+    # parked / stop pins
+    assert "Gate D remains **NOT COMPLETE → PARKED**" in map_text
+    assert "Active lane remains **STOP / NO ACTION**" in map_text
+    # remaining-blocker pins
+    assert "**D11** evidence remains **INSUFFICIENT** and **controlling**" in map_text
+    assert "**D12 / D13** remain **TIME-GATED**" in map_text
+    assert "**D14** package inventory remains **EVIDENCE-DEPENDENT**" in map_text
+    assert (
+        "candidate-evidence execution mechanism remains **UNIMPLEMENTED /\n  UNAPPROVED**"
+        in map_text
+    )
+    # forbidden-authority pins
+    assert "not** authorize package reads / writes / discovery / mutation" in map_text
+    assert "not** authorize filesystem reads or path resolution" in map_text
+    assert "not** authorize test execution or tests-as-promotion-evidence" in map_text
+    assert "not** authorize replay execution" in map_text
+    assert "not** authorize candidate generation" in map_text
+    assert "not** authorize comparison / scoring / evaluation" in map_text
+    assert "not** authorize promotion" in map_text
+    assert "not** authorize Unit 12" in map_text
+    assert (
+        "not** authorize broker / API / TWS / Alpaca / IBKR / order-state" in map_text
+    )
+    assert "not** authorize paper / live trading" in map_text
