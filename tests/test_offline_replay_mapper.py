@@ -18001,3 +18001,22 @@ def test_asof_governance_gate_d_unit12_status_preserved() -> None:
         "Gate D Record D9: As-Of Feature Availability And Decision-Time Evidence Unit"
         in map_text
     )
+
+
+def test_gate_d_prerequisite_governance_completion_record_present() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    # D10 records the prerequisite-governance chain complete...
+    assert (
+        "Gate D Record D10: Prerequisite Governance Completion Record" in map_text
+    )
+    assert "Gate D prerequisite-governance chain (D1 through D9): **COMPLETE**" in (
+        map_text
+    )
+    # ...without contradicting the historical pinned status strings
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Unit 12: **BLOCKED**" in map_text
+    # evidence sufficiency stays separate and Unit 12 stays blocked
+    assert "Evidence-set sufficiency for scoring: **NOT DECIDED / NOT APPROVED**" in (
+        map_text
+    )

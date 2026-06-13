@@ -2073,6 +2073,93 @@ package reading, package discovery, package selection execution, attribution
 execution, experiment execution, strategy promotion, Unit 12, broker/API work,
 or any execution/paper/live trading authority.
 
+## Gate D Record D10: Prerequisite Governance Completion Record
+
+### D10 Status
+
+Recorded as a docs-only governance record on 2026-06-12. This record completes
+the Gate D **prerequisite-governance chain** and nothing else.
+
+The Gate D prerequisite-governance chain is **COMPLETE**: Gate D Record D1 (the
+prerequisite governance contract) plus the eight ordered prerequisite-governance
+units D2 through D9 cover, in order, the full D1 prerequisite-governance list.
+Each unit is a pure in-memory, test-guarded vocabulary/governance module with a
+deterministic version, fail-closed validators, and a no-downstream-authority
+boundary.
+
+This record is append-only governance evidence. It does not rewrite the prior
+D1–D9 records, and it does not contradict them: the prior records' statement
+that "Gate D (evaluation prerequisite governance): **NOT STARTED**" refers to
+overall Gate D implementation and evaluation execution, which remain unopened.
+D10 records only that the prerequisite-governance chain is complete.
+
+### D10 Prerequisite Coverage
+
+- Gate C (complete replay package authority): **COMPLETE** (see the Gate C
+  Completion Record).
+- At least one finalized, immutable, governed on-disk replay package exists
+  (`run_2026-06-12T13:00:11Z_68d0b9`, recorded in the Gate C Completion Record).
+- Metric vocabulary + versioning governance: **COMPLETE** (D2,
+  `tools/replay/metric_vocabulary.py`).
+- Attribution vocabulary + versioning governance: **COMPLETE** (D3,
+  `tools/replay/attribution_vocabulary.py`).
+- Experiment identifier + registry authority governance: **COMPLETE** (D4,
+  `tools/replay/experiment_registry.py`).
+- Package-set inclusion/exclusion rules governance: **COMPLETE** (D5,
+  `tools/replay/package_set_governance.py`).
+- Reproducibility rules governance: **COMPLETE** (D6,
+  `tools/replay/reproducibility_governance.py`).
+- Candidate strategy identity + parameter versioning governance: **COMPLETE**
+  (D7, `tools/replay/candidate_strategy_governance.py`).
+- Baseline-vs-candidate comparison rules governance: **COMPLETE** (D8,
+  `tools/replay/baseline_candidate_comparison_governance.py`).
+- As-of feature availability + decision-time evidence rules governance:
+  **COMPLETE** (D9, `tools/replay/asof_evidence_governance.py`).
+
+### D10 Evidence Sufficiency Is Separate
+
+The prerequisite list requires that finalized immutable evidence *exists*, which
+is met. Whether the finalized immutable evidence *set* is rich enough to support
+trustworthy scoring or baseline-vs-candidate evaluation is a **separate decision
+that D10 does not make and does not approve**. As recorded in D1, the current
+evidence set is thin (a single `blocked`, market-closed run with no decision or
+trade and no baseline-vs-candidate pair) and is insufficient for real scoring.
+Evidence-set sufficiency remains a later, separately governed decision.
+
+### D10 Chain Status
+
+- Gate C (complete replay package authority — production evidence path):
+  **COMPLETE**
+- Gate D prerequisite-governance chain (D1 through D9): **COMPLETE** (this
+  record)
+- Gate D (evaluation prerequisite governance): **NOT STARTED** — overall Gate D
+  implementation and evaluation execution remain unopened; only the
+  prerequisite-governance chain is complete.
+- Evidence-set sufficiency for scoring: **NOT DECIDED / NOT APPROVED**
+- Unit 12: **BLOCKED**
+
+### D10 Non-Authorization Statement
+
+D10 does not authorize:
+
+- Evaluation or scoring execution
+- Evidence-sufficiency approval for scoring
+- Unit 12
+- Promotion authority or strategy promotion
+- Broker/API/TWS/Alpaca/IBKR authority
+- Strategy, risk, or execution behavior changes (production behavior is
+  unchanged)
+- Attribution, experiment, comparison, or as-of computation execution
+- Package reading, package discovery, or package selection execution
+- systemd, scheduler, runtime activation, `.env`, or credential changes
+- Cleanup, flatten, sell, cancel, order submission, order cancellation, or
+  broker remediation
+- Paper trading approval or live trading approval
+
+Unit 12 remains BLOCKED until, at minimum, an evidence-set sufficiency decision
+and a separately governed evaluation-execution gate are recorded. No such gate
+is opened here.
+
 ## Drift Risks
 
 Known drift risks to guard:
