@@ -17013,3 +17013,332 @@ def test_reproducibility_governance_gate_d_unit12_status_preserved() -> None:
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Gate D Record D6: Reproducibility Rules Unit" in map_text
+
+
+# ---------------------------------------------------------------------------
+# Gate D candidate strategy identity + parameter versioning unit tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.candidate_strategy_governance as candidate_strategy_governance
+
+
+def _valid_candidate_strategy_record(**overrides: object) -> dict:
+    record = {
+        "candidate_strategy_governance_version": (
+            candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION
+        ),
+        "strategy_id": "cand_strategy_3close_v2",
+        "strategy_version": "2.0",
+        "is_candidate": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def _valid_parameter_set_record(**overrides: object) -> dict:
+    record = {
+        "candidate_strategy_governance_version": (
+            candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION
+        ),
+        "parameter_set_id": "cand_paramset_3close_a",
+        "parameter_set_version": "1.0",
+        "is_candidate": True,
+        "immutable": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_candidate_strategy_governance_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "candidate_strategy_governance.py"
+    )
+    assert module_path.exists()
+
+
+def test_candidate_strategy_governance_version_deterministic_and_non_empty() -> None:
+    version = candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION
+    assert isinstance(version, str) and version
+    assert version == (
+        candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION
+    )
+    assert (
+        candidate_strategy_governance.SUPPORTED_CANDIDATE_STRATEGY_GOVERNANCE_VERSIONS
+        == (version,)
+    )
+
+
+def test_candidate_strategy_governance_valid_identifiers_validate() -> None:
+    assert candidate_strategy_governance.is_valid_candidate_strategy_identifier(
+        "cand_strategy_x1"
+    )
+    assert candidate_strategy_governance.is_valid_parameter_set_identifier(
+        "cand_paramset_x1"
+    )
+    strat = candidate_strategy_governance.validate_candidate_strategy_record(
+        _valid_candidate_strategy_record()
+    )
+    assert strat["strategy_identifiers"] == ("cand_strategy_3close_v2",)
+    param = candidate_strategy_governance.validate_parameter_set_record(
+        _valid_parameter_set_record()
+    )
+    assert param["parameter_set_identifiers"] == ("cand_paramset_3close_a",)
+
+
+def test_candidate_strategy_governance_distinguishes_candidate_from_production() -> None:
+    # production-namespaced ids are not valid candidate ids
+    assert not candidate_strategy_governance.is_valid_candidate_strategy_identifier(
+        "prod_strategy_x"
+    )
+    assert not candidate_strategy_governance.is_valid_parameter_set_identifier(
+        "approved_paramset_x"
+    )
+    with pytest.raises(ValueError, match="malformed strategy identifier"):
+        candidate_strategy_governance.validate_candidate_strategy_record(
+            _valid_candidate_strategy_record(strategy_id="prod_strategy_x")
+        )
+
+
+def test_candidate_strategy_governance_record_sets_validate_unique() -> None:
+    strat = candidate_strategy_governance.validate_candidate_strategy_record_set(
+        (
+            _valid_candidate_strategy_record(),
+            _valid_candidate_strategy_record(strategy_id="cand_strategy_other"),
+        )
+    )
+    assert set(strat["strategy_identifiers"]) == {
+        "cand_strategy_3close_v2",
+        "cand_strategy_other",
+    }
+    param = candidate_strategy_governance.validate_parameter_set_record_set(
+        (
+            _valid_parameter_set_record(),
+            _valid_parameter_set_record(parameter_set_id="cand_paramset_other"),
+        )
+    )
+    assert set(param["parameter_set_identifiers"]) == {
+        "cand_paramset_3close_a",
+        "cand_paramset_other",
+    }
+
+
+def test_candidate_strategy_governance_version_failures_fail_closed() -> None:
+    rec = _valid_candidate_strategy_record()
+    del rec["candidate_strategy_governance_version"]
+    with pytest.raises(
+        ValueError, match="missing candidate strategy governance version"
+    ):
+        candidate_strategy_governance.validate_candidate_strategy_record(rec)
+    with pytest.raises(
+        ValueError, match="unsupported candidate strategy governance version"
+    ):
+        candidate_strategy_governance.validate_candidate_strategy_record(
+            _valid_candidate_strategy_record(
+                candidate_strategy_governance_version="9.9-x"
+            )
+        )
+
+
+def test_candidate_strategy_governance_malformed_identifiers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed strategy identifier"):
+        candidate_strategy_governance.validate_candidate_strategy_record(
+            _valid_candidate_strategy_record(strategy_id="cand_strategy_BAD")
+        )
+    with pytest.raises(ValueError, match="malformed parameter set identifier"):
+        candidate_strategy_governance.validate_parameter_set_record(
+            _valid_parameter_set_record(parameter_set_id="cand_paramset_BAD!")
+        )
+
+
+def test_candidate_strategy_governance_missing_versions_fail_closed() -> None:
+    rec = _valid_candidate_strategy_record()
+    del rec["strategy_version"]
+    with pytest.raises(ValueError, match="missing strategy version"):
+        candidate_strategy_governance.validate_candidate_strategy_record(rec)
+    prec = _valid_parameter_set_record()
+    del prec["parameter_set_version"]
+    with pytest.raises(ValueError, match="missing parameter set version"):
+        candidate_strategy_governance.validate_parameter_set_record(prec)
+
+
+def test_candidate_strategy_governance_missing_candidate_marker_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing candidate marker"):
+        candidate_strategy_governance.validate_candidate_strategy_record(
+            _valid_candidate_strategy_record(is_candidate=False)
+        )
+    with pytest.raises(ValueError, match="missing candidate marker"):
+        candidate_strategy_governance.validate_parameter_set_record(
+            _valid_parameter_set_record(is_candidate=False)
+        )
+
+
+def test_candidate_strategy_governance_production_markers_fail_closed() -> None:
+    for field in ("production", "approved", "live", "promoted"):
+        with pytest.raises(
+            ValueError, match="production/approved/live marker present"
+        ):
+            candidate_strategy_governance.validate_candidate_strategy_record(
+                _valid_candidate_strategy_record(**{field: True})
+            )
+
+
+def test_candidate_strategy_governance_mutable_parameter_fails_closed() -> None:
+    with pytest.raises(ValueError, match="mutable parameter marker"):
+        candidate_strategy_governance.validate_parameter_set_record(
+            _valid_parameter_set_record(mutable=True)
+        )
+
+
+def test_candidate_strategy_governance_missing_immutability_fails_closed() -> None:
+    with pytest.raises(ValueError, match="missing immutability declaration"):
+        candidate_strategy_governance.validate_parameter_set_record(
+            _valid_parameter_set_record(immutable=False)
+        )
+    prec = _valid_parameter_set_record()
+    del prec["immutable"]
+    with pytest.raises(ValueError, match="missing immutability declaration"):
+        candidate_strategy_governance.validate_parameter_set_record(prec)
+
+
+def test_candidate_strategy_governance_duplicate_identifiers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="duplicate strategy identifier"):
+        candidate_strategy_governance.validate_candidate_strategy_record_set(
+            (_valid_candidate_strategy_record(), _valid_candidate_strategy_record())
+        )
+    with pytest.raises(ValueError, match="duplicate parameter set identifier"):
+        candidate_strategy_governance.validate_parameter_set_record_set(
+            (_valid_parameter_set_record(), _valid_parameter_set_record())
+        )
+
+
+def test_candidate_strategy_governance_empty_set_fails_closed() -> None:
+    with pytest.raises(ValueError, match="empty record set"):
+        candidate_strategy_governance.validate_candidate_strategy_record_set(())
+
+
+def test_candidate_strategy_governance_malformed_record_fails_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        candidate_strategy_governance.validate_candidate_strategy_record("x")
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        candidate_strategy_governance.validate_parameter_set_record("x")
+
+
+def test_candidate_strategy_governance_authority_bearing_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "strategy_behavior",
+        "signal_generation",
+        "risk_logic",
+        "execution_logic",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            candidate_strategy_governance.validate_candidate_strategy_record(
+                _valid_candidate_strategy_record(**{field: True})
+            )
+
+
+def test_candidate_strategy_governance_output_carries_no_downstream_authority() -> None:
+    result = candidate_strategy_governance.validate_candidate_strategy_record(
+        _valid_candidate_strategy_record()
+    )
+    for key in (
+        "strategy_behavior",
+        "signal_generation",
+        "risk_logic",
+        "execution_logic",
+        "replay_execution",
+        "evaluation_execution",
+        "package_reads",
+        "package_discovery",
+        "package_selection_execution",
+        "filesystem_reads",
+        "scoring",
+        "attribution_execution",
+        "experiment_execution",
+        "baseline_vs_candidate_comparison",
+        "as_of_feature_logic",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = (
+        candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_AUTHORITY_BOUNDARY
+    )
+    assert "candidate_distinct_from_approved_production" in boundary
+    assert "no_strategy_behavior" in boundary
+    assert "no_package_reads" in boundary
+    assert "no_promotion_or_strategy_promotion" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_candidate_strategy_governance_module_is_pure_no_filesystem_or_behavior() -> None:
+    source = Path(candidate_strategy_governance.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"candidate_strategy_governance.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"candidate_strategy_governance.py contains forbidden call "
+            f"'{forbidden_call}'"
+        )
+
+
+def test_candidate_strategy_governance_fail_closed_conditions_recorded() -> None:
+    conds = (
+        candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_FAIL_CLOSED_CONDITIONS
+    )
+    assert "unsupported_candidate_strategy_governance_version" in conds
+    assert "malformed_strategy_identifier" in conds
+    assert "malformed_parameter_set_identifier" in conds
+    assert "missing_candidate_marker" in conds
+    assert "production_approved_live_marker_present" in conds
+    assert "mutable_parameter_marker" in conds
+    assert "missing_immutability_declaration" in conds
+    assert "authority_bearing_field_present" in conds
+
+
+def test_candidate_strategy_governance_prior_units_unchanged() -> None:
+    assert metric_vocabulary.METRIC_VOCABULARY_VERSION == "0.1-metric-vocab"
+    assert attribution_vocabulary.ATTRIBUTION_VOCABULARY_VERSION == (
+        "0.1-attribution-vocab"
+    )
+    assert experiment_registry.EXPERIMENT_REGISTRY_VERSION == "0.1-experiment-registry"
+    assert package_set_governance.PACKAGE_SET_GOVERNANCE_VERSION == "0.1-package-set"
+    assert reproducibility_governance.REPRODUCIBILITY_GOVERNANCE_VERSION == (
+        "0.1-reproducibility"
+    )
+    assert reproducibility_governance.KNOWN_REPRODUCIBILITY_RULES
+
+
+def test_candidate_strategy_governance_gate_d_unit12_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert (
+        "Gate D Record D7: Candidate Strategy Identity And Parameter Versioning Unit"
+        in map_text
+    )

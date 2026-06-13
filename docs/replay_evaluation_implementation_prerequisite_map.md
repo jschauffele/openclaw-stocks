@@ -1905,6 +1905,58 @@ scoring, attribution execution, experiment execution, baseline-vs-candidate
 comparison, as-of feature logic, strategy promotion, Unit 12, broker/API work,
 or any execution/paper/live trading authority.
 
+## Gate D Record D7: Candidate Strategy Identity And Parameter Versioning Unit
+
+### D7 Status
+
+Recorded on 2026-06-12. This is the sixth Gate D implementation unit ordered by
+Gate D Record D1: candidate strategy identity + parameter versioning
+governance, following metric (D2), attribution (D3), experiment registry (D4),
+package-set (D5), and reproducibility (D6). It is **IMPLEMENTED** as a pure
+in-memory, test-guarded module: `tools/replay/candidate_strategy_governance.py`.
+
+The module defines deterministic candidate strategy identity/version rules and
+candidate parameter-set identity/version rules (namespaced `cand_strategy_` and
+`cand_paramset_`, strictly distinct from approved production identity), a
+governed version (`CANDIDATE_STRATEGY_GOVERNANCE_VERSION`), and pure validators
+(`is_valid_candidate_strategy_identifier`, `is_valid_parameter_set_identifier`,
+`validate_candidate_strategy_record`, `validate_parameter_set_record`,
+`validate_candidate_strategy_record_set`, `validate_parameter_set_record_set`).
+It fails closed for missing or unsupported versions, malformed strategy or
+parameter-set identifiers, missing strategy or parameter-set versions, missing
+candidate markers, production/approved/live markers, mutable parameter markers,
+missing immutability declarations, duplicate identifiers, empty record sets,
+malformed records, and authority-bearing fields. It carries no strategy
+behavior, signal generation, risk logic, execution logic, replay or evaluation
+execution, package reading, package discovery, package selection, scoring,
+attribution/experiment execution, baseline-vs-candidate comparison, as-of logic,
+promotion, broker, strategy/risk/execution, paper-trading, or live-trading
+authority.
+
+### D7 Chain Status
+
+- D1 (evaluation prerequisite governance contract): **COMPLETE**
+- D2 (metric vocabulary + versioning unit): **IMPLEMENTED**
+- D3 (attribution vocabulary + versioning unit): **IMPLEMENTED**
+- D4 (experiment identifier + registry authority unit): **IMPLEMENTED**
+- D5 (package-set inclusion/exclusion rules unit): **IMPLEMENTED**
+- D6 (reproducibility rules unit): **IMPLEMENTED**
+- D7 (candidate strategy identity + parameter versioning unit): **IMPLEMENTED**
+  (this record)
+- Remaining Gate D prerequisite units (baseline-vs-candidate comparison, as-of
+  feature availability): **NOT STARTED**
+- Gate D (evaluation prerequisite governance): **NOT STARTED** (implementation
+  of the full prerequisite chain is incomplete; this is the sixth of eight
+  units)
+- Unit 12: **BLOCKED**
+
+D7 does not complete Gate D and does not approve strategy behavior, signal
+generation, risk logic, execution logic, replay execution, evaluation
+execution, package reading, package discovery, package selection execution,
+scoring, attribution execution, experiment execution, baseline-vs-candidate
+comparison, as-of feature logic, strategy promotion, Unit 12, broker/API work,
+or any execution/paper/live trading authority.
+
 ## Drift Risks
 
 Known drift risks to guard:
