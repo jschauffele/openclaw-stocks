@@ -18294,11 +18294,14 @@ def test_orchestrator_vps_blocks_market_closed_run(tmp_path: Path) -> None:
         _ceg_jsonl(payload_reason="market_holiday_or_closed_day"),
         _ceg_report(reason=None),
     )
+    package_root = Path(adapter.package_root_path)
+    before_package_root = _path_inventory(package_root)
     with pytest.raises(ValueError, match="market/session-ineligible"):
         package_execution_orchestrator.execute_package_orchestration(
             _ceg_vps_request(), vps_adapter=adapter
         )
-    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+    assert _path_inventory(package_root) == before_package_root
+    assert not (package_root / _CEG_RUN_ID / "manifest.json").exists()
 
 
 def test_orchestrator_vps_allows_eligible_non_market_blocked_run(tmp_path: Path) -> None:
