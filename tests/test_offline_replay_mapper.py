@@ -18020,3 +18020,18 @@ def test_gate_d_prerequisite_governance_completion_record_present() -> None:
     assert "Evidence-set sufficiency for scoring: **NOT DECIDED / NOT APPROVED**" in (
         map_text
     )
+
+
+def test_gate_d_evidence_set_sufficiency_decision_present() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    # D11 records the INSUFFICIENT sufficiency decision...
+    assert "Gate D Record D11: Evidence-Set Sufficiency Decision" in map_text
+    assert "Evidence sufficiency for scoring: **NOT MET**" in map_text
+    assert "one thin governed package" in map_text
+    assert "run_2026-06-12T13:00:11Z_68d0b9" in map_text
+    # ...while keeping evaluation/scoring and Unit 12 blocked
+    assert "Evaluation/scoring execution: **BLOCKED**" in map_text
+    # ...without disturbing the historical pinned status strings
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Unit 12: **BLOCKED**" in map_text

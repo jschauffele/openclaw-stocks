@@ -2160,6 +2160,94 @@ Unit 12 remains BLOCKED until, at minimum, an evidence-set sufficiency decision
 and a separately governed evaluation-execution gate are recorded. No such gate
 is opened here.
 
+## Gate D Record D11: Evidence-Set Sufficiency Decision
+
+### D11 Status
+
+Recorded as a docs-only governance record on 2026-06-12. This record makes the
+evidence-set sufficiency decision that Gate D Record D10 explicitly deferred. It
+decides nothing else.
+
+Finalized immutable governed replay-package evidence **exists**, but the current
+evidence set is **INSUFFICIENT** for trustworthy baseline-vs-candidate
+evaluation/scoring. This decision is consistent with the thin-evidence note in
+Gate D Record D1 and the deferral in Gate D Record D10. It is append-only and
+does not rewrite the prior D1–D10 records.
+
+### D11 Current Evidence Set
+
+- The current set consists of **one thin governed package** from `run_id`
+  `run_2026-06-12T13:00:11Z_68d0b9`, recorded in the Gate C Completion Record.
+- That package is **market-closed**: terminal reason `before_regular_session_open`,
+  terminal status `blocked` — a pre-regular-session run with no strategy decision
+  and no trade.
+- The current set **lacks multiple finalized immutable packages** (only one
+  exists).
+- The current set **lacks regular-session decision opportunities** (the lone run
+  is market-closed before the regular session opens).
+- The current set **lacks meaningful decision diversity** (no BUY/HOLD/SELL or
+  substantive blocked-reason variety; a single blocked, market-closed run).
+- The current set **lacks a baseline package**.
+- The current set **lacks a candidate package**.
+- The current set **lacks a baseline-vs-candidate pair** (a comparison cannot be
+  formed).
+
+### D11 Decision
+
+- Evidence sufficiency for scoring: **NOT MET**.
+- Evaluation/scoring execution: **BLOCKED**.
+- Unit 12: **BLOCKED**.
+- Promotion authority: **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS authority: **UNAPPROVED**.
+- Strategy/risk/execution behavior: **UNCHANGED** (no production behavior change).
+- Paper trading and live trading: **UNAPPROVED**.
+
+### D11 Minimum Sufficiency Criteria
+
+Before any evaluation/scoring lane may open, the finalized immutable governed
+evidence set must satisfy, at minimum:
+
+- Multiple finalized immutable governed packages (not a single thin package).
+- Regular-session decision opportunities (not only market-closed blocked runs).
+- Meaningful decision diversity where applicable (BUY/HOLD/SELL or substantive
+  blocked-reason variety).
+- Baseline and candidate package pairing compatibility (a baseline-marked and a
+  candidate-marked package with matching run scope, per Unit 7 governance).
+- Package-set inclusion/exclusion compatibility (finalized-immutable,
+  run_id-aligned, hash-verified, terminal-completion-eligible; excluding
+  draft/incomplete, mutable, stale, mixed-run-id, unhashable/hash-mismatch,
+  invalidated, and error-terminal packages, per Unit 4 governance).
+- Reproducibility declarations (pinned commit, canonical serialization,
+  hash-verified inputs, immutable evidence, stable ordering,
+  environment-independent comparison, per Unit 5 governance).
+- As-of decision-time compliance (`available_at_timestamp <= decision_timestamp`;
+  no future-dated, post-decision, or leaked evidence, per Unit 8 governance).
+- Deterministic metric and attribution vocabulary compatibility (per Unit 1 and
+  Unit 2 governance).
+- No package mutation, no hash mismatch, no mixed `run_id`, and no future or
+  leaked evidence.
+
+### D11 Recommended Next Lane
+
+The next later lane is an **evidence-expansion / additional governed package
+capture plan** — capturing multiple finalized immutable governed packages over
+real regular-session decision runs through the existing bounded VPS
+package-execution path until the minimum sufficiency criteria are met. That lane
+is operational and is **not** evaluation execution: it does not score, evaluate,
+compare, promote, or open Unit 12.
+
+### D11 Non-Authorization Statement
+
+D11 does not authorize evaluation or scoring execution, evidence capture
+execution, package creation, Unit 12, promotion authority, broker/API/TWS/Alpaca/
+IBKR authority, strategy/risk/execution behavior changes, attribution/experiment/
+comparison/as-of computation execution, package reading/discovery/selection,
+systemd/scheduler/runtime-activation/`.env`/credential changes, cleanup, flatten,
+sell, cancel, order submission, order cancellation, broker remediation, paper
+trading approval, or live trading approval. Unit 12 remains BLOCKED until the
+minimum sufficiency criteria are met and a separately governed evaluation-execution
+gate is recorded; no such gate is opened here.
+
 ## Drift Risks
 
 Known drift risks to guard:
