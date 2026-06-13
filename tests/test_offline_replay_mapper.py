@@ -15059,7 +15059,19 @@ def test_orchestrator_no_repo_root_replay_packages(tmp_path: Path) -> None:
 _VPS_RUN_ID = "run_2026-06-11T15:00:00Z_vps001"
 
 
-def _vps_jsonl_bytes(run_id: str = _VPS_RUN_ID, terminal_status: str = "blocked") -> bytes:
+def _vps_jsonl_bytes(
+    run_id: str = _VPS_RUN_ID,
+    terminal_status: str = "blocked",
+    terminal_reason: str = "killswitch_disabled",
+) -> bytes:
+    completion = {
+        "run_id": run_id,
+        "event_type": "system",
+        "stage": "completion",
+        "status": terminal_status,
+    }
+    if terminal_reason is not None:
+        completion["payload"] = {"reason": terminal_reason}
     lines = [
         json.dumps(
             {
@@ -15069,20 +15081,20 @@ def _vps_jsonl_bytes(run_id: str = _VPS_RUN_ID, terminal_status: str = "blocked"
                 "status": "ok",
             }
         ),
-        json.dumps(
-            {
-                "run_id": run_id,
-                "event_type": "system",
-                "stage": "completion",
-                "status": terminal_status,
-            }
-        ),
+        json.dumps(completion),
     ]
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
-def _vps_report_bytes(run_id: str = _VPS_RUN_ID, status: str = "blocked") -> bytes:
-    return json.dumps({"run_id": run_id, "status": status}).encode("utf-8")
+def _vps_report_bytes(
+    run_id: str = _VPS_RUN_ID,
+    status: str = "blocked",
+    reason: str = "killswitch_disabled",
+) -> bytes:
+    report: dict = {"run_id": run_id, "status": status}
+    if reason is not None:
+        report["reason"] = reason
+    return json.dumps(report).encode("utf-8")
 
 
 def _make_vps_adapter(
@@ -18052,6 +18064,301 @@ def test_gate_d_evidence_expansion_capture_plan_present() -> None:
     # ...while keeping everything downstream blocked / unapproved
     assert "Evaluation/scoring execution remains **BLOCKED**" in map_text
     # ...without disturbing the historical pinned status strings
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Unit 12: **BLOCKED**" in map_text
+
+
+# ---------------------------------------------------------------------------
+# Gate D D13 market-session package-capture eligibility guard tests
+# ---------------------------------------------------------------------------
+
+import tools.replay.capture_eligibility_guard as capture_eligibility_guard
+
+_CEG_RUN_ID = "run_2026-06-13T14:30:00Z_aa11bb"
+
+
+def _ceg_jsonl(
+    status: str = "blocked",
+    payload_reason: str | None = "killswitch_disabled",
+    top_reason: str | None = None,
+    run_id: str = _CEG_RUN_ID,
+) -> bytes:
+    completion: dict = {
+        "run_id": run_id,
+        "event_type": "system",
+        "stage": "completion",
+        "status": status,
+    }
+    if payload_reason is not None:
+        completion["payload"] = {"reason": payload_reason}
+    if top_reason is not None:
+        completion["reason"] = top_reason
+    lines = [
+        json.dumps(
+            {
+                "run_id": run_id,
+                "event_type": "system",
+                "stage": "startup",
+                "status": "ok",
+            }
+        ),
+        json.dumps(completion),
+    ]
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def _ceg_report(
+    status: str = "blocked", reason: str | None = "killswitch_disabled",
+    run_id: str = _CEG_RUN_ID,
+) -> bytes:
+    report: dict = {"run_id": run_id, "status": status}
+    if reason is not None:
+        report["reason"] = reason
+    return json.dumps(report).encode("utf-8")
+
+
+def _ceg_eval(status: str = "blocked", jsonl: bytes | None = None,
+              report: bytes | None = None):
+    return capture_eligibility_guard.evaluate_capture_market_eligibility(
+        canonical_run_id=_CEG_RUN_ID,
+        terminal_completion_status=status,
+        jsonl_bytes=_ceg_jsonl() if jsonl is None else jsonl,
+        last_run_report_bytes=_ceg_report() if report is None else report,
+    )
+
+
+def test_capture_eligibility_guard_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "capture_eligibility_guard.py"
+    )
+    assert module_path.exists()
+
+
+def test_capture_guard_payload_reason_market_holiday_blocked() -> None:
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason="market_holiday_or_closed_day"),
+                  report=_ceg_report(reason=None))
+
+
+def test_capture_guard_payload_reason_before_regular_session_open_blocked() -> None:
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason="before_regular_session_open"),
+                  report=_ceg_report(reason=None))
+
+
+def test_capture_guard_payload_reason_after_regular_session_close_blocked() -> None:
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason="after_regular_session_close"),
+                  report=_ceg_report(reason=None))
+
+
+def test_capture_guard_top_level_reason_market_closed_blocked() -> None:
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason=None, top_reason="market_closed"),
+                  report=_ceg_report(reason=None))
+    # hyphenated variant normalizes and is also blocked
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason=None, top_reason="market-closed"),
+                  report=_ceg_report(reason=None))
+
+
+def test_capture_guard_report_reason_market_holiday_blocked() -> None:
+    # terminal reason is eligible, but the report reason is market-ineligible
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason="killswitch_disabled"),
+                  report=_ceg_report(reason="market_holiday_or_closed_day"))
+
+
+def test_capture_guard_blocked_missing_reason_blocked() -> None:
+    with pytest.raises(ValueError, match="missing a reason"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason=None), report=_ceg_report(reason=None))
+
+
+def test_capture_guard_blocked_ambiguous_reason_blocked() -> None:
+    with pytest.raises(ValueError, match="ambiguous or unknown reason"):
+        _ceg_eval(jsonl=_ceg_jsonl(payload_reason="some_unknown_reason"),
+                  report=_ceg_report(reason=None))
+
+
+def test_capture_guard_ok_terminal_eligible() -> None:
+    result = _ceg_eval(
+        status="ok",
+        jsonl=_ceg_jsonl(status="ok", payload_reason=None),
+        report=_ceg_report(status="ok", reason=None),
+    )
+    assert result["capture_market_eligible"] is True
+    assert result["eligibility_basis"] == "non_blocked_eligible"
+
+
+def test_capture_guard_explicit_non_market_blocked_eligible() -> None:
+    for reason in (
+        "killswitch_disabled",
+        "duplicate",
+        "projected_exposure_exceeds_max_position_size",
+        "manual_review_required",
+    ):
+        result = _ceg_eval(jsonl=_ceg_jsonl(payload_reason=reason),
+                           report=_ceg_report(reason=reason))
+        assert result["capture_market_eligible"] is True
+        assert result["eligibility_basis"] == "explicit_non_market_block_eligible"
+
+
+def test_capture_guard_malformed_bytes_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed jsonl bytes"):
+        _ceg_eval(jsonl=b"{not json}\n", report=_ceg_report(reason=None))
+    with pytest.raises(ValueError, match="malformed report bytes"):
+        _ceg_eval(jsonl=_ceg_jsonl(), report=b"{not json}")
+
+
+def test_capture_guard_output_carries_no_downstream_authority() -> None:
+    result = _ceg_eval()
+    for key in (
+        "package_writes",
+        "filesystem_reads",
+        "runtime_capture_execution",
+        "evaluation_or_scoring",
+        "promotion_authority",
+        "broker_api_authority",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = capture_eligibility_guard.CAPTURE_ELIGIBILITY_AUTHORITY_BOUNDARY
+    assert "fail_closed_on_market_session_or_unknown_blocked_reason" in boundary
+    assert "no_package_writes" in boundary
+    assert "no_evaluation_or_scoring" in boundary
+    assert "no_live_trading_authority" in boundary
+
+
+def test_capture_guard_module_is_pure_no_filesystem() -> None:
+    source = Path(capture_eligibility_guard.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+    ):
+        assert forbidden not in source, (
+            f"capture_eligibility_guard.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir("):
+        assert forbidden_call not in source, (
+            f"capture_eligibility_guard.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+# --- orchestrator vps-path integration ---
+
+
+def _ceg_vps_request(run_id: str = _CEG_RUN_ID):
+    return package_execution_orchestrator.PackageExecutionRequest(
+        canonical_run_id=run_id,
+        execution_mode="vps",
+        artifact_root_path="/opt/openclaw-stocks",
+        package_root_path="/opt/openclaw-stocks/replay_packages",
+        jsonl_filename=f"logs/{run_id}.jsonl",
+        jsonl_bytes=b"",
+        last_run_report_bytes=b"",
+        package_dir_path=f"/opt/openclaw-stocks/replay_packages/{run_id}",
+        approved_artifact_root_paths=("/opt/openclaw-stocks",),
+        approved_package_root_paths=("/opt/openclaw-stocks/replay_packages",),
+    )
+
+
+def _ceg_vps_adapter(tmp_path: Path, jsonl: bytes, report: bytes):
+    artifact_root = tmp_path / "vps_artifact_root"
+    package_root = tmp_path / "vps_package_root"
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    (package_root / _CEG_RUN_ID).mkdir(parents=True, exist_ok=True)
+    return package_execution_orchestrator.VpsExecutionAdapter(
+        artifact_root_path=str(artifact_root),
+        package_root_path=str(package_root),
+        jsonl_reader=lambda r, a: jsonl,
+        report_reader=lambda r, a: report,
+    )
+
+
+def test_orchestrator_vps_blocks_market_closed_run(tmp_path: Path) -> None:
+    adapter = _ceg_vps_adapter(
+        tmp_path,
+        _ceg_jsonl(payload_reason="market_holiday_or_closed_day"),
+        _ceg_report(reason=None),
+    )
+    with pytest.raises(ValueError, match="market/session-ineligible"):
+        package_execution_orchestrator.execute_package_orchestration(
+            _ceg_vps_request(), vps_adapter=adapter
+        )
+    assert not Path("/opt/openclaw-stocks/replay_packages").exists()
+
+
+def test_orchestrator_vps_allows_eligible_non_market_blocked_run(tmp_path: Path) -> None:
+    adapter = _ceg_vps_adapter(
+        tmp_path, _ceg_jsonl(payload_reason="killswitch_disabled"), _ceg_report()
+    )
+    result = package_execution_orchestrator.execute_package_orchestration(
+        _ceg_vps_request(), vps_adapter=adapter
+    )
+    assert result.complete_package_authority is True
+    assert result.production_gate_c_complete is False
+    assert result.written_artifact_path.startswith(adapter.package_root_path)
+
+
+def test_orchestrator_vps_market_blocked_remains_blocked_after_guard(
+    tmp_path: Path,
+) -> None:
+    # existing protections remain: error terminal, mixed run_id, order_state
+    adapter_err = _ceg_vps_adapter(
+        tmp_path, _ceg_jsonl(status="error"), _ceg_report(status="error", reason=None)
+    )
+    with pytest.raises(ValueError, match="diagnostic only"):
+        package_execution_orchestrator.execute_package_orchestration(
+            _ceg_vps_request(), vps_adapter=adapter_err
+        )
+    mixed = _ceg_jsonl().replace(_CEG_RUN_ID.encode(), b"run_OTHER", 1)
+    adapter_mixed = _ceg_vps_adapter(tmp_path, mixed, _ceg_report())
+    with pytest.raises(ValueError):
+        package_execution_orchestrator.execute_package_orchestration(
+            _ceg_vps_request(), vps_adapter=adapter_mixed
+        )
+    with pytest.raises(ValueError, match="binding is blocked"):
+        bad = package_execution_orchestrator.PackageExecutionRequest(
+            canonical_run_id=_CEG_RUN_ID,
+            execution_mode="vps",
+            artifact_root_path="/opt/openclaw-stocks",
+            package_root_path="/opt/openclaw-stocks/replay_packages",
+            jsonl_filename="logs/order_state.jsonl",
+            jsonl_bytes=b"",
+            last_run_report_bytes=b"",
+            package_dir_path=f"/opt/openclaw-stocks/replay_packages/{_CEG_RUN_ID}",
+            approved_artifact_root_paths=("/opt/openclaw-stocks",),
+            approved_package_root_paths=("/opt/openclaw-stocks/replay_packages",),
+        )
+        package_execution_orchestrator.execute_package_orchestration(bad)
+
+
+def test_orchestrator_tmp_path_mode_not_market_guarded(tmp_path: Path) -> None:
+    # the local tmp_path_test mechanics harness is unaffected by the market guard
+    result = _peo_execute(tmp_path)
+    assert result.complete_package_authority is True
+
+
+def test_d13_guard_record_present_and_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert (
+        "Gate D Record D13: Market-Session Package-Capture Eligibility Guard"
+        in map_text
+    )
+    assert "Evaluation/scoring execution: **BLOCKED**" in map_text
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Unit 12: **BLOCKED**" in map_text

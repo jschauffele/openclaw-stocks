@@ -39,6 +39,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 import tools.replay.canonical_bytes as canonical_bytes
 import tools.replay.canonical_json as canonical_json
+import tools.replay.capture_eligibility_guard as capture_eligibility_guard
 import tools.replay.complete_package_authority as complete_package_authority
 import tools.replay.filesystem_storage_authority as filesystem_storage_authority
 import tools.replay.filesystem_writer as filesystem_writer
@@ -256,6 +257,7 @@ def execute_package_orchestration(
         real_reads=False,
         real_writes=False,
         writer_authority_mode=WRITER_AUTHORITY_MODE_TMP_PATH_TEST,
+        enforce_market_eligibility=False,
     )
 
 
@@ -308,6 +310,7 @@ def _execute_vps(
         real_reads=is_production,
         real_writes=is_production,
         writer_authority_mode=writer_authority_mode,
+        enforce_market_eligibility=True,
     )
 
 
@@ -326,6 +329,7 @@ def _execute_chain(
     real_reads: bool,
     real_writes: bool,
     writer_authority_mode: str,
+    enforce_market_eligibility: bool,
 ) -> PackageExecutionResult:
     terminal = evaluate_terminal_completion_jsonl(
         TerminalCompletionEvaluationRequest(
@@ -343,6 +347,16 @@ def _execute_chain(
             terminal_completion_eligible=terminal.terminal_completion_eligible,
         )
     )
+
+    if enforce_market_eligibility:
+        # Capture-time market/session eligibility guard (Gate D D13): runs after
+        # terminal/run_id/report-alignment checks and before any package write.
+        capture_eligibility_guard.evaluate_capture_market_eligibility(
+            canonical_run_id=run_id,
+            terminal_completion_status=terminal.terminal_completion_status,
+            jsonl_bytes=jsonl_bytes,
+            last_run_report_bytes=report_bytes,
+        )
 
     evidence = _assemble_governed_evidence(
         run_id,

@@ -2353,6 +2353,71 @@ trading approval, or live trading approval. The bounded VPS package-capture
 execution gate(s) and the separate governed candidate-evidence mechanism are
 distinct future gates; none is opened here. Unit 12 remains BLOCKED.
 
+## Gate D Record D13: Market-Session Package-Capture Eligibility Guard
+
+### D13 Status
+
+Recorded on 2026-06-12. This is the implementation record for the deterministic
+market-session package-capture eligibility guard identified by the D13 read-only
+audit (which classified the prior capture path as PARTIAL_GUARD). It converts the
+Gate D Record D12 market-session sufficiency rule into a fail-closed, capture-time
+guard. It is **IMPLEMENTED** as a pure in-memory, test-guarded module:
+`tools/replay/capture_eligibility_guard.py`, wired into the VPS package-capture
+path before any package write.
+
+### D13 Guard Behavior
+
+`evaluate_capture_market_eligibility(...)` inspects already-read JSONL bytes and
+already-read last_run_report bytes and fails closed for:
+
+- Market/session-ineligible reasons on the terminal event (`payload.reason` or
+  top-level `reason`) or on the last_run_report reason:
+  `market_holiday_or_closed_day`, `before_regular_session_open`,
+  `after_regular_session_close`, `market_closed` / `market-closed`, and any
+  market/session reason token.
+- A `blocked` terminal status with a missing reason.
+- A `blocked` terminal status with an ambiguous / unknown reason (not on the
+  explicit non-market eligible allowlist).
+- Malformed JSONL or report bytes, or a non-isolated terminal completion event.
+
+A `blocked` terminal status with an explicit non-market eligible reason (for
+example `killswitch_disabled`, `duplicate`, `projected_exposure_exceeds_max_position_size`,
+`manual_review_required`) is eligible. A non-`blocked` (e.g. `ok`) terminal
+status is eligible. The non-market eligible allowlist is conservative and
+extensible: an incomplete allowlist over-rejects (safe) and never over-accepts.
+
+### D13 Wiring
+
+The guard runs inside `package_execution_orchestrator._execute_chain` for the
+VPS capture path only (`enforce_market_eligibility=True`), after the
+terminal-completion, run_id-alignment, and last_run_report-alignment checks and
+**before** `_assemble_governed_evidence` and any package write/finalization. The
+local `tmp_path_test` mechanics harness does not enforce the market guard
+(`enforce_market_eligibility=False`).
+
+### D13 Preserved Protections
+
+The guard does not weaken existing protections: missing run_id, mixed run_id,
+error terminal status, report alignment, order_state binding rejection,
+no-overwrite finalization, and the explicit `--authorize-vps-package-write`
+requirement all remain in force.
+
+### D13 Status Carry-Forward
+
+- Package capture now fails closed for market-closed / holiday / before-open /
+  after-close blocked runs (the current `run_2026-06-13T...` market-closed runs
+  are not capture-eligible).
+- Evaluation/scoring execution: **BLOCKED**.
+- Unit 12: **BLOCKED**.
+- Promotion authority: **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS authority: **UNAPPROVED**.
+- Strategy/risk/execution behavior: **UNCHANGED**.
+- Paper trading and live trading: **UNAPPROVED**.
+
+D13 does not authorize package capture execution, evaluation/scoring execution,
+Unit 12, promotion, broker/execution, strategy/risk/execution behavior changes,
+paper trading, or live trading.
+
 ## Drift Risks
 
 Known drift risks to guard:
