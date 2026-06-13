@@ -3042,3 +3042,61 @@ strategy/risk/execution behavior changes, scheduler/systemd/runtime activation,
 `.env`/credential changes, order submission, order cancellation, cleanup,
 flatten, sell, broker remediation, paper trading approval, and live trading
 approval. Gate D overall remains **NOT COMPLETE**.
+
+## Gate D Record: Replay Input Adapter Schema (Narrow Implementation)
+
+Module: `tools/replay/replay_input_adapter_schema.py`
+(`validate_replay_input_adapter_reference`,
+`REPLAY_INPUT_ADAPTER_SCHEMA_VERSION = "0.1-replay-input-adapter-schema"`).
+
+Authorized solely by the Gate D Record D17 Replay Input Adapter Contract and the
+replay-input-adapter schema readiness audit (READY_FOR_SEPARATE_IMPLEMENTATION_
+GATE, narrow pure-schema scope only). This record documents an implementation,
+not a Gate D advancement.
+
+### What it is
+
+A deterministic, fail-closed, **pure in-memory** validator over already-loaded
+replay input adapter metadata/references. It certifies that one declared
+immutable governed replay input is well-formed: governed-namespace adapter
+identifier (`replay_input_*`), well-formed run-scope `run_id`, a package hash
+**reference string** (never a filesystem path — path-like values fail closed),
+a supported `input_adapter_version`, valid UTC ISO-8601 `asof_timestamp_utc` and
+`decision_timestamp_utc` with `asof_timestamp_utc <= decision_timestamp_utc`,
+`integrity_attestation_status="attested"`, `reproducibility_declaration_status=
+"declared"`, and `no_baseline_mutation_attestation=True`. Missing identity,
+version, integrity, reproducibility, as-of, run-scope, or package-reference
+metadata fails closed; future/leaked/post-decision markers fail closed;
+production/approved/live/promoted/mutable markers fail closed; broker/order/API/
+live-execution fields fail closed (presence, not merely truthiness); and any
+authority-bearing field fails closed. The validator returns non-authoritative
+metadata only, with every downstream authority flag `False`.
+
+### What it is NOT (non-authorizations)
+
+This module is research metadata schema validation only. It carries:
+
+- no package reads
+- no filesystem reads / no path resolution
+- no package discovery / no package mutation
+- no replay execution
+- no candidate generation
+- no comparison / scoring / evaluation
+- no Unit 12
+- no runtime / systemd / timer / service authority
+- no broker / API / TWS / Alpaca / IBKR / order-state authority
+- no paper trading authority
+- no live trading authority
+
+Validating a reference here authorizes nothing downstream. Composition with
+existing governance vocabulary does not change any existing governance module's
+behavior. Implementation authority is not inferred from D18 or from any prior
+validation.
+
+### Status after this implementation
+
+- Replay-input-adapter schema implementation is **pure in-memory only** and
+  **validates already-loaded metadata/references only**.
+- Active lane remains **STOP / NO ACTION** after validation.
+- Gate D overall remains **NOT COMPLETE → PARKED**. Gate D overall remains
+  **NOT COMPLETE**.

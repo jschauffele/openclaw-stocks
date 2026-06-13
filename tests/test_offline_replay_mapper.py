@@ -19032,3 +19032,284 @@ def test_post_d18_lane_parking_active_lane_reset_record_present() -> None:
         "D18 candidate evidence schema implementation is **BLOCKED** pending an"
         in map_text
     )
+
+
+import tools.replay.replay_input_adapter_schema as replay_input_adapter_schema
+
+
+def _valid_replay_input_adapter_reference(**overrides: object) -> dict:
+    record = {
+        "replay_input_adapter_id": "replay_input_3close_v1_001",
+        "run_id": "run_2026-06-12T13:00:11Z_68d0b9",
+        "package_reference": "pkg:run_2026-06-12T13:00:11Z_68d0b9",
+        "input_adapter_version": "1.0",
+        "asof_timestamp_utc": "2026-06-12T13:00:00Z",
+        "decision_timestamp_utc": "2026-06-12T13:00:11Z",
+        "integrity_attestation_status": "attested",
+        "reproducibility_declaration_status": "declared",
+        "no_baseline_mutation_attestation": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_replay_input_adapter_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "replay_input_adapter_schema.py"
+    )
+    assert module_path.exists()
+
+
+def test_replay_input_adapter_version_deterministic_non_empty() -> None:
+    version = replay_input_adapter_schema.REPLAY_INPUT_ADAPTER_SCHEMA_VERSION
+    assert isinstance(version, str) and version
+    assert (
+        replay_input_adapter_schema.SUPPORTED_REPLAY_INPUT_ADAPTER_SCHEMA_VERSIONS
+        == (version,)
+    )
+
+
+def test_replay_input_adapter_valid_record_validates() -> None:
+    result = replay_input_adapter_schema.validate_replay_input_adapter_reference(
+        _valid_replay_input_adapter_reference()
+    )
+    assert result["result_type"] == (
+        replay_input_adapter_schema.REPLAY_INPUT_ADAPTER_SCHEMA_RESULT
+    )
+    assert result["replay_input_adapter_id"] == "replay_input_3close_v1_001"
+    assert result["run_id"] == "run_2026-06-12T13:00:11Z_68d0b9"
+    assert result["package_reference"] == "pkg:run_2026-06-12T13:00:11Z_68d0b9"
+    assert result["input_adapter_version"] == "1.0"
+    # equal asof and decision timestamps are allowed (asof <= decision)
+    replay_input_adapter_schema.validate_replay_input_adapter_reference(
+        _valid_replay_input_adapter_reference(
+            asof_timestamp_utc="2026-06-12T13:00:11Z"
+        )
+    )
+
+
+def test_replay_input_adapter_non_mapping_fail_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        replay_input_adapter_schema.validate_replay_input_adapter_reference("x")
+
+
+def test_replay_input_adapter_missing_required_fields_fail_closed() -> None:
+    for field in (
+        "replay_input_adapter_id",
+        "run_id",
+        "package_reference",
+        "input_adapter_version",
+        "asof_timestamp_utc",
+        "decision_timestamp_utc",
+    ):
+        rec = _valid_replay_input_adapter_reference()
+        del rec[field]
+        with pytest.raises(ValueError, match="missing required field"):
+            replay_input_adapter_schema.validate_replay_input_adapter_reference(rec)
+
+
+def test_replay_input_adapter_malformed_identifier_fail_closed() -> None:
+    for bad in ("bad_id", "replay_input_", "replay_input_../x", "replay_input_order_state"):
+        with pytest.raises(ValueError, match="malformed replay input adapter id"):
+            replay_input_adapter_schema.validate_replay_input_adapter_reference(
+                _valid_replay_input_adapter_reference(replay_input_adapter_id=bad)
+            )
+
+
+def test_replay_input_adapter_malformed_run_id_fail_closed() -> None:
+    for bad in ("2026-06-12", "run_", "run_../x", "run_a/b"):
+        with pytest.raises(ValueError, match="malformed run_id"):
+            replay_input_adapter_schema.validate_replay_input_adapter_reference(
+                _valid_replay_input_adapter_reference(run_id=bad)
+            )
+
+
+def test_replay_input_adapter_malformed_package_reference_fail_closed() -> None:
+    # path-like package references must fail closed (reference string only)
+    for bad in ("/opt/openclaw-stocks/replay_packages/x", "../x", "a\\b", " pkg:x"):
+        with pytest.raises(ValueError, match="malformed package reference"):
+            replay_input_adapter_schema.validate_replay_input_adapter_reference(
+                _valid_replay_input_adapter_reference(package_reference=bad)
+            )
+
+
+def test_replay_input_adapter_unsupported_version_fail_closed() -> None:
+    with pytest.raises(ValueError, match="unsupported input_adapter_version"):
+        replay_input_adapter_schema.validate_replay_input_adapter_reference(
+            _valid_replay_input_adapter_reference(input_adapter_version="9.9")
+        )
+
+
+def test_replay_input_adapter_malformed_timestamp_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed timestamp"):
+        replay_input_adapter_schema.validate_replay_input_adapter_reference(
+            _valid_replay_input_adapter_reference(decision_timestamp_utc="2026/06/12")
+        )
+
+
+def test_replay_input_adapter_asof_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="as-of timestamp is after decision time"):
+        replay_input_adapter_schema.validate_replay_input_adapter_reference(
+            _valid_replay_input_adapter_reference(
+                asof_timestamp_utc="2026-06-12T13:00:12Z"
+            )
+        )
+
+
+def test_replay_input_adapter_integrity_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="integrity_attestation_status"):
+        replay_input_adapter_schema.validate_replay_input_adapter_reference(
+            _valid_replay_input_adapter_reference(
+                integrity_attestation_status="unattested"
+            )
+        )
+
+
+def test_replay_input_adapter_reproducibility_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="reproducibility_declaration_status"):
+        replay_input_adapter_schema.validate_replay_input_adapter_reference(
+            _valid_replay_input_adapter_reference(
+                reproducibility_declaration_status="missing"
+            )
+        )
+
+
+def test_replay_input_adapter_no_mutation_attestation_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="no_baseline_mutation_attestation"):
+        replay_input_adapter_schema.validate_replay_input_adapter_reference(
+            _valid_replay_input_adapter_reference(
+                no_baseline_mutation_attestation=False
+            )
+        )
+
+
+def test_replay_input_adapter_production_markers_fail_closed() -> None:
+    for field in ("production", "approved", "live", "promoted", "mutable",
+                  "mutable_evidence", "future_dated", "leaked", "post_decision"):
+        with pytest.raises(ValueError, match="marker present"):
+            replay_input_adapter_schema.validate_replay_input_adapter_reference(
+                _valid_replay_input_adapter_reference(**{field: True})
+            )
+
+
+def test_replay_input_adapter_broker_order_live_fields_fail_closed() -> None:
+    for field in (
+        "broker",
+        "alpaca",
+        "ibkr",
+        "tws",
+        "order_submission",
+        "order_state",
+        "order_state_binding",
+        "paper_trading",
+        "live_trading",
+    ):
+        with pytest.raises(ValueError, match="broker/order/live field present"):
+            replay_input_adapter_schema.validate_replay_input_adapter_reference(
+                _valid_replay_input_adapter_reference(**{field: "x"})
+            )
+
+
+def test_replay_input_adapter_authority_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "evaluation_execution",
+        "comparison_execution",
+        "replay_execution",
+        "candidate_generation",
+        "package_reads",
+        "package_writes",
+        "package_discovery",
+        "filesystem_reads",
+        "path_resolution",
+        "promotion_authority",
+        "runtime_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            replay_input_adapter_schema.validate_replay_input_adapter_reference(
+                _valid_replay_input_adapter_reference(**{field: True})
+            )
+
+
+def test_replay_input_adapter_output_no_downstream_authority() -> None:
+    result = replay_input_adapter_schema.validate_replay_input_adapter_reference(
+        _valid_replay_input_adapter_reference()
+    )
+    for key in (
+        "candidate_generation",
+        "replay_execution",
+        "comparison_execution",
+        "scoring",
+        "evaluation_execution",
+        "package_reads",
+        "package_writes",
+        "package_discovery",
+        "filesystem_reads",
+        "path_resolution",
+        "baseline_mutation",
+        "unit_12",
+        "runtime_authority",
+        "promotion_authority",
+        "broker_api_authority",
+        "order_state_binding",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = replay_input_adapter_schema.REPLAY_INPUT_ADAPTER_AUTHORITY_BOUNDARY
+    for marker in (
+        "no_candidate_generation",
+        "no_replay_execution",
+        "no_package_reads",
+        "no_package_writes",
+        "no_package_discovery",
+        "no_filesystem_reads",
+        "no_path_resolution",
+        "no_scoring",
+        "no_unit_12",
+        "no_promotion_or_strategy_promotion",
+        "no_broker_api_authority",
+        "no_live_trading_authority",
+    ):
+        assert marker in boundary
+
+
+def test_replay_input_adapter_module_is_pure_no_filesystem() -> None:
+    source = Path(replay_input_adapter_schema.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"replay_input_adapter_schema.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"replay_input_adapter_schema.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_replay_input_adapter_schema_record_present_and_parking_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert (
+        "Gate D Record: Replay Input Adapter Schema (Narrow Implementation)"
+        in map_text
+    )
+    assert "validates already-loaded metadata/references only" in map_text
+    assert "Active lane remains **STOP / NO ACTION**" in map_text
+    assert "Gate D overall remains **NOT COMPLETE → PARKED**" in map_text
+    # parking record pins preserved (append-only, not rewritten)
+    assert "Active lane: **STOP / NO ACTION**" in map_text
