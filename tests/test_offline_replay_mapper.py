@@ -18646,3 +18646,29 @@ def test_d15_candidate_evidence_design_record_present_and_status_preserved() -> 
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Unit 12: **BLOCKED**" in map_text
+
+
+def test_d17_candidate_evidence_contract_record_present_and_status_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "Gate D Record D17: Candidate-Evidence Mechanism Contract" in map_text
+    assert "D16_PARTIAL_FEASIBILITY_CONTRACT_REQUIRED" in map_text
+    assert "Candidate decision artifact contract" in map_text
+    assert "Replay input adapter contract" in map_text
+    assert "Candidate-vs-baseline linkage contract" in map_text
+    assert "Parameter-version bridge contract" in map_text
+    assert "`candidate_artifact_id`" in map_text
+    assert "`candidate_strategy_id`" in map_text
+    assert "`candidate_parameter_version`" in map_text
+    assert "`no_broker_order_state_binding`" in map_text
+    assert "`no_mutation_attestation`" in map_text
+    assert "Production strategy IDs must not be treated as governed candidate IDs" in (
+        map_text
+    )
+    assert "Broker/order/live-execution exclusion contract" in map_text
+    assert "Candidate execution remains **UNIMPLEMENTED** and **UNAPPROVED**" in (
+        map_text
+    )
+    assert "Evaluation/scoring execution: **BLOCKED**" in map_text
+    assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
+    assert "Unit 12 remains **BLOCKED** after C1" in map_text
+    assert "Unit 12: **BLOCKED**" in map_text

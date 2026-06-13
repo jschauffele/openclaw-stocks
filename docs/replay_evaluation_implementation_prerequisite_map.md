@@ -2637,3 +2637,183 @@ Known drift risks to guard:
 - Runtime capture becoming ungoverned file ingestion.
 - Evaluation reports becoming promotion evidence.
 - Broker-visible evidence mistaken for broker authority.
+
+## Gate D Record D17: Candidate-Evidence Mechanism Contract
+
+### D17 Status
+
+Recorded on 2026-06-13 as a docs-only governance contract. D17 carries forward
+the D16 read-only feasibility audit classification:
+`D16_PARTIAL_FEASIBILITY_CONTRACT_REQUIRED`. D16 found that governance
+primitives exist, but candidate artifact contract, replay input adapter,
+candidate decision schema, candidate-vs-baseline linkage, no-mutation
+enforcement, as-of integration, parameter-version bridge, and candidate test
+harness are missing.
+
+D17 records the required future contracts before any candidate-evidence
+implementation may begin. It implements no candidate replay execution, no
+candidate artifact generation, no package capture, no scoring, no evaluation,
+no Unit 12 work, no promotion, no broker/API/order execution, and no trading.
+
+### D17 Required Future Candidate-Evidence Contracts
+
+Before candidate evidence may be implemented, the following contracts must be
+governed:
+
+- Candidate decision artifact contract.
+- Replay input adapter contract.
+- Candidate-vs-baseline linkage contract.
+- Candidate identity bridge contract.
+- Parameter-version bridge contract.
+- No-mutation contract.
+- As-of enforcement contract.
+- Reproducibility declaration contract.
+- Integrity attestation contract.
+- D14 ledger membership contract.
+- Broker/order/live-execution exclusion contract.
+- Candidate test harness contract.
+
+### D17 Candidate Decision Artifact Contract
+
+Any future candidate decision artifact must be deterministic, source-controlled
+or source-control referenced, and must carry at minimum:
+
+- `candidate_artifact_id`
+- `candidate_strategy_id`
+- `candidate_parameter_version`
+- `source_commit`
+- `input_run_id` or `input_package_reference`
+- `baseline_package_reference` where applicable
+- `decision_timestamp_utc`
+- `asof_timestamp_utc`
+- `decision_signal`
+- `proposed_action`
+- `decision_reason`
+- `deterministic_inputs_reference`
+- `reproducibility_declaration_status`
+- `asof_declaration_status`
+- `integrity_attestation_status`
+- `no_broker_order_state_binding`
+- `no_mutation_attestation`
+
+The artifact contract must not create scoring authority, promotion authority,
+runtime mutation authority, package capture authority, broker authority,
+execution permission, paper trading approval, or live trading authority.
+
+### D17 Replay Input Adapter Contract
+
+Any future replay input adapter for candidate evidence must:
+
+- Consume immutable governed replay inputs only.
+- Never mutate baseline packages.
+- Preserve original `run_id` and package hash references.
+- Expose only as-of decision-time evidence.
+- Reject future, leaked, or post-decision evidence.
+- Reject broker, order-state, API, and live-execution fields.
+- Fail closed on missing identity, version, integrity, reproducibility, as-of,
+  run-scope, or package-reference metadata.
+
+The adapter contract may define deterministic read models in a later gate, but
+D17 does not authorize package artifact reads, filesystem reads, package
+discovery, package mutation, or candidate replay execution.
+
+### D17 Candidate-Vs-Baseline Linkage Contract
+
+Any future candidate artifact must reference the baseline package or run scope
+used to generate the candidate evidence. The linkage must:
+
+- Not imply scoring authority.
+- Not imply promotion authority.
+- Not relabel baseline evidence as candidate evidence.
+- Not mutate or rewrite baseline packages.
+- Preserve baseline and candidate membership distinctions for D14 ledger
+  records.
+- Support future Unit 7 baseline-vs-candidate comparison governance without
+  executing comparison, scoring, evaluation, or promotion.
+
+### D17 Identity And Parameter-Version Bridge Contract
+
+Production strategy IDs must not be treated as governed candidate IDs. Any
+future candidate identity bridge must map production-style strategy metadata to
+governed `cand_strategy_*` identities only through explicit source-controlled
+records. Candidate parameter versions must use governed `cand_paramset_*` style
+records or an equivalent deterministic vocabulary approved by governance.
+
+The bridge contract must keep baseline strategy identity, production runtime
+strategy identity, candidate strategy identity, and candidate parameter-set
+identity distinct. Missing, ambiguous, production-approved, live, promoted, or
+mutable candidate identity/version metadata must fail closed.
+
+### D17 No-Mutation, As-Of, Reproducibility, And Integrity Contracts
+
+Future candidate evidence must be governed by explicit no-mutation,
+as-of, reproducibility, and integrity contracts:
+
+- No-mutation contract: candidate evidence must be generated as separate
+  evidence, must never alter baseline package bytes, must never rewrite
+  baseline ledger membership, and must carry `no_mutation_attestation`.
+- As-of enforcement contract: every consumed input must prove
+  `available_at_timestamp <= decision_timestamp`; missing, future, leaked,
+  post-decision, stale, ambiguous, or unversioned evidence must fail closed.
+- Reproducibility declaration contract: source commit, deterministic input
+  references, canonical serialization assumptions, stable ordering, and
+  environment-independent comparison assumptions must be declared before a
+  candidate artifact can be eligible for pairing.
+- Integrity attestation contract: package/run references, candidate artifact
+  identity, source commit, input hashes where applicable, run-scope alignment,
+  no mixed `run_id`, and no hash mismatch must be attested before inclusion.
+- D14 ledger membership contract: future candidate evidence must be recorded as
+  `evidence_membership == candidate` when eligible, or as excluded when
+  ineligible; baseline packages must not be retroactively relabeled as
+  candidates.
+
+### D17 Broker/Order/Live-Execution Exclusion Contract
+
+Candidate evidence at this stage must not depend on broker/API/order-state/live
+execution. Future candidate contracts must reject broker, Alpaca, IBKR, TWS,
+order submission, order cancellation, order-state binding, flatten, cleanup,
+paper trading, and live trading fields or authority. Candidate evidence may be
+research evidence only; it cannot submit orders, cancel orders, mutate runtime
+state, change strategy/risk/execution behavior, or approve promotion.
+
+### D17 Candidate Test Harness Contract
+
+Before any candidate-evidence implementation may begin, a focused candidate test
+harness contract must exist. That future test harness must prove deterministic
+candidate artifact validation, candidate identity/version validation, replay
+input adapter fail-closed behavior, baseline no-mutation enforcement, as-of
+enforcement, reproducibility/integrity declaration enforcement, D14 ledger
+membership compatibility, and broker/order/live-execution exclusion. The test
+harness must remain pure/in-memory until a separate future gate explicitly
+authorizes any filesystem/package-read behavior.
+
+### D17 Status Carry-Forward
+
+- Candidate execution remains **UNIMPLEMENTED** and **UNAPPROVED**.
+- Candidate artifact generation remains **UNIMPLEMENTED** and **UNAPPROVED**.
+- Package capture remains time-gated until an eligible regular-session
+  production run exists and passes D13.
+- Evaluation/scoring execution: **BLOCKED**.
+- Unit 12: **BLOCKED**.
+- Promotion authority: **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS/order-state authority: **UNAPPROVED**.
+- Strategy/risk/execution behavior: **UNCHANGED**.
+- Paper trading and live trading: **UNAPPROVED**.
+
+### D17 Recommended Next Lane
+
+The next lane should be a **pure in-memory candidate-evidence contract/schema
+audit or implementation** only after D17 is pushed and VPS-validated. It must
+not execute candidate replay, generate candidate artifacts, create candidate
+packages, score, evaluate, open Unit 12, approve promotion, touch broker/API/
+order-state systems, or change strategy/risk/execution behavior.
+
+### D17 Non-Authorization Statement
+
+D17 does not authorize candidate replay execution, candidate artifact
+generation, candidate package construction, package capture execution, package
+artifact reads, package mutation, evaluation or scoring execution, Unit 12,
+promotion authority, broker/API/TWS/Alpaca/IBKR authority, order-state binding,
+strategy/risk/execution behavior changes, systemd/scheduler/runtime activation,
+`.env`/credential changes, order submission, cancellation, cleanup, paper
+trading approval, or live trading approval.
