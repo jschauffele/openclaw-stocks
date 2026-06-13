@@ -19313,3 +19313,363 @@ def test_replay_input_adapter_schema_record_present_and_parking_preserved() -> N
     assert "Gate D overall remains **NOT COMPLETE → PARKED**" in map_text
     # parking record pins preserved (append-only, not rewritten)
     assert "Active lane: **STOP / NO ACTION**" in map_text
+
+
+import tools.replay.candidate_baseline_linkage_schema as candidate_baseline_linkage_schema
+
+
+def _valid_candidate_baseline_linkage(**overrides: object) -> dict:
+    record = {
+        "candidate_baseline_link_id": "candidate_baseline_link_3close_v2_001",
+        "candidate_artifact_id": "cand_artifact_3close_v2_001",
+        "replay_input_adapter_id": "replay_input_3close_v1_001",
+        "baseline_package_reference": "pkg:baseline_3close_v1",
+        "baseline_strategy_id": "baseline_strategy_3close_v1",
+        "run_id": "run_2026-06-12T13:00:11Z_68d0b9",
+        "package_reference": "pkg:run_2026-06-12T13:00:11Z_68d0b9",
+        "source_commit": "96c8683c4752c6b25ee54d62f3aacd0729224e62",
+        "candidate_evidence_membership": "candidate",
+        "baseline_evidence_membership": "baseline",
+        "asof_timestamp_utc": "2026-06-12T13:00:00Z",
+        "decision_timestamp_utc": "2026-06-12T13:00:11Z",
+        "integrity_attestation_status": "attested",
+        "reproducibility_declaration_status": "declared",
+        "no_baseline_mutation_attestation": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_candidate_baseline_linkage_module_exists() -> None:
+    module_path = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "replay"
+        / "candidate_baseline_linkage_schema.py"
+    )
+    assert module_path.exists()
+
+
+def test_candidate_baseline_linkage_version_deterministic_non_empty() -> None:
+    version = (
+        candidate_baseline_linkage_schema.CANDIDATE_BASELINE_LINKAGE_SCHEMA_VERSION
+    )
+    assert isinstance(version, str) and version
+    assert (
+        candidate_baseline_linkage_schema.SUPPORTED_CANDIDATE_BASELINE_LINKAGE_SCHEMA_VERSIONS
+        == (version,)
+    )
+
+
+def test_candidate_baseline_linkage_valid_record_validates() -> None:
+    result = candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+        _valid_candidate_baseline_linkage()
+    )
+    assert result["result_type"] == (
+        candidate_baseline_linkage_schema.CANDIDATE_BASELINE_LINKAGE_SCHEMA_RESULT
+    )
+    assert result["candidate_baseline_link_id"] == "candidate_baseline_link_3close_v2_001"
+    assert result["candidate_artifact_id"] == "cand_artifact_3close_v2_001"
+    assert result["replay_input_adapter_id"] == "replay_input_3close_v1_001"
+    assert result["baseline_strategy_id"] == "baseline_strategy_3close_v1"
+    assert result["baseline_candidate_membership_distinct"] is True
+    # equal asof and decision timestamps are allowed (asof <= decision)
+    candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+        _valid_candidate_baseline_linkage(asof_timestamp_utc="2026-06-12T13:00:11Z")
+    )
+
+
+def test_candidate_baseline_linkage_non_mapping_fail_closed() -> None:
+    with pytest.raises(TypeError, match="already-loaded metadata"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage("x")
+
+
+def test_candidate_baseline_linkage_missing_required_fields_fail_closed() -> None:
+    for field in (
+        "candidate_baseline_link_id",
+        "candidate_artifact_id",
+        "replay_input_adapter_id",
+        "baseline_package_reference",
+        "baseline_strategy_id",
+        "run_id",
+        "package_reference",
+        "source_commit",
+        "candidate_evidence_membership",
+        "baseline_evidence_membership",
+        "asof_timestamp_utc",
+        "decision_timestamp_utc",
+    ):
+        rec = _valid_candidate_baseline_linkage()
+        del rec[field]
+        with pytest.raises(ValueError, match="missing required field"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(rec)
+
+
+def test_candidate_baseline_linkage_malformed_link_id_fail_closed() -> None:
+    for bad in ("bad_id", "candidate_baseline_link_", "candidate_baseline_link_../x",
+                "candidate_baseline_link_order_state"):
+        with pytest.raises(ValueError, match="malformed candidate baseline link id"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+                _valid_candidate_baseline_linkage(candidate_baseline_link_id=bad)
+            )
+
+
+def test_candidate_baseline_linkage_malformed_candidate_artifact_id_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed candidate artifact id"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(candidate_artifact_id="prod_x")
+        )
+
+
+def test_candidate_baseline_linkage_malformed_adapter_id_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed replay input adapter id"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(replay_input_adapter_id="adapter_x")
+        )
+
+
+def test_candidate_baseline_linkage_malformed_baseline_strategy_id_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed baseline strategy id"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(baseline_strategy_id="cand_strategy_x")
+        )
+
+
+def test_candidate_baseline_linkage_path_like_references_fail_closed() -> None:
+    for bad in ("/opt/openclaw-stocks/replay_packages/x", "../x", "a\\b", " pkg:x"):
+        with pytest.raises(ValueError, match="malformed baseline package reference"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+                _valid_candidate_baseline_linkage(baseline_package_reference=bad)
+            )
+        with pytest.raises(ValueError, match="malformed package reference"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+                _valid_candidate_baseline_linkage(package_reference=bad)
+            )
+
+
+def test_candidate_baseline_linkage_malformed_run_id_fail_closed() -> None:
+    for bad in ("2026-06-12", "run_", "run_../x", "run_a/b"):
+        with pytest.raises(ValueError, match="malformed run_id"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+                _valid_candidate_baseline_linkage(run_id=bad)
+            )
+
+
+def test_candidate_baseline_linkage_missing_source_commit_fail_closed() -> None:
+    rec = _valid_candidate_baseline_linkage()
+    rec["source_commit"] = ""
+    with pytest.raises(ValueError, match="missing required field"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(rec)
+
+
+def test_candidate_baseline_linkage_membership_distinctness_fail_closed() -> None:
+    # candidate side not 'candidate'
+    with pytest.raises(ValueError, match="candidate membership must be 'candidate'"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(candidate_evidence_membership="baseline")
+        )
+    # baseline side not 'baseline'
+    with pytest.raises(ValueError, match="baseline membership must be 'baseline'"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(baseline_evidence_membership="candidate")
+        )
+
+
+def test_candidate_baseline_linkage_relabel_fail_closed() -> None:
+    with pytest.raises(ValueError, match="relabeled as candidate"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(baseline_is_candidate=True)
+        )
+    with pytest.raises(ValueError, match="relabeled as candidate"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(candidate_is_baseline=True)
+        )
+
+
+def test_candidate_baseline_linkage_both_markers_fail_closed() -> None:
+    with pytest.raises(ValueError, match="both baseline and candidate markers"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(is_baseline=True, is_candidate=True)
+        )
+
+
+def test_candidate_baseline_linkage_malformed_timestamp_fail_closed() -> None:
+    with pytest.raises(ValueError, match="malformed timestamp"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(decision_timestamp_utc="2026/06/12")
+        )
+
+
+def test_candidate_baseline_linkage_asof_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="as-of timestamp is after decision time"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(asof_timestamp_utc="2026-06-12T13:00:12Z")
+        )
+
+
+def test_candidate_baseline_linkage_integrity_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="integrity_attestation_status"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(integrity_attestation_status="unattested")
+        )
+
+
+def test_candidate_baseline_linkage_reproducibility_violation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="reproducibility_declaration_status"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(
+                reproducibility_declaration_status="missing"
+            )
+        )
+
+
+def test_candidate_baseline_linkage_no_mutation_attestation_fail_closed() -> None:
+    with pytest.raises(ValueError, match="no_baseline_mutation_attestation"):
+        candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+            _valid_candidate_baseline_linkage(no_baseline_mutation_attestation=False)
+        )
+
+
+def test_candidate_baseline_linkage_production_markers_fail_closed() -> None:
+    for field in ("production", "approved", "live", "promoted", "mutable",
+                  "mutable_evidence", "future_dated", "leaked", "post_decision"):
+        with pytest.raises(ValueError, match="marker present"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+                _valid_candidate_baseline_linkage(**{field: True})
+            )
+
+
+def test_candidate_baseline_linkage_broker_order_live_fields_fail_closed() -> None:
+    for field in (
+        "broker",
+        "alpaca",
+        "ibkr",
+        "tws",
+        "order_submission",
+        "order_state",
+        "order_state_binding",
+        "paper_trading",
+        "live_trading",
+    ):
+        with pytest.raises(ValueError, match="broker/order/live field present"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+                _valid_candidate_baseline_linkage(**{field: "x"})
+            )
+
+
+def test_candidate_baseline_linkage_authority_fields_fail_closed() -> None:
+    for field in (
+        "scoring",
+        "promotion",
+        "comparison_execution",
+        "evaluation_execution",
+        "replay_execution",
+        "candidate_generation",
+        "package_reads",
+        "package_writes",
+        "package_discovery",
+        "filesystem_reads",
+        "path_resolution",
+        "runtime_authority",
+    ):
+        with pytest.raises(ValueError, match="authority-bearing field present"):
+            candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+                _valid_candidate_baseline_linkage(**{field: True})
+            )
+
+
+def test_candidate_baseline_linkage_output_no_downstream_authority() -> None:
+    result = candidate_baseline_linkage_schema.validate_candidate_baseline_linkage(
+        _valid_candidate_baseline_linkage()
+    )
+    for key in (
+        "candidate_generation",
+        "replay_execution",
+        "comparison_execution",
+        "scoring",
+        "evaluation_execution",
+        "promotion_authority",
+        "package_reads",
+        "package_writes",
+        "package_discovery",
+        "filesystem_reads",
+        "path_resolution",
+        "baseline_mutation",
+        "unit_12",
+        "runtime_authority",
+        "broker_api_authority",
+        "order_state_binding",
+        "execution_authority",
+        "strategy_risk_execution_behavior",
+        "paper_trading_authority",
+        "live_trading_authority",
+    ):
+        assert result[key] is False
+    boundary = (
+        candidate_baseline_linkage_schema.CANDIDATE_BASELINE_LINKAGE_AUTHORITY_BOUNDARY
+    )
+    for marker in (
+        "preserves_d14_baseline_candidate_membership_distinction",
+        "supports_future_comparison_without_executing_comparison",
+        "no_relabel_baseline_as_candidate",
+        "no_comparison_execution",
+        "no_scoring",
+        "no_promotion_or_strategy_promotion",
+        "no_unit_12",
+        "no_package_reads",
+        "no_live_trading_authority",
+    ):
+        assert marker in boundary
+
+
+def test_candidate_baseline_linkage_module_is_pure_no_filesystem() -> None:
+    source = Path(candidate_baseline_linkage_schema.__file__).read_text(  # type: ignore[arg-type]
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "import glob",
+        "import shutil",
+        "import subprocess",
+        "import requests",
+        "import json",
+    ):
+        assert forbidden not in source, (
+            f"candidate_baseline_linkage_schema.py imports '{forbidden}'"
+        )
+    for forbidden_call in ("open(", ".read_bytes(", ".read_text(", "Path(", ".mkdir(",
+                           ".glob(", ".iterdir("):
+        assert forbidden_call not in source, (
+            f"candidate_baseline_linkage_schema.py contains forbidden call '{forbidden_call}'"
+        )
+
+
+def test_candidate_baseline_linkage_composed_modules_unchanged() -> None:
+    assert candidate_strategy_governance.CANDIDATE_STRATEGY_GOVERNANCE_VERSION == (
+        "0.1-candidate-strategy"
+    )
+    assert replay_input_adapter_schema.REPLAY_INPUT_ADAPTER_SCHEMA_VERSION == (
+        "0.1-replay-input-adapter-schema"
+    )
+    assert candidate_decision_artifact.CANDIDATE_DECISION_ARTIFACT_VERSION == (
+        "0.1-candidate-decision-artifact"
+    )
+
+
+def test_candidate_baseline_linkage_record_present_and_parking_preserved() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert (
+        "Gate D Record: Candidate-Vs-Baseline Linkage Schema (Narrow Implementation)"
+        in map_text
+    )
+    assert "validates already-loaded linkage metadata only" in map_text
+    assert "preserves the D14 baseline/candidate membership distinction" in map_text
+    assert (
+        "supports future comparison governance without executing comparison"
+        in map_text
+    )
+    assert "Active lane remains **STOP / NO ACTION**" in map_text
+    assert "Gate D overall remains **NOT COMPLETE → PARKED**" in map_text
+    # parking record pins preserved (append-only, not rewritten)
+    assert "Active lane: **STOP / NO ACTION**" in map_text

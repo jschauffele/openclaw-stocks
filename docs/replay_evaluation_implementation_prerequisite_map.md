@@ -3100,3 +3100,77 @@ validation.
 - Active lane remains **STOP / NO ACTION** after validation.
 - Gate D overall remains **NOT COMPLETE → PARKED**. Gate D overall remains
   **NOT COMPLETE**.
+
+## Gate D Record: Candidate-Vs-Baseline Linkage Schema (Narrow Implementation)
+
+Module: `tools/replay/candidate_baseline_linkage_schema.py`
+(`validate_candidate_baseline_linkage`,
+`CANDIDATE_BASELINE_LINKAGE_SCHEMA_VERSION =
+"0.1-candidate-baseline-linkage-schema"`).
+
+Authorized solely by the Gate D Record D17 Candidate-Vs-Baseline Linkage
+Contract and the candidate-vs-baseline linkage schema readiness audit
+(READY_FOR_SEPARATE_IMPLEMENTATION_GATE, narrow pure-schema scope only). This
+record documents an implementation, not a Gate D advancement.
+
+### What it is
+
+A deterministic, fail-closed, **pure in-memory** validator over already-loaded
+candidate-vs-baseline linkage metadata. One linkage record binds a candidate
+decision artifact (`candidate_artifact_id`, validated via the candidate decision
+artifact schema) and its replay input adapter reference
+(`replay_input_adapter_id`, validated via the replay input adapter schema) to
+the governed baseline package/run scope (`baseline_package_reference`,
+`baseline_strategy_id` validated via Unit 8 baseline-vs-candidate comparison
+governance) that generated the candidate evidence. It requires a governed
+linkage identifier (`candidate_baseline_link_*`), a well-formed `run_id`, a
+package hash **reference string** (never a filesystem path — path-like values
+fail closed), a non-empty `source_commit`, valid UTC ISO-8601 `asof_timestamp_
+utc <= decision_timestamp_utc`, `integrity_attestation_status="attested"`,
+`reproducibility_declaration_status="declared"`, and
+`no_baseline_mutation_attestation=True`.
+
+It **preserves the D14 baseline/candidate membership distinction**: the
+candidate side must carry `candidate` evidence membership, the baseline side must
+carry `baseline` evidence membership, the two must remain distinct, and it
+**fails closed if baseline evidence is relabeled as candidate evidence** or if a
+single reference carries both baseline and candidate markers. Future/leaked/
+post-decision markers, production/approved/live/promoted/mutable markers,
+broker/order/API/live-execution fields (presence), and any authority-bearing
+field (scoring, promotion, comparison/evaluation/replay execution, package
+reads/writes/discovery, runtime, broker, paper, live) all fail closed. The
+validator returns non-authoritative metadata only, with every downstream
+authority flag `False`.
+
+### What it is NOT (non-authorizations)
+
+This module is research metadata linkage validation only. It **supports future
+comparison governance without executing comparison** and carries:
+
+- no package reads
+- no filesystem reads / no path resolution
+- no package discovery / no package mutation
+- no replay execution
+- no candidate generation
+- no comparison / scoring / evaluation
+- no promotion
+- no Unit 12
+- no runtime / systemd / timer / service authority
+- no broker / API / TWS / Alpaca / IBKR / order-state authority
+- no paper trading authority
+- no live trading authority
+
+Validating a linkage here authorizes nothing downstream. Composition with
+existing governance modules does not change any composed module's behavior.
+Implementation authority is not inferred from D18, replay-input-adapter
+validation, or any prior validation.
+
+### Status after this implementation
+
+- Candidate-vs-baseline linkage schema implementation is **pure in-memory only**
+  and **validates already-loaded linkage metadata only**.
+- It **preserves the D14 baseline/candidate membership distinction** and
+  **supports future comparison governance without executing comparison**.
+- Active lane remains **STOP / NO ACTION** after validation.
+- Gate D overall remains **NOT COMPLETE → PARKED**. Gate D overall remains
+  **NOT COMPLETE**.
