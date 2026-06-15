@@ -10,7 +10,12 @@ Written: 2026-04-17. Based on code at `/opt/openclaw-stocks` (branch `integratio
 - **Path**: `/opt/openclaw-stocks`
 - **Python**: `venv/bin/python3`
 - **Alpaca**: Paper endpoint (`https://paper-api.alpaca.markets`)
-- **Scheduler**: `openclaw.timer` (systemd, every 15 min) — currently **inactive**
+- **Scheduler**: `openclaw.timer` (systemd, every 15 min). This April handoff
+  does not define current timer state. A later Monday observation recorded the
+  scheduled Alpaca paper runtime running under the systemd timer, with
+  `openclaw.timer` active/enabled and `openclaw.service` returning inactive/dead
+  between completed cycles. That observation is operational evidence only and
+  does not advance Gate D.
 - **Remote**: `git@github.com-openclaw:DickMcGreggor/openclaw-stocks.git`
   - SSH alias `github.com-openclaw` → `~/.ssh/openclaw_deploy` (write-capable key, added 2026-04-17)
   - Old key `openclaw-vps-deploy-key` was read-only; replaced this session
@@ -119,7 +124,13 @@ Known `market_session` reason values seen in logs: `before_regular_session_open`
 - **`guards.py` is a shim:** Duplicates function signatures from `risk_engine.py` and `state_manager.py`. It is not imported by `main.py`. Phase 3 target for deletion.
 - **`data_engine.py` is a standalone tool:** Has its own `main()` and `parse_args()`. Not called from the trading pipeline.
 - **Dry-run default:** `OPENCLAW_DRY_RUN=true` in config but `.env` overrides it to `false` for paper trading. Mode appears as `paper_submit` in run reports when `.env` is active.
-- **ALLOWED_SYMBOLS** hardcoded in `config.py`: `["AAPL", "MSFT", "GOOG"]`. Only `AAPL` is traded.
+- **ALLOWED_SYMBOLS** are source-controlled in `config.py`. As of this docs
+  reconciliation, `config.py` lists `["AAPL", "MSFT", "NVDA", "TSLA", "MSTR"]`.
+  Monday observation included those symbols and recorded an MSTR buy signal
+  blocked by reconciliation because projected exposure would exceed
+  `max_position_size`. This is not approval for symbol expansion, strategy
+  changes, risk changes, broker/API expansion, replay, scoring, package capture,
+  or candidate generation.
 
 ---
 

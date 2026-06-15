@@ -3309,3 +3309,67 @@ Downstream authority is not inferred from any schema validation.
 - Gate D remains **NOT COMPLETE → PARKED**. Gate D overall remains **NOT
   COMPLETE**.
 - Active lane remains **STOP / NO ACTION**.
+
+## Monday Runtime Observation Record — Observational Evidence Only
+
+Recorded as a docs-only operational observation after the Gate D post-schema
+consolidation. This record changes no runtime behavior, strategy, risk,
+execution, broker behavior, package capture, replay, scoring, scheduler/systemd,
+candidate mechanism, or Unit 12 status.
+
+### Observation Summary
+
+The Monday scheduled Alpaca paper runtime observation passed operationally under
+the existing VPS systemd timer baseline:
+
+- VPS scheduled paper runtime ran under `openclaw.timer`.
+- `openclaw.service` completed cycles successfully and returned inactive/dead
+  between runs.
+- `openclaw.timer` remained active/enabled.
+- Pre-open cycles blocked as `before_regular_session_open`.
+- The market-open 13:30 UTC cycle produced mostly hold/no-order decisions.
+- MSTR generated a buy signal at 13:30 UTC, but broker reconciliation blocked
+  the order because existing MSTR qty=5 plus requested qty=1 would exceed
+  `max_position_size=5`.
+- Later observed cycles produced hold/no-order behavior.
+- The end-of-session corrected check showed final passive state clean.
+- No traceback, failed unit, restart loop, unauthorized order submission,
+  manual start/restart, VPS repo edit, replay, scoring, package capture, or
+  candidate generation was authorized or observed.
+
+### Gate D Relevance
+
+This observation is supporting operational evidence only. It is relevant to
+Gate D because it shows the scheduled timer baseline can naturally reach
+pre-open and regular-session decision cycles, including a deterministic
+reconciliation block for projected exposure above `max_position_size`.
+
+It does **not** create governed package evidence. It does **not** prove package
+capture occurred. It does **not** prove D13 operational package-capture behavior,
+because no governed package-capture gate is recorded here. It does **not**
+populate D14 package inventory. It does **not** create D15 candidate evidence.
+
+### Status Carry-Forward
+
+- Gate D overall remains **NOT COMPLETE → PARKED**.
+- D11 evidence sufficiency remains **INSUFFICIENT** and controlling.
+- D12/D13 remain **TIME-GATED** on a separately authorized eligible
+  regular-session governed evidence capture passing D13.
+- D14 package inventory remains **EVIDENCE-DEPENDENT** and unpopulated.
+- D15 candidate-evidence mechanism remains docs/design only; candidate
+  evidence remains absent.
+- Evaluation/scoring execution remains **BLOCKED**.
+- Unit 12 remains **BLOCKED**.
+- Promotion authority remains **UNAPPROVED**.
+- Broker/API/TWS/Alpaca/IBKR expansion, IBKR execution, order-state authority,
+  paper-trading escalation, and live trading remain **UNAPPROVED**.
+
+### Non-Authorization Statement
+
+This Monday observation record does not authorize replay, scoring, package
+capture, candidate generation, package reads, package writes, package mutation,
+candidate replay execution, candidate decision generation, evaluation,
+promotion, broker/API expansion, IBKR execution, order submission,
+order cancellation, cleanup, flatten, sell, strategy changes, risk-limit
+changes, config changes, credential changes, scheduler/systemd changes, paper
+trading escalation, live trading, or Unit 12.
