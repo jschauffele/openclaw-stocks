@@ -1267,14 +1267,14 @@ C2 is **COMPLETE** as a governance contract record only. C2 does not mark
 production Gate C complete, does not approve immediate VPS execution, does not
 implement VPS mode, and does not open Gate D or Unit 12.
 
-C2 does not imply that the current `package_execution_orchestrator` CLI already
-performs VPS package execution. The source-controlled command shape is
-nameable, but `vps` mode currently **defers and refuses** real execution: both
-`execute_package_orchestration(...)` and `main(...)` fail closed in `vps` mode
-(`execute_package_orchestration` raises `VPS_EXECUTION_DEFERRED_MESSAGE`; the
-CLI prints the deferral and returns exit code 2). Real execution remains
-blocked until a later implementation gate enables the bounded VPS read/write
-path.
+C2 did not imply that the `package_execution_orchestrator` CLI already
+performed VPS package execution when this contract was first recorded. At that
+point, the source-controlled command shape was nameable, but `vps` mode
+deferred and refused real execution: both `execute_package_orchestration(...)`
+and `main(...)` failed closed in `vps` mode. Later source-controlled CLI
+behavior requires `--authorize-vps-package-write` for any explicitly
+operator-authorized bounded package write; without that flag the CLI still
+defers and performs no package write.
 
 ### C2 Gate Prerequisite Chain Status
 
@@ -1295,23 +1295,28 @@ path.
 
 ### C2 Future Bounded VPS Command Shape
 
-The future bounded VPS package-execution command shape is:
+The current bounded VPS package-execution command shape for a future separately
+authorized package write is:
 
 ```
-python -m tools.replay.package_execution_orchestrator --run-id <run_id> --execution-mode vps
+python -m tools.replay.package_execution_orchestrator --run-id <run_id> --execution-mode vps --authorize-vps-package-write
 ```
 
-This command shape is source-controlled authority metadata
-(`PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE` in
-`tools/replay/package_execution_orchestrator.py`) and is recorded as the
-expected future execution interface. It does not execute today.
+The earlier unflagged command shape remains source-controlled as
+`PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE` in
+`tools/replay/package_execution_orchestrator.py`, but current CLI behavior
+requires `--authorize-vps-package-write` for any explicitly operator-authorized
+bounded package write. Without that flag, the CLI defers and performs no
+package write.
 
 Actual execution remains blocked until all of the following occur in order:
 
-- A later local implementation gate wires `vps` mode to governed runtime
-  artifact reads and governed package writes.
-- That implementation is committed, pushed, and VPS-synced.
-- A separate explicit VPS execution gate is opened by the operator.
+- A future eligible regular-session timer run exists.
+- The operator explicitly authorizes governed package capture for one known
+  `run_id`.
+- The governed capture command includes `--authorize-vps-package-write`.
+- All D13, run_id alignment, report alignment, no-overwrite, root/path, and
+  non-authority guards pass.
 
 ### C2 Governed Roots
 
@@ -3373,3 +3378,141 @@ promotion, broker/API expansion, IBKR execution, order submission,
 order cancellation, cleanup, flatten, sell, strategy changes, risk-limit
 changes, config changes, credential changes, scheduler/systemd changes, paper
 trading escalation, live trading, or Unit 12.
+
+## Gate D Governed Package Capture Runbook Reconciliation
+
+Recorded as a docs-only command-surface and operator-runbook reconciliation
+after the Monday runtime observation record. This section supersedes older
+operator-facing command wording that showed only the unflagged C2 command shape.
+The older C2 command text is retained as point-in-time history. The current
+source-controlled CLI requires explicit package-write authorization.
+
+This reconciliation does not execute package capture, does not authorize a
+capture now, does not mark Gate D complete, does not mark D11 sufficient, does
+not open Unit 12, does not claim D13 operational proof, does not populate D14,
+and does not create D15 candidate evidence.
+
+### Current Authorized Command Shape
+
+For a future separately authorized eligible regular-session timer run, the
+current command surface is:
+
+```bash
+python -m tools.replay.package_execution_orchestrator --run-id <run_id> --execution-mode vps --authorize-vps-package-write
+```
+
+The unflagged command remains a fail-closed deferral path and is not the
+operator command for an authorized package write:
+
+```bash
+python -m tools.replay.package_execution_orchestrator --run-id <run_id> --execution-mode vps
+```
+
+### Narrow Future-Run Preconditions
+
+All of the following must be true before any future capture command may be run:
+
+- A future eligible regular-session timer run exists.
+- The operator explicitly authorizes package capture for exactly one run.
+- The `run_id` is known from scheduled runtime evidence, not from manual
+  runtime execution.
+- The source-controlled repo state is clean and at the expected commit.
+- The run was produced by the existing scheduled timer; no manual runtime
+  start/restart is part of the evidence lane.
+- No broker/API expansion is part of the lane.
+- No replay, scoring, package selection for evaluation, candidate generation,
+  strategy change, risk change, config change, systemd change, paper escalation,
+  or live escalation is part of the lane.
+
+### Run ID Selection
+
+The `run_id` must be selected from scheduled timer evidence only. It must
+correspond to `logs/{run_id}.jsonl`, and `last_run_report.json` must align to
+the same `run_id`. The selected run must be a regular-session decision run or
+an explicit non-market blocked run that passes D13. Market-closed-only evidence
+may be retained as observation evidence, but it is not capture-count eligible.
+
+### D13 Eligibility Expectations
+
+The D13 market-session guard must run before any package write. Expected
+eligible cases are:
+
+- terminal status `ok`; or
+- terminal status `blocked` with an explicit non-market eligible reason such as
+  `projected_exposure_exceeds_max_position_size`, `duplicate`,
+  `killswitch_disabled`, or `manual_review_required`.
+
+Expected ineligible cases fail closed and must not write a package.
+
+### Fail-Closed Stop Conditions
+
+Stop before package writing if any of the following occurs:
+
+- Missing explicit operator authorization.
+- Unknown or ambiguous `run_id`.
+- Market-closed-only run.
+- `before_regular_session_open`.
+- `after_regular_session_close`.
+- Missing blocked reason.
+- Unknown or ambiguous blocked reason.
+- Missing runtime artifacts.
+- Stale or mismatched `last_run_report.json` and JSONL evidence.
+- Existing package directory for the selected `run_id`.
+- Hash mismatch.
+- Wrong root or path traversal.
+- Any attempt to read or bind `order_state.json`.
+- Any implied scoring, promotion, Unit 12 opening, broker/API authority,
+  strategy/risk/config/systemd change, paper escalation, or live escalation.
+
+### Expected Package Output Evidence
+
+If a later operator-authorized capture is run and succeeds, the evidence to
+preserve for review must include:
+
+- selected `run_id`
+- exact command used
+- source commit
+- JSONL path `logs/{run_id}.jsonl`
+- `last_run_report.json` alignment result
+- terminal status and terminal reason
+- D13 eligibility result
+- package directory under `/opt/openclaw-stocks/replay_packages/{run_id}`
+- written artifact path
+- written artifact sha256
+- no-overwrite/finalized lifecycle evidence
+- immutability marker evidence
+- provenance and redaction status
+- explicit confirmation that `order_state.json` was not read or bound
+- machine-readable package execution evidence report
+
+Package output evidence remains evidence only. Code must not self-declare Gate D
+completion, D11 sufficiency, Unit 12 opening, evaluation authority, promotion
+authority, broker authority, execution permission, paper approval, or live
+approval.
+
+### D14 Ledger Follow-Up Requirement
+
+After any future successful governed package capture, D14 follow-up is required
+before the package can be considered in any later sufficiency review. A
+source-controlled package inventory / ledger record, or equivalent
+source-controlled record, must be prepared with the D14-required fields:
+`run_id`, `package_sha256`, package reference, capture timestamp, source
+commit, session class, terminal status, terminal reason, decision outcome,
+evidence membership, strategy id, parameter version, reproducibility
+declaration, as-of declaration, integrity attestation, inclusion status,
+exclusion reason if excluded, notes, and control metadata proving finalized
+immutable package status, run_id alignment, hash verification, complete package
+authority, non-draft/non-mutable/non-stale state, no mixed `run_id`, no hash
+mismatch, and no future/leaked/post-decision evidence.
+
+Do not populate D14 from this runbook alone. D14 population requires a real
+governed package path/hash from a separately authorized successful capture.
+
+### Explicit Non-Claims
+
+This runbook reconciliation does not authorize live trading, IBKR execution,
+replay/scoring, package capture, candidate generation, strategy changes, risk
+changes, config changes, systemd changes, broker/API expansion, order
+submission, order cancellation, cleanup, flatten, sell, paper escalation, live
+escalation, or Unit 12. Gate D remains **NOT COMPLETE -> PARKED**. D11 remains
+**INSUFFICIENT**. Unit 12 remains **BLOCKED**.
