@@ -119,6 +119,37 @@ def read_last_run_report(
     return result
 
 
+def read_per_run_report(
+    canonical_run_id: str,
+    artifact_root_path_string: str,
+    source_artifact_authority_result: Mapping[str, Any],
+    runtime_artifact_discovery_result: Mapping[str, Any],
+    *,
+    provenance: str = "recorded",
+    redaction_status: str = "not_required",
+    expected_sha256: str | None = None,
+    max_size_bytes: int | None = None,
+    expected_encoding: str | None = "utf-8",
+) -> dict[str, Any]:
+    """Read a governed exact per-run report artifact."""
+
+    request = approved_file_reads.build_per_run_report_read_request(
+        canonical_run_id=canonical_run_id,
+        artifact_root_path_string=artifact_root_path_string,
+        source_artifact_authority_result=source_artifact_authority_result,
+        runtime_artifact_discovery_result=runtime_artifact_discovery_result,
+        provenance=provenance,
+        redaction_status=redaction_status,
+        expected_sha256=expected_sha256,
+        max_size_bytes=max_size_bytes,
+        expected_encoding=expected_encoding,
+    )
+    result = file_reader.read_approved_replay_file(request)
+    result["result_type"] = RUNTIME_ARTIFACT_FILE_READER_RESULT
+    result["artifact_family"] = approved_file_reads.PER_RUN_REPORT_READ
+    return result
+
+
 def read_order_state(*_args: object, **_kwargs: object) -> None:
     """order_state.json reads are blocked pending a later explicit binding gate.
 

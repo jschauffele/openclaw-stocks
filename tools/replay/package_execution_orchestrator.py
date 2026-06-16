@@ -4,7 +4,7 @@ This module chains the governed replay package modules into a single
 deterministic, fail-closed orchestration:
 
 1. derive A2 terminal-completion eligibility from already-read JSONL bytes,
-2. validate last_run_report.json alignment from already-read report bytes,
+2. validate exact per-run report alignment from already-read report bytes,
 3. assemble manifest / hash / integrity / package-creation / storage evidence
    through existing source-controlled modules,
 4. write one governed package artifact via package_writer.py (tmp_path only in
@@ -113,6 +113,7 @@ PACKAGE_EXECUTION_ORCHESTRATOR_AUTHORITY_BOUNDARY: tuple[str, ...] = (
     "orchestrates_governed_artifact_reads_only",
     "terminal_completion_derived_from_jsonl_bytes",
     "last_run_report_alignment_required",
+    "run_report_alignment_required",
     "package_output_root_hard_pinned",
     "tmp_path_tests_do_not_satisfy_production_gate_c",
     "no_direct_filesystem_access_in_orchestrator",
@@ -413,15 +414,25 @@ def _production_jsonl_reader(run_id: str, artifact_root_path: str) -> bytes:
 
 
 def _production_report_reader(run_id: str, artifact_root_path: str) -> bytes:
+    source_result = _source_artifact_result(run_id, "recorded", "not_required")
+    discovery_result = _discovery_result(run_id, "recorded", "not_required")
+    try:
+        result = runtime_artifact_file_reader.read_per_run_report(
+            canonical_run_id=run_id,
+            artifact_root_path_string=artifact_root_path,
+            source_artifact_authority_result=source_result,
+            runtime_artifact_discovery_result=discovery_result,
+        )
+        return result["file_bytes"]
+    except ValueError as exc:
+        if str(exc) != "unapproved path":
+            raise
+
     result = runtime_artifact_file_reader.read_last_run_report(
         canonical_run_id=run_id,
         artifact_root_path_string=artifact_root_path,
-        source_artifact_authority_result=_source_artifact_result(
-            run_id, "recorded", "not_required"
-        ),
-        runtime_artifact_discovery_result=_discovery_result(
-            run_id, "recorded", "not_required"
-        ),
+        source_artifact_authority_result=source_result,
+        runtime_artifact_discovery_result=discovery_result,
     )
     return result["file_bytes"]
 
@@ -457,7 +468,7 @@ def _build_evidence_report(
         "package_root": package_root_path,
         "package_directory": f"{package_root_path}/{run_id}",
         "jsonl_artifact_family": f"logs/{run_id}.jsonl",
-        "report_artifact_family": "last_run_report.json",
+        "report_artifact_family": "run_reports/{run_id}.json or last_run_report.json",
         "terminal_completion_status": terminal.terminal_completion_status,
         "terminal_completion_eligible": terminal.terminal_completion_eligible,
         "last_run_report_alignment_status": "aligned",

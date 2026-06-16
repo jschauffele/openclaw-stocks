@@ -12740,6 +12740,35 @@ def test_import_isolation_and_no_side_effect_fragments() -> None:
                 assert forbidden_names.isdisjoint(value.__code__.co_names)
 
 
+def test_reporting_persists_latest_pointer_and_per_run_report(tmp_path: Path) -> None:
+    from reporting import persist_report
+
+    run_id = "run_2026-06-16T13:30:00Z_ab12cd"
+    run_report_file = tmp_path / "last_run_report.json"
+    persist_report(
+        run_id=run_id,
+        mode="paper",
+        result="blocked",
+        reason="projected_exposure_exceeds_max_position_size",
+        trigger_source="systemd_timer",
+        side="buy",
+        symbol="AAPL",
+        qty=1,
+        openclaw_enabled=False,
+        duplicate_cooldown_seconds=60,
+        max_position_size=1,
+        allowed_symbols=["AAPL"],
+        alpaca_base_url="https://example.invalid",
+        run_report_file=str(run_report_file),
+    )
+    latest = json.loads(run_report_file.read_text(encoding="utf-8"))
+    exact = json.loads(
+        (tmp_path / "run_reports" / f"{run_id}.json").read_text(encoding="utf-8")
+    )
+    assert latest["run_id"] == run_id
+    assert exact["run_id"] == run_id
+
+
 # ---------------------------------------------------------------------------
 # In-memory runtime capture contract module tests
 # ---------------------------------------------------------------------------
@@ -13253,6 +13282,20 @@ def test_approved_file_reads_builds_last_run_report_request() -> None:
     assert request["approved_file_identity"] == approved_file_reads.LAST_RUN_REPORT_READ
 
 
+def test_approved_file_reads_builds_per_run_report_request() -> None:
+    run_id = _RAFR_RUN_ID
+    request = approved_file_reads.build_per_run_report_read_request(
+        canonical_run_id=run_id,
+        artifact_root_path_string="/opt/openclaw-stocks",
+        source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+        runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+    )
+    assert request["file_relative_path"] == f"run_reports/{run_id}.json"
+    assert request["allow_absolute_artifact_root"] is True
+    assert request["repo_relative"] is False
+    assert request["approved_file_identity"] == approved_file_reads.PER_RUN_REPORT_READ
+
+
 def test_approved_file_reads_order_state_builder_fails_closed() -> None:
     with pytest.raises(ValueError):
         approved_file_reads.build_order_state_read_request(
@@ -13341,6 +13384,30 @@ def test_runtime_artifact_file_reader_reads_last_run_report(
         runtime_artifact_file_reader.RUNTIME_ARTIFACT_FILE_READER_RESULT
     )
     assert result["artifact_family"] == approved_file_reads.LAST_RUN_REPORT_READ
+    assert result["file_bytes"] == payload
+    assert result["read_performed"] is True
+
+
+def test_runtime_artifact_file_reader_reads_per_run_report(
+    tmp_path: Path,
+) -> None:
+    run_id = _RAFR_RUN_ID
+    artifact_root = tmp_path / "vps_root"
+    report_dir = artifact_root / "run_reports"
+    report_dir.mkdir(parents=True)
+    payload = json.dumps({"run_id": run_id, "status": "blocked"}).encode("utf-8")
+    (report_dir / f"{run_id}.json").write_bytes(payload)
+    result = runtime_artifact_file_reader.read_per_run_report(
+        canonical_run_id=run_id,
+        artifact_root_path_string=str(artifact_root),
+        source_artifact_authority_result=_rafr_source_artifact_result(run_id),
+        runtime_artifact_discovery_result=_rafr_discovery_result(run_id),
+        expected_sha256=hashlib.sha256(payload).hexdigest(),
+    )
+    assert result["result_type"] == (
+        runtime_artifact_file_reader.RUNTIME_ARTIFACT_FILE_READER_RESULT
+    )
+    assert result["artifact_family"] == approved_file_reads.PER_RUN_REPORT_READ
     assert result["file_bytes"] == payload
     assert result["read_performed"] is True
 
@@ -15252,7 +15319,9 @@ def test_vps_mode_evidence_report_is_machine_readable(tmp_path: Path) -> None:
         package_execution_orchestrator.PACKAGE_EXECUTION_VPS_COMMAND_CANDIDATE
     )
     assert report["jsonl_artifact_family"] == f"logs/{_VPS_RUN_ID}.jsonl"
-    assert report["report_artifact_family"] == "last_run_report.json"
+    assert report["report_artifact_family"] == (
+        "run_reports/{run_id}.json or last_run_report.json"
+    )
     assert report["terminal_completion_status"] == "blocked"
     assert report["terminal_completion_eligible"] is True
     assert report["last_run_report_alignment_status"] == "aligned"
@@ -15290,6 +15359,35 @@ def test_vps_mode_rejects_stale_report(tmp_path: Path) -> None:
         package_execution_orchestrator.execute_package_orchestration(
             _vps_request(), vps_adapter=adapter
         )
+
+
+def test_vps_production_report_reader_prefers_per_run_report(
+    tmp_path: Path,
+) -> None:
+    artifact_root = tmp_path / "vps_root"
+    report_dir = artifact_root / "run_reports"
+    report_dir.mkdir(parents=True)
+    per_run = _vps_report_bytes(run_id=_VPS_RUN_ID)
+    stale_latest = _vps_report_bytes(run_id="run_STALE")
+    (report_dir / f"{_VPS_RUN_ID}.json").write_bytes(per_run)
+    (artifact_root / "last_run_report.json").write_bytes(stale_latest)
+    assert package_execution_orchestrator._production_report_reader(
+        _VPS_RUN_ID,
+        str(artifact_root),
+    ) == per_run
+
+
+def test_vps_production_report_reader_falls_back_to_last_run_report(
+    tmp_path: Path,
+) -> None:
+    artifact_root = tmp_path / "vps_root"
+    artifact_root.mkdir()
+    latest = _vps_report_bytes(run_id=_VPS_RUN_ID)
+    (artifact_root / "last_run_report.json").write_bytes(latest)
+    assert package_execution_orchestrator._production_report_reader(
+        _VPS_RUN_ID,
+        str(artifact_root),
+    ) == latest
 
 
 def test_vps_mode_rejects_order_state_run_id() -> None:

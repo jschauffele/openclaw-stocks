@@ -2748,6 +2748,40 @@ start/restart, strategy/risk/config changes, credential changes, package
 mutation, package artifact mutation, order submission, order cancellation,
 cleanup, flatten, sell, and broker remediation.
 
+### D11.4 Per-Run Report Preservation Implementation
+
+D11.4 implements the package-inventory expansion design selected in D11.3:
+preserve one exact per-run report artifact while keeping
+`last_run_report.json` as the latest pointer. Runtime report persistence now
+writes:
+
+- `last_run_report.json` as the latest derived operational summary.
+- `run_reports/{run_id}.json` as the run-addressable report for that exact
+  symbol-level run.
+
+Package discovery and capture continue to require report alignment. They now
+prefer `run_reports/{run_id}.json` when present and fall back to
+`last_run_report.json` only when the exact per-run report is absent. JSONL-only
+evidence remains insufficient for capture readiness. Stale, mismatched,
+missing, mixed-run, D13-rejected, pre-existing-package, and unsafe-run_id cases
+remain fail-closed.
+
+D11.4 is an evidence-preservation and package-readiness implementation only. It
+does not complete D11, does not complete Gate D, does not authorize package
+capture, does not authorize replay/scoring/candidate generation, and does not
+open Unit 12. D11 remains **INSUFFICIENT** until later evidence expansion proves
+the D11 sufficiency criteria with multiple governed packages, multi-day
+coverage, candidate-side evidence, and baseline-vs-candidate pairing
+compatibility.
+
+The next valid checkpoint remains a separately authorized D11 evidence
+inventory expansion step. That checkpoint may use the D11.4 per-run reports to
+plan or evaluate additional governed baseline package eligibility, but it must
+not perform capture, replay, scoring, candidate generation, Unit 12 opening,
+broker/API expansion, systemd mutation, runtime start/restart, strategy/risk
+changes, config changes, credential changes, package mutation, or a second
+capture unless a later gate explicitly authorizes the specific action.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

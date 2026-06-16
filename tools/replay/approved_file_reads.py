@@ -25,6 +25,7 @@ from tools.replay.source_references import (
 from tools.replay.source_paths import (
     SOURCE_PATH_FAMILY_EVENT_JSONL,
     SOURCE_PATH_FAMILY_LAST_RUN_REPORT,
+    SOURCE_PATH_FAMILY_PER_RUN_REPORT,
     SOURCE_PATH_FAMILY_ORDER_STATE,
     KNOWN_SOURCE_PATH_FAMILIES,
 )
@@ -38,11 +39,13 @@ APPROVED_VPS_ARTIFACT_ROOT_PATH_STRING = "/opt/openclaw-stocks"
 
 JSONL_EVENT_STREAM_READ = "jsonl_event_stream_read"
 LAST_RUN_REPORT_READ = "last_run_report_read"
+PER_RUN_REPORT_READ = "per_run_report_read"
 ORDER_STATE_READ_BLOCKED = "order_state_read_blocked"
 
 APPROVED_RUNTIME_ARTIFACT_READ_FAMILIES: tuple[str, ...] = (
     SOURCE_PATH_FAMILY_EVENT_JSONL,
     SOURCE_PATH_FAMILY_LAST_RUN_REPORT,
+    SOURCE_PATH_FAMILY_PER_RUN_REPORT,
 )
 
 BLOCKED_RUNTIME_ARTIFACT_READ_FAMILIES: tuple[str, ...] = (
@@ -207,6 +210,70 @@ def build_last_run_report_read_request(
         "known_source_references": KNOWN_SOURCE_REFERENCES,
         "approved_file_identity": LAST_RUN_REPORT_READ,
         "approved_file_identities": (LAST_RUN_REPORT_READ,),
+        "artifact_root": VPS_ARTIFACT_ROOT_LABEL,
+        "approved_artifact_roots": (VPS_ARTIFACT_ROOT_LABEL,),
+        "artifact_root_path": artifact_root_path_string,
+        "approved_artifact_root_paths": (artifact_root_path_string,),
+        "file_relative_path": file_relative_path,
+        "approved_path_metadata": approved_path_metadata,
+        "terminal_completion_rule": terminal_completion_rule,
+        "provenance": provenance,
+        "redaction_status": redaction_status,
+        "eligible_runtime_artifact_vocabulary": (SOURCE_REF_LAST_RUN_REPORT,),
+        "input_run_ids": (canonical_run_id,),
+        "allow_absolute_artifact_root": True,
+        "repo_relative": False,
+        "sensitive_data_status": "clear",
+    }
+    if expected_sha256 is not None:
+        request["expected_sha256"] = expected_sha256
+    if max_size_bytes is not None:
+        request["max_size_bytes"] = max_size_bytes
+    if expected_encoding is not None:
+        request["expected_encoding"] = expected_encoding
+    return request
+
+
+def build_per_run_report_read_request(
+    canonical_run_id: str,
+    artifact_root_path_string: str,
+    source_artifact_authority_result: Mapping[str, Any],
+    runtime_artifact_discovery_result: Mapping[str, Any],
+    *,
+    provenance: str = "recorded",
+    redaction_status: str = "not_required",
+    expected_sha256: str | None = None,
+    max_size_bytes: int | None = None,
+    expected_encoding: str | None = "utf-8",
+) -> dict[str, Any]:
+    """Build an approved request to read a governed per-run report artifact."""
+
+    if not canonical_run_id:
+        raise ValueError("canonical_run_id is required")
+    if not artifact_root_path_string:
+        raise ValueError("artifact_root_path_string is required")
+
+    file_relative_path = SOURCE_PATH_FAMILY_PER_RUN_REPORT.replace(
+        "{run_id}", canonical_run_id
+    )
+    approved_path_metadata: dict[str, Any] = {
+        "approved": True,
+        "file_identity": PER_RUN_REPORT_READ,
+        "relative_path": file_relative_path,
+    }
+    terminal_completion_rule: dict[str, Any] = {
+        "required": True,
+        "satisfied": True,
+        "terminal_event": "system_completion",
+    }
+    request: dict[str, Any] = {
+        "canonical_run_id": canonical_run_id,
+        "runtime_artifact_discovery_result": runtime_artifact_discovery_result,
+        "source_artifact_authority_result": source_artifact_authority_result,
+        "source_references": (SOURCE_REF_LAST_RUN_REPORT,),
+        "known_source_references": KNOWN_SOURCE_REFERENCES,
+        "approved_file_identity": PER_RUN_REPORT_READ,
+        "approved_file_identities": (PER_RUN_REPORT_READ,),
         "artifact_root": VPS_ARTIFACT_ROOT_LABEL,
         "approved_artifact_roots": (VPS_ARTIFACT_ROOT_LABEL,),
         "artifact_root_path": artifact_root_path_string,

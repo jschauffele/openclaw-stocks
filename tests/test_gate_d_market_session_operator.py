@@ -128,6 +128,26 @@ def _write_run(repo: Path, run_id: str = RUN_ID, *, reason: str = "no_signal",
     (repo / "last_run_report.json").write_text(json.dumps(report), encoding="utf-8")
 
 
+def _write_per_run_report(
+    repo: Path,
+    run_id: str = RUN_ID,
+    *,
+    reason: str = "projected_exposure_exceeds_max_position_size",
+    report_run_id: str | None = None,
+    trigger_source: str = "systemd_timer",
+    status: str = "blocked",
+) -> None:
+    report = {
+        "run_id": report_run_id or run_id,
+        "status": status,
+        "reason": reason,
+        "trigger_source": trigger_source,
+    }
+    report_dir = repo / "run_reports"
+    report_dir.mkdir(exist_ok=True)
+    (report_dir / f"{run_id}.json").write_text(json.dumps(report), encoding="utf-8")
+
+
 def test_root_rw_option_parser_does_not_match_remount_ro_substring() -> None:
     assert operator.root_mount_is_rw("ro,relatime,errors=remount-ro") is False
     assert operator.root_mount_is_rw("rw,relatime,errors=remount-ro") is True
@@ -302,6 +322,42 @@ def test_discovery_marks_report_aligned_d13_passing_run_capture_ready(tmp_path: 
     assert operator.ELIGIBLE_RUN_ID_FOUND_FOR_CAPTURE in out
 
 
+def test_discovery_prefers_exact_per_run_report_for_earlier_symbol_run(
+    tmp_path: Path, capsys
+) -> None:
+    later_run_id = "run_2026-06-16T13:30:10Z_later"
+    _write_run(
+        tmp_path,
+        run_id=RUN_ID,
+        reason="projected_exposure_exceeds_max_position_size",
+    )
+    _write_per_run_report(tmp_path, RUN_ID)
+    _write_run(
+        tmp_path,
+        run_id=later_run_id,
+        reason="market_closed",
+    )
+    code = operator.discover(_args(repo_root=str(tmp_path)), FakeRunner())
+    out = capsys.readouterr().out
+    assert code == 0
+    assert f"run_id={RUN_ID}" in out
+    assert f"ELIGIBLE_RUN_ID={RUN_ID}" in out
+    assert operator.ELIGIBLE_RUN_ID_FOUND_FOR_CAPTURE in out
+
+
+def test_discovery_stale_per_run_report_fails_even_when_latest_report_matches(
+    tmp_path: Path, capsys
+) -> None:
+    _write_run(tmp_path, reason="projected_exposure_exceeds_max_position_size")
+    _write_per_run_report(tmp_path, RUN_ID, report_run_id="run_other")
+    code = operator.discover(_args(repo_root=str(tmp_path)), FakeRunner())
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "stale or mismatched" in out
+    assert "capture_ready=False" in out
+    assert "ELIGIBLE_RUN_ID=\n" in out
+
+
 def test_discovery_requires_systemd_timer_trigger_source(tmp_path: Path, capsys) -> None:
     _write_run(
         tmp_path,
@@ -335,6 +391,60 @@ def test_capture_does_not_call_orchestrator_when_report_not_aligned(
     assert code == 1
     assert called is False
     assert "capture_readiness_reproved" in out
+    assert operator.CAPTURE_ATTEMPT_FAILED_CLOSED_NO_RETRY_WITHOUT_NEW_AUTHORIZATION in out
+
+
+def test_capture_reproves_eligibility_with_exact_per_run_report(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    later_run_id = "run_2026-06-16T13:30:10Z_later"
+    _write_run(
+        tmp_path,
+        reason="projected_exposure_exceeds_max_position_size",
+    )
+    _write_per_run_report(tmp_path, RUN_ID)
+    _write_run(
+        tmp_path,
+        run_id=later_run_id,
+        reason="market_closed",
+    )
+    captured: dict[str, list[str]] = {}
+
+    def fake_orchestrator_main(argv):
+        captured["argv"] = list(argv)
+        return 0
+
+    monkeypatch.setattr(
+        operator.package_execution_orchestrator, "main", fake_orchestrator_main
+    )
+    code = operator.capture(_args(repo_root=str(tmp_path)), FakeRunner())
+    out = capsys.readouterr().out
+    assert code == 0
+    assert captured["argv"][1] == RUN_ID
+    assert "capture_readiness_reproved" in out
+    assert operator.ONE_GOVERNED_PACKAGE_CAPTURED_PENDING_D14_LEDGER_FOLLOW_UP in out
+
+
+def test_capture_does_not_call_orchestrator_when_exact_per_run_report_is_stale(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    _write_run(tmp_path, reason="projected_exposure_exceeds_max_position_size")
+    _write_per_run_report(tmp_path, RUN_ID, report_run_id="run_other")
+    called = False
+
+    def fake_orchestrator_main(argv):
+        nonlocal called
+        called = True
+        return 0
+
+    monkeypatch.setattr(
+        operator.package_execution_orchestrator, "main", fake_orchestrator_main
+    )
+    code = operator.capture(_args(repo_root=str(tmp_path)), FakeRunner())
+    out = capsys.readouterr().out
+    assert code == 1
+    assert called is False
+    assert "stale or mismatched" in out
     assert operator.CAPTURE_ATTEMPT_FAILED_CLOSED_NO_RETRY_WITHOUT_NEW_AUTHORIZATION in out
 
 

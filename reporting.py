@@ -1,5 +1,5 @@
 from utils import utc_now_iso
-from state_manager import write_run_report
+from state_manager import write_per_run_report, write_run_report
 
 
 def build_run_report(
@@ -143,3 +143,4 @@ def persist_report(
         ibkr_runtime=ibkr_runtime,
     )
     write_run_report(report, run_report_file)
+    write_per_run_report(report, run_report_file)

@@ -593,6 +593,20 @@ def _candidate_from_jsonl(
     )
 
 
+def _per_run_report_path(repo: Path, run_id: str) -> Path:
+    return repo / "run_reports" / f"{run_id}.json"
+
+
+def _report_bytes_for_run(repo: Path, run_id: str) -> bytes | None:
+    per_run = _per_run_report_path(repo, run_id)
+    if per_run.exists():
+        return per_run.read_bytes()
+    latest = repo / "last_run_report.json"
+    if latest.exists():
+        return latest.read_bytes()
+    return None
+
+
 def _print_candidate(candidate: DiscoveryCandidate) -> None:
     print(
         "CANDIDATE "
@@ -629,21 +643,24 @@ def discover(args: argparse.Namespace, runner: CommandRunner = _run_command) -> 
         return 1
 
     logs_dir = repo / "logs"
-    report_path = repo / "last_run_report.json"
     package_root = repo / "replay_packages"
     if not logs_dir.exists():
         print("BLOCK logs_dir_missing")
         print("ELIGIBLE_RUN_ID=")
         print(f"FINAL_CLASSIFICATION={NO_ELIGIBLE_RUN_ID_FOUND}")
         return 1
-    report_bytes = report_path.read_bytes() if report_path.exists() else None
     jsonl_paths = sorted(
         logs_dir.glob("*.jsonl"),
         key=lambda candidate: candidate.stat().st_mtime,
         reverse=True,
     )[: args.limit]
     candidates = [
-        _candidate_from_jsonl(path, report_bytes, package_root) for path in jsonl_paths
+        _candidate_from_jsonl(
+            path,
+            _report_bytes_for_run(repo, path.stem),
+            package_root,
+        )
+        for path in jsonl_paths
     ]
     for candidate in candidates:
         _print_candidate(candidate)
@@ -668,7 +685,12 @@ def _pre_capture_checks(
             Check("run_id_supplied", bool(run_id), run_id),
             Check("run_id_safe_path_segment", is_safe_run_id(run_id), run_id),
             Check("jsonl_exists", (repo / "logs" / f"{run_id}.jsonl").exists(), run_id),
-            Check("last_run_report_exists", (repo / "last_run_report.json").exists(), ""),
+            Check(
+                "run_report_exists",
+                _per_run_report_path(repo, run_id).exists()
+                or (repo / "last_run_report.json").exists(),
+                run_id,
+            ),
             Check(
                 "package_directory_absent",
                 not (repo / "replay_packages" / run_id).exists(),
@@ -691,12 +713,11 @@ def _print_package_inventory(package_dir: Path) -> None:
 
 def _capture_readiness_check(repo: Path, run_id: str) -> Check:
     jsonl_path = repo / "logs" / f"{run_id}.jsonl"
-    report_path = repo / "last_run_report.json"
     package_root = repo / "replay_packages"
     try:
         candidate = _candidate_from_jsonl(
             jsonl_path,
-            report_path.read_bytes(),
+            _report_bytes_for_run(repo, run_id),
             package_root,
         )
     except OSError as exc:

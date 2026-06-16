@@ -47,6 +47,22 @@ def write_run_report(report: dict, run_report_file: str) -> None:
     logging.info(f"Run report written to {run_report_file}")
 
 
+def write_per_run_report(report: dict, run_report_file: str) -> str:
+    run_id = report.get("run_id")
+    if not isinstance(run_id, str) or not run_id:
+        raise ValueError("run report requires run_id for per-run persistence")
+    if "/" in run_id or "\\" in run_id or run_id in {".", ".."} or ".." in run_id:
+        raise ValueError("unsafe run_id for per-run report path")
+
+    root_dir = os.path.dirname(run_report_file) or "."
+    per_run_dir = os.path.join(root_dir, "run_reports")
+    os.makedirs(per_run_dir, exist_ok=True)
+    per_run_file = os.path.join(per_run_dir, f"{run_id}.json")
+    write_json_atomic(per_run_file, report)
+    logging.info(f"Per-run report written to {per_run_file}")
+    return per_run_file
+
+
 def legacy_duplicate_match(symbol: str, legacy_last_order_file: str) -> bool:
     if not os.path.exists(legacy_last_order_file):
         return False
