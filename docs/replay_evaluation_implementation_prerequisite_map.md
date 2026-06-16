@@ -2782,6 +2782,39 @@ broker/API expansion, systemd mutation, runtime start/restart, strategy/risk
 changes, config changes, credential changes, package mutation, or a second
 capture unless a later gate explicitly authorizes the specific action.
 
+### D11.5 Per-Run Report Artifact Verification Pass
+
+D11.5 read-only per-run report artifact verification passed after D11.4
+implementation and D11.6 runtime artifact Git hygiene. The VPS was aligned to
+source-of-truth commit `9b722d808d37c7e578b83260fa79f660e8ad49b9`; GitHub
+remote matched the same commit; the VPS worktree was clean; and
+`openclaw.service` was inactive.
+
+D11.4 per-run report preservation is operationally observed from natural
+systemd timer output. The 2026-06-16 20:15 UTC natural timer cycle produced
+valid per-run reports aligned to each symbol-level `run_id`:
+
+- AAPL: `run_2026-06-16T20:15:01Z_23cbad`
+- MSFT: `run_2026-06-16T20:15:04Z_35fd8d`
+- NVDA: `run_2026-06-16T20:15:06Z_323fd2`
+- TSLA: `run_2026-06-16T20:15:08Z_4b3d81`
+- MSTR: `run_2026-06-16T20:15:09Z_c74412`
+
+Each `run_reports/{run_id}.json` artifact was present, valid JSON, and aligned
+to its `run_id`. `last_run_report.json` remained the latest pointer and aligned
+to `run_2026-06-16T20:15:09Z_c74412` / MSTR. D11.6 hygiene was effective:
+ignoring `run_reports/` preserved a clean Git worktree during verification.
+
+Final verification classification:
+`D11_5_PER_RUN_REPORT_ARTIFACT_VERIFICATION_PASS`.
+
+D11.5 records read-only artifact verification only. It does not complete D11,
+does not complete Gate D, does not authorize package capture, replay, scoring,
+candidate generation, package mutation, broker/API expansion, trading,
+systemd mutation, runtime start/restart, or Unit 12 opening. D11 remains
+**INSUFFICIENT** and Unit 12 remains **BLOCKED**. The next valid checkpoint
+must remain separately authorized.
+
 ### D11.6 Runtime Artifact Git Hygiene Record
 
 D11.4 per-run report artifact production was observed on the VPS after sync to
