@@ -3395,7 +3395,21 @@ and does not create D15 candidate evidence.
 ### Current Authorized Command Shape
 
 For a future separately authorized eligible regular-session timer run, the
-current command surface is:
+preferred operator command surface is the source-controlled Gate D market-session
+operator CLI, not pasted shell/Python heredocs:
+
+```bash
+python -m tools.ops.gate_d_market_session_operator precheck --repo-root /opt/openclaw-stocks
+python -m tools.ops.gate_d_market_session_operator settle --repo-root /opt/openclaw-stocks
+python -m tools.ops.gate_d_market_session_operator discover --repo-root /opt/openclaw-stocks
+python -m tools.ops.gate_d_market_session_operator capture --repo-root /opt/openclaw-stocks --run-id <run_id> --authorize-vps-package-write
+```
+
+The operator CLI performs the repo, systemd, run_id, artifact, report-alignment,
+D13, no-overwrite, and authorization checks before delegating the single package
+write to the existing governed package execution orchestrator.
+
+The underlying governed package-write command surface remains:
 
 ```bash
 python -m tools.replay.package_execution_orchestrator --run-id <run_id> --execution-mode vps --authorize-vps-package-write
@@ -3431,6 +3445,35 @@ correspond to `logs/{run_id}.jsonl`, and `last_run_report.json` must align to
 the same `run_id`. The selected run must be a regular-session decision run or
 an explicit non-market blocked run that passes D13. Market-closed-only evidence
 may be retained as observation evidence, but it is not capture-count eligible.
+
+The `discover` subcommand must print exactly one `ELIGIBLE_RUN_ID=<run_id>` only
+when a symbol-level run_id is capture-ready. It must print `ELIGIBLE_RUN_ID=`
+when no eligible run is found. A 15-minute timer activation is not itself a
+run_id and must not be treated as capture-ready.
+
+### Tomorrow Operator Sequence
+
+The next operator attempt is conditional and must stop after at most one
+governed capture:
+
+1. Run `precheck --repo-root /opt/openclaw-stocks` around 6:22-6:25 AM PT.
+2. Run `settle --repo-root /opt/openclaw-stocks` around 6:36-6:40 AM PT
+   after the 13:30 UTC timer settles.
+3. Run `discover --repo-root /opt/openclaw-stocks` immediately after a clean
+   settle.
+4. If `ELIGIBLE_RUN_ID=<run_id>` is found, run `capture` for exactly that one
+   run_id with `--repo-root /opt/openclaw-stocks` and
+   `--authorize-vps-package-write`.
+5. Stop.
+6. If no eligible 13:30 run_id is found, repeat only `settle` and `discover`
+   after the 13:45 UTC timer settles.
+7. Do not perform a second capture.
+
+No pasted heredocs, ad hoc Python snippets, line-wrapped shell commands,
+package capture outside the CLI, replay, scoring, candidate generation, Unit 12
+opening, systemd mutation, runtime start/restart, strategy/risk/config changes,
+credential changes, paper escalation, or live trading is authorized by this
+sequence.
 
 ### D13 Eligibility Expectations
 
