@@ -50,7 +50,6 @@ EVIDENCE_TOKENS = (
     "Traceback",
     "ERROR",
     "Exception",
-    "failed",
 )
 
 PREOPEN_PASSIVE_CHECK_PASS = "PREOPEN_PASSIVE_CHECK_PASS"
@@ -425,12 +424,19 @@ def _has_regular_session_evidence(evidence: Sequence[str]) -> bool:
         "action=",
         "action",
         "projected_exposure_exceeds_max_position_size",
+        "Strategy pipeline completed",
+        "Strategy proposed no order submission",
     )
     return any(
         any(token in line for token in decision_tokens)
         and not any(token in line for token in market_closed_only_tokens)
         for line in evidence
     )
+
+
+def _has_runtime_error_evidence(evidence: Sequence[str]) -> bool:
+    runtime_error_tokens = ("Traceback", "ERROR", "Exception")
+    return any(token in line for token in runtime_error_tokens for line in evidence)
 
 
 def settle(args: argparse.Namespace, runner: CommandRunner = _run_command) -> int:
@@ -454,10 +460,7 @@ def settle(args: argparse.Namespace, runner: CommandRunner = _run_command) -> in
         for line in evidence:
             print(f"EVIDENCE {line}")
         has_regular_evidence = _has_regular_session_evidence(evidence)
-        has_error_evidence = any(
-            token in line for token in ("Traceback", "ERROR", "Exception", "failed")
-            for line in evidence
-        )
+        has_error_evidence = _has_runtime_error_evidence(evidence)
         if service.service_inactive is False:
             classification = RUNTIME_STATE_UNSETTLED
         elif all(check.ok for check in checks) and has_regular_evidence and not has_error_evidence:

@@ -2433,8 +2433,9 @@ any future evidence-sufficiency reassessment. It is **IMPLEMENTED** as a pure
 in-memory, test-guarded schema/validation module:
 `tools/replay/package_capture_ledger.py`.
 
-D14 creates no package inventory entries and reads no replay package artifacts.
-It defines the source-controlled schema for future governed records only.
+At implementation time, D14 created no package inventory entries and read no
+replay package artifacts. It defined the source-controlled schema for future
+governed records only.
 
 ### D14 Ledger Fields
 
@@ -2515,6 +2516,43 @@ trading approval, or live trading approval.
 - Broker/API/Alpaca/IBKR/TWS authority: **UNAPPROVED**.
 - Strategy/risk/execution behavior: **UNCHANGED**.
 - Paper trading and live trading: **UNAPPROVED**.
+
+## Gate D Record D14.1: Governed Package Capture Ledger Entry
+
+Recorded on 2026-06-16 from operator-provided completed capture facts after the
+single governed package capture authorized for the 13:30 UTC regular-session
+workflow. This record is source-controlled ledger documentation only. It does
+not read package artifacts, execute capture, replay, score, generate
+candidates, open Unit 12, call broker APIs, mutate systemd, change strategy,
+change risk, change config, change credentials, authorize a second capture, or
+grant trading authority.
+
+### D14.1 Ledger Entry
+
+- Source-of-truth commit: `32100dab999a45e5e74d8ff3dc1cb1c7a7ac21e1`
+- `run_id`: `run_2026-06-16T13:30:14Z_2641ee`
+- Symbol: `MSTR`
+- Package path:
+  `/opt/openclaw-stocks/replay_packages/run_2026-06-16T13:30:14Z_2641ee`
+- Manifest sha256:
+  `be49b89fd1434e5d8b891b0b3ce878004fec92eac7b576a1e5846870c19998d9`
+- Capture classification:
+  `ONE_GOVERNED_PACKAGE_CAPTURED_PENDING_D14_LEDGER_FOLLOW_UP`
+- Evidence membership: `baseline`
+- Session class: `regular_session`
+- Inclusion status: `recorded_pending_later_sufficiency_review`
+- Trading authority: `false`
+- Broker/API authority: `false`
+- Gate D authority: `false`
+- Replay/scoring/candidate generation: `not_performed`
+- Second capture authorization: `not_authorized`
+
+### D14.1 Status Carry-Forward
+
+This entry records one completed governed package capture in the D14 ledger
+track, but it does not complete Gate D, does not make D11 sufficient, does not
+open Unit 12, and does not authorize evaluation/scoring, candidate generation,
+broker/API expansion, paper escalation, live trading, or a second capture.
 
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
@@ -3550,6 +3588,8 @@ mismatch, and no future/leaked/post-decision evidence.
 
 Do not populate D14 from this runbook alone. D14 population requires a real
 governed package path/hash from a separately authorized successful capture.
+For the 2026-06-16 13:30 UTC capture, the source-controlled ledger follow-up is
+recorded above as `Gate D Record D14.1`.
 
 ### Explicit Non-Claims
 

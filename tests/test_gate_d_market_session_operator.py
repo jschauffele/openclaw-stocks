@@ -200,6 +200,56 @@ def test_settle_regular_decision_evidence_can_classify_pass(
     assert operator.POST_1330_SETTLED_REGULAR_SESSION_EVIDENCE_FOUND in out
 
 
+@pytest.mark.parametrize(
+    "reason",
+    (
+        "three_close_confirmation_failed",
+        "percent_change_below_buy_threshold",
+    ),
+)
+def test_settle_regular_strategy_hold_reasons_classify_pass(
+    tmp_path: Path, capsys, reason: str
+) -> None:
+    journal = (
+        f"OpenClaw run finished run_id={RUN_ID} symbol=MSTR\n"
+        f"Strategy pipeline completed: signal=hold, decision=hold, "
+        f"action=hold, reason={reason}\n"
+        f"Strategy proposed no order submission: action=hold, reason={reason}\n"
+    )
+    code = operator.settle(
+        _args(repo_root=str(tmp_path)), FakeRunner(journal_text=journal)
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    assert operator.POST_1330_SETTLED_REGULAR_SESSION_EVIDENCE_FOUND in out
+
+
+@pytest.mark.parametrize(
+    "error_text",
+    (
+        "Traceback (most recent call last):",
+        "ERROR unhandled runtime failure",
+        "Exception: unhandled runtime failure",
+    ),
+)
+def test_settle_runtime_error_markers_block_regular_session_success(
+    tmp_path: Path, capsys, error_text: str
+) -> None:
+    journal = (
+        f"OpenClaw run finished run_id={RUN_ID} symbol=MSTR\n"
+        "Strategy pipeline completed: signal=hold, decision=hold, "
+        "action=hold, reason=percent_change_below_buy_threshold\n"
+        f"{error_text}\n"
+    )
+    code = operator.settle(
+        _args(repo_root=str(tmp_path)), FakeRunner(journal_text=journal)
+    )
+    out = capsys.readouterr().out
+    assert code == 1
+    assert operator.POST_1330_SETTLED_REGULAR_SESSION_EVIDENCE_FOUND not in out
+    assert operator.NO_REGULAR_SESSION_EVIDENCE_FOUND in out
+
+
 def test_timer_inactive_or_disabled_blocks_precheck(tmp_path: Path, capsys) -> None:
     code = operator.precheck(_args(repo_root=str(tmp_path)), FakeRunner(timer_active=False))
     assert code == 1
