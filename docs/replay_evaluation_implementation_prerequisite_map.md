@@ -2659,6 +2659,95 @@ escalation, second package capture, systemd mutation, runtime start/restart,
 strategy/risk/config changes, credential changes, package mutation, order
 submission, order cancellation, cleanup, flatten, sell, or broker remediation.
 
+## Gate D Record D11.2: Sufficiency Evidence Expansion / Package Inventory Plan
+
+Recorded on 2026-06-16 after D11.1 identified the next required checkpoint as a
+future separately authorized sufficiency evidence expansion / package inventory
+planning step. This is a documentation/planning record only. It performs no
+package reads, package mutation, package capture, replay, scoring, candidate
+generation, Unit 12 opening, broker/API work, systemd mutation, runtime
+start/restart, strategy/risk/config change, credential change, paper/live
+escalation, or second capture.
+
+### D11.2 Remaining Sufficiency Requirements
+
+D11 remains **INSUFFICIENT**. Before sufficiency can be reconsidered, the
+evidence inventory must satisfy the existing D11/D12 terminology and criteria:
+
+- Multiple finalized immutable governed packages, not one package.
+- Regular-session package coverage over multiple distinct trading days.
+- Decision diversity where applicable, including production outcomes such as
+  hold/no-order, buy/submit or dry-run equivalents, and substantive blocked
+  reasons such as risk or reconciliation.
+- Baseline package membership declarations for counted production packages.
+- Candidate-side package evidence governed by a separately approved
+  candidate-evidence mechanism.
+- Baseline-vs-candidate pairing compatibility before any scoring lane may open.
+- Package inventory records carrying run_id, sha256, session class, terminal
+  status, terminal reason, decision outcome, reproducibility declaration,
+  as-of declaration, and integrity attestation.
+- Integrity attestations proving no mutation, no hash mismatch, no mixed
+  `run_id`, no future/leaked/post-decision evidence, and no order_state binding.
+
+### D11.2 Existing D14.1 Package Placement
+
+The D14.1 MSTR package fits the inventory as one governed regular-session
+baseline package:
+
+- `run_id`: `run_2026-06-16T13:30:14Z_2641ee`
+- Symbol: `MSTR`
+- Manifest sha256:
+  `be49b89fd1434e5d8b891b0b3ce878004fec92eac7b576a1e5846870c19998d9`
+- Evidence membership: `baseline`
+- Session class: `regular_session`
+- Artifact audit: `D14_READ_ONLY_PACKAGE_ARTIFACT_AUDIT_PASS`
+
+This package improves the baseline inventory, but one baseline package is
+insufficient because D11 requires multiple finalized immutable packages,
+multi-day coverage, decision diversity, candidate-side evidence, and
+baseline-vs-candidate pairing compatibility. It does not create scoring,
+evaluation, Unit 12, broker/API, paper/live, or second-capture authority.
+
+### D11.2 Future Inventory Shape
+
+Future sufficiency planning should target, before any later reassessment:
+
+- Multi-day baseline packages.
+- Multiple symbols where available under the existing scheduled runtime.
+- Multiple decision types and substantive blocked reasons.
+- Candidate-side packages produced only after a separate governed candidate
+  mechanism is approved.
+- Baseline-vs-candidate paired packages or pairing declarations compatible with
+  existing baseline-vs-candidate comparison governance.
+
+The current latest-symbol `last_run_report.json` alignment rule limits
+multi-symbol package capture because the derived report can align to only one
+latest symbol-level run_id at a time. A future design checkpoint is therefore
+needed before broadening capture beyond the currently report-aligned run: it
+should address per-symbol report preservation, report-alignment evidence, or
+package eligibility broadening without weakening D13, run_id alignment,
+no-overwrite, report-alignment, and no-order_state-binding protections.
+
+### D11.2 Next Valid Checkpoint
+
+The next valid checkpoint is a future separately authorized **package inventory
+expansion design step**. It is docs/design work unless a later explicit gate
+authorizes code/test implementation. It should define how additional baseline
+packages and any future candidate-side packages can be recorded without
+opening execution authority. It must not authorize package capture, replay,
+scoring, candidate generation, Unit 12, broker/API expansion, paper/live
+escalation, systemd mutation, runtime start/restart, strategy/risk/config
+changes, credential changes, package mutation, or a second capture.
+
+### D11.2 Prohibited Actions
+
+Until a future explicit gate says otherwise, the following remain prohibited:
+replay, scoring, candidate generation, Unit 12 opening, broker/API expansion,
+paper/live escalation, second package capture, systemd mutation, runtime
+start/restart, strategy/risk/config changes, credential changes, package
+mutation, package artifact mutation, order submission, order cancellation,
+cleanup, flatten, sell, and broker remediation.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
