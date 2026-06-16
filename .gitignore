@@ -21,6 +21,7 @@ venv/
 # Runtime state (do NOT version these)
 order_state.json
 last_run_report.json
+run_reports/
 last_order.txt
 
 # Replay package runtime evidence (created on the VPS; do NOT version these)

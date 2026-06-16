@@ -2782,6 +2782,25 @@ broker/API expansion, systemd mutation, runtime start/restart, strategy/risk
 changes, config changes, credential changes, package mutation, or a second
 capture unless a later gate explicitly authorizes the specific action.
 
+### D11.6 Runtime Artifact Git Hygiene Record
+
+D11.4 per-run report artifact production was observed on the VPS after sync to
+commit `4548ef0bf6a99b8f311d5861b5e9aeb4f275b2b5`. Natural timer execution
+created `run_reports/{run_id}.json` artifacts as intended, but D11.5 read-only
+verification was blocked because those generated runtime artifacts appeared as
+untracked files and made the worktree dirty.
+
+`run_reports/` artifacts are runtime-generated evidence artifacts. They are not
+source files and should not be committed. Source-controlled Git hygiene now
+ignores `run_reports/` alongside other runtime state and evidence outputs such
+as `last_run_report.json`, `logs/`, and `replay_packages/`.
+
+D11.6 records hygiene only. It does not complete D11, does not complete Gate D,
+does not authorize package capture, replay, scoring, candidate generation,
+package mutation, broker/API expansion, systemd mutation, runtime
+start/restart, or Unit 12 opening. D11 remains **INSUFFICIENT** and Unit 12
+remains **BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
