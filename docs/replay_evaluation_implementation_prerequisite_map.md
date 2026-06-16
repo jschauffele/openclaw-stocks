@@ -2554,6 +2554,35 @@ track, but it does not complete Gate D, does not make D11 sufficient, does not
 open Unit 12, and does not authorize evaluation/scoring, candidate generation,
 broker/API expansion, paper escalation, live trading, or a second capture.
 
+### D14.1 Read-Only Package Artifact Audit
+
+Recorded on 2026-06-16 from operator-provided read-only package artifact audit
+facts. This documentation records the audit result only; it does not perform
+package artifact reads, replay, scoring, candidate generation, broker/API work,
+systemd mutation, runtime start/restart, package capture, strategy/risk/config
+changes, credential changes, Unit 12 opening, trading authorization, or a second
+package capture.
+
+- Audit classification: `D14_READ_ONLY_PACKAGE_ARTIFACT_AUDIT_PASS`
+- Audit timestamp UTC: `2026-06-16T14:19:04Z`
+- VPS service state: `openclaw.service inactive`
+- Commit audited: `79a86d6e4a71a4b7855318fe59a69561024ae0bb`
+- `run_id`: `run_2026-06-16T13:30:14Z_2641ee`
+- Package manifest:
+  `/opt/openclaw-stocks/replay_packages/run_2026-06-16T13:30:14Z_2641ee/manifest.json`
+- Manifest sha256:
+  `be49b89fd1434e5d8b891b0b3ce878004fec92eac7b576a1e5846870c19998d9`
+- Manifest JSON validation: `PASS`
+- Replay performed: `false`
+- Scoring performed: `false`
+- Candidate generation performed: `false`
+- Broker/API work performed: `false`
+- Systemd mutation performed: `false`
+- Runtime start/restart performed: `false`
+- Strategy/risk/config changes performed: `false`
+- Second package capture authorized: `false`
+- Gate D remains **NOT COMPLETE**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
