@@ -2583,6 +2583,82 @@ package capture.
 - Second package capture authorized: `false`
 - Gate D remains **NOT COMPLETE**.
 
+## Gate D Record D11.1: Post-D14.1 Evidence-Sufficiency Reconciliation
+
+Recorded on 2026-06-16 after the D14.1 governed package capture ledger entry,
+D14.1 read-only artifact audit, settle-classifier fix, and source-controlled
+sync at commit `9a8b8616863c01ee2890005bc0ba63cc5e9e723b`. This is a
+docs-only / read-only evidence-sufficiency reconciliation. It performs no
+package reads, package mutation, capture, replay, scoring, candidate
+generation, Unit 12 opening, broker/API work, systemd mutation, runtime
+start/restart, strategy/risk/config change, credential change, paper/live
+escalation, or second capture.
+
+### D11.1 Current Gate D Status
+
+- Gate D remains **NOT COMPLETE → PARKED**.
+- Evaluation/scoring execution remains **BLOCKED**.
+- Unit 12 remains **BLOCKED**.
+- Promotion authority remains **UNAPPROVED**.
+- Broker/API/Alpaca/IBKR/TWS authority remains **UNAPPROVED**.
+- Strategy/risk/execution behavior remains **UNCHANGED**.
+- Paper trading and live trading remain **UNAPPROVED**.
+
+### D11.1 D14.1 Evidence Inventory Update
+
+D14.1 records one governed regular-session baseline package and a read-only
+artifact audit pass. This improves the baseline evidence inventory because the
+package is a governed regular-session package rather than a market-closed-only
+observation, but it does not by itself create evidence sufficiency.
+
+Current source-controlled evidence inventory after D14.1:
+
+- Baseline package: `run_2026-06-16T13:30:14Z_2641ee`
+- Symbol: `MSTR`
+- Manifest sha256:
+  `be49b89fd1434e5d8b891b0b3ce878004fec92eac7b576a1e5846870c19998d9`
+- Evidence membership: `baseline`
+- Session class: `regular_session`
+- Read-only artifact audit: `D14_READ_ONLY_PACKAGE_ARTIFACT_AUDIT_PASS`
+- Candidate package inventory added: `false`
+- Replay/scoring/candidate generation performed: `false`
+
+### D11.1 Sufficiency Reconciliation Decision
+
+D11 remains **INSUFFICIENT**. D14.1 improves the evidence inventory, but the
+Gate D Record D11 minimum sufficiency criteria are still not met:
+
+- The evidence inventory has one governed regular-session baseline package, not
+  multiple finalized immutable governed packages.
+- The evidence inventory does not provide regular-session package coverage over
+  multiple distinct trading days.
+- The evidence inventory does not yet establish meaningful decision diversity
+  sufficient for a baseline-vs-candidate evaluation lane.
+- No candidate-side package evidence has been added.
+- No baseline-vs-candidate pair can be formed.
+- No scoring/evaluation authority exists.
+
+Therefore, evidence sufficiency for scoring remains **NOT MET**; D11 remains
+**INSUFFICIENT** and controlling; Gate D remains **NOT COMPLETE → PARKED**; and
+Unit 12 remains **BLOCKED**.
+
+### D11.1 Next Valid Checkpoint
+
+No exact next numbered checkpoint is opened by this reconciliation. The next
+required checkpoint is a future separately authorized **D11 sufficiency evidence
+expansion / package inventory planning step**, aligned with Gate D Record D12.
+That checkpoint may plan additional governed baseline package inventory and the
+separate candidate-evidence mechanism needed before a baseline-vs-candidate pair
+can exist. It must not authorize execution.
+
+### D11.1 Prohibited Actions
+
+This reconciliation authorizes none of the following: replay, scoring,
+candidate generation, Unit 12 opening, broker/API expansion, paper/live
+escalation, second package capture, systemd mutation, runtime start/restart,
+strategy/risk/config changes, credential changes, package mutation, order
+submission, order cancellation, cleanup, flatten, sell, or broker remediation.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
