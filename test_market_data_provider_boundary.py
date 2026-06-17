@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import types
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 
 from data_models import Candle, HistoricalBarsRequest, HistoricalBarsResult
@@ -12,6 +13,14 @@ from market_data import (
     FRESHNESS_RECENCY_CAVEATED,
     classify_market_data_freshness,
     normalized_closes_from_bars,
+)
+from market_data_provider_registry import (
+    PROVIDER_REGISTRY_AUTHORITY_BOUNDARY,
+    PROVIDER_STATUS_NOT_CONFIGURED,
+    PROVIDER_STATUS_SUSPECT,
+    PROVIDER_STATUS_UNAVAILABLE,
+    get_provider_registry_entry,
+    list_provider_registry,
 )
 
 
@@ -144,6 +153,10 @@ def test_diagnostic_reports_no_execution_or_broker_authority() -> None:
 
     assert result["results"][0]["provider"] == "alpaca"
     assert result["results"][0]["feed"] == "iex"
+    assert result["results"][0]["provider_role"] == "secondary"
+    assert result["results"][0]["provider_status"] == PROVIDER_STATUS_SUSPECT
+    assert result["results"][0]["d11_primary_eligible"] is False
+    assert "explicit-window Alpaca/IEX diagnostic" in result["results"][0]["reason"]
     assert result["results"][0]["requested_start"] is not None
     assert result["results"][0]["requested_end"] is not None
     assert (
@@ -193,6 +206,8 @@ def test_diagnostic_explicit_window_and_stale_data_remains_caveated() -> None:
     assert result["results"][0]["requested_end"] == "2026-06-17T13:45:00+00:00"
     assert result["results"][0]["provider"] == "alpaca"
     assert result["results"][0]["feed"] == "iex"
+    assert result["results"][0]["provider_status"] == PROVIDER_STATUS_SUSPECT
+    assert result["results"][0]["d11_primary_eligible"] is False
     assert result["results"][0]["freshness_classification"] == (
         FRESHNESS_RECENCY_CAVEATED
     )
@@ -255,3 +270,65 @@ def test_alpaca_iex_provider_reports_explicit_request_window(monkeypatch) -> Non
     assert result.feed == "iex"
     assert result.requested_start == start
     assert result.requested_end == end
+
+
+def test_provider_registry_marks_alpaca_iex_not_d11_primary_eligible() -> None:
+    entry = get_provider_registry_entry(provider="alpaca", feed="iex")
+
+    assert entry["provider_key"] == "alpaca_iex"
+    assert entry["provider_role"] == "secondary"
+    assert entry["provider_status"] == PROVIDER_STATUS_SUSPECT
+    assert entry["d11_primary_eligible"] is False
+    assert "122-167 minute stale" in entry["reason"]
+    assert "recency_caveated" in entry["reason"]
+
+
+def test_provider_registry_contains_unconfigured_future_primary_slot() -> None:
+    entries = {
+        str(entry["provider_key"]): entry for entry in list_provider_registry()
+    }
+
+    future_primary = entries["future_primary"]
+    assert future_primary["provider_role"] == "primary"
+    assert future_primary["provider_status"] == PROVIDER_STATUS_NOT_CONFIGURED
+    assert future_primary["d11_primary_eligible"] is False
+    assert "not configured" in str(future_primary["reason"])
+
+
+def test_unavailable_or_not_configured_providers_cannot_count_for_d11() -> None:
+    unknown = get_provider_registry_entry(provider="unknown_vendor", feed="sip")
+    future_primary = get_provider_registry_entry(provider="future_primary")
+
+    assert unknown["provider_status"] == PROVIDER_STATUS_UNAVAILABLE
+    assert unknown["d11_primary_eligible"] is False
+    assert future_primary["provider_status"] == PROVIDER_STATUS_NOT_CONFIGURED
+    assert future_primary["d11_primary_eligible"] is False
+
+
+def test_provider_registry_is_metadata_only_no_network_or_authority() -> None:
+    import market_data_provider_registry
+
+    source = Path(market_data_provider_registry.__file__).read_text(encoding="utf-8")
+    for forbidden in (
+        "requests",
+        "urllib",
+        "from alpaca",
+        "import alpaca",
+        "ibkr",
+        "subprocess",
+        "socket",
+        "open(",
+        "get_stock_bars",
+        "submit",
+        "package_execution_orchestrator",
+    ):
+        assert forbidden not in source
+    assert "no_network_api_calls" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_broker_api_authority" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_order_authority" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_execution_authority" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_package_capture" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_replay" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_scoring" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_candidate_generation" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+    assert "no_unit_12_opening" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY

@@ -2977,6 +2977,39 @@ classification remains controlling: only `clean` package records may count;
 `quarantined` records do not count. D11 remains **INSUFFICIENT**, Gate D remains
 **NOT COMPLETE / PARKED**, and Unit 12 remains **BLOCKED**.
 
+### D11.10 Market Data Provider Replacement Readiness
+
+D11.10 adds a deterministic metadata-only provider registry in
+`market_data_provider_registry.py`. The registry separates provider role and
+status from provider implementation. It records the vocabulary:
+
+- provider roles: `primary`, `secondary`;
+- provider statuses: `primary`, `secondary`, `suspect`, `unavailable`,
+  `not_configured`.
+
+The registry currently records:
+
+- `alpaca_iex`: `provider_role="secondary"`, `provider_status="suspect"`,
+  `d11_primary_eligible=false`;
+- `future_primary`: `provider_role="primary"`,
+  `provider_status="not_configured"`, `d11_primary_eligible=false`.
+
+Alpaca/IEX is not D11-primary eligible because the explicit-window diagnostic
+for 2026-06-17T12:17:01Z through 2026-06-17T20:17:01Z returned latest 15-minute
+candles 122-167 minutes stale across AAPL, MSFT, NVDA, TSLA, and MSTR. All
+records were `recency_caveated` and `d11_countable=false`.
+
+Market-data freshness diagnostics include provider registry fields:
+`provider_role`, `provider_status`, `d11_primary_eligible`, and `reason`.
+Unavailable or not-configured providers cannot be used for D11 sufficiency.
+
+D11.10 does not add provider credentials, does not implement Polygon, Tiingo,
+IBKR, Schwab, or any other replacement provider, and does not modify runtime,
+systemd, timer, service, broker, order, execution, strategy, risk, package
+capture, replay, scoring, candidate generation, or Unit 12 authority. D11
+remains **INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12
+remains **BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

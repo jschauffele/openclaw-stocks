@@ -22,6 +22,7 @@ from market_data import (
     classify_market_data_freshness,
     compute_request_window,
 )
+from market_data_provider_registry import get_provider_registry_entry
 
 
 DIAGNOSTIC_RESULT_TYPE = "market_data_freshness_diagnostic"
@@ -58,6 +59,10 @@ def run_diagnostic(
             end=window_end,
         )
         bars_result = provider.get_historical_bars(request)
+        provider_registry_entry = get_provider_registry_entry(
+            provider=bars_result.provider,
+            feed=bars_result.feed,
+        )
         latest_candle = bars_result.candles[-1].timestamp
         freshness = classify_market_data_freshness(
             latest_candle_timestamp=latest_candle,
@@ -68,6 +73,12 @@ def run_diagnostic(
             {
                 "provider": bars_result.provider,
                 "feed": bars_result.feed,
+                "provider_role": provider_registry_entry["provider_role"],
+                "provider_status": provider_registry_entry["provider_status"],
+                "d11_primary_eligible": provider_registry_entry[
+                    "d11_primary_eligible"
+                ],
+                "reason": provider_registry_entry["reason"],
                 "symbol": bars_result.symbol,
                 "timeframe": bars_result.timeframe,
                 "requested_start": (
