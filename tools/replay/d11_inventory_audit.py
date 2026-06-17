@@ -13,9 +13,15 @@ import json
 import sys
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any
 
+from market_data import (
+    FRESHNESS_CLEAN,
+    FRESHNESS_QUARANTINED,
+    FRESHNESS_RECENCY_CAVEATED,
+    MAX_LATEST_CANDLE_LAG_SECONDS,
+    classify_market_data_freshness,
+)
 from tools.replay import package_capture_ledger
 
 
@@ -28,8 +34,6 @@ UNIT_12_BLOCKED = "UNIT_12_BLOCKED"
 MIN_BASELINE_PACKAGE_COUNT = 8
 MIN_REGULAR_SESSION_TRADING_DAYS = 3
 MIN_DECISION_OUTCOME_DIVERSITY = 2
-MAX_LATEST_CANDLE_LAG_SECONDS = 30 * 60
-
 STRUCTURAL_VALID = "valid"
 STRUCTURAL_INVALID = "invalid"
 MARKET_DATA_VALID = "valid"
@@ -230,64 +234,43 @@ def classify_market_data_quality(record: Mapping[str, Any]) -> dict[str, Any]:
     run_timestamp = _run_timestamp(record)
     latest_candle_timestamp = _latest_candle_timestamp(record)
     data_warnings = _data_warnings(record)
-    base = {
-        "market_data_validity": MARKET_DATA_INVALID,
-        "inventory_classification": INVENTORY_QUARANTINED,
-        "d11_countable": False,
+    freshness = classify_market_data_freshness(
+        latest_candle_timestamp=latest_candle_timestamp,
+        run_timestamp=run_timestamp,
+        warnings=data_warnings,
+    )
+    validity_by_classification = {
+        FRESHNESS_CLEAN: MARKET_DATA_VALID,
+        FRESHNESS_RECENCY_CAVEATED: MARKET_DATA_CAVEATED,
+        FRESHNESS_QUARANTINED: MARKET_DATA_INVALID,
+    }
+    inventory_by_classification = {
+        FRESHNESS_CLEAN: INVENTORY_CLEAN,
+        FRESHNESS_RECENCY_CAVEATED: INVENTORY_RECENCY_CAVEATED,
+        FRESHNESS_QUARANTINED: INVENTORY_QUARANTINED,
+    }
+    reason = freshness.warning_reason
+    return {
+        "market_data_validity": validity_by_classification[
+            freshness.freshness_classification
+        ],
+        "inventory_classification": inventory_by_classification[
+            freshness.freshness_classification
+        ],
+        "d11_countable": freshness.d11_countable,
         "quarantine_reason": "",
         "caveat_reason": "",
-        "latest_candle_timestamp": latest_candle_timestamp,
-        "run_timestamp": run_timestamp,
-        "data_warnings": data_warnings,
-        "max_latest_candle_lag_seconds": MAX_LATEST_CANDLE_LAG_SECONDS,
-    }
-
-    if data_warnings:
-        return {
-            **base,
-            "quarantine_reason": "market_input_captured_warnings_present",
-        }
-    if not run_timestamp:
-        return {**base, "quarantine_reason": "missing_run_timestamp"}
-    if not latest_candle_timestamp:
-        return {**base, "quarantine_reason": "missing_latest_candle_timestamp"}
-
-    run_dt = _parse_timestamp(run_timestamp)
-    candle_dt = _parse_timestamp(latest_candle_timestamp)
-    if run_dt is None:
-        return {**base, "quarantine_reason": "malformed_run_timestamp"}
-    if candle_dt is None:
-        return {**base, "quarantine_reason": "malformed_latest_candle_timestamp"}
-    if candle_dt.date() < run_dt.date():
-        return {
-            **base,
-            "quarantine_reason": "latest_candle_prior_to_run_date",
-        }
-    if candle_dt.date() > run_dt.date():
-        return {
-            **base,
-            "quarantine_reason": "latest_candle_after_run_date",
-        }
-
-    lag_seconds = (run_dt - candle_dt).total_seconds()
-    if lag_seconds < 0:
-        return {
-            **base,
-            "quarantine_reason": "latest_candle_after_run_timestamp",
-        }
-    if lag_seconds > MAX_LATEST_CANDLE_LAG_SECONDS:
-        return {
-            **base,
-            "market_data_validity": MARKET_DATA_CAVEATED,
-            "inventory_classification": INVENTORY_RECENCY_CAVEATED,
-            "quarantine_reason": "",
-            "caveat_reason": "latest_candle_lag_exceeds_threshold",
-        }
-    return {
-        **base,
-        "market_data_validity": MARKET_DATA_VALID,
-        "inventory_classification": INVENTORY_CLEAN,
-        "d11_countable": True,
+        "latest_candle_timestamp": freshness.latest_candle_timestamp,
+        "run_timestamp": freshness.run_timestamp,
+        "data_warnings": freshness.warnings,
+        "max_latest_candle_lag_seconds": freshness.max_latest_candle_lag_seconds,
+        **(
+            {"caveat_reason": reason}
+            if freshness.freshness_classification == FRESHNESS_RECENCY_CAVEATED
+            else {"quarantine_reason": reason}
+            if reason
+            else {}
+        ),
     }
 
 
@@ -368,18 +351,6 @@ def _data_warnings(record: Mapping[str, Any]) -> tuple[str, ...]:
         if isinstance(warnings, Sequence) and not isinstance(warnings, str):
             collected.extend(str(warning) for warning in warnings if str(warning))
     return tuple(collected)
-
-
-def _parse_timestamp(value: str) -> datetime | None:
-    if value.endswith("Z"):
-        value = f"{value[:-1]}+00:00"
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
 
 
 def _pairing_readiness(

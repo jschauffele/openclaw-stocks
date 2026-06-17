@@ -6,7 +6,7 @@ from typing import Literal
 
 
 AdjustmentType = Literal["raw", "split", "split_dividend"]
-DataSource = Literal["alpaca"]
+DataSource = Literal["alpaca", "alpaca_iex"]
 
 
 @dataclass(frozen=True)
@@ -97,16 +97,28 @@ class HistoricalBarsResult:
     is_adjusted: bool
     candles: tuple[Candle, ...]
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    provider: str = ""
+    feed: str = ""
+    requested_start: datetime | None = None
+    requested_end: datetime | None = None
 
     def __post_init__(self) -> None:
         normalized_symbol = self.symbol.strip().upper()
         normalized_timeframe = self.timeframe.strip()
+        normalized_provider = self.provider.strip() if self.provider else self.source
+        normalized_feed = self.feed.strip() if self.feed else "unknown"
 
         if not normalized_symbol:
             raise ValueError("HistoricalBarsResult.symbol must be non-empty")
 
         if not normalized_timeframe:
             raise ValueError("HistoricalBarsResult.timeframe must be non-empty")
+
+        if not normalized_provider:
+            raise ValueError("HistoricalBarsResult.provider must be non-empty")
+
+        if not normalized_feed:
+            raise ValueError("HistoricalBarsResult.feed must be non-empty")
 
         if not self.candles:
             raise ValueError("HistoricalBarsResult.candles cannot be empty")
@@ -115,4 +127,21 @@ class HistoricalBarsResult:
         object.__setattr__(self, "timeframe", normalized_timeframe)
         object.__setattr__(self, "candles", tuple(self.candles))
         object.__setattr__(self, "warnings", tuple(self.warnings))
-
+        object.__setattr__(self, "provider", normalized_provider)
+        object.__setattr__(self, "feed", normalized_feed)
+        if self.requested_start is not None:
+            if self.requested_start.tzinfo is None:
+                raise ValueError("HistoricalBarsResult.requested_start must be timezone-aware")
+            object.__setattr__(
+                self,
+                "requested_start",
+                self.requested_start.astimezone(timezone.utc),
+            )
+        if self.requested_end is not None:
+            if self.requested_end.tzinfo is None:
+                raise ValueError("HistoricalBarsResult.requested_end must be timezone-aware")
+            object.__setattr__(
+                self,
+                "requested_end",
+                self.requested_end.astimezone(timezone.utc),
+            )

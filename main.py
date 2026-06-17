@@ -12,7 +12,12 @@ from ibkr_fake_native_lifecycle_boundary import (
 )
 from ibkr_submit_reconciliation_workflow import IBKRSubmitReconciliationWorkflow
 from market_session_service import get_market_session_status
-from market_data import get_historical_bars
+from market_data import (
+    classify_market_data_freshness,
+    freshness_payload,
+    get_historical_bars,
+    normalized_closes_from_bars,
+)
 from observation_logger import append_observation
 from risk_engine import validate_config, risk_check, reconcile_position
 from runtime_visibility_orchestrator import build_runtime_visibility_summary
@@ -191,11 +196,34 @@ def build_strategy_hold_report_notes(action_proposal: dict) -> list[str]:
     ]
 
 
-def build_market_input_event_payload(bars_result) -> dict:
+def build_market_input_event_payload(bars_result, *, run_timestamp=None) -> dict:
+    latest_candle_timestamp = bars_result.candles[-1].timestamp
+    freshness = classify_market_data_freshness(
+        latest_candle_timestamp=latest_candle_timestamp,
+        run_timestamp=run_timestamp,
+        warnings=tuple(bars_result.warnings),
+    )
+    requested_start = getattr(bars_result, "requested_start", None)
+    requested_end = getattr(bars_result, "requested_end", None)
     return {
+        "provider": getattr(bars_result, "provider", bars_result.source),
+        "feed": getattr(bars_result, "feed", "unknown"),
         "symbol": bars_result.symbol,
         "timeframe": bars_result.timeframe,
         "source": bars_result.source,
+        "requested_start": (
+            requested_start.isoformat()
+            if requested_start is not None
+            else None
+        ),
+        "requested_end": (
+            requested_end.isoformat()
+            if requested_end is not None
+            else None
+        ),
+        "latest_candle_timestamp": freshness.latest_candle_timestamp,
+        "run_timestamp": freshness.run_timestamp,
+        **freshness_payload(freshness),
         "adjustment": bars_result.adjustment_type,
         "adjusted": bars_result.is_adjusted,
         "warnings": list(bars_result.warnings),
@@ -481,14 +509,17 @@ def main():
             timeframe=signal_timeframe,
             limit=signal_limit,
         )
-        closes = [candle.close for candle in bars_result.candles]
+        closes = normalized_closes_from_bars(bars_result)
         if len(closes) < 3:
             raise InsufficientMarketDataError(
                 available_closes=len(closes),
                 required_closes=3,
             )
         latest_candle_timestamp = bars_result.candles[-1].timestamp.isoformat()
-        market_input_payload = build_market_input_event_payload(bars_result)
+        market_input_payload = build_market_input_event_payload(
+            bars_result,
+            run_timestamp=utc_now_iso(),
+        )
         raw_signal_result = generate_signal_from_closes(closes)
         signal_result = validate_signal_result(raw_signal_result)
         action_proposal = build_action_proposal(

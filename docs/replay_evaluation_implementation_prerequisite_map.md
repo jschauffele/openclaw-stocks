@@ -2930,6 +2930,46 @@ credential changes, or Unit 12 opening. D11 remains **INSUFFICIENT** and Unit 12
 remains **BLOCKED** until a future separately authorized sufficiency
 reassessment records otherwise.
 
+### D11.9 Market Data Provider Boundary and Alpaca/IEX Freshness Block
+
+D11.9 records the market-data provider boundary created after D11 collection was
+parked for repeated Alpaca/IEX freshness failures. Alpaca paper/broker plumbing
+remains parked and unchanged; Alpaca/IEX market data is retained only as one
+market-data provider implementation behind `market_data.MarketDataProvider`.
+Strategy evaluation consumes normalized `Candle`/close data from
+`HistoricalBarsResult`, not Alpaca client internals.
+
+`market_input_captured` JSONL events include provider diagnostic metadata:
+
+- `provider`;
+- `feed`;
+- `symbol`;
+- `timeframe`;
+- `requested_start`;
+- `requested_end`;
+- `latest_candle_timestamp`;
+- `run_timestamp`;
+- `lag_minutes`;
+- `freshness_classification`;
+- `warnings`.
+
+The local read-only diagnostic command is:
+
+```bash
+python -m tools.ops.market_data_freshness_diagnostic --timeframe 15Min --limit 5
+```
+
+The command checks provider freshness across configured symbols and reports
+read-only diagnostic output only. It does not capture packages, replay, score,
+generate candidates, submit/cancel/modify/flatten orders, mutate packages, touch
+systemd, start/restart runtime, open IBKR/TWS/Gateway, or open Unit 12.
+
+D11.9 does not make Alpaca/IEX trusted primary D11 evidence. D11.8 data-quality
+classification remains controlling: only `clean` package records may count;
+`recency_caveated` records require separate review and do not silently count;
+`quarantined` records do not count. D11 remains **INSUFFICIENT**, Gate D remains
+**NOT COMPLETE / PARKED**, and Unit 12 remains **BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

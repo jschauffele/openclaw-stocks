@@ -70,6 +70,7 @@ from main import (
     build_strategy_signal_event_payload,
     validate_data_config,
 )
+from market_data import FRESHNESS_CLEAN
 from reporting import build_run_report
 from signal_validator import validate_signal_result
 from strategy_engine import generate_signal_from_closes
@@ -128,6 +129,8 @@ class ObservabilityPayloadsTest(unittest.TestCase):
             symbol="aapl",
             timeframe="5Min",
             source="alpaca",
+            provider="alpaca",
+            feed="iex",
             adjustment_type="raw",
             is_adjusted=False,
             candles=(
@@ -150,20 +153,34 @@ class ObservabilityPayloadsTest(unittest.TestCase):
                     volume=2345,
                 ),
             ),
-            warnings=("partial_bar",),
+            warnings=(),
         )
 
-        payload = build_market_input_event_payload(bars_result)
+        payload = build_market_input_event_payload(
+            bars_result,
+            run_timestamp=datetime(2026, 5, 15, 14, 50, tzinfo=timezone.utc),
+        )
 
         self.assertEqual(
             payload,
             {
+                "provider": "alpaca",
+                "feed": "iex",
                 "symbol": "AAPL",
                 "timeframe": "5Min",
                 "source": "alpaca",
+                "requested_start": None,
+                "requested_end": None,
+                "latest_candle_timestamp": "2026-05-15T14:35:00+00:00",
+                "run_timestamp": "2026-05-15T14:50:00+00:00",
+                "lag_minutes": 15.0,
+                "freshness_classification": FRESHNESS_CLEAN,
+                "d11_countable": True,
+                "freshness_warning_reason": "",
+                "max_latest_candle_lag_seconds": 1800,
                 "adjustment": "raw",
                 "adjusted": False,
-                "warnings": ["partial_bar"],
+                "warnings": [],
                 "candles": [
                     {
                         "timestamp": "2026-05-15T14:30:00+00:00",
@@ -191,6 +208,8 @@ class ObservabilityPayloadsTest(unittest.TestCase):
             symbol="aapl",
             timeframe="5Min",
             source="alpaca",
+            provider="alpaca",
+            feed="iex",
             adjustment_type="raw",
             is_adjusted=False,
             candles=(
@@ -231,7 +250,12 @@ class ObservabilityPayloadsTest(unittest.TestCase):
                 "data",
                 "market_input_captured",
                 "ok",
-                build_market_input_event_payload(bars_result),
+                build_market_input_event_payload(
+                    bars_result,
+                    run_timestamp=datetime(
+                        2026, 5, 15, 14, 50, tzinfo=timezone.utc
+                    ),
+                ),
             )
             log_event(
                 "strategy",
@@ -251,6 +275,12 @@ class ObservabilityPayloadsTest(unittest.TestCase):
         self.assertEqual(events[0]["stage"], "market_input_captured")
         self.assertEqual(events[0]["status"], "ok")
         self.assertEqual(len(events[0]["payload"]["candles"]), 3)
+        self.assertEqual(events[0]["payload"]["provider"], "alpaca")
+        self.assertEqual(events[0]["payload"]["feed"], "iex")
+        self.assertEqual(
+            events[0]["payload"]["freshness_classification"],
+            FRESHNESS_CLEAN,
+        )
         self.assertEqual(events[1]["event_id"], "evt_0002")
         self.assertEqual(events[1]["event_type"], "strategy")
         self.assertEqual(events[1]["stage"], "strategy_evaluated")

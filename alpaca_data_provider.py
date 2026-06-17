@@ -43,6 +43,8 @@ _TIMEFRAME_MAP = {
     "1Hour": TimeFrame.Hour,
     "1Day": TimeFrame.Day,
 }
+ALPACA_IEX_PROVIDER = "alpaca"
+ALPACA_IEX_FEED = "iex"
 
 
 def _fallback_start_for(timeframe_name: str) -> datetime:
@@ -119,6 +121,8 @@ class AlpacaMarketDataProvider(MarketDataProvider):
         validated_request = validate_request(request)
         timeframe = _TIMEFRAME_MAP[validated_request.timeframe]
         warnings: list[str] = []
+        requested_start: datetime | None = None
+        requested_end: datetime | None = None
 
         try:
             bars = self._fetch_bars(
@@ -136,6 +140,8 @@ class AlpacaMarketDataProvider(MarketDataProvider):
         if not bars or requires_retry_window:
             end = datetime.now(timezone.utc)
             start = _fallback_start_for(validated_request.timeframe)
+            requested_start = start
+            requested_end = end
 
             try:
                 fallback_bars = self._fetch_bars(
@@ -182,10 +188,14 @@ class AlpacaMarketDataProvider(MarketDataProvider):
             symbol=validated_request.symbol,
             timeframe=validated_request.timeframe,
             source="alpaca",
+            provider=ALPACA_IEX_PROVIDER,
+            feed=ALPACA_IEX_FEED,
             adjustment_type="raw",
             is_adjusted=False,
             candles=candles,
             warnings=tuple(warnings),
+            requested_start=requested_start,
+            requested_end=requested_end,
         )
 
 
