@@ -3068,6 +3068,54 @@ package capture, replay, scoring, candidate generation, or Unit 12 authority.
 D11 remains **INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit
 12 remains **BLOCKED**.
 
+### D11.12 IBKR Read-Only Market Data Diagnostic Contract
+
+D11.12 adds a metadata-only IBKR read-only market-data diagnostic contract:
+`ibkr_market_data_diagnostic_contract.py`. The contract separates a future
+read-only historical market-data diagnostic from broker/order/execution
+authority. It does not import `ibapi` or `ib_insync`, does not connect to TWS or
+Gateway, does not add credentials, and does not implement real IBKR market-data
+fetching.
+
+The allowed IBKR diagnostic boundary is:
+
+- may request historical market data only after separate explicit authorization;
+- may not place, modify, cancel, or route orders;
+- may not query positions, account balances, margin, buying power, or portfolio
+  state;
+- may not start TWS/Gateway;
+- may not mutate runtime, systemd, timer, or service state;
+- may not capture packages;
+- may not replay, score, or generate candidates;
+- may not open Unit 12;
+- may not mark D11 complete.
+
+The required diagnostic output fields are:
+`provider_key`, `provider_name`, `connection_mode`, `read_only`,
+`requested_start`, `requested_end`, `symbol`, `timeframe`,
+`latest_candle_timestamp`, `lag_minutes`, `freshness_classification`,
+`d11_countable`, `d11_primary_candidate_status`, `d11_primary_eligible`,
+`failure_reason`, and `authority_boundary`.
+
+The contract fails closed for missing timestamps, non-UTC timestamps, stale
+latest candles, warning-bearing results, detected account/order/position
+capability, unavailable TWS/Gateway, missing explicit request windows,
+missing credentials/config, or any network/client import in the metadata-only
+contract module.
+
+The `ibkr_market_data_candidate` remains `d11_primary_eligible=false`.
+It may move only to `eligible_for_read_only_diagnostic` after a future explicit
+authorization records that status. `approved_primary` remains impossible without
+a later VPS read-only diagnostic result and separate governance record.
+
+D11.12 does not add IBKR credentials, does not open IBKR/TWS/Gateway, does not
+query account, position, margin, buying power, portfolio, or order state, does
+not add order functions, and does not modify VPS runtime, systemd, timer,
+service, broker, order, execution, strategy, risk, package capture, replay,
+scoring, candidate generation, or Unit 12 authority. D11 remains
+**INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
+**BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

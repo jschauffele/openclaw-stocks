@@ -7,6 +7,15 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from data_models import Candle, HistoricalBarsRequest, HistoricalBarsResult
+from ibkr_market_data_diagnostic_contract import (
+    D11_STATUS_INSUFFICIENT,
+    IBKR_DIAGNOSTIC_REQUIRED_OUTPUT_FIELDS,
+    IBKR_PROVIDER_KEY,
+    IBKR_READ_ONLY_DIAGNOSTIC_AUTHORITY_BOUNDARY,
+    UNIT_12_STATUS_BLOCKED,
+    evaluate_ibkr_diagnostic_result,
+    ibkr_read_only_diagnostic_contract,
+)
 from market_data import (
     FRESHNESS_CLEAN,
     FRESHNESS_QUARANTINED,
@@ -441,3 +450,151 @@ def test_provider_selection_module_has_no_network_client_or_authority_imports() 
     assert "no_scoring" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
     assert "no_candidate_generation" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
     assert "no_unit_12_opening" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+
+
+def _valid_ibkr_diagnostic_result(**overrides):
+    result = {
+        "provider_key": IBKR_PROVIDER_KEY,
+        "provider_name": "IBKR read-only market-data diagnostic candidate",
+        "connection_mode": "paper_read_only",
+        "read_only": True,
+        "requested_start": "2026-06-17T13:00:00+00:00",
+        "requested_end": "2026-06-17T13:45:00+00:00",
+        "symbol": "MSFT",
+        "timeframe": "15Min",
+        "latest_candle_timestamp": "2026-06-17T13:30:00+00:00",
+        "lag_minutes": 15.0,
+        "freshness_classification": FRESHNESS_CLEAN,
+        "d11_countable": True,
+        "d11_primary_candidate_status": CANDIDATE_STATUS_CANDIDATE,
+        "d11_primary_eligible": False,
+        "failure_reason": "",
+        "authority_boundary": IBKR_READ_ONLY_DIAGNOSTIC_AUTHORITY_BOUNDARY,
+        "credentials_configured": True,
+        "account_capability": False,
+        "order_capability": False,
+        "position_capability": False,
+        "portfolio_capability": False,
+        "warnings": (),
+    }
+    result.update(overrides)
+    return result
+
+
+def test_ibkr_read_only_diagnostic_contract_is_metadata_only() -> None:
+    contract = ibkr_read_only_diagnostic_contract()
+
+    assert contract["provider_key"] == IBKR_PROVIDER_KEY
+    assert contract["read_only"] is True
+    assert contract["d11_primary_eligible"] is False
+    assert contract["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert contract["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    for field in IBKR_DIAGNOSTIC_REQUIRED_OUTPUT_FIELDS:
+        assert field in contract["required_output_fields"]
+    assert "no_ibkr_client_imports" in IBKR_READ_ONLY_DIAGNOSTIC_AUTHORITY_BOUNDARY
+    assert "no_order_place_modify_cancel_route" in (
+        IBKR_READ_ONLY_DIAGNOSTIC_AUTHORITY_BOUNDARY
+    )
+    assert "no_unit_12_opening" in IBKR_READ_ONLY_DIAGNOSTIC_AUTHORITY_BOUNDARY
+    assert "no_d11_completion_authority" in (
+        IBKR_READ_ONLY_DIAGNOSTIC_AUTHORITY_BOUNDARY
+    )
+
+
+def test_ibkr_contract_module_has_no_client_network_or_systemd_imports() -> None:
+    import ibkr_market_data_diagnostic_contract
+
+    source = Path(ibkr_market_data_diagnostic_contract.__file__).read_text(
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "ibapi",
+        "ib_insync",
+        "socket",
+        "requests",
+        "urllib",
+        "subprocess",
+        "systemctl",
+        "from ib",
+        "import ib",
+        "open(",
+        "placeOrder",
+        "cancelOrder",
+        "reqPositions",
+        "accountSummary",
+    ):
+        assert forbidden not in source
+
+
+def test_ibkr_candidate_remains_no_order_execution_and_not_primary_eligible() -> None:
+    candidate = get_provider_candidate("ibkr_market_data_candidate")
+
+    assert candidate["order_authority"] is False
+    assert candidate["execution_authority"] is False
+    assert candidate["d11_primary_eligible"] is False
+    assert candidate_can_count_for_d11(candidate) is False
+
+
+def test_ibkr_contract_fail_closed_rules_reject_bad_results() -> None:
+    cases = (
+        (
+            {"requested_start": None},
+            "missing or non-UTC explicit request window",
+        ),
+        (
+            {"requested_start": "2026-06-17T13:00:00"},
+            "missing or non-UTC explicit request window",
+        ),
+        (
+            {
+                "latest_candle_timestamp": "2026-06-17T07:23:00+00:00",
+                "lag_minutes": 382.0,
+            },
+            "stale latest candle",
+        ),
+        (
+            {"warnings": ("farm disconnected",)},
+            "warning-bearing diagnostic result",
+        ),
+        (
+            {"account_capability": True},
+            "account/order/position capability detected",
+        ),
+        (
+            {"order_capability": True},
+            "account/order/position capability detected",
+        ),
+        (
+            {"connection_mode": "unavailable"},
+            "unavailable TWS/Gateway or unauthorized connection mode",
+        ),
+        (
+            {"credentials_configured": False},
+            "credentials/config not present",
+        ),
+    )
+    for overrides, reason in cases:
+        evaluation = evaluate_ibkr_diagnostic_result(
+            _valid_ibkr_diagnostic_result(**overrides)
+        )
+        assert evaluation["valid"] is False
+        assert evaluation["failure_reason"] == reason
+        assert evaluation["d11_status"] == D11_STATUS_INSUFFICIENT
+        assert evaluation["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+
+
+def test_ibkr_contract_cannot_mark_d11_complete_or_open_unit_12() -> None:
+    evaluation = evaluate_ibkr_diagnostic_result(_valid_ibkr_diagnostic_result())
+
+    assert evaluation["valid"] is False
+    assert "later separate governance record" in evaluation["failure_reason"]
+    assert evaluation["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert evaluation["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert evaluation["package_capture"] is False
+    assert evaluation["replay"] is False
+    assert evaluation["scoring"] is False
+    assert evaluation["candidate_generation"] is False
+    assert evaluation["broker_api_authority"] is False
+    assert evaluation["order_authority"] is False
+    assert evaluation["execution_authority"] is False
+    assert evaluation["d11_completion_authority"] is False
