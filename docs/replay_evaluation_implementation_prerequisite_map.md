@@ -2880,6 +2880,56 @@ start/restart, strategy/risk/config changes, credential changes, or Unit 12
 opening. D11 remains **INSUFFICIENT** and Unit 12 remains **BLOCKED** until a
 future separately authorized sufficiency reassessment records otherwise.
 
+### D11.8 Package Market-Data Quality Classification
+
+D11.8 extends `tools/replay/d11_inventory_audit.py` with a metadata-only
+market-data quality layer. D14 package ledger validation remains structural:
+manifest/hash/finalized/immutable/run-alignment/as-of/integrity checks are not
+weakened or replaced. D11 counting now also requires market-data validity, so a
+package can be structurally valid while not being clean D11 evidence.
+
+The inventory audit reports each structurally valid record with:
+
+- `run_id`;
+- `symbol`;
+- `structural_validity`;
+- `market_data_validity`;
+- `inventory_classification`;
+- `d11_countable`;
+- `quarantine_reason` or `caveat_reason`;
+- `latest_candle_timestamp`;
+- `run_timestamp`;
+- `data_warnings`.
+
+Inventory classifications are:
+
+- `clean`: same-day market data, no market-input warnings, and the latest
+  candle timestamp is within the source-controlled freshness threshold;
+- `recency_caveated`: same-day market data with no warnings, but latest-candle
+  lag exceeds the freshness threshold;
+- `quarantined`: prior-date or future-date candles, missing/malformed market
+  timestamps, or any `market_input_captured`/market-data warnings.
+
+Only `clean` records count toward D11 sufficiency. `recency_caveated` records
+may be listed for review but must not silently count as clean evidence.
+`quarantined` records do not count. JSONL-only evidence remains insufficient,
+and `run_reports/{run_id}.json` remains report evidence rather than governed
+package inventory by itself.
+
+The current D11.8 freshness threshold is 30 minutes from `run_timestamp` to
+`latest_candle_timestamp`, allowing same-day completed 15-minute candle evidence
+with limited collection delay while preventing older same-day data from silently
+counting as clean. Any future threshold change requires a separate
+source-controlled governance update.
+
+D11.8 records data-quality audit behavior only. It does not complete D11, does
+not complete Gate D, does not authorize package capture, replay, scoring,
+candidate generation, package mutation, broker/API expansion, IBKR/TWS/Gateway
+work, systemd mutation, runtime start/restart, strategy/risk/config changes,
+credential changes, or Unit 12 opening. D11 remains **INSUFFICIENT** and Unit 12
+remains **BLOCKED** until a future separately authorized sufficiency
+reassessment records otherwise.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

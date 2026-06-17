@@ -18520,6 +18520,9 @@ def _valid_ledger_record(**overrides: object) -> dict:
         "future_dated": False,
         "leaked": False,
         "post_decision": False,
+        "run_timestamp": "2026-06-15T16:00:00Z",
+        "latest_candle_timestamp": "2026-06-15T15:45:00Z",
+        "data_warnings": [],
     }
     record.update(overrides)
     return record
@@ -18733,6 +18736,7 @@ def test_d11_inventory_audit_one_baseline_package_is_insufficient() -> None:
     assert result["d11_status"] == d11_inventory_audit.D11_INSUFFICIENT
     assert result["unit_12_status"] == d11_inventory_audit.UNIT_12_BLOCKED
     assert result["counts"]["baseline_count_eligible"] == 1
+    assert result["counts"]["clean_records"] == 1
     assert result["criteria"]["baseline_package_count"] is False
     assert result["criteria"]["regular_session_trading_days"] is False
 
@@ -18747,6 +18751,10 @@ def test_d11_inventory_audit_jsonl_only_evidence_does_not_count() -> None:
     assert result["jsonl_only_evidence_sufficient"] is False
     assert result["counts"]["count_eligible_records"] == 0
     assert result["counts"]["invalid_records"] == 1
+    assert result["inventory_records"][0]["structural_validity"] == (
+        d11_inventory_audit.STRUCTURAL_INVALID
+    )
+    assert result["inventory_records"][0]["d11_countable"] is False
     assert "missing package capture ledger version" in (
         result["invalid_records"][0]["reason"]
     )
@@ -18763,6 +18771,10 @@ def test_d11_inventory_audit_missing_candidate_side_keeps_insufficient() -> None
                     f"T16:00:00Z_base{index}/manifest.json"
                 ),
                 capture_timestamp_utc=f"2026-06-{15 + (index % 3):02d}T16:01:00Z",
+                run_timestamp=f"2026-06-{15 + (index % 3):02d}T16:00:00Z",
+                latest_candle_timestamp=(
+                    f"2026-06-{15 + (index % 3):02d}T15:45:00Z"
+                ),
                 decision_outcome=(
                     package_capture_ledger.DECISION_OUTCOME_DRY_RUN
                     if index % 2
@@ -18789,6 +18801,10 @@ def test_d11_inventory_audit_missing_pairing_keeps_unit_12_blocked() -> None:
                     f"T16:00:00Z_base{index}/manifest.json"
                 ),
                 capture_timestamp_utc=f"2026-06-{15 + (index % 3):02d}T16:01:00Z",
+                run_timestamp=f"2026-06-{15 + (index % 3):02d}T16:00:00Z",
+                latest_candle_timestamp=(
+                    f"2026-06-{15 + (index % 3):02d}T15:45:00Z"
+                ),
                 decision_outcome=(
                     package_capture_ledger.DECISION_OUTCOME_DRY_RUN
                     if index % 2
@@ -18803,6 +18819,8 @@ def test_d11_inventory_audit_missing_pairing_keeps_unit_12_blocked() -> None:
                 "replay_packages/run_2026-06-18T16:00:00Z_cand1/manifest.json"
             ),
             capture_timestamp_utc="2026-06-18T16:01:00Z",
+            run_timestamp="2026-06-18T16:00:00Z",
+            latest_candle_timestamp="2026-06-18T15:45:00Z",
             evidence_membership=package_capture_ledger.EVIDENCE_MEMBERSHIP_CANDIDATE,
         )
     )
@@ -18810,6 +18828,200 @@ def test_d11_inventory_audit_missing_pairing_keeps_unit_12_blocked() -> None:
     assert result["criteria"]["candidate_side_package_inventory"] is True
     assert result["criteria"]["baseline_vs_candidate_pairing_ready"] is False
     assert result["unit_12_status"] == d11_inventory_audit.UNIT_12_BLOCKED
+    assert result["d11_status"] == d11_inventory_audit.D11_INSUFFICIENT
+
+
+def test_d11_inventory_audit_clean_same_day_no_warning_counts() -> None:
+    result = d11_inventory_audit.audit_d11_inventory(
+        [
+            _valid_ledger_record(
+                run_id="run_2026-06-17T13:45:04Z_clean1",
+                package_path_or_relative_reference=(
+                    "replay_packages/run_2026-06-17T13:45:04Z_clean1/manifest.json"
+                ),
+                capture_timestamp_utc="2026-06-17T13:46:00Z",
+                run_timestamp="2026-06-17T13:45:04Z",
+                latest_candle_timestamp="2026-06-17T13:30:00Z",
+                data_warnings=[],
+                symbol="TSLA",
+            )
+        ]
+    )
+
+    record = result["inventory_records"][0]
+    assert record["structural_validity"] == d11_inventory_audit.STRUCTURAL_VALID
+    assert record["market_data_validity"] == d11_inventory_audit.MARKET_DATA_VALID
+    assert record["inventory_classification"] == d11_inventory_audit.INVENTORY_CLEAN
+    assert record["d11_countable"] is True
+    assert result["counts"]["count_eligible_records"] == 1
+
+
+def test_d11_inventory_audit_prior_date_candle_quarantines() -> None:
+    result = d11_inventory_audit.audit_d11_inventory(
+        [
+            _valid_ledger_record(
+                run_id="run_2026-06-17T13:30:01Z_stale1",
+                package_path_or_relative_reference=(
+                    "replay_packages/run_2026-06-17T13:30:01Z_stale1/manifest.json"
+                ),
+                capture_timestamp_utc="2026-06-17T13:31:00Z",
+                run_timestamp="2026-06-17T13:30:01Z",
+                latest_candle_timestamp="2026-06-15T20:00:00Z",
+                data_warnings=[],
+                symbol="AAPL",
+            )
+        ]
+    )
+
+    record = result["inventory_records"][0]
+    assert record["structural_validity"] == d11_inventory_audit.STRUCTURAL_VALID
+    assert record["market_data_validity"] == d11_inventory_audit.MARKET_DATA_INVALID
+    assert record["inventory_classification"] == (
+        d11_inventory_audit.INVENTORY_QUARANTINED
+    )
+    assert record["d11_countable"] is False
+    assert record["quarantine_reason"] == "latest_candle_prior_to_run_date"
+    assert result["counts"]["quarantined_records"] == 1
+    assert result["counts"]["count_eligible_records"] == 0
+
+
+def test_d11_inventory_audit_market_input_warning_quarantines() -> None:
+    result = d11_inventory_audit.audit_d11_inventory(
+        [
+            _valid_ledger_record(
+                run_id="run_2026-06-17T13:30:06Z_warn1",
+                package_path_or_relative_reference=(
+                    "replay_packages/run_2026-06-17T13:30:06Z_warn1/manifest.json"
+                ),
+                capture_timestamp_utc="2026-06-17T13:31:00Z",
+                run_timestamp="2026-06-17T13:30:06Z",
+                latest_candle_timestamp="2026-06-17T13:15:00Z",
+                market_input_captured={"warnings": ["POSSIBLE_STALE_DATA"]},
+                symbol="NVDA",
+            )
+        ]
+    )
+
+    record = result["inventory_records"][0]
+    assert record["inventory_classification"] == (
+        d11_inventory_audit.INVENTORY_QUARANTINED
+    )
+    assert record["quarantine_reason"] == "market_input_captured_warnings_present"
+    assert record["data_warnings"] == ("POSSIBLE_STALE_DATA",)
+    assert record["d11_countable"] is False
+
+
+def test_d11_inventory_audit_same_day_excessive_lag_is_caveated() -> None:
+    result = d11_inventory_audit.audit_d11_inventory(
+        [
+            _valid_ledger_record(
+                run_id="run_2026-06-17T13:30:08Z_lag1",
+                package_path_or_relative_reference=(
+                    "replay_packages/run_2026-06-17T13:30:08Z_lag1/manifest.json"
+                ),
+                capture_timestamp_utc="2026-06-17T13:31:00Z",
+                run_timestamp="2026-06-17T13:30:08Z",
+                latest_candle_timestamp="2026-06-17T12:45:00Z",
+                data_warnings=[],
+                symbol="TSLA",
+            )
+        ]
+    )
+
+    record = result["inventory_records"][0]
+    assert record["market_data_validity"] == (
+        d11_inventory_audit.MARKET_DATA_CAVEATED
+    )
+    assert record["inventory_classification"] == (
+        d11_inventory_audit.INVENTORY_RECENCY_CAVEATED
+    )
+    assert record["caveat_reason"] == "latest_candle_lag_exceeds_threshold"
+    assert record["d11_countable"] is False
+    assert result["counts"]["recency_caveated_records"] == 1
+
+
+def test_d11_inventory_audit_structurally_valid_market_invalid_excluded() -> None:
+    result = d11_inventory_audit.audit_d11_inventory(
+        [
+            _valid_ledger_record(
+                run_id="run_2026-06-17T13:30:01Z_clean1",
+                package_path_or_relative_reference=(
+                    "replay_packages/run_2026-06-17T13:30:01Z_clean1/manifest.json"
+                ),
+                capture_timestamp_utc="2026-06-17T13:31:00Z",
+                run_timestamp="2026-06-17T13:30:01Z",
+                latest_candle_timestamp="2026-06-17T13:15:00Z",
+                symbol="MSFT",
+            ),
+            _valid_ledger_record(
+                run_id="run_2026-06-17T13:30:03Z_stale1",
+                package_path_or_relative_reference=(
+                    "replay_packages/run_2026-06-17T13:30:03Z_stale1/manifest.json"
+                ),
+                capture_timestamp_utc="2026-06-17T13:31:00Z",
+                run_timestamp="2026-06-17T13:30:03Z",
+                latest_candle_timestamp="2026-06-15T20:00:00Z",
+                symbol="AAPL",
+            ),
+        ]
+    )
+
+    assert result["counts"]["structurally_count_eligible_records"] == 2
+    assert result["counts"]["count_eligible_records"] == 1
+    assert result["counts"]["baseline_count_eligible"] == 1
+    assert result["inventory_records"][1]["structural_validity"] == (
+        d11_inventory_audit.STRUCTURAL_VALID
+    )
+    assert result["inventory_records"][1]["d11_countable"] is False
+
+
+def test_d11_inventory_audit_non_clean_records_do_not_satisfy_d11() -> None:
+    records = []
+    for index in range(8):
+        day = 15 + (index % 3)
+        records.append(
+            _valid_ledger_record(
+                run_id=f"run_2026-06-{day:02d}T16:00:00Z_base{index}",
+                package_path_or_relative_reference=(
+                    f"replay_packages/run_2026-06-{day:02d}"
+                    f"T16:00:00Z_base{index}/manifest.json"
+                ),
+                capture_timestamp_utc=f"2026-06-{day:02d}T16:01:00Z",
+                run_timestamp=f"2026-06-{day:02d}T16:00:00Z",
+                latest_candle_timestamp=f"2026-06-{day:02d}T15:45:00Z",
+                decision_outcome=(
+                    package_capture_ledger.DECISION_OUTCOME_DRY_RUN
+                    if index % 2
+                    else package_capture_ledger.DECISION_OUTCOME_HOLD
+                ),
+            )
+        )
+    records.append(
+        _valid_ledger_record(
+            run_id="run_2026-06-18T16:00:00Z_caveat1",
+            package_path_or_relative_reference=(
+                "replay_packages/run_2026-06-18T16:00:00Z_caveat1/manifest.json"
+            ),
+            capture_timestamp_utc="2026-06-18T16:01:00Z",
+            run_timestamp="2026-06-18T16:00:00Z",
+            latest_candle_timestamp="2026-06-18T15:00:00Z",
+            evidence_membership=package_capture_ledger.EVIDENCE_MEMBERSHIP_CANDIDATE,
+        )
+    )
+    result = d11_inventory_audit.audit_d11_inventory(
+        records,
+        pairing_records=[
+            {
+                "baseline_run_id": "run_2026-06-15T16:00:00Z_base0",
+                "candidate_run_id": "run_2026-06-18T16:00:00Z_caveat1",
+            }
+        ],
+    )
+
+    assert result["counts"]["structurally_count_eligible_records"] == 9
+    assert result["counts"]["count_eligible_records"] == 8
+    assert result["criteria"]["candidate_side_package_inventory"] is False
+    assert result["criteria"]["baseline_vs_candidate_pairing_ready"] is False
     assert result["d11_status"] == d11_inventory_audit.D11_INSUFFICIENT
 
 
