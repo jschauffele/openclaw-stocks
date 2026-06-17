@@ -18470,6 +18470,7 @@ def test_d13_guard_record_present_and_status_preserved() -> None:
 # ---------------------------------------------------------------------------
 
 import tools.replay.package_capture_ledger as package_capture_ledger
+import tools.replay.d11_inventory_audit as d11_inventory_audit
 
 
 def _valid_ledger_record(**overrides: object) -> dict:
@@ -18718,6 +18719,139 @@ def test_d14_ledger_record_present_and_status_preserved() -> None:
     assert "Gate D (evaluation prerequisite governance): **NOT STARTED**" in map_text
     assert "Unit 12 remains **BLOCKED** after C1" in map_text
     assert "Unit 12: **BLOCKED**" in map_text
+
+
+# ---------------------------------------------------------------------------
+# Gate D D11 inventory audit tool tests
+# ---------------------------------------------------------------------------
+
+
+def test_d11_inventory_audit_one_baseline_package_is_insufficient() -> None:
+    result = d11_inventory_audit.audit_d11_inventory(
+        [_valid_ledger_record(symbol="MSTR")]
+    )
+    assert result["d11_status"] == d11_inventory_audit.D11_INSUFFICIENT
+    assert result["unit_12_status"] == d11_inventory_audit.UNIT_12_BLOCKED
+    assert result["counts"]["baseline_count_eligible"] == 1
+    assert result["criteria"]["baseline_package_count"] is False
+    assert result["criteria"]["regular_session_trading_days"] is False
+
+
+def test_d11_inventory_audit_jsonl_only_evidence_does_not_count() -> None:
+    jsonl_only = {
+        "run_id": "run_2026-06-15T16:00:00Z_jsonl1",
+        "jsonl_path": "logs/run_2026-06-15T16:00:00Z_jsonl1.jsonl",
+    }
+    result = d11_inventory_audit.audit_d11_inventory([jsonl_only])
+    assert result["d11_status"] == d11_inventory_audit.D11_INSUFFICIENT
+    assert result["jsonl_only_evidence_sufficient"] is False
+    assert result["counts"]["count_eligible_records"] == 0
+    assert result["counts"]["invalid_records"] == 1
+    assert "missing package capture ledger version" in (
+        result["invalid_records"][0]["reason"]
+    )
+
+
+def test_d11_inventory_audit_missing_candidate_side_keeps_insufficient() -> None:
+    records = []
+    for index in range(8):
+        records.append(
+            _valid_ledger_record(
+                run_id=f"run_2026-06-{15 + (index % 3):02d}T16:00:00Z_base{index}",
+                package_path_or_relative_reference=(
+                    f"replay_packages/run_2026-06-{15 + (index % 3):02d}"
+                    f"T16:00:00Z_base{index}/manifest.json"
+                ),
+                capture_timestamp_utc=f"2026-06-{15 + (index % 3):02d}T16:01:00Z",
+                decision_outcome=(
+                    package_capture_ledger.DECISION_OUTCOME_DRY_RUN
+                    if index % 2
+                    else package_capture_ledger.DECISION_OUTCOME_HOLD
+                ),
+            )
+        )
+    result = d11_inventory_audit.audit_d11_inventory(records)
+    assert result["criteria"]["baseline_package_count"] is True
+    assert result["criteria"]["regular_session_trading_days"] is True
+    assert result["criteria"]["decision_outcome_diversity"] is True
+    assert result["criteria"]["candidate_side_package_inventory"] is False
+    assert result["d11_status"] == d11_inventory_audit.D11_INSUFFICIENT
+
+
+def test_d11_inventory_audit_missing_pairing_keeps_unit_12_blocked() -> None:
+    records = []
+    for index in range(8):
+        records.append(
+            _valid_ledger_record(
+                run_id=f"run_2026-06-{15 + (index % 3):02d}T16:00:00Z_base{index}",
+                package_path_or_relative_reference=(
+                    f"replay_packages/run_2026-06-{15 + (index % 3):02d}"
+                    f"T16:00:00Z_base{index}/manifest.json"
+                ),
+                capture_timestamp_utc=f"2026-06-{15 + (index % 3):02d}T16:01:00Z",
+                decision_outcome=(
+                    package_capture_ledger.DECISION_OUTCOME_DRY_RUN
+                    if index % 2
+                    else package_capture_ledger.DECISION_OUTCOME_HOLD
+                ),
+            )
+        )
+    records.append(
+        _valid_ledger_record(
+            run_id="run_2026-06-18T16:00:00Z_cand1",
+            package_path_or_relative_reference=(
+                "replay_packages/run_2026-06-18T16:00:00Z_cand1/manifest.json"
+            ),
+            capture_timestamp_utc="2026-06-18T16:01:00Z",
+            evidence_membership=package_capture_ledger.EVIDENCE_MEMBERSHIP_CANDIDATE,
+        )
+    )
+    result = d11_inventory_audit.audit_d11_inventory(records)
+    assert result["criteria"]["candidate_side_package_inventory"] is True
+    assert result["criteria"]["baseline_vs_candidate_pairing_ready"] is False
+    assert result["unit_12_status"] == d11_inventory_audit.UNIT_12_BLOCKED
+    assert result["d11_status"] == d11_inventory_audit.D11_INSUFFICIENT
+
+
+def test_d11_inventory_audit_performs_no_forbidden_work() -> None:
+    result = d11_inventory_audit.audit_d11_inventory([])
+    for key in (
+        "package_reads",
+        "package_discovery",
+        "package_capture",
+        "replay",
+        "scoring",
+        "candidate_generation",
+        "runtime_work",
+        "broker_api_authority",
+        "unit_12_opening",
+        "execution_authority",
+    ):
+        assert result[key] is False
+    boundary = d11_inventory_audit.D11_INVENTORY_AUDIT_AUTHORITY_BOUNDARY
+    assert "no_package_capture" in boundary
+    assert "no_replay" in boundary
+    assert "no_scoring" in boundary
+    assert "no_candidate_generation" in boundary
+    source = Path(d11_inventory_audit.__file__).read_text(encoding="utf-8")
+    for forbidden in (
+        "import os",
+        "import pathlib",
+        "subprocess",
+        "requests",
+        "systemctl",
+        "package_execution_orchestrator",
+    ):
+        assert forbidden not in source
+
+
+def test_d11_inventory_audit_record_present_in_docs() -> None:
+    map_text = IMPLEMENTATION_PREREQUISITE_MAP.read_text(encoding="utf-8")
+    assert "D11.7 Package Inventory Audit Tooling" in map_text
+    assert "tools/replay/d11_inventory_audit.py" in map_text
+    assert "JSONL-only evidence remains insufficient" in map_text
+    assert "D11 remains **INSUFFICIENT**" in map_text
+    assert "Unit 12 remains **BLOCKED**" in map_text
 
 
 def test_d15_candidate_evidence_design_record_present_and_status_preserved() -> None:

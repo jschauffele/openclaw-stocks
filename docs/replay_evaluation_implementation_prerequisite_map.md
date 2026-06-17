@@ -2834,6 +2834,52 @@ package mutation, broker/API expansion, systemd mutation, runtime
 start/restart, or Unit 12 opening. D11 remains **INSUFFICIENT** and Unit 12
 remains **BLOCKED**.
 
+### D11.7 Package Inventory Audit Tooling
+
+D11.7 adds a narrow local package inventory audit tool:
+`tools/replay/d11_inventory_audit.py`. The tool evaluates already-loaded D14
+package capture ledger metadata against the documented D11/D12 sufficiency
+criteria. It does not read replay package directories, discover packages,
+capture packages, replay, score, generate candidates, call broker/API services,
+touch runtime state, mutate artifacts, or open Unit 12.
+
+The audit classifies inventory against:
+
+- finalized immutable governed baseline package count;
+- regular-session trading-day coverage;
+- symbol coverage where `symbol` metadata is present;
+- decision/outcome diversity;
+- D14-compliant ledger validation via `package_capture_ledger`;
+- integrity, hash, reproducibility, as-of, no-mutation, and no-mixed-run
+  attestations carried by D14 records;
+- candidate-side package inventory presence;
+- baseline-vs-candidate pairing readiness.
+
+JSONL-only evidence remains insufficient. `run_reports/{run_id}.json` remains
+per-run report evidence, not governed package inventory by itself. The audit
+reports `D11_INSUFFICIENT` unless the documented criteria are met, and even a
+criteria-met result is only
+`D11_CRITERIA_MET_PENDING_SEPARATE_GOVERNANCE_REASSESSMENT`; it does not open
+evaluation/scoring or Unit 12.
+
+Local metadata-only usage:
+
+```bash
+python -m tools.replay.d11_inventory_audit < package_inventory_metadata.json
+```
+
+The input JSON must be an object with `ledger_records` containing already-loaded
+D14 package capture ledger records and optional `pairing_records` containing
+`baseline_run_id` / `candidate_run_id` metadata. The command reads metadata from
+stdin only and must not be pointed at replay package directories.
+
+D11.7 records tooling only. It does not complete D11, does not complete Gate D,
+does not authorize package capture, replay, scoring, candidate generation,
+package mutation, broker/API expansion, systemd mutation, runtime
+start/restart, strategy/risk/config changes, credential changes, or Unit 12
+opening. D11 remains **INSUFFICIENT** and Unit 12 remains **BLOCKED** until a
+future separately authorized sufficiency reassessment records otherwise.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
