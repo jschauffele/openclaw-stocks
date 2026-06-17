@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Protocol
 
 from data_models import HistoricalBarsRequest, HistoricalBarsResult
@@ -18,6 +18,13 @@ MAX_LATEST_CANDLE_LAG_SECONDS = 30 * 60
 FRESHNESS_CLEAN = "clean"
 FRESHNESS_RECENCY_CAVEATED = "recency_caveated"
 FRESHNESS_QUARANTINED = "quarantined"
+TIMEFRAME_MINUTES = {
+    "1Min": 1,
+    "5Min": 5,
+    "15Min": 15,
+    "1Hour": 60,
+    "1Day": 1440,
+}
 
 MARKET_DATA_DIAGNOSTIC_AUTHORITY_BOUNDARY: tuple[str, ...] = (
     "read_only_market_data_diagnostic",
@@ -73,6 +80,8 @@ def validate_request(request: HistoricalBarsRequest) -> HistoricalBarsRequest:
         symbol=validated_symbol,
         timeframe=validated_timeframe,
         limit=request.limit,
+        start=request.start,
+        end=request.end,
     )
 
 
@@ -81,15 +90,51 @@ def get_historical_bars(
     symbol: str,
     timeframe: str,
     limit: int,
+    *,
+    requested_start: datetime | None = None,
+    requested_end: datetime | None = None,
+    lookback_minutes: int | None = None,
 ) -> HistoricalBarsResult:
+    if requested_start is None or requested_end is None:
+        requested_start, requested_end = compute_request_window(
+            timeframe=timeframe,
+            limit=limit,
+            requested_end=requested_end,
+            lookback_minutes=lookback_minutes,
+        )
     request = validate_request(
         HistoricalBarsRequest(
             symbol=symbol,
             timeframe=timeframe,
             limit=limit,
+            start=requested_start,
+            end=requested_end,
         )
     )
     return provider.get_historical_bars(request)
+
+
+def compute_request_window(
+    *,
+    timeframe: str,
+    limit: int,
+    requested_end: datetime | None = None,
+    lookback_minutes: int | None = None,
+) -> tuple[datetime, datetime]:
+    """Return a deterministic UTC request window for a bars request."""
+
+    validated_timeframe = validate_timeframe(timeframe)
+    if not isinstance(limit, int) or limit <= 0:
+        raise ValueError("limit must be a positive integer")
+    end = (requested_end or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    if lookback_minutes is None:
+        lookback_minutes = TIMEFRAME_MINUTES[validated_timeframe] * (limit + 1)
+    if lookback_minutes <= 0:
+        raise ValueError("lookback_minutes must be positive")
+    start = end - timedelta(minutes=lookback_minutes)
+    if start >= end:
+        raise ValueError("requested_start must be before requested_end")
+    return start, end
 
 
 def normalized_closes_from_bars(result: HistoricalBarsResult) -> list[float]:

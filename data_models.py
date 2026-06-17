@@ -64,6 +64,8 @@ class HistoricalBarsRequest:
     symbol: str
     timeframe: str
     limit: int
+    start: datetime | None = None
+    end: datetime | None = None
 
     def __post_init__(self) -> None:
         normalized_symbol = self.symbol.strip().upper()
@@ -86,6 +88,16 @@ class HistoricalBarsRequest:
 
         object.__setattr__(self, "symbol", normalized_symbol)
         object.__setattr__(self, "timeframe", normalized_timeframe)
+        if self.start is not None:
+            if self.start.tzinfo is None:
+                raise ValueError("HistoricalBarsRequest.start must be timezone-aware")
+            object.__setattr__(self, "start", self.start.astimezone(timezone.utc))
+        if self.end is not None:
+            if self.end.tzinfo is None:
+                raise ValueError("HistoricalBarsRequest.end must be timezone-aware")
+            object.__setattr__(self, "end", self.end.astimezone(timezone.utc))
+        if self.start is not None and self.end is not None and self.start >= self.end:
+            raise ValueError("HistoricalBarsRequest.start must be before end")
 
 
 @dataclass(frozen=True)

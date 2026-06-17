@@ -2959,6 +2959,13 @@ The local read-only diagnostic command is:
 python -m tools.ops.market_data_freshness_diagnostic --timeframe 15Min --limit 5
 ```
 
+The diagnostic computes an explicit UTC request window for every provider
+request. By default `requested_end` is the diagnostic run timestamp and
+`requested_start` is derived from the requested timeframe and limit. Operators
+may pin the window for audit replayability with `--requested-end` and
+`--lookback-minutes`; the diagnostic output must include non-null
+`requested_start` and `requested_end` for each provider result.
+
 The command checks provider freshness across configured symbols and reports
 read-only diagnostic output only. It does not capture packages, replay, score,
 generate candidates, submit/cancel/modify/flatten orders, mutate packages, touch

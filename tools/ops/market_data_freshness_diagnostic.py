@@ -20,6 +20,7 @@ from data_models import HistoricalBarsRequest
 from market_data import (
     MARKET_DATA_DIAGNOSTIC_AUTHORITY_BOUNDARY,
     classify_market_data_freshness,
+    compute_request_window,
 )
 
 
@@ -33,11 +34,19 @@ def run_diagnostic(
     timeframe: str,
     limit: int,
     run_timestamp: datetime | None = None,
+    requested_end: datetime | None = None,
+    lookback_minutes: int | None = None,
 ) -> dict[str, Any]:
     """Evaluate provider freshness using already-normalized provider results."""
 
     evaluated_at = (run_timestamp or datetime.now(timezone.utc)).astimezone(
         timezone.utc
+    )
+    window_start, window_end = compute_request_window(
+        timeframe=timeframe,
+        limit=limit,
+        requested_end=requested_end or evaluated_at,
+        lookback_minutes=lookback_minutes,
     )
     results = []
     for symbol in symbols:
@@ -45,6 +54,8 @@ def run_diagnostic(
             symbol=symbol,
             timeframe=timeframe,
             limit=limit,
+            start=window_start,
+            end=window_end,
         )
         bars_result = provider.get_historical_bars(request)
         latest_candle = bars_result.candles[-1].timestamp
@@ -101,6 +112,16 @@ def _symbols_from_args(values: Sequence[str] | None) -> tuple[str, ...]:
     return tuple(config.ALLOWED_SYMBOLS)
 
 
+def _parse_requested_end(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    text = value[:-1] + "+00:00" if value.endswith("Z") else value
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        raise ValueError("--requested-end must be timezone-aware UTC")
+    return parsed.astimezone(timezone.utc)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Read-only market-data provider freshness diagnostic."
@@ -108,14 +129,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--symbol", action="append", dest="symbols")
     parser.add_argument("--timeframe", default="15Min")
     parser.add_argument("--limit", type=int, default=5)
+    parser.add_argument("--requested-end")
+    parser.add_argument("--lookback-minutes", type=int)
     args = parser.parse_args(argv)
 
     provider = AlpacaMarketDataProvider()
+    requested_end = _parse_requested_end(args.requested_end)
     result = run_diagnostic(
         provider=provider,
         symbols=_symbols_from_args(args.symbols),
         timeframe=args.timeframe,
         limit=args.limit,
+        requested_end=requested_end,
+        lookback_minutes=args.lookback_minutes,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

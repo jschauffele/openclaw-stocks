@@ -12,7 +12,7 @@ from alpaca.data.timeframe import TimeFrame
 from dotenv import load_dotenv
 
 from data_models import Candle, HistoricalBarsRequest, HistoricalBarsResult
-from market_data import MarketDataProvider, validate_request
+from market_data import MarketDataProvider, compute_request_window, validate_request
 
 
 def _first_env(*names: str) -> Optional[str]:
@@ -121,14 +121,23 @@ class AlpacaMarketDataProvider(MarketDataProvider):
         validated_request = validate_request(request)
         timeframe = _TIMEFRAME_MAP[validated_request.timeframe]
         warnings: list[str] = []
-        requested_start: datetime | None = None
-        requested_end: datetime | None = None
+        if validated_request.start is None or validated_request.end is None:
+            requested_start, requested_end = compute_request_window(
+                timeframe=validated_request.timeframe,
+                limit=validated_request.limit,
+                requested_end=validated_request.end,
+            )
+        else:
+            requested_start = validated_request.start
+            requested_end = validated_request.end
 
         try:
             bars = self._fetch_bars(
                 symbol=validated_request.symbol,
                 timeframe=timeframe,
                 limit=validated_request.limit,
+                start=requested_start,
+                end=requested_end,
             )
         except APIError as exc:
             raise ValueError(f"Alpaca market data request failed: {exc}") from exc
