@@ -22,6 +22,14 @@ from market_data_provider_registry import (
     get_provider_registry_entry,
     list_provider_registry,
 )
+from market_data_provider_selection import (
+    CANDIDATE_STATUS_CANDIDATE,
+    D11_PRIMARY_PROVIDER_SELECTION_CRITERIA,
+    PROVIDER_SELECTION_AUTHORITY_BOUNDARY,
+    candidate_can_count_for_d11,
+    get_provider_candidate,
+    list_provider_candidates,
+)
 
 
 def _install_alpaca_import_stubs() -> None:
@@ -332,3 +340,104 @@ def test_provider_registry_is_metadata_only_no_network_or_authority() -> None:
     assert "no_scoring" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
     assert "no_candidate_generation" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
     assert "no_unit_12_opening" in PROVIDER_REGISTRY_AUTHORITY_BOUNDARY
+
+
+def test_provider_selection_candidates_are_not_primary_eligible_by_default() -> None:
+    candidates = list_provider_candidates()
+
+    assert {candidate["provider_key"] for candidate in candidates} == {
+        "ibkr_market_data_candidate",
+        "polygon_candidate",
+        "tiingo_candidate",
+        "schwab_market_data_candidate",
+        "manual_csv_offline_candidate",
+    }
+    assert all(candidate["d11_primary_eligible"] is False for candidate in candidates)
+    assert all(candidate_can_count_for_d11(candidate) is False for candidate in candidates)
+
+
+def test_provider_selection_ibkr_candidate_has_no_order_or_execution_authority() -> None:
+    candidate = get_provider_candidate("ibkr_market_data_candidate")
+
+    assert candidate["d11_primary_candidate_status"] == CANDIDATE_STATUS_CANDIDATE
+    assert candidate["broker_coupled"] is True
+    assert candidate["order_authority"] is False
+    assert candidate["execution_authority"] is False
+    assert candidate["d11_primary_eligible"] is False
+    assert "IBKR/TWS/Gateway not opened" in candidate["reason"]
+
+
+def test_provider_selection_credentials_required_candidates_not_configured() -> None:
+    for provider_key in (
+        "ibkr_market_data_candidate",
+        "polygon_candidate",
+        "tiingo_candidate",
+        "schwab_market_data_candidate",
+    ):
+        candidate = get_provider_candidate(provider_key)
+        assert candidate["auth_required"] is True
+        assert candidate["credentials_configured"] is False
+        assert candidate["d11_primary_eligible"] is False
+
+
+def test_provider_selection_criteria_include_d11_primary_gate_requirements() -> None:
+    assert "explicit_request_windows_required" in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    assert "provider_feed_metadata_required" in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    assert (
+        "latest_candle_freshness_clean_under_d11_8"
+        in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    )
+    assert "target_symbols_supported" in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    assert (
+        "timezone_aware_utc_timestamps_required"
+        in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    )
+    assert (
+        "no_strategy_risk_execution_coupling"
+        in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    )
+    assert (
+        "no_broker_order_authority_through_data_path"
+        in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    )
+    assert (
+        "separate_vps_read_only_freshness_proof_required_before_primary_eligibility"
+        in D11_PRIMARY_PROVIDER_SELECTION_CRITERIA
+    )
+
+
+def test_provider_selection_module_has_no_network_client_or_authority_imports() -> None:
+    import market_data_provider_selection
+
+    source = Path(market_data_provider_selection.__file__).read_text(encoding="utf-8")
+    for forbidden in (
+        "requests",
+        "urllib",
+        "from alpaca",
+        "import alpaca",
+        "from ib",
+        "import ib",
+        "from polygon",
+        "import polygon",
+        "from tiingo",
+        "import tiingo",
+        "from schwab",
+        "import schwab",
+        "subprocess",
+        "socket",
+        "open(",
+        "get_stock_bars",
+        "submit",
+        "package_execution_orchestrator",
+    ):
+        assert forbidden not in source
+    assert "no_credentials" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_network_api_calls" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_broker_api_authority" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_order_authority" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_execution_authority" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_package_capture" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_replay" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_scoring" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_candidate_generation" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY
+    assert "no_unit_12_opening" in PROVIDER_SELECTION_AUTHORITY_BOUNDARY

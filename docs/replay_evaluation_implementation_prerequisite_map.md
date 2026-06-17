@@ -3010,6 +3010,64 @@ capture, replay, scoring, candidate generation, or Unit 12 authority. D11
 remains **INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12
 remains **BLOCKED**.
 
+### D11.11 Market Data Provider Selection Criteria Gate
+
+D11.11 adds a metadata-only provider selection criteria module:
+`market_data_provider_selection.py`. This gate defines deterministic criteria
+for any future D11 primary market-data provider before implementation,
+credentials, runtime use, or VPS diagnostics are authorized.
+
+D11 primary eligibility requires:
+
+- explicit request windows;
+- provider/feed metadata;
+- latest-candle freshness classified `clean` under D11.8;
+- support for target symbols;
+- timezone-aware UTC timestamps;
+- no strategy/risk/execution coupling;
+- no broker/order authority through the data path;
+- auditable failure reasons;
+- read-only diagnostic testability;
+- continued D11-primary ineligibility until a separate VPS read-only diagnostic
+  proves freshness.
+
+Candidate status vocabulary is:
+
+- `candidate`;
+- `eligible_for_read_only_diagnostic`;
+- `diagnostic_failed`;
+- `diagnostic_passed`;
+- `approved_primary`;
+- `rejected`.
+
+The metadata contract for future providers is:
+`provider_key`, `provider_name`, `asset_classes_supported`,
+`data_type_supported`, `feed_name`, `auth_required`, `credentials_configured`,
+`network_required_for_diagnostic`, `broker_coupled`, `order_authority`,
+`execution_authority`, `d11_primary_candidate_status`,
+`d11_primary_eligible`, and `reason`.
+
+D11.11 records candidate placeholders only:
+
+- `ibkr_market_data_candidate`;
+- `polygon_candidate`;
+- `tiingo_candidate`;
+- `schwab_market_data_candidate`;
+- `manual_csv_offline_candidate`.
+
+No candidate is D11-primary eligible by default. IBKR remains a candidate
+placeholder only: IBKR/TWS/Gateway is not opened, no broker/order/execution
+authority is added, and no provider API implementation exists. Credentialed
+providers remain not configured until a separate explicit gate records
+otherwise. Alpaca/IEX remains secondary/suspect and not D11-primary eligible.
+
+D11.11 does not add provider credentials, does not implement IBKR, Polygon,
+Tiingo, Schwab, CSV ingestion, or any other provider, and does not modify VPS
+runtime, systemd, timer, service, broker, order, execution, strategy, risk,
+package capture, replay, scoring, candidate generation, or Unit 12 authority.
+D11 remains **INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit
+12 remains **BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
