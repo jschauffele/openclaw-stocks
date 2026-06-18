@@ -3154,6 +3154,50 @@ risk, package capture, replay, scoring, candidate generation, or Unit 12
 authority. D11 remains **INSUFFICIENT**, Gate D remains **NOT COMPLETE /
 PARKED**, and Unit 12 remains **BLOCKED**.
 
+### D11.14 IBKR Read-Only Implementation Design Gate
+
+D11.14 adds a metadata-only implementation design module:
+`ibkr_read_only_implementation_design.py`. This gate defines the future contract
+for an eventual separately authorized IBKR historical market-data diagnostic,
+but it does not import `ibapi` or `ib_insync`, does not add socket/network client
+code, does not connect to IBKR/TWS/Gateway, does not start TWS/Gateway, and does
+not read credentials.
+
+Future implementation requirements are:
+
+- explicit operator authorization required;
+- local-only first implementation;
+- TWS/Gateway must already be running manually before any future diagnostic;
+- code may not start TWS/Gateway;
+- credentials must not be stored in the repository;
+- this design module may not read credentials;
+- connection must be read-only historical market data only;
+- account, position, margin, buying power, portfolio, and order endpoints remain
+  prohibited;
+- order placement, modification, cancellation, and routing remain prohibited;
+- output must conform to the D11.12 diagnostic contract;
+- clean D11.8 freshness proof is required before any primary eligibility;
+- D11 cannot be marked complete by this design gate;
+- Unit 12 remains blocked.
+
+The future inert IBKR connection configuration contract is:
+`host`, `port`, `client_id`, `readonly_mode`, `connection_mode`,
+`market_data_type`, `timeout_seconds`, `symbols`, `timeframe`,
+`requested_start`, `requested_end`, `outside_rth`, `exchange`, `currency`, and
+`sec_type`.
+
+Fail-closed design statuses are:
+`design_only`, `awaiting_local_authorization`, `awaiting_manual_tws_gateway`,
+`awaiting_credentials_configuration`, `ready_for_local_read_only_smoke`, and
+`rejected`.
+
+D11.14 does not implement real IBKR API calls, does not query account,
+position, margin, buying power, portfolio, or order state, does not add order
+functions, and does not modify VPS runtime, systemd, timer, service, broker,
+order, execution, strategy, risk, package capture, replay, scoring, candidate
+generation, or Unit 12 authority. D11 remains **INSUFFICIENT**, Gate D remains
+**NOT COMPLETE / PARKED**, and Unit 12 remains **BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

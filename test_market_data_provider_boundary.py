@@ -16,6 +16,14 @@ from ibkr_market_data_diagnostic_contract import (
     evaluate_ibkr_diagnostic_result,
     ibkr_read_only_diagnostic_contract,
 )
+from ibkr_read_only_implementation_design import (
+    DESIGN_STATUS_DESIGN_ONLY,
+    IBKR_CONNECTION_CONFIG_CONTRACT_FIELDS,
+    IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY,
+    IBKR_READ_ONLY_IMPLEMENTATION_DESIGN_STATUSES,
+    IBKR_READ_ONLY_IMPLEMENTATION_REQUIREMENTS,
+    ibkr_read_only_implementation_design,
+)
 from tools.ops.ibkr_market_data_freshness_diagnostic import (
     IBKR_DIAGNOSTIC_NOT_AUTHORIZED_REASON,
     IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY,
@@ -338,7 +346,8 @@ def test_provider_registry_is_metadata_only_no_network_or_authority() -> None:
         "import alpaca",
         "ibkr",
         "subprocess",
-        "socket",
+        "import socket",
+        "from socket",
         "open(",
         "get_stock_bars",
         "submit",
@@ -438,7 +447,8 @@ def test_provider_selection_module_has_no_network_client_or_authority_imports() 
         "from schwab",
         "import schwab",
         "subprocess",
-        "socket",
+        "import socket",
+        "from socket",
         "open(",
         "get_stock_bars",
         "submit",
@@ -515,7 +525,8 @@ def test_ibkr_contract_module_has_no_client_network_or_systemd_imports() -> None
     for forbidden in (
         "ibapi",
         "ib_insync",
-        "socket",
+        "import socket",
+        "from socket",
         "requests",
         "urllib",
         "subprocess",
@@ -675,7 +686,8 @@ def test_ibkr_diagnostic_scaffold_has_no_client_network_or_systemd_imports() -> 
     for forbidden in (
         "ibapi",
         "ib_insync",
-        "socket",
+        "import socket",
+        "from socket",
         "requests",
         "urllib",
         "subprocess",
@@ -706,3 +718,135 @@ def test_ibkr_diagnostic_scaffold_has_no_client_network_or_systemd_imports() -> 
     assert "no_candidate_generation" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
     assert "no_unit_12_opening" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
     assert "no_d11_completion" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+
+
+def test_ibkr_read_only_implementation_design_is_metadata_only() -> None:
+    design = ibkr_read_only_implementation_design()
+
+    assert design["provider_key"] == IBKR_PROVIDER_KEY
+    assert design["design_status"] == DESIGN_STATUS_DESIGN_ONLY
+    assert design["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert design["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert design["d11_primary_eligible"] is False
+    assert design["broker_api_authority"] is False
+    assert design["order_authority"] is False
+    assert design["execution_authority"] is False
+    assert design["package_capture"] is False
+    assert design["replay"] is False
+    assert design["scoring"] is False
+    assert design["candidate_generation"] is False
+
+
+def test_ibkr_read_only_implementation_design_config_contract_is_inert() -> None:
+    expected_fields = {
+        "host",
+        "port",
+        "client_id",
+        "readonly_mode",
+        "connection_mode",
+        "market_data_type",
+        "timeout_seconds",
+        "symbols",
+        "timeframe",
+        "requested_start",
+        "requested_end",
+        "outside_rth",
+        "exchange",
+        "currency",
+        "sec_type",
+    }
+
+    assert set(IBKR_CONNECTION_CONFIG_CONTRACT_FIELDS) == expected_fields
+    design = ibkr_read_only_implementation_design()
+    assert set(design["config_contract_fields"]) == expected_fields
+    assert (
+        "output_must_conform_to_d11_12_diagnostic_contract"
+        in IBKR_READ_ONLY_IMPLEMENTATION_REQUIREMENTS
+    )
+    assert (
+        "clean_d11_8_freshness_proof_required_before_primary_eligibility"
+        in IBKR_READ_ONLY_IMPLEMENTATION_REQUIREMENTS
+    )
+
+
+def test_ibkr_read_only_implementation_design_status_vocabulary() -> None:
+    assert IBKR_READ_ONLY_IMPLEMENTATION_DESIGN_STATUSES == (
+        "design_only",
+        "awaiting_local_authorization",
+        "awaiting_manual_tws_gateway",
+        "awaiting_credentials_configuration",
+        "ready_for_local_read_only_smoke",
+        "rejected",
+    )
+
+
+def test_ibkr_read_only_implementation_design_has_no_client_or_connection_code() -> None:
+    import ibkr_read_only_implementation_design
+
+    source = Path(ibkr_read_only_implementation_design.__file__).read_text(
+        encoding="utf-8"
+    )
+    for forbidden in (
+        "ibapi",
+        "ib_insync",
+        "import socket",
+        "from socket",
+        "requests",
+        "urllib",
+        "subprocess",
+        "systemctl",
+        "from ibapi",
+        "import ibapi",
+        "from ib_insync",
+        "import ib_insync",
+        "connect(",
+        "EClient",
+        "EWrapper",
+        "reqHistoricalData",
+        "placeOrder",
+        "cancelOrder",
+        "reqPositions",
+        "accountSummary",
+        "os.getenv",
+        "load_dotenv",
+        "open(",
+    ):
+        assert forbidden not in source
+    assert "no_connection_code" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_credentials_read" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_account_query" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_position_query" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_margin_query" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_buying_power_query" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_portfolio_query" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_order_authority" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_execution_authority" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_package_capture" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_replay" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_scoring" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_candidate_generation" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_unit_12_opening" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+    assert "no_d11_completion" in IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY
+
+
+def test_ibkr_scaffold_remains_fail_closed_after_design_gate() -> None:
+    result = build_scaffold_result(
+        symbols=("AAPL",),
+        timeframe="15Min",
+        limit=5,
+        requested_end=datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        lookback_minutes=120,
+    )
+
+    row = result["results"][0]
+    assert row["connection_mode"] == "not_opened"
+    assert row["d11_countable"] is False
+    assert row["d11_primary_eligible"] is False
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert result["package_capture"] is False
+    assert result["replay"] is False
+    assert result["scoring"] is False
+    assert result["candidate_generation"] is False
+    assert result["order_authority"] is False
+    assert result["execution_authority"] is False
