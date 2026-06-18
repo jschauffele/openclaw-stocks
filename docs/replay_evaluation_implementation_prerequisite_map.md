@@ -3116,6 +3116,44 @@ scoring, candidate generation, or Unit 12 authority. D11 remains
 **INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
 **BLOCKED**.
 
+### D11.13 IBKR Read-Only Diagnostic Scaffold
+
+D11.13 adds a fail-closed local CLI scaffold:
+`tools/ops/ibkr_market_data_freshness_diagnostic.py`. The scaffold prepares the
+D11.12 output shape for a future separately authorized IBKR historical
+market-data diagnostic, but it does not implement real IBKR market-data fetching
+and does not connect to IBKR, TWS, or Gateway.
+
+The scaffold accepts symbols, timeframe, `--requested-end`, and
+`--lookback-minutes`, computes explicit UTC `requested_start` / `requested_end`,
+and emits one fail-closed diagnostic row per symbol:
+
+- `provider_key="ibkr_market_data_candidate"`;
+- `connection_mode="not_opened"`;
+- `read_only=true`;
+- `latest_candle_timestamp=null`;
+- `lag_minutes=null`;
+- `freshness_classification="unavailable"`;
+- `d11_countable=false`;
+- `d11_primary_candidate_status="candidate"`;
+- `d11_primary_eligible=false`;
+- failure reason stating that the real IBKR diagnostic is not authorized/opened.
+
+The scaffold authority boundary records:
+`no_ibkr_connection`, `no_tws_gateway_start`, `no_credentials_read`,
+`no_account_query`, `no_position_query`, `no_margin_query`,
+`no_portfolio_query`, `no_order_authority`, `no_execution_authority`,
+`no_package_capture`, `no_replay`, `no_scoring`, `no_candidate_generation`,
+`no_unit_12_opening`, and `no_d11_completion`.
+
+D11.13 does not import `ibapi` or `ib_insync`, does not connect to TWS/Gateway,
+does not read credentials, does not query account, position, margin, buying
+power, portfolio, or order state, does not add order functions, and does not
+modify VPS runtime, systemd, timer, service, broker, order, execution, strategy,
+risk, package capture, replay, scoring, candidate generation, or Unit 12
+authority. D11 remains **INSUFFICIENT**, Gate D remains **NOT COMPLETE /
+PARKED**, and Unit 12 remains **BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

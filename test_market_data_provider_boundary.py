@@ -16,6 +16,11 @@ from ibkr_market_data_diagnostic_contract import (
     evaluate_ibkr_diagnostic_result,
     ibkr_read_only_diagnostic_contract,
 )
+from tools.ops.ibkr_market_data_freshness_diagnostic import (
+    IBKR_DIAGNOSTIC_NOT_AUTHORIZED_REASON,
+    IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY,
+    build_scaffold_result,
+)
 from market_data import (
     FRESHNESS_CLEAN,
     FRESHNESS_QUARANTINED,
@@ -515,8 +520,10 @@ def test_ibkr_contract_module_has_no_client_network_or_systemd_imports() -> None
         "urllib",
         "subprocess",
         "systemctl",
-        "from ib",
-        "import ib",
+        "from ibapi",
+        "import ibapi",
+        "from ib_insync",
+        "import ib_insync",
         "open(",
         "placeOrder",
         "cancelOrder",
@@ -598,3 +605,104 @@ def test_ibkr_contract_cannot_mark_d11_complete_or_open_unit_12() -> None:
     assert evaluation["order_authority"] is False
     assert evaluation["execution_authority"] is False
     assert evaluation["d11_completion_authority"] is False
+
+
+def test_ibkr_diagnostic_scaffold_output_is_fail_closed() -> None:
+    result = build_scaffold_result(
+        symbols=("MSFT",),
+        timeframe="15Min",
+        limit=5,
+        requested_end=datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        lookback_minutes=120,
+    )
+
+    row = result["results"][0]
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert row["provider_key"] == IBKR_PROVIDER_KEY
+    assert row["connection_mode"] == "not_opened"
+    assert row["read_only"] is True
+    assert row["requested_start"] == "2026-06-17T11:45:00+00:00"
+    assert row["requested_end"] == "2026-06-17T13:45:00+00:00"
+    assert row["requested_start"] < row["requested_end"]
+    assert row["latest_candle_timestamp"] is None
+    assert row["lag_minutes"] is None
+    assert row["freshness_classification"] == "unavailable"
+    assert row["d11_countable"] is False
+    assert row["d11_primary_candidate_status"] == CANDIDATE_STATUS_CANDIDATE
+    assert row["d11_primary_eligible"] is False
+    assert row["failure_reason"] == IBKR_DIAGNOSTIC_NOT_AUTHORIZED_REASON
+    assert result["package_capture"] is False
+    assert result["replay"] is False
+    assert result["scoring"] is False
+    assert result["candidate_generation"] is False
+    assert result["broker_api_authority"] is False
+    assert result["order_authority"] is False
+    assert result["execution_authority"] is False
+    assert result["d11_completion_authority"] is False
+
+
+def test_ibkr_diagnostic_scaffold_cli_returns_fail_closed_json(capsys) -> None:
+    from tools.ops.ibkr_market_data_freshness_diagnostic import main
+
+    exit_code = main(
+        [
+            "--symbol",
+            "msft",
+            "--timeframe",
+            "15Min",
+            "--limit",
+            "5",
+            "--requested-end",
+            "2026-06-17T13:45:00Z",
+            "--lookback-minutes",
+            "120",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"connection_mode": "not_opened"' in captured.out
+    assert '"d11_countable": false' in captured.out
+    assert '"d11_primary_eligible": false' in captured.out
+    assert '"no_ibkr_connection"' in captured.out
+
+
+def test_ibkr_diagnostic_scaffold_has_no_client_network_or_systemd_imports() -> None:
+    import tools.ops.ibkr_market_data_freshness_diagnostic as scaffold
+
+    source = Path(scaffold.__file__).read_text(encoding="utf-8")
+    for forbidden in (
+        "ibapi",
+        "ib_insync",
+        "socket",
+        "requests",
+        "urllib",
+        "subprocess",
+        "systemctl",
+        "from ibapi",
+        "import ibapi",
+        "from ib_insync",
+        "import ib_insync",
+        "open(",
+        "placeOrder",
+        "cancelOrder",
+        "reqPositions",
+        "accountSummary",
+    ):
+        assert forbidden not in source
+    assert "no_ibkr_connection" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_tws_gateway_start" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_credentials_read" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_account_query" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_position_query" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_margin_query" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_portfolio_query" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_order_authority" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_execution_authority" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_package_capture" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_replay" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_scoring" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_candidate_generation" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_unit_12_opening" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
+    assert "no_d11_completion" in IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY
