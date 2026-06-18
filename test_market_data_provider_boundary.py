@@ -1089,6 +1089,59 @@ def test_ibkr_read_only_smoke_after_hours_session_caveat_not_primary_eligible() 
     assert result["execution_authority"] is False
 
 
+def test_ibkr_read_only_smoke_regular_session_clean_remains_not_primary_eligible() -> None:
+    class FakeIB:
+        def __init__(self):
+            self.connected = False
+
+        def connect(self, *args, **kwargs):
+            self.connected = True
+
+        def reqHistoricalData(self, *args, **kwargs):
+            return [
+                SimpleNamespace(
+                    date=datetime(2026, 6, 18, 13, 45, tzinfo=timezone.utc)
+                )
+            ]
+
+        def isConnected(self):
+            return self.connected
+
+        def disconnect(self):
+            self.connected = False
+
+    fake_ibkr = SimpleNamespace(
+        IB=FakeIB,
+        Contract=lambda: SimpleNamespace(),
+    )
+
+    result = run_smoke_diagnostic(
+        symbols=("AAPL",),
+        timeframe="15Min",
+        requested_end=datetime(2026, 6, 18, 14, 0, 33, tzinfo=timezone.utc),
+        lookback_minutes=120,
+        authorize_local_ibkr_read_only_smoke=True,
+        ibkr_dependency_loader=lambda: fake_ibkr,
+    )
+
+    row = result["results"][0]
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert row["connection_mode"] == "local_read_only_smoke"
+    assert row["latest_candle_timestamp"] == "2026-06-18T13:45:00+00:00"
+    assert row["freshness_classification"] == FRESHNESS_CLEAN
+    assert row["d11_countable"] is True
+    assert row["d11_primary_eligible"] is False
+    assert row["failure_reason"] == ""
+    assert result["package_capture"] is False
+    assert result["replay"] is False
+    assert result["scoring"] is False
+    assert result["candidate_generation"] is False
+    assert result["broker_api_authority"] is False
+    assert result["order_authority"] is False
+    assert result["execution_authority"] is False
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 

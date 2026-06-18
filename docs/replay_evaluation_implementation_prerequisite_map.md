@@ -3276,6 +3276,43 @@ and non-regular-session candles remain fail-closed. D11 remains
 **INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
 **BLOCKED**.
 
+### D11.17 IBKR Regular-Session Evidence Review
+
+D11.17 records a local-only read-only evidence review after the authorized IBKR
+smoke was run outside Codex from LOCAL_MAC with TWS/Gateway manually open and
+VPS runtime still parked. The reviewed terminal evidence was:
+
+- timestamp UTC: `2026-06-18T14:00:33Z`;
+- source commit: `77d854ef811fbdc5fe253cc76ac31c9e54a459a1`;
+- branch: `main`;
+- worktree before and after smoke: clean;
+- result type: `ibkr_local_read_only_market_data_smoke`;
+- symbols: AAPL, MSFT, NVDA;
+- timeframe: `15Min`;
+- latest candle timestamp: `2026-06-18T13:45:00+00:00`;
+- lag: about 15.57 minutes;
+- freshness classification: `clean`;
+- `d11_countable=true`;
+- `d11_primary_eligible=false`;
+- `D11_STATUS=D11_INSUFFICIENT`;
+- `UNIT_12_STATUS=UNIT_12_BLOCKED`;
+- package capture, replay, scoring, candidate generation, broker API authority,
+  order authority, and execution authority: all false.
+
+This is clean regular-session market-data freshness evidence for the local
+read-only smoke path. It does not by itself satisfy D11 sufficiency, does not
+make IBKR an approved primary market-data provider, and does not authorize Unit
+12, package capture, replay, scoring, candidate generation, broker/API work,
+account/position/margin/buying-power/portfolio queries, orders, execution,
+runtime mutation, VPS mutation, or systemd/timer changes.
+
+The repository dependency manifests were also reviewed for reproducibility.
+`requirements.txt` and `requirements-test.txt` do not pin or declare
+`ib_insync`. Any broader reproducible use of the IBKR local read-only smoke path
+requires a separate dependency-pinning and installation decision before it can
+be treated as a repeatable operational diagnostic. D11.17 records no dependency
+change.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
