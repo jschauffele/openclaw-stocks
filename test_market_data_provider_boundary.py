@@ -1270,6 +1270,42 @@ def test_d11_21_repeatability_protocol_is_documented_without_authority() -> None
     assert "does not authorize package capture, replay, scoring" in map_text
 
 
+def test_d11_22_repeatability_ledger_template_starts_empty_without_authority() -> None:
+    ledger_path = Path("docs/ibkr_market_data_repeatability_ledger_template.md")
+    ledger_text = ledger_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.22 IBKR Market-Data Repeatability Ledger Template" in ledger_text
+    assert "`ledger_status` | `template_only`" in ledger_text
+    assert "`completed_repeatability_runs` | `0`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert "`ibkr_provider_status` | `ibkr_market_data_candidate`" in ledger_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in ledger_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in ledger_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in ledger_text
+    assert "`package_capture` | `BLOCKED`" in ledger_text
+    assert "`order_authority` | `false`" in ledger_text
+    assert "`execution_authority` | `false`" in ledger_text
+    assert "`vps_runtime` | `PARKED`" in ledger_text
+    assert "| _none_ | _none_ | _none_ | _none_ | _none_ | _none_ | _none_ | _none_ |" in ledger_text
+    assert "Stop and do not count the run" in ledger_text
+    assert "Final Provider-Approval Review Template" in ledger_text
+    assert "This runbook is not an authorization to run diagnostics" in ledger_text
+    assert "does not authorize package capture, replay, scoring" in ledger_text
+    assert "account, position, margin, buying power, portfolio" in ledger_text
+
+    assert "docs/ibkr_market_data_repeatability_ledger_template.md" in map_text
+    assert "The completed and invalidated future run ledgers start empty" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`ORDER_AUTHORITY=NONE`" in map_text
+    assert "`EXECUTION_AUTHORITY=NONE`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 

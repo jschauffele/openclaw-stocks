@@ -3528,6 +3528,33 @@ changes. D11 remains **INSUFFICIENT**, IBKR primary eligibility remains **NOT
 APPROVED**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
 **BLOCKED**.
 
+### D11.22 IBKR Repeatability Evidence Ledger / Operator Runbook Template
+
+D11.22 adds the source-controlled repeatability ledger and operator runbook
+template:
+
+```text
+docs/ibkr_market_data_repeatability_ledger_template.md
+```
+
+The template captures the D11.21 required fields for future local-only
+read-only IBKR market-data diagnostics. It separates planned protocol,
+completed evidence, invalidated evidence, stop conditions, operator runbook
+steps, and final provider-approval review. The completed and invalidated future run ledgers start empty.
+
+D11.22 records no completed future diagnostic runs and no provider-approval
+review. It preserves `D11_INSUFFICIENT`, `UNIT_12_BLOCKED`,
+`ibkr_market_data_candidate`, `d11_primary_eligible=false`,
+`PACKAGE_CAPTURE=BLOCKED`, `ORDER_AUTHORITY=NONE`, `EXECUTION_AUTHORITY=NONE`,
+and `VPS_RUNTIME=PARKED`.
+
+D11.22 does not run diagnostics, does not complete D11, does not make IBKR a
+primary provider, does not open Unit 12, and does not authorize package capture,
+replay, scoring, candidate generation, broker/API work, account/position/
+margin/buying-power/portfolio queries, orders, execution, dependency
+installation, VPS mutation, runtime mutation, systemd mutation, timer/service
+changes, or credential changes.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
