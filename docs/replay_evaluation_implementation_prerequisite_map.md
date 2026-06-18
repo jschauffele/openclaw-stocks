@@ -3446,6 +3446,88 @@ changes. D11 remains **INSUFFICIENT**, IBKR primary eligibility remains **NOT
 APPROVED**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
 **BLOCKED**.
 
+### D11.21 IBKR Repeatability Evidence Plan / Controlled Multi-Day Diagnostic Procedure
+
+D11.21 records the repeatability evidence protocol required before any later
+IBKR primary-provider approval gate can be considered. This is a planning and
+control checkpoint only; it does not run diagnostics and does not change
+provider status.
+
+The minimum repeatability protocol is:
+
+- at least **3 successful read-only diagnostic runs**;
+- coverage over at least **3 distinct regular-session trading days**;
+- each run performed from the pinned optional diagnostic environment
+  (`requirements-diagnostics.txt`, `ib_insync==0.9.86`);
+- each run started only by explicit local operator authorization, with
+  TWS/Gateway already manually open;
+- no VPS runtime, timer, service, package capture, replay, scoring, or
+  candidate-generation activity during the diagnostic window.
+
+Required symbol and timeframe coverage:
+
+- symbols: AAPL, MSFT, NVDA, TSLA, and MSTR;
+- timeframe: `15Min`;
+- each counted diagnostic run must include all target symbols in the same
+  evidence set;
+- any future additional timeframe requires a separate source-controlled update.
+
+Each diagnostic evidence record must capture, at minimum:
+
+- source commit, branch, and clean worktree status before and after the run;
+- local timestamp UTC and requested window (`requested_start`, `requested_end`);
+- provider key/name, connection mode, read-only flag, symbol, and timeframe;
+- latest candle timestamp, lag minutes, freshness classification,
+  `d11_countable`, `d11_primary_candidate_status`, `d11_primary_eligible`, and
+  failure reason;
+- full authority flags for package capture, replay, scoring,
+  candidate generation, broker API, order, execution, D11 completion, and Unit
+  12;
+- dependency contract used (`requirements-diagnostics.txt`,
+  `ib_insync==0.9.86`);
+- confirmation that no account, position, margin, buying power, portfolio,
+  order, balance, or execution query was performed.
+
+Freshness and warning requirements:
+
+- every target-symbol row must be `freshness_classification="clean"`;
+- every target-symbol row must be `d11_countable=true`;
+- every target-symbol row must have a timezone-aware UTC latest candle
+  timestamp;
+- warnings must be absent; any warning-bearing result invalidates that
+  diagnostic run for repeatability evidence;
+- stale, caveated, quarantined, missing, malformed, or non-UTC timestamp results
+  do not count.
+
+Stop conditions for the repeatability protocol are:
+
+- stale/caveated/quarantined data for any target symbol;
+- any market-data warning;
+- dirty worktree before or after the run;
+- wrong branch or wrong source commit;
+- missing optional diagnostic dependency or dependency-version mismatch;
+- wrong session or missing explicit request window;
+- failed focused test suite before the run;
+- any authority breach, including broker/API/account/position/margin/
+  buying-power/portfolio/order/execution calls;
+- package capture, replay, scoring, candidate generation, Unit 12 opening, VPS
+  mutation, runtime mutation, timer/service mutation, or systemd mutation.
+
+Repeatability evidence remains separate from D11 sufficiency and Unit 12. Even
+if the D11.21 protocol is completed in a future gate, it can only support a
+later provider-approval decision. It does not by itself create governed package
+inventory, candidate package evidence, baseline-vs-candidate pairing, scoring
+authority, D11 sufficiency, or Unit 12 opening.
+
+D11.21 does not complete D11, does not make IBKR a primary provider, does not
+open Unit 12, and does not authorize package capture, replay, scoring,
+candidate generation, broker/API work, account/position/margin/buying-power/
+portfolio queries, orders, execution, dependency installation, VPS mutation,
+runtime mutation, systemd mutation, timer/service changes, or credential
+changes. D11 remains **INSUFFICIENT**, IBKR primary eligibility remains **NOT
+APPROVED**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
+**BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

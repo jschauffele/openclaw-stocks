@@ -1243,6 +1243,33 @@ def test_d11_20_primary_provider_and_sufficiency_require_separate_approval() -> 
     assert result["execution_authority"] is False
 
 
+def test_d11_21_repeatability_protocol_is_documented_without_authority() -> None:
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "### D11.21 IBKR Repeatability Evidence Plan" in map_text
+    assert "at least **3 successful read-only diagnostic runs**" in map_text
+    assert "3 distinct regular-session trading days" in map_text
+    assert "AAPL, MSFT, NVDA, TSLA, and MSTR" in map_text
+    assert "timeframe: `15Min`" in map_text
+    assert "requested_start" in map_text
+    assert "requested_end" in map_text
+    assert "latest candle timestamp" in map_text
+    assert "lag minutes" in map_text
+    assert 'freshness_classification="clean"' in map_text
+    assert "`d11_countable=true`" in map_text
+    assert "ib_insync==0.9.86" in map_text
+    assert "dirty worktree before or after the run" in map_text
+    assert "dependency-version mismatch" in map_text
+    assert "authority breach" in map_text
+    assert "Repeatability evidence remains separate from D11 sufficiency" in map_text
+    assert "D11 remains **INSUFFICIENT**" in map_text
+    assert "IBKR primary eligibility remains **NOT APPROVED**" in map_text
+    assert "Unit 12 remains **BLOCKED**" in map_text
+    assert "does not authorize package capture, replay, scoring" in map_text
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 
