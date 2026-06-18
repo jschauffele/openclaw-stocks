@@ -2903,12 +2903,15 @@ The inventory audit reports each structurally valid record with:
 
 Inventory classifications are:
 
-- `clean`: same-day market data, no market-input warnings, and the latest
-  candle timestamp is within the source-controlled freshness threshold;
-- `recency_caveated`: same-day market data with no warnings, but latest-candle
-  lag exceeds the freshness threshold;
-- `quarantined`: prior-date or future-date candles, missing/malformed market
-  timestamps, or any `market_input_captured`/market-data warnings.
+- `clean`: market data from the relevant U.S. equity regular session, no
+  market-input warnings, and the latest candle timestamp is within the
+  source-controlled freshness threshold;
+- `recency_caveated`: market data from the relevant U.S. equity regular session
+  with no warnings, but latest-candle lag exceeds the freshness threshold or the
+  diagnostic ran after regular-session close;
+- `quarantined`: stale prior-session candles, future-session candles,
+  missing/malformed market timestamps, non-regular-session candles, or any
+  `market_input_captured`/market-data warnings.
 
 Only `clean` records count toward D11 sufficiency. `recency_caveated` records
 may be listed for review but must not silently count as clean evidence.
@@ -2921,6 +2924,15 @@ The current D11.8 freshness threshold is 30 minutes from `run_timestamp` to
 with limited collection delay while preventing older same-day data from silently
 counting as clean. Any future threshold change requires a separate
 source-controlled governance update.
+
+D11.16 hardens this rule for U.S. equities by comparing the relevant regular
+session in `America/New_York` rather than raw UTC calendar dates. The regular
+session rule for this gate is 09:30-16:00 America/New_York. A latest candle from
+the most recent completed U.S. regular session must not be quarantined merely
+because the diagnostic run happened after UTC midnight. Such after-hours
+diagnostic evidence is still `recency_caveated` and `d11_countable=false` unless
+a later separately authorized gate records otherwise. Genuinely older prior
+sessions remain `quarantined`.
 
 D11.8 records data-quality audit behavior only. It does not complete D11, does
 not complete Gate D, does not authorize package capture, replay, scoring,
@@ -3237,6 +3249,32 @@ broker/order/execution authority beyond the local read-only historical
 market-data smoke path; and does not modify VPS runtime, systemd, timer,
 service, strategy, risk, package capture, replay, scoring, candidate generation,
 or Unit 12 authority.
+
+### D11.16 Session-Aware U.S. Equity Freshness Classification
+
+D11.16 records the local IBKR read-only smoke observation from the authorized
+local-only diagnostic path: AAPL, MSFT, and NVDA returned latest 15-minute
+regular-session bars at `2026-06-17T19:45:00+00:00` while the diagnostic
+`requested_end` was around `2026-06-18T02:15:00+00:00`. The previous D11.8
+freshness classifier treated the UTC date mismatch as
+`latest_candle_prior_to_run_date` and `quarantined`.
+
+That UTC-date comparison is incorrect for U.S. equities after UTC midnight. For
+D11.16, freshness classification uses the U.S. regular-session date in
+`America/New_York` with a deterministic 09:30-16:00 regular-session window. The
+`2026-06-17T19:45:00+00:00` candle belongs to the 2026-06-17 U.S. regular
+session. A diagnostic run at `2026-06-18T02:15:00+00:00` is after that same
+regular session, so the row is classified as `recency_caveated` with reason
+`regular_session_closed_latest_candle_valid_for_last_session`; it remains
+`d11_countable=false`.
+
+D11.16 preserves UTC timestamps in diagnostic JSON. It does not make
+market-closed-only or after-hours evidence sufficient, does not make IBKR an
+approved primary provider, does not complete D11, and does not open Unit 12.
+Stale prior-session candles, warning-bearing data, missing/malformed timestamps,
+and non-regular-session candles remain fail-closed. D11 remains
+**INSUFFICIENT**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
+**BLOCKED**.
 
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 

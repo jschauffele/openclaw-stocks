@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Protocol
+from zoneinfo import ZoneInfo
 
 from data_models import HistoricalBarsRequest, HistoricalBarsResult
 
@@ -15,6 +16,9 @@ SUPPORTED_TIMEFRAMES: tuple[str, ...] = (
     "1Day",
 )
 MAX_LATEST_CANDLE_LAG_SECONDS = 30 * 60
+US_EQUITY_TIMEZONE = ZoneInfo("America/New_York")
+US_EQUITY_REGULAR_SESSION_START = time(9, 30)
+US_EQUITY_REGULAR_SESSION_END = time(16, 0)
 FRESHNESS_CLEAN = "clean"
 FRESHNESS_RECENCY_CAVEATED = "recency_caveated"
 FRESHNESS_QUARANTINED = "quarantined"
@@ -193,13 +197,28 @@ def classify_market_data_freshness(
         )
     lag_seconds = (run_dt - latest_dt).total_seconds()
     lag_minutes = lag_seconds / 60
-    if latest_dt.date() < run_dt.date():
+    latest_session_date = _us_equity_regular_session_date_for_candle(latest_dt)
+    run_session_date = _us_equity_relevant_session_date(run_dt)
+    run_after_regular_session = _is_after_us_equity_regular_session(run_dt)
+    if latest_dt > run_dt or lag_seconds < 0:
+        classification = FRESHNESS_QUARANTINED
+        reason = "latest_candle_after_run_timestamp"
+        countable = False
+    elif latest_session_date is None:
+        classification = FRESHNESS_QUARANTINED
+        reason = "latest_candle_outside_us_equity_regular_session"
+        countable = False
+    elif latest_session_date < run_session_date:
         classification = FRESHNESS_QUARANTINED
         reason = "latest_candle_prior_to_run_date"
         countable = False
-    elif latest_dt.date() > run_dt.date() or lag_seconds < 0:
+    elif latest_session_date > run_session_date:
         classification = FRESHNESS_QUARANTINED
-        reason = "latest_candle_after_run_timestamp"
+        reason = "latest_candle_after_run_session"
+        countable = False
+    elif run_after_regular_session:
+        classification = FRESHNESS_RECENCY_CAVEATED
+        reason = "regular_session_closed_latest_candle_valid_for_last_session"
         countable = False
     elif lag_seconds > max_lag_seconds:
         classification = FRESHNESS_RECENCY_CAVEATED
@@ -245,8 +264,38 @@ def _parse_timestamp(value: datetime | str | None) -> datetime | None:
     else:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        return None
     return parsed.astimezone(timezone.utc)
+
+
+def _us_equity_regular_session_date_for_candle(value: datetime) -> date | None:
+    local = value.astimezone(US_EQUITY_TIMEZONE)
+    if (
+        US_EQUITY_REGULAR_SESSION_START
+        <= local.time()
+        <= US_EQUITY_REGULAR_SESSION_END
+    ):
+        return local.date()
+    return None
+
+
+def _us_equity_relevant_session_date(value: datetime) -> date:
+    local = value.astimezone(US_EQUITY_TIMEZONE)
+    if local.time() < US_EQUITY_REGULAR_SESSION_START:
+        return _previous_weekday(local.date())
+    return local.date()
+
+
+def _is_after_us_equity_regular_session(value: datetime) -> bool:
+    local = value.astimezone(US_EQUITY_TIMEZONE)
+    return local.time() > US_EQUITY_REGULAR_SESSION_END
+
+
+def _previous_weekday(value: date) -> date:
+    previous = value - timedelta(days=1)
+    while previous.weekday() >= 5:
+        previous -= timedelta(days=1)
+    return previous
 
 
 def _timestamp_text(

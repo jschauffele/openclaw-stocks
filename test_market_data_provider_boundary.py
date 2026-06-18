@@ -156,6 +156,66 @@ def test_freshness_prior_date_data_is_not_d11_countable() -> None:
     assert freshness.warning_reason == "latest_candle_prior_to_run_date"
 
 
+def test_freshness_after_utc_midnight_uses_us_equity_session_date() -> None:
+    freshness = classify_market_data_freshness(
+        latest_candle_timestamp="2026-06-17T19:45:00Z",
+        run_timestamp="2026-06-18T02:15:00Z",
+        warnings=(),
+    )
+
+    assert freshness.freshness_classification == FRESHNESS_RECENCY_CAVEATED
+    assert freshness.d11_countable is False
+    assert freshness.warning_reason == (
+        "regular_session_closed_latest_candle_valid_for_last_session"
+    )
+    assert freshness.latest_candle_timestamp == "2026-06-17T19:45:00+00:00"
+    assert freshness.run_timestamp == "2026-06-18T02:15:00+00:00"
+
+
+def test_freshness_truly_older_us_equity_session_quarantines() -> None:
+    freshness = classify_market_data_freshness(
+        latest_candle_timestamp="2026-06-16T19:45:00Z",
+        run_timestamp="2026-06-18T02:15:00Z",
+        warnings=(),
+    )
+
+    assert freshness.freshness_classification == FRESHNESS_QUARANTINED
+    assert freshness.d11_countable is False
+    assert freshness.warning_reason == "latest_candle_prior_to_run_date"
+
+
+def test_freshness_warning_bearing_data_remains_quarantined() -> None:
+    freshness = classify_market_data_freshness(
+        latest_candle_timestamp="2026-06-17T19:45:00Z",
+        run_timestamp="2026-06-18T02:15:00Z",
+        warnings=("POSSIBLE_STALE_DATA",),
+    )
+
+    assert freshness.freshness_classification == FRESHNESS_QUARANTINED
+    assert freshness.d11_countable is False
+    assert freshness.warning_reason == "market_input_captured_warnings_present"
+
+
+def test_freshness_missing_or_naive_timestamps_fail_closed() -> None:
+    missing_latest = classify_market_data_freshness(
+        latest_candle_timestamp=None,
+        run_timestamp="2026-06-18T02:15:00Z",
+        warnings=(),
+    )
+    naive_run = classify_market_data_freshness(
+        latest_candle_timestamp="2026-06-17T19:45:00Z",
+        run_timestamp=datetime(2026, 6, 18, 2, 15),
+        warnings=(),
+    )
+
+    assert missing_latest.freshness_classification == FRESHNESS_QUARANTINED
+    assert missing_latest.warning_reason == (
+        "missing_or_malformed_latest_candle_timestamp"
+    )
+    assert naive_run.freshness_classification == FRESHNESS_QUARANTINED
+    assert naive_run.warning_reason == "missing_or_malformed_run_timestamp"
+
+
 def test_freshness_same_day_no_warning_can_be_clean() -> None:
     freshness = classify_market_data_freshness(
         latest_candle_timestamp="2026-06-17T13:30:00Z",
@@ -220,7 +280,7 @@ def test_diagnostic_explicit_window_and_stale_data_remains_caveated() -> None:
         def get_historical_bars(self, request):
             captured_requests.append(request)
             return _bars_result(
-                timestamp=datetime(2026, 6, 17, 7, 23, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 6, 17, 13, 30, tzinfo=timezone.utc),
                 requested_start=request.start,
                 requested_end=request.end,
             )
@@ -230,16 +290,16 @@ def test_diagnostic_explicit_window_and_stale_data_remains_caveated() -> None:
         symbols=("AAPL",),
         timeframe="15Min",
         limit=5,
-        run_timestamp=datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
-        requested_end=datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        run_timestamp=datetime(2026, 6, 17, 14, 15, tzinfo=timezone.utc),
+        requested_end=datetime(2026, 6, 17, 14, 15, tzinfo=timezone.utc),
         lookback_minutes=120,
     )
 
     request = captured_requests[0]
-    assert request.start == datetime(2026, 6, 17, 11, 45, tzinfo=timezone.utc)
-    assert request.end == datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc)
-    assert result["results"][0]["requested_start"] == "2026-06-17T11:45:00+00:00"
-    assert result["results"][0]["requested_end"] == "2026-06-17T13:45:00+00:00"
+    assert request.start == datetime(2026, 6, 17, 12, 15, tzinfo=timezone.utc)
+    assert request.end == datetime(2026, 6, 17, 14, 15, tzinfo=timezone.utc)
+    assert result["results"][0]["requested_start"] == "2026-06-17T12:15:00+00:00"
+    assert result["results"][0]["requested_end"] == "2026-06-17T14:15:00+00:00"
     assert result["results"][0]["provider"] == "alpaca"
     assert result["results"][0]["feed"] == "iex"
     assert result["results"][0]["provider_status"] == PROVIDER_STATUS_SUSPECT
@@ -969,6 +1029,61 @@ def test_ibkr_read_only_smoke_public_api_dependency_missing_fails_closed() -> No
     assert row["d11_countable"] is False
     assert row["d11_primary_eligible"] is False
     assert row["failure_reason"] == IBKR_READ_ONLY_SMOKE_DEPENDENCY_UNAVAILABLE_REASON
+    assert result["broker_api_authority"] is False
+    assert result["order_authority"] is False
+    assert result["execution_authority"] is False
+
+
+def test_ibkr_read_only_smoke_after_hours_session_caveat_not_primary_eligible() -> None:
+    class FakeIB:
+        def __init__(self):
+            self.connected = False
+
+        def connect(self, *args, **kwargs):
+            self.connected = True
+
+        def reqHistoricalData(self, *args, **kwargs):
+            return [
+                SimpleNamespace(
+                    date=datetime(2026, 6, 17, 19, 45, tzinfo=timezone.utc)
+                )
+            ]
+
+        def isConnected(self):
+            return self.connected
+
+        def disconnect(self):
+            self.connected = False
+
+    fake_ibkr = SimpleNamespace(
+        IB=FakeIB,
+        Contract=lambda: SimpleNamespace(),
+    )
+
+    result = run_smoke_diagnostic(
+        symbols=("AAPL",),
+        timeframe="15Min",
+        requested_end=datetime(2026, 6, 18, 2, 15, tzinfo=timezone.utc),
+        lookback_minutes=120,
+        authorize_local_ibkr_read_only_smoke=True,
+        ibkr_dependency_loader=lambda: fake_ibkr,
+    )
+
+    row = result["results"][0]
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert row["connection_mode"] == "local_read_only_smoke"
+    assert row["latest_candle_timestamp"] == "2026-06-17T19:45:00+00:00"
+    assert row["freshness_classification"] == FRESHNESS_RECENCY_CAVEATED
+    assert row["d11_countable"] is False
+    assert row["d11_primary_eligible"] is False
+    assert row["failure_reason"] == (
+        "regular_session_closed_latest_candle_valid_for_last_session"
+    )
+    assert result["package_capture"] is False
+    assert result["replay"] is False
+    assert result["scoring"] is False
+    assert result["candidate_generation"] is False
     assert result["broker_api_authority"] is False
     assert result["order_authority"] is False
     assert result["execution_authority"] is False

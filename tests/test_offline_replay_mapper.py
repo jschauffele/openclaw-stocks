@@ -18915,13 +18915,13 @@ def test_d11_inventory_audit_same_day_excessive_lag_is_caveated() -> None:
     result = d11_inventory_audit.audit_d11_inventory(
         [
             _valid_ledger_record(
-                run_id="run_2026-06-17T13:30:08Z_lag1",
+                run_id="run_2026-06-17T14:15:08Z_lag1",
                 package_path_or_relative_reference=(
-                    "replay_packages/run_2026-06-17T13:30:08Z_lag1/manifest.json"
+                    "replay_packages/run_2026-06-17T14:15:08Z_lag1/manifest.json"
                 ),
-                capture_timestamp_utc="2026-06-17T13:31:00Z",
-                run_timestamp="2026-06-17T13:30:08Z",
-                latest_candle_timestamp="2026-06-17T12:45:00Z",
+                capture_timestamp_utc="2026-06-17T14:16:00Z",
+                run_timestamp="2026-06-17T14:15:08Z",
+                latest_candle_timestamp="2026-06-17T13:30:00Z",
                 data_warnings=[],
                 symbol="TSLA",
             )
@@ -18944,15 +18944,15 @@ def test_d11_inventory_audit_structurally_valid_market_invalid_excluded() -> Non
     result = d11_inventory_audit.audit_d11_inventory(
         [
             _valid_ledger_record(
-                run_id="run_2026-06-17T13:30:01Z_clean1",
-                package_path_or_relative_reference=(
-                    "replay_packages/run_2026-06-17T13:30:01Z_clean1/manifest.json"
+                    run_id="run_2026-06-17T13:45:01Z_clean1",
+                    package_path_or_relative_reference=(
+                        "replay_packages/run_2026-06-17T13:45:01Z_clean1/manifest.json"
+                    ),
+                    capture_timestamp_utc="2026-06-17T13:46:00Z",
+                    run_timestamp="2026-06-17T13:45:01Z",
+                    latest_candle_timestamp="2026-06-17T13:30:00Z",
+                    symbol="MSFT",
                 ),
-                capture_timestamp_utc="2026-06-17T13:31:00Z",
-                run_timestamp="2026-06-17T13:30:01Z",
-                latest_candle_timestamp="2026-06-17T13:15:00Z",
-                symbol="MSFT",
-            ),
             _valid_ledger_record(
                 run_id="run_2026-06-17T13:30:03Z_stale1",
                 package_path_or_relative_reference=(
