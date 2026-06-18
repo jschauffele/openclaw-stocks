@@ -3208,6 +3208,36 @@ order, execution, strategy, risk, package capture, replay, scoring, candidate
 generation, or Unit 12 authority. D11 remains **INSUFFICIENT**, Gate D remains
 **NOT COMPLETE / PARKED**, and Unit 12 remains **BLOCKED**.
 
+### D11.15 IBKR Local Read-Only Smoke Implementation
+
+D11.15 adds a local-only IBKR historical market-data smoke implementation path:
+`tools/ops/ibkr_market_data_read_only_smoke.py`. Without
+`--authorize-local-ibkr-read-only-smoke`, the command delegates to the D11.13
+fail-closed scaffold and makes no connection attempt.
+
+When explicitly authorized by the local CLI flag, the smoke path may attempt
+only a local read-only historical bars request against a manually running
+TWS/Gateway. The IBKR client import is confined to the authorized execution
+function. If the dependency is unavailable, the path emits a fail-closed
+D11.12-compatible diagnostic row. Even when bars are returned and freshness is
+classified through D11.8 logic, `d11_primary_eligible=false`, D11 remains
+**INSUFFICIENT**, and Unit 12 remains **BLOCKED** until a later separate
+governance record says otherwise.
+
+The smoke CLI accepts symbols, timeframe, `--requested-end`,
+`--lookback-minutes`, host, port, client-id, exchange, currency, sec-type,
+outside-RTH, timeout seconds, and the required authorization flag. It does not
+read credentials from the repository, environment, dotenv, keychains, or
+secrets; does not start TWS/Gateway; and assumes TWS/Gateway is already running
+manually before any authorized local smoke.
+
+D11.15 does not query account, position, margin, buying power, portfolio, or
+order state; does not place, modify, cancel, or route orders; does not grant
+broker/order/execution authority beyond the local read-only historical
+market-data smoke path; and does not modify VPS runtime, systemd, timer,
+service, strategy, risk, package capture, replay, scoring, candidate generation,
+or Unit 12 authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

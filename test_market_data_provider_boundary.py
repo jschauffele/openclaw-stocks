@@ -29,6 +29,12 @@ from tools.ops.ibkr_market_data_freshness_diagnostic import (
     IBKR_DIAGNOSTIC_SCAFFOLD_AUTHORITY_BOUNDARY,
     build_scaffold_result,
 )
+from tools.ops.ibkr_market_data_read_only_smoke import (
+    IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY,
+    IBKR_READ_ONLY_SMOKE_DEPENDENCY_UNAVAILABLE_REASON,
+    build_smoke_result,
+    run_smoke_diagnostic,
+)
 from market_data import (
     FRESHNESS_CLEAN,
     FRESHNESS_QUARANTINED,
@@ -862,3 +868,196 @@ def test_ibkr_scaffold_remains_fail_closed_after_design_gate() -> None:
     assert result["candidate_generation"] is False
     assert result["order_authority"] is False
     assert result["execution_authority"] is False
+
+
+def test_ibkr_read_only_smoke_default_matches_fail_closed_scaffold(monkeypatch) -> None:
+    import tools.ops.ibkr_market_data_read_only_smoke as smoke
+
+    def fail_if_called():
+        raise AssertionError("IBKR dependency loader must not be called")
+
+    monkeypatch.setattr(smoke, "_load_ib_insync", fail_if_called)
+    kwargs = {
+        "symbols": ("MSFT",),
+        "timeframe": "15Min",
+        "limit": 5,
+        "requested_end": datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        "lookback_minutes": 120,
+    }
+
+    assert build_smoke_result(**kwargs) == build_scaffold_result(**kwargs)
+
+
+def test_ibkr_read_only_smoke_exports_public_run_smoke_diagnostic() -> None:
+    from tools.ops.ibkr_market_data_read_only_smoke import run_smoke_diagnostic
+
+    def fail_if_called():
+        raise AssertionError("IBKR dependency loader must not be called")
+
+    kwargs = {
+        "symbols": ("MSFT",),
+        "timeframe": "15Min",
+        "requested_end": datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        "lookback_minutes": 120,
+        "ibkr_dependency_loader": fail_if_called,
+    }
+
+    assert run_smoke_diagnostic(**kwargs) == build_scaffold_result(
+        symbols=("MSFT",),
+        timeframe="15Min",
+        limit=5,
+        requested_end=datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        lookback_minutes=120,
+    )
+
+
+def test_ibkr_read_only_smoke_dependency_missing_fails_closed(monkeypatch) -> None:
+    import tools.ops.ibkr_market_data_read_only_smoke as smoke
+
+    def raise_missing_dependency():
+        raise ImportError("ib_insync unavailable")
+
+    monkeypatch.setattr(smoke, "_load_ib_insync", raise_missing_dependency)
+    result = build_smoke_result(
+        symbols=("TSLA",),
+        timeframe="15Min",
+        limit=5,
+        requested_end=datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        lookback_minutes=120,
+        authorize_local_ibkr_read_only_smoke=True,
+    )
+
+    row = result["results"][0]
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert row["connection_mode"] == "local_read_only_smoke"
+    assert row["requested_start"] == "2026-06-17T11:45:00+00:00"
+    assert row["requested_end"] == "2026-06-17T13:45:00+00:00"
+    assert row["latest_candle_timestamp"] is None
+    assert row["lag_minutes"] is None
+    assert row["freshness_classification"] == "unavailable"
+    assert row["d11_countable"] is False
+    assert row["d11_primary_eligible"] is False
+    assert row["failure_reason"] == IBKR_READ_ONLY_SMOKE_DEPENDENCY_UNAVAILABLE_REASON
+    assert result["package_capture"] is False
+    assert result["replay"] is False
+    assert result["scoring"] is False
+    assert result["candidate_generation"] is False
+    assert result["broker_api_authority"] is False
+    assert result["order_authority"] is False
+    assert result["execution_authority"] is False
+
+
+def test_ibkr_read_only_smoke_public_api_dependency_missing_fails_closed() -> None:
+    def raise_missing_dependency():
+        raise ImportError("ib_insync unavailable")
+
+    result = run_smoke_diagnostic(
+        symbols=("TSLA",),
+        timeframe="15Min",
+        requested_end=datetime(2026, 6, 17, 13, 45, tzinfo=timezone.utc),
+        lookback_minutes=120,
+        authorize_local_ibkr_read_only_smoke=True,
+        ibkr_dependency_loader=raise_missing_dependency,
+    )
+
+    row = result["results"][0]
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert row["connection_mode"] == "local_read_only_smoke"
+    assert row["freshness_classification"] == "unavailable"
+    assert row["d11_countable"] is False
+    assert row["d11_primary_eligible"] is False
+    assert row["failure_reason"] == IBKR_READ_ONLY_SMOKE_DEPENDENCY_UNAVAILABLE_REASON
+    assert result["broker_api_authority"] is False
+    assert result["order_authority"] is False
+    assert result["execution_authority"] is False
+
+
+def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
+    from tools.ops.ibkr_market_data_read_only_smoke import main
+
+    exit_code = main(
+        [
+            "--symbol",
+            "mstr",
+            "--timeframe",
+            "15Min",
+            "--limit",
+            "5",
+            "--requested-end",
+            "2026-06-17T13:45:00Z",
+            "--lookback-minutes",
+            "120",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"connection_mode": "not_opened"' in captured.out
+    assert '"freshness_classification": "unavailable"' in captured.out
+    assert '"d11_countable": false' in captured.out
+    assert '"d11_primary_eligible": false' in captured.out
+
+
+def test_ibkr_read_only_smoke_module_boundary_and_authority() -> None:
+    import tools.ops.ibkr_market_data_read_only_smoke as smoke
+
+    source = Path(smoke.__file__).read_text(encoding="utf-8")
+    for forbidden in (
+        "requests",
+        "urllib",
+        "subprocess",
+        "systemctl",
+        "import socket",
+        "from socket",
+        "os.getenv",
+        "load_dotenv",
+        "keychain",
+        "secret",
+        "placeOrder",
+        "cancelOrder",
+        "reqPositions",
+        "accountSummary",
+        "reqAccount",
+        "reqPnL",
+        "reqOpenOrders",
+    ):
+        assert forbidden not in source
+    assert "import ib_insync" in source
+    assert "no_credentials_read" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_account_query" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_position_query" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_margin_query" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_buying_power_query" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_portfolio_query" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_order_placement" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_order_modification" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_order_cancellation" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_order_routing" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_execution_authority" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_package_capture" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_replay" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_scoring" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_candidate_generation" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_d11_completion" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+    assert "no_unit_12_opening" in IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY
+
+
+def test_metadata_only_modules_still_have_no_ibkr_client_imports() -> None:
+    import ibkr_market_data_diagnostic_contract
+    import ibkr_read_only_implementation_design
+
+    for module in (
+        ibkr_market_data_diagnostic_contract,
+        ibkr_read_only_implementation_design,
+    ):
+        source = Path(module.__file__).read_text(encoding="utf-8")
+        assert "import ibapi" not in source
+        assert "from ibapi" not in source
+        assert "import ib_insync" not in source
+        assert "from ib_insync" not in source
+        assert "import socket" not in source
+        assert "from socket" not in source
+        assert "requests" not in source
+        assert "urllib" not in source
