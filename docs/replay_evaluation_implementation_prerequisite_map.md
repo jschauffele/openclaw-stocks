@@ -3392,6 +3392,60 @@ changes. D11 remains **INSUFFICIENT**, IBKR primary eligibility remains **NOT
 APPROVED**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
 **BLOCKED**.
 
+### D11.20 IBKR Primary-Provider Approval Criteria / Sufficiency Decision Gate
+
+D11.20 records the primary-provider approval and D11 sufficiency decision after
+D11.17-D11.19. The inspected source-controlled rules do not permit a status
+change from one clean local read-only smoke. IBKR remains
+`ibkr_market_data_candidate`, `d11_primary_eligible=false`, and
+`d11_primary_candidate_status="candidate"`.
+
+Before IBKR may become an approved primary market-data provider, a future
+separate approval gate must record, at minimum:
+
+- the optional diagnostic dependency environment installed from the pinned
+  `requirements-diagnostics.txt` contract;
+- explicit request windows, provider/feed metadata, UTC timestamps, and
+  auditable failure reasons;
+- read-only diagnostic evidence across the target symbols and timeframe with
+  D11.8/D11.16 `clean` freshness and no warnings;
+- repeatability evidence beyond a single local smoke, including separately
+  governed diagnostic procedure/version evidence;
+- credentials/configuration status for diagnostic use without storing
+  credentials in the repository;
+- proof that the data path carries no broker/order/execution/account/position/
+  margin/buying-power/portfolio authority;
+- an explicit source-controlled provider-approval record changing candidate
+  status from `candidate` to an approved primary state.
+
+The D11.17 clean/countable local smoke is candidate evidence only. It is not
+enough for IBKR primary approval and is not enough for D11 sufficiency.
+
+Before D11 may become sufficient, the existing D11/D12 evidence rules still
+require, at minimum:
+
+- a governed package inventory with finalized immutable package evidence;
+- regular-session package coverage over at least three distinct trading days;
+- package records that are clean under D11.8/D11.16 market-data quality rules;
+- symbol coverage and decision/outcome diversity sufficient for the evidence
+  plan;
+- candidate-side package inventory or a separately approved candidate-evidence
+  mechanism;
+- baseline-vs-candidate pairing readiness;
+- hash, no-mutation, no-mixed-run, as-of, integrity, and reproducibility
+  attestations;
+- a fresh source-controlled sufficiency reassessment explicitly recording D11
+  sufficiency.
+
+D11.20 does not complete D11, does not make IBKR a primary provider, does not
+open Unit 12, and does not authorize package capture, replay, scoring,
+candidate generation, broker/API work, account/position/margin/buying-power/
+portfolio queries, orders, execution, dependency installation, VPS mutation,
+runtime mutation, systemd mutation, timer/service changes, or credential
+changes. D11 remains **INSUFFICIENT**, IBKR primary eligibility remains **NOT
+APPROVED**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
+**BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
