@@ -1142,6 +1142,56 @@ def test_ibkr_read_only_smoke_regular_session_clean_remains_not_primary_eligible
     assert result["execution_authority"] is False
 
 
+def test_d11_18_dependency_unpinned_and_clean_smoke_not_primary_approval() -> None:
+    requirements = (
+        Path("requirements.txt").read_text(encoding="utf-8")
+        + "\n"
+        + Path("requirements-test.txt").read_text(encoding="utf-8")
+    )
+    assert "ib_insync" not in requirements
+
+    candidate = get_provider_candidate("ibkr_market_data_candidate")
+    assert candidate["d11_primary_candidate_status"] == CANDIDATE_STATUS_CANDIDATE
+    assert candidate["d11_primary_eligible"] is False
+    assert candidate["order_authority"] is False
+    assert candidate["execution_authority"] is False
+    assert candidate_can_count_for_d11(candidate) is False
+
+    contract_result = evaluate_ibkr_diagnostic_result(
+        {
+            "provider_key": IBKR_PROVIDER_KEY,
+            "provider_name": "IBKR read-only market-data diagnostic candidate",
+            "connection_mode": "gateway_read_only",
+            "read_only": True,
+            "requested_start": "2026-06-18T12:00:33+00:00",
+            "requested_end": "2026-06-18T14:00:33+00:00",
+            "symbol": "AAPL",
+            "timeframe": "15Min",
+            "latest_candle_timestamp": "2026-06-18T13:45:00+00:00",
+            "lag_minutes": 15.5661366,
+            "freshness_classification": FRESHNESS_CLEAN,
+            "d11_countable": True,
+            "d11_primary_candidate_status": CANDIDATE_STATUS_CANDIDATE,
+            "d11_primary_eligible": False,
+            "failure_reason": "",
+            "authority_boundary": IBKR_READ_ONLY_SMOKE_AUTHORITY_BOUNDARY,
+            "credentials_configured": True,
+        }
+    )
+
+    assert contract_result["valid"] is False
+    assert contract_result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert contract_result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert "separate governance record" in contract_result["failure_reason"]
+    assert contract_result["package_capture"] is False
+    assert contract_result["replay"] is False
+    assert contract_result["scoring"] is False
+    assert contract_result["candidate_generation"] is False
+    assert contract_result["broker_api_authority"] is False
+    assert contract_result["order_authority"] is False
+    assert contract_result["execution_authority"] is False
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 

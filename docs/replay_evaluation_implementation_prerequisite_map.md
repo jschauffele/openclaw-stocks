@@ -3313,6 +3313,47 @@ requires a separate dependency-pinning and installation decision before it can
 be treated as a repeatable operational diagnostic. D11.17 records no dependency
 change.
 
+### D11.18 IBKR Dependency-Pinning And Primary-Provider Readiness Decision
+
+D11.18 records the dependency and provider-readiness decision after D11.17. The
+source-controlled dependency manifests remain:
+
+- `requirements.txt`: `alpaca-py`, `python-dotenv`, `pytz`;
+- `requirements-test.txt`: `pytest>=8.0,<10.0`.
+
+`ib_insync` is available on LOCAL_MAC for the manually authorized local smoke,
+but it is not declared or pinned in either manifest. D11.18 therefore defers
+pinning to a separate dependency-management gate. This checkpoint does not
+install dependencies, does not alter requirements files, and does not make the
+local environment state a reproducible repo contract.
+
+IBKR remains a market-data candidate only. The D11.11/D11.12 provider-selection
+contract still requires a separate governance record before any
+`approved_primary` status or `d11_primary_eligible=true` result can exist. The
+D11.17 clean/countable regular-session observation is accepted as local
+read-only candidate evidence, not as primary-provider approval and not as D11
+sufficiency.
+
+Before IBKR can be considered for primary market-data status, a future separate
+gate must at minimum record:
+
+- a source-controlled dependency-pinning / installation decision for the IBKR
+  read-only diagnostic dependency;
+- repeatable read-only diagnostic procedure and version evidence;
+- explicit request windows and provider/feed metadata;
+- clean D11.8/D11.16 freshness evidence for the target symbols and timeframe;
+- no broker/order/execution/account/position/margin/buying-power/portfolio
+  authority through the data path;
+- a separate approval record changing provider candidate status, if justified.
+
+D11.18 does not complete D11, does not make IBKR a primary provider, does not
+open Unit 12, and does not authorize package capture, replay, scoring,
+candidate generation, broker/API work, account/position/margin/buying-power/
+portfolio queries, orders, execution, VPS mutation, runtime mutation, systemd
+mutation, timer/service changes, or credential changes. D11 remains
+**INSUFFICIENT**, IBKR primary eligibility remains **NOT APPROVED**, Gate D
+remains **NOT COMPLETE / PARKED**, and Unit 12 remains **BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
