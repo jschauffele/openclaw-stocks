@@ -1142,13 +1142,17 @@ def test_ibkr_read_only_smoke_regular_session_clean_remains_not_primary_eligible
     assert result["execution_authority"] is False
 
 
-def test_d11_18_dependency_unpinned_and_clean_smoke_not_primary_approval() -> None:
-    requirements = (
+def test_d11_19_optional_diagnostics_pin_and_no_primary_approval() -> None:
+    base_requirements = (
         Path("requirements.txt").read_text(encoding="utf-8")
         + "\n"
         + Path("requirements-test.txt").read_text(encoding="utf-8")
     )
-    assert "ib_insync" not in requirements
+    diagnostics_requirements = Path("requirements-diagnostics.txt").read_text(
+        encoding="utf-8"
+    )
+    assert "ib_insync" not in base_requirements
+    assert diagnostics_requirements.splitlines() == ["ib_insync==0.9.86"]
 
     candidate = get_provider_candidate("ibkr_market_data_candidate")
     assert candidate["d11_primary_candidate_status"] == CANDIDATE_STATUS_CANDIDATE

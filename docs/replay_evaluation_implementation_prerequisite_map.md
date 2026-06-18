@@ -3354,6 +3354,44 @@ mutation, timer/service changes, or credential changes. D11 remains
 **INSUFFICIENT**, IBKR primary eligibility remains **NOT APPROVED**, Gate D
 remains **NOT COMPLETE / PARKED**, and Unit 12 remains **BLOCKED**.
 
+### D11.19 IBKR Dependency-Pinning / Reproducible Diagnostic Environment Gate
+
+D11.19 records the source-controlled dependency decision for the optional local
+IBKR read-only market-data diagnostic environment. The observed working LOCAL_MAC
+dependency version for the D11.17/D11.18 smoke path was `ib_insync` version
+`0.9.86`.
+
+D11.19 adds `requirements-diagnostics.txt` with the exact optional diagnostic
+pin:
+
+```text
+ib_insync==0.9.86
+```
+
+This pin is intentionally isolated from `requirements.txt` and
+`requirements-test.txt`. The base runtime/test dependency manifests remain free
+of `ib_insync`, so installing normal runtime or test dependencies does not make
+IBKR diagnostics available by default and does not alter deployed runtime
+authority. The IBKR smoke module still imports `ib_insync` lazily only inside
+the explicitly authorized local smoke execution path and still fails closed when
+the dependency is unavailable.
+
+The optional diagnostics pin makes a future local read-only diagnostic
+environment reproducible, but it does not install dependencies, does not run the
+smoke, does not open TWS/Gateway, and does not change provider approval status.
+IBKR remains `ibkr_market_data_candidate`; `d11_primary_eligible=false` remains
+the source-controlled status until a later separate provider-approval gate
+records otherwise.
+
+D11.19 does not complete D11, does not make IBKR a primary provider, does not
+open Unit 12, and does not authorize package capture, replay, scoring,
+candidate generation, broker/API work, account/position/margin/buying-power/
+portfolio queries, orders, execution, dependency installation, VPS mutation,
+runtime mutation, systemd mutation, timer/service changes, or credential
+changes. D11 remains **INSUFFICIENT**, IBKR primary eligibility remains **NOT
+APPROVED**, Gate D remains **NOT COMPLETE / PARKED**, and Unit 12 remains
+**BLOCKED**.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
