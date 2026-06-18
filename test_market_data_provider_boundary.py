@@ -735,6 +735,14 @@ def test_ibkr_read_only_implementation_design_is_metadata_only() -> None:
     assert design["replay"] is False
     assert design["scoring"] is False
     assert design["candidate_generation"] is False
+    assert design["credentials_read"] is False
+    assert design["connection_opened"] is False
+    assert design["tws_gateway_started"] is False
+    assert design["account_query_authority"] is False
+    assert design["position_query_authority"] is False
+    assert design["margin_query_authority"] is False
+    assert design["buying_power_query_authority"] is False
+    assert design["portfolio_query_authority"] is False
 
 
 def test_ibkr_read_only_implementation_design_config_contract_is_inert() -> None:
@@ -759,6 +767,10 @@ def test_ibkr_read_only_implementation_design_config_contract_is_inert() -> None
     assert set(IBKR_CONNECTION_CONFIG_CONTRACT_FIELDS) == expected_fields
     design = ibkr_read_only_implementation_design()
     assert set(design["config_contract_fields"]) == expected_fields
+    assert design["future_connection_config_contract"] == (
+        design["config_contract_fields"]
+    )
+    assert design["requirements"] == design["implementation_requirements"]
     assert (
         "output_must_conform_to_d11_12_diagnostic_contract"
         in IBKR_READ_ONLY_IMPLEMENTATION_REQUIREMENTS

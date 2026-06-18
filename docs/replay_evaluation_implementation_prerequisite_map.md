@@ -3191,6 +3191,16 @@ Fail-closed design statuses are:
 `awaiting_credentials_configuration`, `ready_for_local_read_only_smoke`, and
 `rejected`.
 
+D11.14 schema alias hardening: after VPS smoke verification, the design
+dictionary also exposes explicit top-level aliases
+`implementation_requirements` and `future_connection_config_contract`, matching
+the canonical `requirements` and `config_contract_fields` tuples. It also
+exposes fail-closed booleans for `credentials_read`, `connection_opened`,
+`tws_gateway_started`, `account_query_authority`, `position_query_authority`,
+`margin_query_authority`, `buying_power_query_authority`, and
+`portfolio_query_authority`. These aliases make future gates deterministic and
+do not change authority.
+
 D11.14 does not implement real IBKR API calls, does not query account,
 position, margin, buying power, portfolio, or order state, does not add order
 functions, and does not modify VPS runtime, systemd, timer, service, broker,

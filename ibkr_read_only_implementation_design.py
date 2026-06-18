@@ -124,10 +124,22 @@ class IBKRReadOnlyImplementationDesign:
             "scoring": self.scoring,
             "candidate_generation": self.candidate_generation,
             "requirements": IBKR_READ_ONLY_IMPLEMENTATION_REQUIREMENTS,
+            "implementation_requirements": IBKR_READ_ONLY_IMPLEMENTATION_REQUIREMENTS,
             "config_contract_fields": IBKR_CONNECTION_CONFIG_CONTRACT_FIELDS,
+            "future_connection_config_contract": (
+                IBKR_CONNECTION_CONFIG_CONTRACT_FIELDS
+            ),
             "diagnostic_output_fields": IBKR_DIAGNOSTIC_REQUIRED_OUTPUT_FIELDS,
             "status_vocabulary": IBKR_READ_ONLY_IMPLEMENTATION_DESIGN_STATUSES,
             "authority_boundary": IBKR_READ_ONLY_IMPLEMENTATION_AUTHORITY_BOUNDARY,
+            "credentials_read": False,
+            "connection_opened": False,
+            "tws_gateway_started": False,
+            "account_query_authority": False,
+            "position_query_authority": False,
+            "margin_query_authority": False,
+            "buying_power_query_authority": False,
+            "portfolio_query_authority": False,
         }
 
 
