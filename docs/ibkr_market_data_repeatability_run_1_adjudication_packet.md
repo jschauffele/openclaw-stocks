@@ -39,11 +39,16 @@ All criteria must pass before the future run may be accepted for D11.24 ledger
 recording review:
 
 - exact expected source commit from the future authorization is present;
+- local timestamp UTC is present;
 - branch is `main`;
+- HEAD equals the expected source commit;
 - worktree was clean before and after the run;
 - dependency contract observed as `requirements-diagnostics.txt` /
   `ib_insync==0.9.86`;
+- command used is present and matches the D11.23 source-controlled command
+  template;
 - explicit `requested_start` and `requested_end` are present;
+- `result_type` is `ibkr_local_read_only_market_data_smoke`;
 - target symbols all present: AAPL, MSFT, NVDA, TSLA, MSTR;
 - timeframe is `15Min`;
 - `provider_key` and `provider_name` are present;
@@ -57,6 +62,12 @@ recording review:
 - `failure_reason` is empty for every symbol;
 - no warnings are present;
 - package capture, replay, scoring, and candidate generation are false;
+- `broker_api_authority=false`;
+- `order_authority=false`;
+- `execution_authority=false`;
+- `d11_completion_authority=false`;
+- `unit_12_status=UNIT_12_BLOCKED`;
+- `authority_boundary` is present;
 - no broker/API/account/order/execution authority expansion occurred;
 - account, position, margin, buying power, portfolio, order, balance, and
   execution queries did not occur;

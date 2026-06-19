@@ -1391,6 +1391,12 @@ def test_d11_24_adjudication_packet_is_review_prep_only_without_authority() -> N
     assert "`execution_authority` | `NONE`" in packet_text
     assert "`vps_runtime` | `PARKED`" in packet_text
     assert "Acceptance Criteria For Ledger-Recording Review" in packet_text
+    assert "local timestamp UTC is present" in packet_text
+    assert "HEAD equals the expected source commit" in packet_text
+    assert "command used is present and matches the D11.23 source-controlled command" in (
+        packet_text
+    )
+    assert "`result_type` is `ibkr_local_read_only_market_data_smoke`" in packet_text
     assert "target symbols all present: AAPL, MSFT, NVDA, TSLA, MSTR" in packet_text
     assert "timeframe is `15Min`" in packet_text
     assert "`connection_mode` is `local_read_only_smoke`" in packet_text
@@ -1401,6 +1407,12 @@ def test_d11_24_adjudication_packet_is_review_prep_only_without_authority() -> N
     assert "`d11_primary_eligible=false`" in packet_text
     assert "`failure_reason` is empty for every symbol" in packet_text
     assert "no warnings are present" in packet_text
+    assert "`broker_api_authority=false`" in packet_text
+    assert "`order_authority=false`" in packet_text
+    assert "`execution_authority=false`" in packet_text
+    assert "`d11_completion_authority=false`" in packet_text
+    assert "`unit_12_status=UNIT_12_BLOCKED`" in packet_text
+    assert "`authority_boundary` is present" in packet_text
     assert "ACCEPT_FOR_D11_24_LEDGER_RECORDING_REVIEW" in packet_text
     assert "INVALIDATED_EVIDENCE_REVIEW_REQUIRED" in packet_text
     assert "BLOCKED_FOR_SOURCE_CONTROL_OR_AUTHORITY_DEFECT" in packet_text
