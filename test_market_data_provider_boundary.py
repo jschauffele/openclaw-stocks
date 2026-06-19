@@ -1306,6 +1306,64 @@ def test_d11_22_repeatability_ledger_template_starts_empty_without_authority() -
     assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
+def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    ledger_text = Path(
+        "docs/ibkr_market_data_repeatability_ledger_template.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.23 IBKR Repeatability Run 1 Preflight Packet" in packet_text
+    assert "Control Prep Only" in packet_text
+    assert "not the live diagnostic run" in packet_text
+    assert "not authorization to run immediately" in packet_text
+    assert "not authorization to run outside a valid U.S. regular-session window" in (
+        packet_text
+    )
+    assert "future run is `LOCAL_MAC` only" in packet_text
+    assert "TWS/Gateway must be opened manually" in packet_text
+    assert "VPS runtime remains parked" in packet_text
+    assert "`openclaw.timer` and `openclaw.service` remain off" in packet_text
+    assert "AAPL" in packet_text
+    assert "MSFT" in packet_text
+    assert "NVDA" in packet_text
+    assert "TSLA" in packet_text
+    assert "MSTR" in packet_text
+    assert "Target timeframe: 15Min" in packet_text
+    assert "`requirements-diagnostics.txt`" in packet_text
+    assert "`ib_insync==0.9.86`" in packet_text
+    assert "`completed_repeatability_runs` | `0`" in packet_text
+    assert "`invalidated_repeatability_runs` | `0`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`order_authority` | `NONE`" in packet_text
+    assert "`execution_authority` | `NONE`" in packet_text
+    assert "`vps_runtime` | `PARKED`" in packet_text
+    assert "Required Paste-Back Fields" in packet_text
+    assert "D11.24 ledger recording review" in packet_text
+    assert "invalidated evidence review" in packet_text
+    assert "do not rerun by impulse" in packet_text
+    assert "account, position, margin, buying power, portfolio" in packet_text
+    assert "does not record repeatability run 1 as completed" in packet_text
+    assert "does not mutate the D11.22 ledger counts" in packet_text
+
+    assert "`completed_repeatability_runs` | `0`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert str(packet_path) in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`ORDER_AUTHORITY=NONE`" in map_text
+    assert "`EXECUTION_AUTHORITY=NONE`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 

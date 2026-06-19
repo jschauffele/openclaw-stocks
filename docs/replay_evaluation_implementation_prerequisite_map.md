@@ -3555,6 +3555,34 @@ margin/buying-power/portfolio queries, orders, execution, dependency
 installation, VPS mutation, runtime mutation, systemd mutation, timer/service
 changes, or credential changes.
 
+### D11.23 IBKR Repeatability Run 1 Preflight Packet
+
+D11.23 adds the source-controlled preflight/control packet for a future
+separately authorized repeatability run 1:
+
+```text
+docs/ibkr_market_data_repeatability_run_1_preflight_packet.md
+```
+
+The packet is not the live diagnostic run and is not authorization to run
+outside a valid regular-session window. It defines the future `LOCAL_MAC`-only
+control surface, expected source-control checks, optional diagnostic dependency
+contract, focused no-runtime validation command, future command template,
+required paste-back fields, invalidation criteria, and post-run review routing.
+
+D11.23 records no completed repeatability evidence, does not mutate the D11.22
+ledger counts, and preserves `completed_repeatability_runs=0`,
+`invalidated_repeatability_runs=0`, `D11_INSUFFICIENT`, `UNIT_12_BLOCKED`,
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `PACKAGE_CAPTURE=BLOCKED`,
+`ORDER_AUTHORITY=NONE`, `EXECUTION_AUTHORITY=NONE`, and `VPS_RUNTIME=PARKED`.
+
+D11.23 does not run diagnostics, does not complete D11, does not make IBKR a
+primary provider, does not open Unit 12, and does not authorize package capture,
+replay, scoring, candidate generation, broker/API work, account/position/
+margin/buying-power/portfolio queries, orders, execution, dependency
+installation, VPS mutation, runtime mutation, systemd mutation, timer/service
+changes, or credential changes.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
