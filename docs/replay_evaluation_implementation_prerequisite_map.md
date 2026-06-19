@@ -3583,6 +3583,38 @@ margin/buying-power/portfolio queries, orders, execution, dependency
 installation, VPS mutation, runtime mutation, systemd mutation, timer/service
 changes, or credential changes.
 
+### D11.24 IBKR Repeatability Run 1 Adjudication Packet
+
+D11.24 adds the source-controlled post-run adjudication/control packet for a
+future ledger recording review after a separately authorized D11.23 run 1:
+
+```text
+docs/ibkr_market_data_repeatability_run_1_adjudication_packet.md
+```
+
+The packet is not the diagnostic run, is not evidence recording, and is not
+authorization to mutate ledger counts. It defines acceptance criteria,
+invalidation criteria, blocked-review criteria, and the only allowed review
+outcomes:
+
+- `ACCEPT_FOR_D11_24_LEDGER_RECORDING_REVIEW`;
+- `INVALIDATED_EVIDENCE_REVIEW_REQUIRED`;
+- `BLOCKED_FOR_SOURCE_CONTROL_OR_AUTHORITY_DEFECT`.
+
+D11.24 records no completed repeatability evidence, records no invalidated
+repeatability evidence, does not mutate the D11.22 ledger counts, and preserves
+`completed_repeatability_runs=0`, `invalidated_repeatability_runs=0`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`,
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `PACKAGE_CAPTURE=BLOCKED`,
+`ORDER_AUTHORITY=NONE`, `EXECUTION_AUTHORITY=NONE`, and `VPS_RUNTIME=PARKED`.
+
+D11.24 does not run diagnostics, does not complete D11, does not make IBKR a
+primary provider, does not open Unit 12, and does not authorize package capture,
+replay, scoring, candidate generation, broker/API work, account/position/
+margin/buying-power/portfolio queries, orders, execution, dependency
+installation, VPS mutation, runtime mutation, systemd mutation, timer/service
+changes, or credential changes.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

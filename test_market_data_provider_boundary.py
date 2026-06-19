@@ -1364,6 +1364,62 @@ def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> Non
     assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
+def test_d11_24_adjudication_packet_is_review_prep_only_without_authority() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_repeatability_run_1_adjudication_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    ledger_text = Path(
+        "docs/ibkr_market_data_repeatability_ledger_template.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.24 IBKR Repeatability Run 1 Adjudication Packet" in packet_text
+    assert "Control Prep Only" in packet_text
+    assert "not the diagnostic run" in packet_text
+    assert "not evidence recording" in packet_text
+    assert "not authorization to mutate ledger counts" in packet_text
+    assert "`completed_repeatability_runs` | `0`" in packet_text
+    assert "`invalidated_repeatability_runs` | `0`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`order_authority` | `NONE`" in packet_text
+    assert "`execution_authority` | `NONE`" in packet_text
+    assert "`vps_runtime` | `PARKED`" in packet_text
+    assert "Acceptance Criteria For Ledger-Recording Review" in packet_text
+    assert "target symbols all present: AAPL, MSFT, NVDA, TSLA, MSTR" in packet_text
+    assert "timeframe is `15Min`" in packet_text
+    assert "`connection_mode` is `local_read_only_smoke`" in packet_text
+    assert "`read_only=true`" in packet_text
+    assert '`freshness_classification="clean"` for every symbol' in packet_text
+    assert "`d11_countable=true` for every symbol" in packet_text
+    assert '`d11_primary_candidate_status="candidate"`' in packet_text
+    assert "`d11_primary_eligible=false`" in packet_text
+    assert "`failure_reason` is empty for every symbol" in packet_text
+    assert "no warnings are present" in packet_text
+    assert "ACCEPT_FOR_D11_24_LEDGER_RECORDING_REVIEW" in packet_text
+    assert "INVALIDATED_EVIDENCE_REVIEW_REQUIRED" in packet_text
+    assert "BLOCKED_FOR_SOURCE_CONTROL_OR_AUTHORITY_DEFECT" in packet_text
+    assert "Do not rerun by impulse" in packet_text
+    assert "account, position, margin, buying power, portfolio" in packet_text
+    assert "does not record repeatability run 1 as completed" in packet_text
+    assert "does not record repeatability run 1 as invalidated" in packet_text
+    assert "does not mutate the D11.22 ledger counts" in packet_text
+
+    assert "`completed_repeatability_runs` | `0`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert str(packet_path) in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`ORDER_AUTHORITY=NONE`" in map_text
+    assert "`EXECUTION_AUTHORITY=NONE`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 
