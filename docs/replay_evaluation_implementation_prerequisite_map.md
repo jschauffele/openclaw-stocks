@@ -3655,6 +3655,43 @@ execution queries, orders, execution, dependency installation, VPS mutation,
 runtime mutation, systemd mutation, timer/service changes, or credential
 changes.
 
+### D11.27 IBKR Repeatability Run 2 Preflight Packet
+
+D11.27 adds the source-controlled preflight/control packet for a future
+separately authorized repeatability run 2:
+
+```text
+docs/ibkr_market_data_repeatability_run_2_preflight_packet.md
+```
+
+The packet is not the live diagnostic run and is not authorization to run
+today. It defines the future `LOCAL_MAC`-only control surface for Run #2,
+requires Run #2 to occur on a distinct regular-session trading day after Run #1,
+records the expected source commit
+`02339cba3239b9148ca352e2970cb658bdacc58a`, preserves the D11.26 ledger counts,
+and prevents command drift by source-controlling the Run #2 command template
+with `<UTC_REQUESTED_END_FOR_DISTINCT_RUN_2_DAY>`.
+
+D11.27 is not authorization to run today.
+
+D11.27 records no completed repeatability evidence, records no invalidated
+repeatability evidence, does not mutate the D11.26 ledger counts, and preserves
+`completed_repeatability_runs=1`, `invalidated_repeatability_runs=0`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`,
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `PACKAGE_CAPTURE=BLOCKED`,
+`ORDER_AUTHORITY=NONE`, `EXECUTION_AUTHORITY=NONE`, and `VPS_RUNTIME=PARKED`.
+Run #1 remains the only completed run. Run #2 is planned only, not completed and
+not invalidated. Run #3 remains future and pending.
+
+Run #2 is planned only, not completed and not invalidated.
+
+D11.27 does not run diagnostics, does not complete D11, does not make IBKR a
+primary provider, does not open Unit 12, and does not authorize package capture,
+replay, scoring, candidate generation, broker/API work, account/position/
+margin/buying-power/portfolio/order/balance/execution queries, orders,
+execution, dependency installation, VPS mutation, runtime mutation, systemd
+mutation, timer/service changes, or credential changes.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

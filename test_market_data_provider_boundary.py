@@ -1478,6 +1478,113 @@ def test_d11_24_adjudication_packet_is_review_prep_only_without_authority() -> N
     assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
+def test_d11_27_run_2_preflight_packet_is_control_prep_only_without_authority() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_repeatability_run_2_preflight_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    ledger_text = Path(
+        "docs/ibkr_market_data_repeatability_ledger_template.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.27 IBKR Repeatability Run 2 Preflight Packet" in packet_text
+    assert "Control Prep Only" in packet_text
+    assert "not the live diagnostic run" in packet_text
+    assert "not authorization to run today" in packet_text
+    assert "distinct U.S. regular-session trading day after Run #1" in packet_text
+    assert "future run is `LOCAL_MAC` only" in packet_text
+    assert "TWS/Gateway must be opened manually" in packet_text
+    assert "VPS runtime remains parked" in packet_text
+    assert "`openclaw.timer` and `openclaw.service` remain off" in packet_text
+    assert "Run #3 remains future and pending" in packet_text
+    assert "`completed_repeatability_runs` | `1`" in packet_text
+    assert "`invalidated_repeatability_runs` | `0`" in packet_text
+    assert "`completed_run_1_only` | `true`" in packet_text
+    assert "`run_2_completed` | `false`" in packet_text
+    assert "`run_2_invalidated` | `false`" in packet_text
+    assert "`ibkr_provider_status` | `ibkr_market_data_candidate`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`order_authority` | `NONE`" in packet_text
+    assert "`execution_authority` | `NONE`" in packet_text
+    assert "`vps_runtime` | `PARKED`" in packet_text
+    assert "02339cba3239b9148ca352e2970cb658bdacc58a" in packet_text
+    assert "AAPL" in packet_text
+    assert "MSFT" in packet_text
+    assert "NVDA" in packet_text
+    assert "TSLA" in packet_text
+    assert "MSTR" in packet_text
+    assert "Target timeframe: 15Min" in packet_text
+    assert "`requirements-diagnostics.txt`" in packet_text
+    assert "`ib_insync==0.9.86`" in packet_text
+    assert "<UTC_REQUESTED_END_FOR_DISTINCT_RUN_2_DAY>" in packet_text
+    assert "--symbol AAPL" in packet_text
+    assert "--symbol MSFT" in packet_text
+    assert "--symbol NVDA" in packet_text
+    assert "--symbol TSLA" in packet_text
+    assert "--symbol MSTR" in packet_text
+    assert "Required Paste-Back Fields" in packet_text
+    assert "timestamp UTC" in packet_text
+    assert "expected source commit" in packet_text
+    assert "worktree before" in packet_text
+    assert "worktree after" in packet_text
+    assert "observed dependency version" in packet_text
+    assert "authority_boundary" in packet_text
+    assert "confirmation that VPS runtime was not touched" in packet_text
+    assert "confirmation that timer and service remained off" in packet_text
+    assert "stale, recency-caveated, quarantined, missing, malformed" in packet_text
+    assert "any warning" in packet_text
+    assert "any missing target symbol" in packet_text
+    assert "wrong branch or wrong head" in packet_text
+    assert "dirty worktree" in packet_text
+    assert "missing explicit request window" in packet_text
+    assert "dependency mismatch" in packet_text
+    assert "account, position, margin, buying power, portfolio, order, balance" in (
+        packet_text
+    )
+    assert "package capture, replay, scoring, candidate generation" in packet_text
+    assert "not a rerun-by-impulse" in packet_text
+    assert "future Run #2 adjudication/ledger review" in packet_text
+    assert "invalidated evidence review" in packet_text
+    assert "Run #2 acceptance still does not approve IBKR as primary" in packet_text
+    assert "does not complete D11" in packet_text
+    assert "does not open Unit 12" in packet_text
+    assert "does not authorize runtime" in packet_text
+    assert "does not record repeatability Run #2 as completed" in packet_text
+    assert "does not record repeatability Run #2 as invalidated" in packet_text
+    assert "does not mutate the D11.26 ledger completed or invalidated counts" in (
+        packet_text
+    )
+
+    assert "`completed_repeatability_runs` | `1`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert "| 1 | 2026-06-22 |" in ledger_text
+    assert "| 2 |" not in ledger_text
+    assert "| _none_ | _none_ | _none_ | _none_ | _none_ |" in ledger_text
+
+    assert str(packet_path) in map_text
+    assert "D11.27 IBKR Repeatability Run 2 Preflight Packet" in map_text
+    assert "not authorization to run today" in map_text
+    assert "distinct regular-session trading day after Run #1" in map_text
+    assert "`completed_repeatability_runs=1`" in map_text
+    assert "`invalidated_repeatability_runs=0`" in map_text
+    assert "Run #1 remains the only completed run" in map_text
+    assert "Run #2 is planned only, not completed and not invalidated" in map_text
+    assert "Run #3 remains future and pending" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`ORDER_AUTHORITY=NONE`" in map_text
+    assert "`EXECUTION_AUTHORITY=NONE`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 
