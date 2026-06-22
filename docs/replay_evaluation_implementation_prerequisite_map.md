@@ -3692,6 +3692,52 @@ margin/buying-power/portfolio/order/balance/execution queries, orders,
 execution, dependency installation, VPS mutation, runtime mutation, systemd
 mutation, timer/service changes, or credential changes.
 
+### D11.28 IBKR Repeatability Run 2 Adjudication Packet
+
+D11.28 adds the source-controlled post-run adjudication/control packet for a
+future ledger-recording review after a separately authorized D11.27 Run #2:
+
+```text
+docs/ibkr_market_data_repeatability_run_2_adjudication_packet.md
+```
+
+The packet is not the diagnostic run, is not evidence recording, and is not
+authorization to mutate ledger counts. It requires Run #2 to have been
+separately authorized and executed on a distinct regular-session trading day
+after Run #1. It requires every paste-back field from
+`docs/ibkr_market_data_repeatability_run_2_preflight_packet.md` and forbids
+inferring missing evidence from memory, terminal scrollback, screenshots, broker
+state, or operator confidence.
+
+D11.28 is not authorization to mutate ledger counts.
+
+Allowed D11.28 outcomes are exactly:
+
+- `ACCEPT_FOR_D11_28_RUN_2_LEDGER_RECORDING_REVIEW`;
+- `INVALIDATED_RUN_2_EVIDENCE_REVIEW_REQUIRED`;
+- `BLOCKED_FOR_RUN_2_SOURCE_CONTROL_OR_AUTHORITY_DEFECT`.
+
+D11.28 records no completed repeatability evidence, records no invalidated
+repeatability evidence, does not mutate the D11.26 ledger counts, and preserves
+`completed_repeatability_runs=1`, `invalidated_repeatability_runs=0`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`,
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `PACKAGE_CAPTURE=BLOCKED`,
+`ORDER_AUTHORITY=NONE`, `EXECUTION_AUTHORITY=NONE`, and `VPS_RUNTIME=PARKED`.
+Run #1 remains the only completed run. Run #2 remains planned only, not
+completed and not invalidated. Run #3 remains future and pending.
+
+Run #2 remains planned only, not completed and not invalidated.
+
+D11.28 does not run diagnostics, does not complete D11, does not make IBKR a
+primary provider, does not open Unit 12, and does not authorize package capture,
+replay, scoring, candidate generation, broker/API work, account/position/
+margin/buying-power/portfolio/order/balance/execution queries, orders,
+execution, dependency installation, VPS mutation, runtime mutation, systemd
+mutation, timer/service changes, or credential changes. Do not rerun by
+impulse.
+
+Do not rerun by impulse.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

@@ -1585,6 +1585,149 @@ def test_d11_27_run_2_preflight_packet_is_control_prep_only_without_authority() 
     assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
+def test_d11_28_run_2_adjudication_packet_is_review_prep_only_without_authority() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_repeatability_run_2_adjudication_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    ledger_text = Path(
+        "docs/ibkr_market_data_repeatability_ledger_template.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.28 IBKR Repeatability Run 2 Adjudication Packet" in packet_text
+    assert "Control Prep Only" in packet_text
+    assert "not the diagnostic run" in packet_text
+    assert "not evidence recording" in packet_text
+    assert "not authorization to mutate ledger counts" in packet_text
+    assert "separately authorized and executed on a distinct U.S." in packet_text
+    assert "regular-session trading day after Run #1" in packet_text
+    assert "No completed or invalidated repeatability evidence is recorded" in (
+        packet_text
+    )
+    assert "Run #3 remains future and pending" in packet_text
+    assert "`completed_repeatability_runs` | `1`" in packet_text
+    assert "`invalidated_repeatability_runs` | `0`" in packet_text
+    assert "`completed_run_1_only` | `true`" in packet_text
+    assert "`run_2_completed` | `false`" in packet_text
+    assert "`run_2_invalidated` | `false`" in packet_text
+    assert "`run_3_status` | `future_pending`" in packet_text
+    assert "`ibkr_provider_status` | `ibkr_market_data_candidate`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`order_authority` | `NONE`" in packet_text
+    assert "`execution_authority` | `NONE`" in packet_text
+    assert "`vps_runtime` | `PARKED`" in packet_text
+    assert "docs/ibkr_market_data_repeatability_run_2_preflight_packet.md" in (
+        packet_text
+    )
+    assert "No reviewer may infer missing evidence from memory" in packet_text
+    assert "terminal scrollback" in packet_text
+    assert "screenshots" in packet_text
+    assert "broker state" in packet_text
+    assert "operator confidence" in packet_text
+    assert "Acceptance Criteria For Run #2 Ledger-Recording Review" in packet_text
+    assert "exact expected source commit from the future Run #2 authorization" in (
+        packet_text
+    )
+    assert "local timestamp UTC is present" in packet_text
+    assert "branch is `main`" in packet_text
+    assert "HEAD equals the expected source commit" in packet_text
+    assert "worktree was clean before and after the run" in packet_text
+    assert "`requirements-diagnostics.txt`" in packet_text
+    assert "`ib_insync==0.9.86`" in packet_text
+    assert "matches the Run #2 source-controlled command" in packet_text
+    assert "explicit `requested_start` and `requested_end` are present" in (
+        packet_text
+    )
+    assert "`result_type` is `ibkr_local_read_only_market_data_smoke`" in packet_text
+    assert "target symbols all present: AAPL, MSFT, NVDA, TSLA, MSTR" in packet_text
+    assert "timeframe is `15Min`" in packet_text
+    assert "`provider_key` and `provider_name` are present" in packet_text
+    assert "`connection_mode` is `local_read_only_smoke`" in packet_text
+    assert "`read_only=true`" in packet_text
+    assert "`latest_candle_timestamp` is valid timezone-aware UTC" in packet_text
+    assert "`freshness_classification=clean` for every symbol" in packet_text
+    assert "`d11_countable=true` for every symbol" in packet_text
+    assert "`d11_primary_candidate_status=candidate`" in packet_text
+    assert "`d11_primary_eligible=false`" in packet_text
+    assert "`failure_reason` is empty for every symbol" in packet_text
+    assert "no warnings are present" in packet_text
+    assert "`package_capture=false`" in packet_text
+    assert "`replay=false`" in packet_text
+    assert "`scoring=false`" in packet_text
+    assert "`candidate_generation=false`" in packet_text
+    assert "`broker_api_authority=false`" in packet_text
+    assert "`order_authority=false`" in packet_text
+    assert "`execution_authority=false`" in packet_text
+    assert "`d11_completion_authority=false`" in packet_text
+    assert "`unit_12_status=UNIT_12_BLOCKED`" in packet_text
+    assert "`authority_boundary` is present" in packet_text
+    assert "no account, position, margin, buying power, portfolio, order, balance" in (
+        packet_text
+    )
+    assert "VPS runtime was not touched" in packet_text
+    assert "timer and service remained off" in packet_text
+    assert "Invalidation Criteria" in packet_text
+    assert "stale, recency-caveated, quarantined, missing, malformed" in packet_text
+    assert "any warning" in packet_text
+    assert "any missing target symbol" in packet_text
+    assert "wrong branch or wrong head" in packet_text
+    assert "dirty worktree before or after the run" in packet_text
+    assert "missing explicit request window" in packet_text
+    assert "dependency mismatch" in packet_text
+    assert "non-distinct trading day relative to Run #1" in packet_text
+    assert "package capture, replay, scoring, candidate generation" in packet_text
+    assert "Blocked Review Criteria" in packet_text
+    assert "ambiguous, missing, internally contradictory" in packet_text
+    assert "outside the Run #2 authorization scope" in packet_text
+    assert "ACCEPT_FOR_D11_28_RUN_2_LEDGER_RECORDING_REVIEW" in packet_text
+    assert "INVALIDATED_RUN_2_EVIDENCE_REVIEW_REQUIRED" in packet_text
+    assert "BLOCKED_FOR_RUN_2_SOURCE_CONTROL_OR_AUTHORITY_DEFECT" in packet_text
+    assert "Acceptance still does not approve IBKR as primary" in packet_text
+    assert "does not complete D11" in packet_text
+    assert "does not open Unit 12" in packet_text
+    assert "does not authorize runtime" in packet_text
+    assert "Do not rerun by impulse" in packet_text
+    assert "does not record repeatability Run #2 as completed" in packet_text
+    assert "does not record repeatability Run #2 as invalidated" in packet_text
+    assert "does not mutate the D11.26 ledger completed or invalidated counts" in (
+        packet_text
+    )
+
+    assert "`completed_repeatability_runs` | `1`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert "| 1 | 2026-06-22 |" in ledger_text
+    assert "| 2 |" not in ledger_text
+    assert "| _none_ | _none_ | _none_ | _none_ | _none_ |" in ledger_text
+
+    assert str(packet_path) in map_text
+    assert "D11.28 IBKR Repeatability Run 2 Adjudication Packet" in map_text
+    assert "not the diagnostic run" in map_text
+    assert "not evidence recording" in map_text
+    assert "not authorization to mutate ledger counts" in map_text
+    assert "ACCEPT_FOR_D11_28_RUN_2_LEDGER_RECORDING_REVIEW" in map_text
+    assert "INVALIDATED_RUN_2_EVIDENCE_REVIEW_REQUIRED" in map_text
+    assert "BLOCKED_FOR_RUN_2_SOURCE_CONTROL_OR_AUTHORITY_DEFECT" in map_text
+    assert "`completed_repeatability_runs=1`" in map_text
+    assert "`invalidated_repeatability_runs=0`" in map_text
+    assert "Run #1 remains the only completed run" in map_text
+    assert "Run #2 remains planned only, not completed and not invalidated" in map_text
+    assert "Run #3 remains future and pending" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`ORDER_AUTHORITY=NONE`" in map_text
+    assert "`EXECUTION_AUTHORITY=NONE`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+    assert "Do not rerun by impulse" in map_text
+
+
 def test_ibkr_read_only_smoke_cli_requires_authorization_flag(capsys) -> None:
     from tools.ops.ibkr_market_data_read_only_smoke import main
 
