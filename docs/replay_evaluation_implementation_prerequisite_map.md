@@ -3615,6 +3615,46 @@ margin/buying-power/portfolio queries, orders, execution, dependency
 installation, VPS mutation, runtime mutation, systemd mutation, timer/service
 changes, or credential changes.
 
+### D11.26 IBKR Repeatability Run 1 Ledger Recording
+
+D11.26 records accepted D11.23 repeatability run 1 evidence in the
+source-controlled repeatability ledger:
+
+```text
+docs/ibkr_market_data_repeatability_ledger_template.md
+```
+
+The ledger entry is based only on accepted D11.23 paste-back evidence
+adjudicated as `ACCEPT_FOR_D11_24_LEDGER_RECORDING_REVIEW`. No diagnostic rerun
+was performed for this ledger recording.
+
+Run 1 evidence status:
+
+- `completed_repeatability_runs=1`;
+- `invalidated_repeatability_runs=0`;
+- symbols: AAPL, MSFT, NVDA, TSLA, MSTR;
+- timeframe: `15Min`;
+- `freshness_classification=clean`;
+- `d11_countable=true`;
+- `d11_primary_candidate_status=candidate`;
+- `d11_primary_eligible=false`;
+- `NO_RERUN_PERFORMED=true`;
+- `VPS_RUNTIME=NOT_TOUCHED`;
+- `TIMER_SERVICE=NOT_TOUCHED`;
+- `PACKAGE_CAPTURE=BLOCKED`;
+- `UNIT_12_STATUS=UNIT_12_BLOCKED`;
+- `ORDER_AUTHORITY=NONE`;
+- `EXECUTION_AUTHORITY=NONE`.
+
+D11.26 records one accepted repeatability run only. It does not record runs 2
+or 3, does not satisfy the D11.21 three-run repeatability protocol, does not
+complete D11, does not make IBKR a primary provider, does not open Unit 12, and
+does not authorize package capture, replay, scoring, candidate generation,
+broker/API work, account/position/margin/buying-power/portfolio/order/balance/
+execution queries, orders, execution, dependency installation, VPS mutation,
+runtime mutation, systemd mutation, timer/service changes, or credential
+changes.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

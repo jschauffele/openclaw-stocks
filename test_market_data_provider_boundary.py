@@ -1270,7 +1270,7 @@ def test_d11_21_repeatability_protocol_is_documented_without_authority() -> None
     assert "does not authorize package capture, replay, scoring" in map_text
 
 
-def test_d11_22_repeatability_ledger_template_starts_empty_without_authority() -> None:
+def test_d11_22_repeatability_ledger_records_run_1_without_primary_authority() -> None:
     ledger_path = Path("docs/ibkr_market_data_repeatability_ledger_template.md")
     ledger_text = ledger_path.read_text(encoding="utf-8")
     map_text = Path(
@@ -1278,8 +1278,8 @@ def test_d11_22_repeatability_ledger_template_starts_empty_without_authority() -
     ).read_text(encoding="utf-8")
 
     assert "D11.22 IBKR Market-Data Repeatability Ledger Template" in ledger_text
-    assert "`ledger_status` | `template_only`" in ledger_text
-    assert "`completed_repeatability_runs` | `0`" in ledger_text
+    assert "`ledger_status` | `active_repeatability_ledger`" in ledger_text
+    assert "`completed_repeatability_runs` | `1`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert "`ibkr_provider_status` | `ibkr_market_data_candidate`" in ledger_text
     assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in ledger_text
@@ -1289,7 +1289,49 @@ def test_d11_22_repeatability_ledger_template_starts_empty_without_authority() -
     assert "`order_authority` | `false`" in ledger_text
     assert "`execution_authority` | `false`" in ledger_text
     assert "`vps_runtime` | `PARKED`" in ledger_text
-    assert "| _none_ | _none_ | _none_ | _none_ | _none_ | _none_ | _none_ | _none_ |" in ledger_text
+    assert (
+        "| 1 | 2026-06-22 | "
+        "b63d0d2d31b3023b07f7308c84e0ba2e4f38e931 | "
+        "AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |"
+    ) in ledger_text
+    assert "| _none_ | _none_ | _none_ | _none_ | _none_ |" in ledger_text
+    assert "`run_command_timestamp_utc` | `2026-06-22T14:08:04Z`" in ledger_text
+    assert "`supplement_timestamp_utc` | `2026-06-22T14:13:54Z`" in ledger_text
+    assert "`expected_source_commit` | `b63d0d2d31b3023b07f7308c84e0ba2e4f38e931`" in ledger_text
+    assert "`observed_head` | `b63d0d2d31b3023b07f7308c84e0ba2e4f38e931`" in ledger_text
+    assert "`worktree_status_before_run` | `clean`" in ledger_text
+    assert "`worktree_status_after_run` | `clean`" in ledger_text
+    assert "`dependency_contract` | `requirements-diagnostics.txt / ib_insync==0.9.86`" in ledger_text
+    assert "`observed_dependency` | `ib_insync==0.9.86`" in ledger_text
+    assert "`no_rerun_performed` | `true`" in ledger_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in ledger_text
+    assert "`timer_service` | `NOT_TOUCHED`" in ledger_text
+    assert "`package_capture` | `BLOCKED`" in ledger_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in ledger_text
+    assert "--symbol AAPL --symbol MSFT --symbol NVDA --symbol TSLA --symbol MSTR" in ledger_text
+    assert "`result_type` | `ibkr_local_read_only_market_data_smoke`" in ledger_text
+    assert "`provider_key` | `ibkr_market_data_candidate`" in ledger_text
+    assert "`connection_mode` | `local_read_only_smoke`" in ledger_text
+    assert "`read_only` | `true`" in ledger_text
+    assert "`symbols` | `AAPL, MSFT, NVDA, TSLA, MSTR`" in ledger_text
+    assert "`freshness_classification` | `clean`" in ledger_text
+    assert "`d11_countable` | `true`" in ledger_text
+    assert "`d11_primary_candidate_status` | `candidate`" in ledger_text
+    assert "`d11_primary_eligible` | `false`" in ledger_text
+    assert "`broker_api_authority` | `false`" in ledger_text
+    assert "`order_authority` | `false`" in ledger_text
+    assert "`execution_authority` | `false`" in ledger_text
+    assert "`d11_completion_authority` | `false`" in ledger_text
+    assert "`replay` | `false`" in ledger_text
+    assert "`scoring` | `false`" in ledger_text
+    assert "`candidate_generation` | `false`" in ledger_text
+    assert "`package_capture_authority` | `false`" in ledger_text
+    assert (
+        "`account_position_margin_buying_power_portfolio_order_balance_execution_query` | `false`"
+        in ledger_text
+    )
+    assert "does not approve IBKR as primary" in ledger_text
+    assert "does not complete D11" in ledger_text
     assert "Stop and do not count the run" in ledger_text
     assert "Final Provider-Approval Review Template" in ledger_text
     assert "This runbook is not an authorization to run diagnostics" in ledger_text
@@ -1297,13 +1339,17 @@ def test_d11_22_repeatability_ledger_template_starts_empty_without_authority() -
     assert "account, position, margin, buying power, portfolio" in ledger_text
 
     assert "docs/ibkr_market_data_repeatability_ledger_template.md" in map_text
-    assert "The completed and invalidated future run ledgers start empty" in map_text
+    assert "D11.26 IBKR Repeatability Run 1 Ledger Recording" in map_text
+    assert "`completed_repeatability_runs=1`" in map_text
+    assert "`invalidated_repeatability_runs=0`" in map_text
+    assert "`NO_RERUN_PERFORMED=true`" in map_text
+    assert "does not satisfy the D11.21 three-run repeatability protocol" in map_text
     assert "`D11_INSUFFICIENT`" in map_text
     assert "`UNIT_12_BLOCKED`" in map_text
     assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
     assert "`ORDER_AUTHORITY=NONE`" in map_text
     assert "`EXECUTION_AUTHORITY=NONE`" in map_text
-    assert "`VPS_RUNTIME=PARKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
 
 
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
@@ -1354,7 +1400,7 @@ def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> Non
     assert "does not record repeatability run 1 as completed" in packet_text
     assert "does not mutate the D11.22 ledger counts" in packet_text
 
-    assert "`completed_repeatability_runs` | `0`" in ledger_text
+    assert "`completed_repeatability_runs` | `1`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert str(packet_path) in map_text
     assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
@@ -1422,7 +1468,7 @@ def test_d11_24_adjudication_packet_is_review_prep_only_without_authority() -> N
     assert "does not record repeatability run 1 as invalidated" in packet_text
     assert "does not mutate the D11.22 ledger counts" in packet_text
 
-    assert "`completed_repeatability_runs` | `0`" in ledger_text
+    assert "`completed_repeatability_runs` | `1`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert str(packet_path) in map_text
     assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
