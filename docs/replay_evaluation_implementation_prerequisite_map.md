@@ -3739,6 +3739,30 @@ impulse.
 
 Do not rerun by impulse.
 
+### D11.30 IBKR Repeatability Run 2 Ledger Recording
+
+D11.30 records accepted Run #2 evidence in the source-controlled repeatability
+ledger after adjudication as
+`ACCEPT_FOR_D11_28_RUN_2_LEDGER_RECORDING_REVIEW`. It records no diagnostic
+rerun, broker/API call, dependency installation, VPS or timer/service mutation,
+package capture, replay, scoring, candidate generation, Unit 12 activity, or
+authority expansion.
+
+Run #2 was a `LOCAL_MAC` read-only diagnostic on 2026-06-23 at source commit
+`43057a4b2689da57a1f7a6517159eaf4109f83ca`. Its requested window was
+`2026-06-23T12:00:00+00:00` through `2026-06-23T14:00:00+00:00`; all target
+symbols AAPL, MSFT, NVDA, TSLA, and MSTR had a latest candle timestamp of
+`2026-06-23T13:45:00+00:00`, `freshness_classification=clean`, and
+`d11_countable=true`.
+
+The ledger now preserves `completed_repeatability_runs=2` and
+`invalidated_repeatability_runs=0`. Run #1 remains recorded for 2026-06-22;
+Run #3 remains future and pending. The two accepted runs do not satisfy the
+three-run D11.21 repeatability protocol, so `D11_INSUFFICIENT`,
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `UNIT_12_BLOCKED`,
+`PACKAGE_CAPTURE=BLOCKED`, `ORDER_AUTHORITY=NONE`,
+`EXECUTION_AUTHORITY=NONE`, and `VPS_RUNTIME=PARKED` remain unchanged.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

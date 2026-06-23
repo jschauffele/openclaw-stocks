@@ -14,7 +14,7 @@ market-data provider.
 | Field | Value |
 | --- | --- |
 | `ledger_status` | `active_repeatability_ledger` |
-| `completed_repeatability_runs` | `1` |
+| `completed_repeatability_runs` | `2` |
 | `invalidated_repeatability_runs` | `0` |
 | `ibkr_provider_status` | `ibkr_market_data_candidate` |
 | `ibkr_primary_eligibility` | `NOT_APPROVED` |
@@ -92,6 +92,7 @@ performed for this ledger entry.
 | Run | Date | Source Commit | Symbols | Timeframe | Classification | Countable | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 2026-06-22 | b63d0d2d31b3023b07f7308c84e0ba2e4f38e931 | AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |
+| 2 | 2026-06-23 | 43057a4b2689da57a1f7a6517159eaf4109f83ca | AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |
 
 ### Run 1 Ledger Entry
 
@@ -148,6 +149,66 @@ capture, replay, scoring, candidate generation, broker/API work, account/
 position/margin/buying-power/portfolio/order/balance/execution queries,
 orders, execution, dependency installation, VPS mutation, runtime mutation,
 systemd mutation, timer/service changes, or credential changes.
+
+### Run 2 Ledger Entry
+
+Run #2 is recorded from accepted D11.27 paste-back evidence adjudicated as
+`ACCEPT_FOR_D11_28_RUN_2_LEDGER_RECORDING_REVIEW`. No diagnostic rerun was
+performed for this ledger entry. The visually truncated final wrapper line is
+not a defect: the accepted diagnostic JSON supplies
+`unit_12_status=UNIT_12_BLOCKED`.
+
+| Field | Value |
+| --- | --- |
+| `run_sequence_number` | `2` |
+| `diagnostic_date` | `2026-06-23` |
+| `run_command_timestamp_utc` | `2026-06-23T14:11:28Z` |
+| `source` | `LOCAL_MAC` |
+| `branch` | `main` |
+| `expected_source_commit` | `43057a4b2689da57a1f7a6517159eaf4109f83ca` |
+| `observed_head` | `43057a4b2689da57a1f7a6517159eaf4109f83ca` |
+| `worktree_status_before_run` | `clean` |
+| `worktree_status_after_run` | `clean` |
+| `dependency_contract` | `requirements-diagnostics.txt / ib_insync==0.9.86` |
+| `observed_dependency` | `ib_insync==0.9.86` |
+| `no_rerun_performed` | `true` |
+| `vps_runtime` | `NOT_TOUCHED` |
+| `timer_service` | `NOT_TOUCHED` |
+| `package_capture` | `BLOCKED` |
+| `unit_12_status` | `UNIT_12_BLOCKED` |
+| `result_type` | `ibkr_local_read_only_market_data_smoke` |
+| `provider_key` | `ibkr_market_data_candidate` |
+| `provider_name` | `IBKR read-only market-data diagnostic candidate` |
+| `connection_mode` | `local_read_only_smoke` |
+| `read_only` | `true` |
+| `symbols` | `AAPL, MSFT, NVDA, TSLA, MSTR` |
+| `timeframe` | `15Min` |
+| `requested_start` | `2026-06-23T12:00:00+00:00` |
+| `requested_end` | `2026-06-23T14:00:00+00:00` |
+| `latest_candle_timestamp` | `2026-06-23T13:45:00+00:00` |
+| `lag_minutes` | `15.0` |
+| `freshness_classification` | `clean` |
+| `d11_countable` | `true` |
+| `d11_primary_candidate_status` | `candidate` |
+| `d11_primary_eligible` | `false` |
+| `failure_reason` | `` |
+| `broker_api_authority` | `false` |
+| `order_authority` | `false` |
+| `execution_authority` | `false` |
+| `d11_completion_authority` | `false` |
+| `replay` | `false` |
+| `scoring` | `false` |
+| `candidate_generation` | `false` |
+| `package_capture_authority` | `false` |
+| `account_position_margin_buying_power_portfolio_order_balance_execution_query` | `false` |
+
+Run #2 preserves IBKR as candidate only. It does not approve IBKR as primary,
+does not complete D11, does not open Unit 12, does not authorize package
+capture, replay, scoring, candidate generation, broker/API work, account/
+position/margin/buying-power/portfolio/order/balance/execution queries,
+orders, execution, dependency installation, VPS mutation, runtime mutation,
+systemd mutation, timer/service changes, or credential changes. Run #3 remains
+future and pending until separately authorized and adjudicated.
 
 ## Invalidated Evidence Ledger
 
