@@ -1365,6 +1365,57 @@ def test_d11_22_repeatability_ledger_records_run_1_without_primary_authority() -
     assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
 
 
+def test_d11_31_run_3_preflight_packet_preserves_repeatability_and_authority() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_repeatability_run_3_preflight_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    ledger_text = Path(
+        "docs/ibkr_market_data_repeatability_ledger_template.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.31 IBKR Repeatability Run 3 Preflight Packet" in packet_text
+    assert "control-packet preparation | `CODEX_LOCAL`" in packet_text
+    assert "read-only diagnostic | `LOCAL_MAC` only" in packet_text
+    assert "Post-commit source-controlled validation | `VPS` only" in packet_text
+    assert "not run a diagnostic and does not approve one" in packet_text
+    assert "separate explicit authorization" in packet_text
+    assert "Market open is not required to prepare this packet" in packet_text
+    assert "Broker/TWS is not involved in this preparation" in packet_text
+    assert "`completed_repeatability_runs` | `2`" in packet_text
+    assert "`invalidated_repeatability_runs` | `0`" in packet_text
+    assert "`run_1_date` | `2026-06-22`" in packet_text
+    assert "`run_2_date` | `2026-06-23`" in packet_text
+    assert "`run_3_completed` | `false`" in packet_text
+    assert "`run_3_invalidated` | `false`" in packet_text
+    assert "distinct future U.S. equity regular-session trading" in packet_text
+    assert "same read-only diagnostic scope" in packet_text
+    assert "clean, countable, and free of warnings or failures" in packet_text
+    assert "no authority expansion" in packet_text
+    assert "repository branch, HEAD, origin alignment" in packet_text
+    assert "working tree is dirty before intended" in packet_text
+    assert "Run #1/Run #2/D11.27/D11.28/D11.29/" in packet_text
+    assert "broker, runtime, VPS, systemd, scheduler, strategy, risk, or execution" in packet_text
+    assert "order, account, submit, cancel, flatten, sell, cleanup, or remediation" in packet_text
+    assert "`PASS`" in packet_text
+    assert "`BLOCKED`" in packet_text
+    assert "`BUG`" in packet_text
+    assert "`PARKED`" in packet_text
+    assert "does not perform Run #3" in packet_text
+    assert "does not approve IBKR as primary" in packet_text
+    assert "does not complete D11" in packet_text
+    assert "unblock Unit 12" in packet_text
+    assert "`completed_repeatability_runs` | `2`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert "### D11.31 IBKR Repeatability Run 3 Preflight Packet" in map_text
+    assert str(packet_path) in map_text
+    assert "ledger remains at `completed_repeatability_runs=2`" in map_text
+    assert "IBKR\nprimary eligibility remains `NOT_APPROVED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

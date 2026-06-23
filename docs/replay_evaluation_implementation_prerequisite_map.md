@@ -3763,6 +3763,27 @@ three-run D11.21 repeatability protocol, so `D11_INSUFFICIENT`,
 `PACKAGE_CAPTURE=BLOCKED`, `ORDER_AUTHORITY=NONE`,
 `EXECUTION_AUTHORITY=NONE`, and `VPS_RUNTIME=PARKED` remain unchanged.
 
+### D11.31 IBKR Repeatability Run 3 Preflight Packet
+
+D11.31 adds the source-controlled control-prep packet for planned Run #3:
+
+```text
+docs/ibkr_market_data_repeatability_run_3_preflight_packet.md
+```
+
+The packet is prepared in `CODEX_LOCAL`; it reserves the future diagnostic for
+separately authorized `LOCAL_MAC` execution and reserves `VPS` only for
+post-commit validation if a source-controlled change is committed. It does not
+approve the diagnostic, broker/TWS use, IBKR submit smoke, live trading,
+runtime activation, or any strategy/risk/execution behavior change.
+
+Run #3 remains planned only and must occur on a distinct future regular-session
+trading day after Run #2. Until it is separately authorized, accepted, and
+recorded, the ledger remains at `completed_repeatability_runs=2` and
+`invalidated_repeatability_runs=0`; D11 remains `D11_INSUFFICIENT`, IBKR
+primary eligibility remains `NOT_APPROVED`, Unit 12 remains `UNIT_12_BLOCKED`,
+and runtime/order/execution authority remains closed.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
