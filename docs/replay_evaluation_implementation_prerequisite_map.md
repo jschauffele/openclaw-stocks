@@ -3667,10 +3667,11 @@ docs/ibkr_market_data_repeatability_run_2_preflight_packet.md
 The packet is not the live diagnostic run and is not authorization to run
 today. It defines the future `LOCAL_MAC`-only control surface for Run #2,
 requires Run #2 to occur on a distinct regular-session trading day after Run #1,
-records the expected source commit
-`02339cba3239b9148ca352e2970cb658bdacc58a`, preserves the D11.26 ledger counts,
-and prevents command drift by source-controlling the Run #2 command template
-with `<UTC_REQUESTED_END_FOR_DISTINCT_RUN_2_DAY>`.
+requires the future authorization to supply the expected source commit, preserves
+`02339cba3239b9148ca352e2970cb658bdacc58a` as historical packet-creation
+context only, preserves the D11.26 ledger counts, and provides a `LOCAL_MAC`-
+only no-heredoc operator wrapper that emits all D11.28 adjudication inputs
+before and after exactly one source-controlled diagnostic command.
 
 D11.27 is not authorization to run today.
 

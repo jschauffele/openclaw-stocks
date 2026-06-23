@@ -1513,7 +1513,13 @@ def test_d11_27_run_2_preflight_packet_is_control_prep_only_without_authority() 
     assert "`order_authority` | `NONE`" in packet_text
     assert "`execution_authority` | `NONE`" in packet_text
     assert "`vps_runtime` | `PARKED`" in packet_text
+    assert "EXPECTED_SOURCE_COMMIT" in packet_text
+    assert "future Run #2 authorization must supply the exact" in packet_text
+    assert "this packet does not supply live-run commit" in packet_text
+    assert "HEAD must equal that authorization-supplied" in packet_text
     assert "02339cba3239b9148ca352e2970cb658bdacc58a" in packet_text
+    assert "historical context only, not the" in packet_text
+    assert "expected source commit for a future Run #2" in packet_text
     assert "AAPL" in packet_text
     assert "MSFT" in packet_text
     assert "NVDA" in packet_text
@@ -1537,6 +1543,26 @@ def test_d11_27_run_2_preflight_packet_is_control_prep_only_without_authority() 
     assert "authority_boundary" in packet_text
     assert "confirmation that VPS runtime was not touched" in packet_text
     assert "confirmation that timer and service remained off" in packet_text
+    assert "Future LOCAL_MAC-Only Operator Paste-Back Wrapper" in packet_text
+    assert "Run it in the intended" in packet_text
+    assert "`LOCAL_MAC` terminal only; do not copy it to a VPS terminal" in (
+        packet_text
+    )
+    assert "automation host. It uses no heredoc" in packet_text
+    assert "timestamp_utc=" in packet_text
+    assert "expected_source_commit=" in packet_text
+    assert "branch=" in packet_text
+    assert "head=" in packet_text
+    assert "worktree_before=CLEAN" in packet_text
+    assert "dependency_contract=requirements-diagnostics.txt / ib_insync==0.9.86" in packet_text
+    assert "observed_dependency_version=" in packet_text
+    assert "command_used=" in packet_text
+    assert "diagnostic_command=BEGIN" in packet_text
+    assert "worktree_after=CLEAN" in packet_text
+    assert "no_rerun_confirmation=true" in packet_text
+    assert "vps_runtime_timer_service_not_touched_confirmation=true" in packet_text
+    assert "package_capture=BLOCKED" in packet_text
+    assert "unit_12_status=UNIT_12_BLOCKED" in packet_text
     assert "stale, recency-caveated, quarantined, missing, malformed" in packet_text
     assert "any warning" in packet_text
     assert "any missing target symbol" in packet_text
@@ -1583,6 +1609,9 @@ def test_d11_27_run_2_preflight_packet_is_control_prep_only_without_authority() 
     assert "`ORDER_AUTHORITY=NONE`" in map_text
     assert "`EXECUTION_AUTHORITY=NONE`" in map_text
     assert "`VPS_RUNTIME=PARKED`" in map_text
+    assert "future authorization to supply the expected source commit" in map_text
+    assert "historical packet-creation" in map_text
+    assert "no-heredoc operator wrapper" in map_text
 
 
 def test_d11_28_run_2_adjudication_packet_is_review_prep_only_without_authority() -> None:

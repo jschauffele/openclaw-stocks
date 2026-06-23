@@ -61,13 +61,23 @@ authorization does not explicitly approve Run #2.
 Before any future separately authorized Run #2:
 
 - branch must be `main`;
-- HEAD must equal `02339cba3239b9148ca352e2970cb658bdacc58a`;
+- the future Run #2 authorization must supply the exact
+  `EXPECTED_SOURCE_COMMIT`; this packet does not supply live-run commit
+  authority;
+- HEAD must equal that authorization-supplied `EXPECTED_SOURCE_COMMIT`;
 - worktree must be clean before the run;
 - worktree must remain clean after the run;
 - the D11.22 ledger must still show `completed_repeatability_runs=1` and
   `invalidated_repeatability_runs=0`;
 - Run #1 must remain the only completed repeatability run;
 - Run #2 must not already be recorded as completed or invalidated.
+
+### Historical Packet-Creation Context Only
+
+`02339cba3239b9148ca352e2970cb658bdacc58a` was the source-of-truth commit
+when this D11.27 packet was created. It is historical context only, not the
+expected source commit for a future Run #2. Later control-only commits must not
+make a separately authorized future run stale.
 
 ## Dependency Contract
 
@@ -117,6 +127,62 @@ it from this packet alone.
 Target symbols: AAPL, MSFT, NVDA, TSLA, MSTR.
 
 Target timeframe: 15Min.
+
+## Future LOCAL_MAC-Only Operator Paste-Back Wrapper
+
+Use this wrapper only after a future authorization explicitly supplies the
+exact source commit in `EXPECTED_SOURCE_COMMIT`. Run it in the intended
+`LOCAL_MAC` terminal only; do not copy it to a VPS terminal, shell session, or
+automation host. It uses no heredoc and prints labeled evidence before and
+after one diagnostic invocation. Any failed precheck is a stop condition and
+must not be worked around by editing, rerunning, or adding terminal noise.
+
+```bash
+set -euo pipefail
+
+EXPECTED_SOURCE_COMMIT='<EXACT_COMMIT_FROM_FUTURE_RUN_2_AUTHORIZATION>'
+[[ -n "$EXPECTED_SOURCE_COMMIT" ]] || { echo 'missing authorization-supplied expected source commit' >&2; exit 1; }
+[[ "$(git branch --show-current)" == 'main' ]] || { echo 'wrong branch' >&2; exit 1; }
+[[ "$(git rev-parse HEAD)" == "$EXPECTED_SOURCE_COMMIT" ]] || { echo 'HEAD does not equal authorization-supplied expected source commit' >&2; exit 1; }
+[[ -z "$(git status --porcelain=v1)" ]] || { echo 'dirty worktree before diagnostic' >&2; exit 1; }
+
+DIAGNOSTIC_COMMAND=(
+  .venv-312/bin/python -m tools.ops.ibkr_market_data_read_only_smoke
+  --symbol AAPL --symbol MSFT --symbol NVDA --symbol TSLA --symbol MSTR
+  --timeframe 15Min
+  --requested-end '<UTC_REQUESTED_END_FOR_DISTINCT_RUN_2_DAY>'
+  --lookback-minutes 120 --host 127.0.0.1 --port 7497 --client-id 9117
+  --exchange SMART --currency USD --sec-type STK --timeout-seconds 10
+  --authorize-local-ibkr-read-only-smoke
+)
+
+printf 'timestamp_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf 'expected_source_commit=%s\n' "$EXPECTED_SOURCE_COMMIT"
+printf 'branch=%s\n' "$(git branch --show-current)"
+printf 'head=%s\n' "$(git rev-parse HEAD)"
+printf 'worktree_before=CLEAN\n'
+printf 'dependency_contract=requirements-diagnostics.txt / ib_insync==0.9.86\n'
+printf 'observed_dependency_version=%s\n' "$(.venv-312/bin/python -c 'import ib_insync; print(ib_insync.__version__)')"
+printf 'command_used='
+printf '%q ' "${DIAGNOSTIC_COMMAND[@]}"
+printf '\n'
+printf 'diagnostic_command=BEGIN\n'
+"${DIAGNOSTIC_COMMAND[@]}"
+printf 'diagnostic_command=END\n'
+[[ -z "$(git status --porcelain=v1)" ]] || { echo 'dirty worktree after diagnostic' >&2; exit 1; }
+printf 'worktree_after=CLEAN\n'
+printf 'no_rerun_confirmation=true\n'
+printf 'vps_runtime_timer_service_not_touched_confirmation=true\n'
+printf 'package_capture=BLOCKED\n'
+printf 'unit_12_status=UNIT_12_BLOCKED\n'
+```
+
+The diagnostic JSON between `diagnostic_command=BEGIN` and
+`diagnostic_command=END`, together with the labeled wrapper output, is the
+complete paste-back. It supplies each D11.28 review input, including the
+per-symbol result fields, all authority fields, and the required no-query
+confirmation from the diagnostic authority boundary. Do not add unrelated
+commands, account queries, VPS commands, or a second diagnostic invocation.
 
 ## Required Paste-Back Fields
 
