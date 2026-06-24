@@ -1468,6 +1468,36 @@ def test_d11_33_evidence_count_completion_preserves_sufficiency_boundaries() -> 
     assert "`IBKR_CANDIDATE_ONLY`" in map_text
 
 
+def test_d11_34_final_provider_review_is_not_approved_without_vps_proof() -> None:
+    ledger_text = Path(
+        "docs/ibkr_market_data_repeatability_ledger_template.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert "### D11.34 Final IBKR Market-Data Provider-Approval Review" in map_text
+    assert "Decision: `NOT_APPROVED`" in map_text
+    assert "D11.11 requires a separate VPS read-only freshness proof before primary\neligibility" in map_text
+    assert "accepted repeatability evidence is `LOCAL_MAC` only" in map_text
+    assert "no\nseparate VPS proof is recorded" in map_text
+    assert "diagnostic credentials/configuration status without storing\ncredentials" in map_text
+    assert "`ibkr_market_data_candidate`" in map_text
+    assert "`d11_primary_candidate_status=candidate`" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "D11 remains `D11_INSUFFICIENT`" in map_text
+    assert "Unit 12 remains `UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+    assert "no\npackage capture, replay, scoring, candidate generation" in map_text
+    assert "broker/API or account/\nposition/margin/buying-power/portfolio/order/balance/execution query" in map_text
+    assert "runtime,\ntimer, service, systemd, strategy, risk, execution, order, cleanup, flatten,\nsell, cancel, or live-trading authority" in map_text
+    assert "separately authorized VPS read-only freshness\nproof" in map_text
+    assert "remains separate from D11 sufficiency, Unit 12, package\ncapture, replay, scoring, candidate generation" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

@@ -3837,6 +3837,37 @@ trading authority. Current status labels are: `EVIDENCE_COUNT_COMPLETE`,
 `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `UNIT_12_BLOCKED`, and
 `VPS_RUNTIME=PARKED`.
 
+### D11.34 Final IBKR Market-Data Provider-Approval Review
+
+D11.34 performs the final provider-approval review allowed after D11.33.
+Decision: `NOT_APPROVED`. The completed clean/countable Run #1, #2, and #3
+evidence satisfies the D11.21 repeatability requirement, but it does not meet
+all source-controlled primary-eligibility criteria.
+
+D11.11 requires a separate VPS read-only freshness proof before primary
+eligibility. The accepted repeatability evidence is `LOCAL_MAC` only, and no
+separate VPS proof is recorded. D11.20 also requires a source-controlled
+record of diagnostic credentials/configuration status without storing
+credentials; the candidate-placeholder setting `credentials_configured=false`
+is not that diagnostic-use record. Therefore the provider status remains
+`ibkr_market_data_candidate`,
+`d11_primary_candidate_status=candidate`, and
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`.
+
+No provider-approval outcome independently completes D11 or opens Unit 12.
+D11 remains `D11_INSUFFICIENT`; Unit 12 remains `UNIT_12_BLOCKED`;
+`PACKAGE_CAPTURE=BLOCKED`; and `VPS_RUNTIME=PARKED`. This review grants no
+package capture, replay, scoring, candidate generation, broker/API or account/
+position/margin/buying-power/portfolio/order/balance/execution query, runtime,
+timer, service, systemd, strategy, risk, execution, order, cleanup, flatten,
+sell, cancel, or live-trading authority.
+
+The next permissible gate is a separately authorized VPS read-only freshness
+proof and its source-controlled diagnostic credential/configuration record.
+That future gate remains separate from D11 sufficiency, Unit 12, package
+capture, replay, scoring, candidate generation, and all operational or trading
+authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
