@@ -3912,6 +3912,31 @@ VPS-specific command contract and one bounded proof; that gate remains separate
 from provider approval, D11 sufficiency, Unit 12, and all operational or
 trading authority.
 
+### D11.37 VPS Read-Only Freshness Proof Implementation
+
+D11.37 implements the D11.36 contract module and records its implementation
+packet:
+
+```text
+tools/ops/ibkr_market_data_vps_read_only_freshness_proof.py
+docs/ibkr_market_data_vps_read_only_implementation_packet.md
+```
+
+The implementation is fail-closed without
+`--authorize-vps-ibkr-read-only-freshness-proof`, requires execution context
+`VPS`, repo root `/opt/openclaw-stocks`, matching clean `main` source state,
+and `requirements-diagnostics.txt` / `ib_insync==0.9.86`. Its only connection
+path is an authorized regular-trading-hours historical-bar request; it emits
+non-secret credential/configuration attestations and all D11.36 closed-authority
+flags.
+
+D11.37 does not run a VPS proof or approve IBKR. It preserves
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=PARKED`. The
+next permissible gate is separately authorizing the implemented bounded VPS
+proof; provider approval, D11 sufficiency, Unit 12, and all operational or
+trading authority remain separate.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import types
 from datetime import datetime, timezone
@@ -34,6 +35,11 @@ from tools.ops.ibkr_market_data_read_only_smoke import (
     IBKR_READ_ONLY_SMOKE_DEPENDENCY_UNAVAILABLE_REASON,
     build_smoke_result,
     run_smoke_diagnostic,
+)
+from tools.ops.ibkr_market_data_vps_read_only_freshness_proof import (
+    VPS_REPO_ROOT,
+    VPS_READ_ONLY_PROOF_AUTHORITY_BOUNDARY,
+    build_vps_read_only_freshness_proof,
 )
 from market_data import (
     FRESHNESS_CLEAN,
@@ -1602,6 +1608,159 @@ def test_d11_36_vps_command_contract_is_prep_only_and_non_secret() -> None:
     assert "`UNIT_12_BLOCKED`" in map_text
     assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
     assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
+def test_d11_37_vps_read_only_proof_is_fail_closed_and_preserves_boundaries() -> None:
+    import tools.ops.ibkr_market_data_vps_read_only_freshness_proof as proof
+
+    module_path = Path(proof.__file__)
+    source = module_path.read_text(encoding="utf-8")
+    packet_text = Path(
+        "docs/ibkr_market_data_vps_read_only_implementation_packet.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+    result = build_vps_read_only_freshness_proof(
+        repo_root=VPS_REPO_ROOT,
+        expected_source_commit="a" * 40,
+        execution_context="VPS",
+        symbols=("AAPL", "MSFT", "NVDA", "TSLA", "MSTR"),
+        timeframe="15Min",
+        requested_end=datetime(2026, 6, 24, 14, 0, tzinfo=timezone.utc),
+        lookback_minutes=120,
+        host="127.0.0.1",
+        port=7497,
+        client_id=9118,
+        exchange="SMART",
+        currency="USD",
+        sec_type="STK",
+        timeout_seconds=10,
+    )
+
+    assert module_path.name == "ibkr_market_data_vps_read_only_freshness_proof.py"
+    assert "--authorize-vps-ibkr-read-only-freshness-proof" in source
+    assert result["vps_freshness_proof_run"] is False
+    assert json.dumps(result, indent=2, sort_keys=True)
+    assert result["failure_reason"] == (
+        "explicit --authorize-vps-ibkr-read-only-freshness-proof flag required"
+    )
+    assert result["credential_configuration_status"] == (
+        "operator_managed_tws_gateway_session_attested"
+    )
+    assert result["credentials_stored_in_repository"] is False
+    assert result["credential_values_emitted"] is False
+    assert result["secrets_captured"] is False
+    assert result["ibkr_primary_eligibility"] == "NOT_APPROVED"
+    assert result["d11_primary_candidate_status"] == CANDIDATE_STATUS_CANDIDATE
+    assert result["d11_primary_eligible"] is False
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
+    assert result["unit_12_status"] == UNIT_12_STATUS_BLOCKED
+    assert result["vps_runtime"] == "NOT_TOUCHED"
+    for field in (
+        "package_capture", "replay", "scoring", "candidate_generation",
+        "broker_api_authority", "account_query_authority", "order_authority",
+        "execution_authority", "cleanup_authority", "flatten_authority",
+        "sell_authority", "cancel_authority", "live_trading_authority",
+        "d11_completion_authority",
+    ):
+        assert result[field] is False
+    assert "no_account_query" in VPS_READ_ONLY_PROOF_AUTHORITY_BOUNDARY
+    assert "no_order_placement" in VPS_READ_ONLY_PROOF_AUTHORITY_BOUNDARY
+    assert "no_package_capture" in VPS_READ_ONLY_PROOF_AUTHORITY_BOUNDARY
+    assert "no_replay" in VPS_READ_ONLY_PROOF_AUTHORITY_BOUNDARY
+    assert "no_timer_service_systemd_runtime_mutation" in VPS_READ_ONLY_PROOF_AUTHORITY_BOUNDARY
+    assert "D11.37 VPS Read-Only Freshness Proof Implementation Packet" in packet_text
+    assert "No VPS proof has been run by D11.37" in packet_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in packet_text
+    assert "`D11_INSUFFICIENT`" in packet_text
+    assert "`UNIT_12_BLOCKED`" in packet_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in packet_text
+    assert "`VPS_RUNTIME=PARKED`" in packet_text
+    assert "### D11.37 VPS Read-Only Freshness Proof Implementation" in map_text
+    assert "D11.37 does not run a VPS proof or approve IBKR" in map_text
+
+
+def test_d11_37_vps_read_only_proof_enforces_vps_root_and_context_without_connecting() -> None:
+    kwargs = {
+        "repo_root": VPS_REPO_ROOT,
+        "expected_source_commit": "b" * 40,
+        "execution_context": "VPS",
+        "symbols": ("AAPL",),
+        "timeframe": "15Min",
+        "requested_end": datetime(2026, 6, 24, 14, 0, tzinfo=timezone.utc),
+        "lookback_minutes": 120,
+        "host": "127.0.0.1",
+        "port": 7497,
+        "client_id": 9118,
+        "exchange": "SMART",
+        "currency": "USD",
+        "sec_type": "STK",
+        "timeout_seconds": 10,
+    }
+    wrong_context = build_vps_read_only_freshness_proof(
+        **{**kwargs, "execution_context": "LOCAL_MAC"}
+    )
+    wrong_root = build_vps_read_only_freshness_proof(
+        **{**kwargs, "repo_root": "/tmp/openclaw-stocks"}
+    )
+
+    assert wrong_context["failure_reason"] == "execution_context must be VPS"
+    assert wrong_context["vps_freshness_proof_run"] is False
+    assert wrong_root["failure_reason"] == "repo_root must be /opt/openclaw-stocks"
+    assert wrong_root["vps_freshness_proof_run"] is False
+
+
+def test_d11_37_authorized_path_records_source_state_with_injected_historical_read(monkeypatch) -> None:
+    import tools.ops.ibkr_market_data_vps_read_only_freshness_proof as proof
+
+    expected_commit = "c" * 40
+    monkeypatch.setattr(proof, "_pinned_dependency_contract_present", lambda _: True)
+
+    def inspect(_: str) -> dict[str, str]:
+        return {
+            "branch": "main",
+            "observed_head": expected_commit,
+            "worktree_status": "clean",
+        }
+
+    def fetch(**_: object) -> datetime:
+        return datetime(2026, 6, 24, 13, 45, tzinfo=timezone.utc)
+
+    result = proof.build_vps_read_only_freshness_proof(
+        repo_root=VPS_REPO_ROOT,
+        expected_source_commit=expected_commit,
+        execution_context="VPS",
+        symbols=("AAPL",),
+        timeframe="15Min",
+        requested_end=datetime(2026, 6, 24, 14, 0, tzinfo=timezone.utc),
+        lookback_minutes=120,
+        host="127.0.0.1",
+        port=7497,
+        client_id=9118,
+        exchange="SMART",
+        currency="USD",
+        sec_type="STK",
+        timeout_seconds=10,
+        authorize_vps_ibkr_read_only_freshness_proof=True,
+        repo_state_inspector=inspect,
+        ibkr_dependency_loader=lambda: SimpleNamespace(__version__="0.9.86"),
+        historical_fetcher=fetch,
+    )
+
+    assert result["vps_freshness_proof_run"] is True
+    assert result["branch"] == "main"
+    assert result["observed_head"] == expected_commit
+    assert result["worktree_status_before_run"] == "clean"
+    assert result["branch_after_run"] == "main"
+    assert result["observed_head_after_run"] == expected_commit
+    assert result["worktree_status_after_run"] == "clean"
+    assert result["results"][0]["d11_countable"] is True
+    assert result["results"][0]["latest_candle_timestamp"] == "2026-06-24T13:45:00+00:00"
+    assert isinstance(result["results"][0]["latest_candle_timestamp"], str)
+    assert json.dumps(result, indent=2, sort_keys=True)
+    assert result["results"][0]["d11_primary_eligible"] is False
+    assert result["d11_status"] == D11_STATUS_INSUFFICIENT
 
 
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
