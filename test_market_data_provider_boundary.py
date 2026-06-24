@@ -1279,7 +1279,7 @@ def test_d11_22_repeatability_ledger_records_run_1_without_primary_authority() -
 
     assert "D11.22 IBKR Market-Data Repeatability Ledger Template" in ledger_text
     assert "`ledger_status` | `active_repeatability_ledger`" in ledger_text
-    assert "`completed_repeatability_runs` | `2`" in ledger_text
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert "`ibkr_provider_status` | `ibkr_market_data_candidate`" in ledger_text
     assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in ledger_text
@@ -1300,13 +1300,30 @@ def test_d11_22_repeatability_ledger_records_run_1_without_primary_authority() -
         "43057a4b2689da57a1f7a6517159eaf4109f83ca | "
         "AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |"
     ) in ledger_text
+    assert (
+        "| 3 | 2026-06-24 | "
+        "8d3565208fcfeb62ad5230ada72a38a08852eb8b | "
+        "AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |"
+    ) in ledger_text
+    assert "### Run 3 Ledger Entry" in ledger_text
+    assert "`run_sequence_number` | `3`" in ledger_text
+    assert "`run_command_timestamp_utc` | `2026-06-24T14:10:56Z`" in ledger_text
+    assert "`expected_source_commit` | `8d3565208fcfeb62ad5230ada72a38a08852eb8b`" in ledger_text
+    assert "`observed_head` | `8d3565208fcfeb62ad5230ada72a38a08852eb8b`" in ledger_text
+    assert "`requested_start` | `2026-06-24T12:00:00+00:00`" in ledger_text
+    assert "`requested_end` | `2026-06-24T14:00:00+00:00`" in ledger_text
+    assert "`latest_candle_timestamp` | `2026-06-24T13:45:00+00:00`" in ledger_text
+    assert "`cleanup_authority` | `false`" in ledger_text
+    assert "`flatten_authority` | `false`" in ledger_text
+    assert "`sell_authority` | `false`" in ledger_text
+    assert "`cancel_authority` | `false`" in ledger_text
+    assert "`live_trading_authority` | `false`" in ledger_text
     assert "`run_sequence_number` | `2`" in ledger_text
     assert "`run_command_timestamp_utc` | `2026-06-23T14:11:28Z`" in ledger_text
     assert "`expected_source_commit` | `43057a4b2689da57a1f7a6517159eaf4109f83ca`" in ledger_text
     assert "`requested_start` | `2026-06-23T12:00:00+00:00`" in ledger_text
     assert "`requested_end` | `2026-06-23T14:00:00+00:00`" in ledger_text
     assert "`latest_candle_timestamp` | `2026-06-23T13:45:00+00:00`" in ledger_text
-    assert "Run #3 remains\nfuture and pending" in ledger_text
     assert "`run_command_timestamp_utc` | `2026-06-22T14:08:04Z`" in ledger_text
     assert "`supplement_timestamp_utc` | `2026-06-22T14:13:54Z`" in ledger_text
     assert "`expected_source_commit` | `b63d0d2d31b3023b07f7308c84e0ba2e4f38e931`" in ledger_text
@@ -1353,16 +1370,17 @@ def test_d11_22_repeatability_ledger_records_run_1_without_primary_authority() -
     assert "docs/ibkr_market_data_repeatability_ledger_template.md" in map_text
     assert "D11.26 IBKR Repeatability Run 1 Ledger Recording" in map_text
     assert "### D11.30 IBKR Repeatability Run 2 Ledger Recording" in map_text
-    assert "`completed_repeatability_runs=2`" in map_text
+    assert "### D11.32 IBKR Repeatability Run 3 Ledger / Adjudication Update" in map_text
+    assert "`completed_repeatability_runs=3`" in map_text
     assert "`invalidated_repeatability_runs=0`" in map_text
     assert "`NO_RERUN_PERFORMED=true`" in map_text
-    assert "does not satisfy the D11.21 three-run repeatability protocol" in map_text
+    assert "satisfy the D11.21 evidence-count and distinct-day\nrequirements only" in map_text
     assert "`D11_INSUFFICIENT`" in map_text
     assert "`UNIT_12_BLOCKED`" in map_text
     assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
     assert "`ORDER_AUTHORITY=NONE`" in map_text
     assert "`EXECUTION_AUTHORITY=NONE`" in map_text
-    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
 def test_d11_31_run_3_preflight_packet_preserves_repeatability_and_authority() -> None:
@@ -1408,12 +1426,13 @@ def test_d11_31_run_3_preflight_packet_preserves_repeatability_and_authority() -
     assert "does not approve IBKR as primary" in packet_text
     assert "does not complete D11" in packet_text
     assert "unblock Unit 12" in packet_text
-    assert "`completed_repeatability_runs` | `2`" in ledger_text
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert "### D11.31 IBKR Repeatability Run 3 Preflight Packet" in map_text
     assert str(packet_path) in map_text
-    assert "ledger remains at `completed_repeatability_runs=2`" in map_text
-    assert "IBKR\nprimary eligibility remains `NOT_APPROVED`" in map_text
+    assert "D11.32 IBKR Repeatability Run 3 Ledger / Adjudication Update" in map_text
+    assert "`completed_repeatability_runs=3`" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
 
 
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
@@ -1464,7 +1483,7 @@ def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> Non
     assert "does not record repeatability run 1 as completed" in packet_text
     assert "does not mutate the D11.22 ledger counts" in packet_text
 
-    assert "`completed_repeatability_runs` | `2`" in ledger_text
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert str(packet_path) in map_text
     assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
@@ -1532,7 +1551,7 @@ def test_d11_24_adjudication_packet_is_review_prep_only_without_authority() -> N
     assert "does not record repeatability run 1 as invalidated" in packet_text
     assert "does not mutate the D11.22 ledger counts" in packet_text
 
-    assert "`completed_repeatability_runs` | `2`" in ledger_text
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert str(packet_path) in map_text
     assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
@@ -1651,7 +1670,7 @@ def test_d11_27_run_2_preflight_packet_is_control_prep_only_without_authority() 
         packet_text
     )
 
-    assert "`completed_repeatability_runs` | `2`" in ledger_text
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert "| 1 | 2026-06-22 |" in ledger_text
     assert "| 2 | 2026-06-23 |" in ledger_text
@@ -1792,7 +1811,7 @@ def test_d11_28_run_2_adjudication_packet_is_review_prep_only_without_authority(
         packet_text
     )
 
-    assert "`completed_repeatability_runs` | `2`" in ledger_text
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
     assert "`invalidated_repeatability_runs` | `0`" in ledger_text
     assert "| 1 | 2026-06-22 |" in ledger_text
     assert "| 2 | 2026-06-23 |" in ledger_text

@@ -14,7 +14,7 @@ market-data provider.
 | Field | Value |
 | --- | --- |
 | `ledger_status` | `active_repeatability_ledger` |
-| `completed_repeatability_runs` | `2` |
+| `completed_repeatability_runs` | `3` |
 | `invalidated_repeatability_runs` | `0` |
 | `ibkr_provider_status` | `ibkr_market_data_candidate` |
 | `ibkr_primary_eligibility` | `NOT_APPROVED` |
@@ -93,6 +93,7 @@ performed for this ledger entry.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 2026-06-22 | b63d0d2d31b3023b07f7308c84e0ba2e4f38e931 | AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |
 | 2 | 2026-06-23 | 43057a4b2689da57a1f7a6517159eaf4109f83ca | AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |
+| 3 | 2026-06-24 | 8d3565208fcfeb62ad5230ada72a38a08852eb8b | AAPL, MSFT, NVDA, TSLA, MSTR | 15Min | clean | true | completed |
 
 ### Run 1 Ledger Entry
 
@@ -207,8 +208,72 @@ does not complete D11, does not open Unit 12, does not authorize package
 capture, replay, scoring, candidate generation, broker/API work, account/
 position/margin/buying-power/portfolio/order/balance/execution queries,
 orders, execution, dependency installation, VPS mutation, runtime mutation,
-systemd mutation, timer/service changes, or credential changes. Run #3 remains
-future and pending until separately authorized and adjudicated.
+systemd mutation, timer/service changes, or credential changes.
+
+### Run 3 Ledger Entry
+
+Run #3 is recorded from accepted D11 Run #3 paste-back evidence. No diagnostic
+rerun was performed for this ledger entry.
+
+| Field | Value |
+| --- | --- |
+| `run_sequence_number` | `3` |
+| `diagnostic_date` | `2026-06-24` |
+| `run_command_timestamp_utc` | `2026-06-24T14:10:56Z` |
+| `source` | `LOCAL_MAC` |
+| `branch` | `main` |
+| `expected_source_commit` | `8d3565208fcfeb62ad5230ada72a38a08852eb8b` |
+| `observed_head` | `8d3565208fcfeb62ad5230ada72a38a08852eb8b` |
+| `worktree_status_before_run` | `clean` |
+| `worktree_status_after_run` | `clean` |
+| `dependency_contract` | `requirements-diagnostics.txt / ib_insync==0.9.86` |
+| `observed_dependency` | `ib_insync==0.9.86` |
+| `no_rerun_performed` | `true` |
+| `vps_runtime` | `NOT_TOUCHED` |
+| `timer_service` | `NOT_TOUCHED` |
+| `package_capture` | `BLOCKED` |
+| `unit_12_status` | `UNIT_12_BLOCKED` |
+| `command_used` | `.venv-312/bin/python -m tools.ops.ibkr_market_data_read_only_smoke --symbol AAPL --symbol MSFT --symbol NVDA --symbol TSLA --symbol MSTR --timeframe 15Min --requested-end 2026-06-24T14:00:00Z --lookback-minutes 120 --host 127.0.0.1 --port 7497 --client-id 9117 --exchange SMART --currency USD --sec-type STK --timeout-seconds 10 --authorize-local-ibkr-read-only-smoke` |
+| `result_type` | `ibkr_local_read_only_market_data_smoke` |
+| `provider_key` | `ibkr_market_data_candidate` |
+| `provider_name` | `IBKR read-only market-data diagnostic candidate` |
+| `connection_mode` | `local_read_only_smoke` |
+| `read_only` | `true` |
+| `symbols` | `AAPL, MSFT, NVDA, TSLA, MSTR` |
+| `timeframe` | `15Min` |
+| `requested_start` | `2026-06-24T12:00:00+00:00` |
+| `requested_end` | `2026-06-24T14:00:00+00:00` |
+| `latest_candle_timestamp` | `2026-06-24T13:45:00+00:00` |
+| `lag_minutes` | `15.0` |
+| `freshness_classification` | `clean` |
+| `d11_countable` | `true` |
+| `d11_primary_candidate_status` | `candidate` |
+| `d11_primary_eligible` | `false` |
+| `failure_reason` | `` |
+| `broker_api_authority` | `false` |
+| `order_authority` | `false` |
+| `execution_authority` | `false` |
+| `d11_completion_authority` | `false` |
+| `replay` | `false` |
+| `scoring` | `false` |
+| `candidate_generation` | `false` |
+| `package_capture_authority` | `false` |
+| `cleanup_authority` | `false` |
+| `flatten_authority` | `false` |
+| `sell_authority` | `false` |
+| `cancel_authority` | `false` |
+| `live_trading_authority` | `false` |
+| `account_position_margin_buying_power_portfolio_order_balance_execution_query` | `false` |
+
+Run #3 completes the D11.21 evidence-count requirement: Runs #1, #2, and #3
+are clean, countable, and completed on three distinct regular-session trading
+days. Under D11.21, that evidence is separate from provider approval and D11
+sufficiency. IBKR remains candidate only; primary eligibility remains
+`NOT_APPROVED`, D11 remains `D11_INSUFFICIENT`, and Unit 12 remains
+`UNIT_12_BLOCKED`. Package capture remains `BLOCKED`, VPS runtime remains
+`PARKED` and was not touched, and no replay, scoring, candidate generation,
+broker/API, account, order, execution, cleanup, flatten, sell, cancel, or
+live-trading authority is opened.
 
 ## Invalidated Evidence Ledger
 

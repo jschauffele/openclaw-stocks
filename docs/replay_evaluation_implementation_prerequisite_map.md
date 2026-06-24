@@ -3777,12 +3777,37 @@ post-commit validation if a source-controlled change is committed. It does not
 approve the diagnostic, broker/TWS use, IBKR submit smoke, live trading,
 runtime activation, or any strategy/risk/execution behavior change.
 
-Run #3 remains planned only and must occur on a distinct future regular-session
-trading day after Run #2. Until it is separately authorized, accepted, and
-recorded, the ledger remains at `completed_repeatability_runs=2` and
-`invalidated_repeatability_runs=0`; D11 remains `D11_INSUFFICIENT`, IBKR
-primary eligibility remains `NOT_APPROVED`, Unit 12 remains `UNIT_12_BLOCKED`,
-and runtime/order/execution authority remains closed.
+Run #3 was planned only at this D11.31 control-prep stage and had to occur on a
+distinct regular-session trading day after Run #2. Its later acceptance and
+ledger recording are recorded by D11.32.
+
+### D11.32 IBKR Repeatability Run 3 Ledger / Adjudication Update
+
+D11.32 records accepted Run #3 `LOCAL_MAC` paste-back evidence in the
+source-controlled repeatability ledger. It records no diagnostic rerun,
+broker/API call, dependency installation, VPS or timer/service mutation,
+package capture, replay, scoring, candidate generation, Unit 12 activity, or
+authority expansion.
+
+Run #3 was a read-only diagnostic on 2026-06-24 at source commit
+`8d3565208fcfeb62ad5230ada72a38a08852eb8b`. The branch and observed HEAD were
+`main` and that same commit, and the worktree was clean before and after the
+run. Its requested window was `2026-06-24T12:00:00+00:00` through
+`2026-06-24T14:00:00+00:00`; all target symbols AAPL, MSFT, NVDA, TSLA, and
+MSTR had a latest candle timestamp of `2026-06-24T13:45:00+00:00`,
+`freshness_classification=clean`, and `d11_countable=true`.
+
+The ledger now records Runs #1, #2, and #3 as completed/countable with
+`completed_repeatability_runs=3` and `invalidated_repeatability_runs=0`. The
+three accepted runs satisfy the D11.21 evidence-count and distinct-day
+requirements only. Under D11.21, repeatability evidence remains separate from
+provider approval and D11 sufficiency; therefore IBKR remains
+`ibkr_market_data_candidate`, `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`ORDER_AUTHORITY=NONE`, `EXECUTION_AUTHORITY=NONE`, and `VPS_RUNTIME=PARKED`
+remain unchanged. No replay, scoring, candidate generation, broker/account/
+order/execution query, cleanup, flatten, sell, cancel, or live-trading
+authority is granted.
 
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
