@@ -3963,6 +3963,36 @@ opens no account/order/execution, cleanup, flatten, sell, cancel, live trading,
 runtime, timer, service, systemd, strategy, risk, replay, scoring, or
 candidate-generation authority.
 
+### D11.39 Narrow VPS Runtime-Parameter Addendum
+
+D11.39 adds the runtime-parameter addendum required by D11.38:
+
+```text
+docs/ibkr_market_data_vps_runtime_parameter_addendum.md
+```
+
+It pins expected source commit
+`0fb3f459c519b622ed49a6dea580782242b93365`, repo root
+`/opt/openclaw-stocks`, Python path `/opt/openclaw-stocks/venv/bin/python`,
+the implemented D11.37 module, execution context `VPS`, and the existing
+five-symbol `15Min`, 120-minute, SMART/USD/STK, 10-second command boundary.
+Its requested end must be a regular-session UTC `Z` time at or after 7:00 AM
+Pacific / 10:00 AM Eastern; official market open is not the D11 diagnostic
+target.
+
+The addendum is `PREPARED_PENDING_OPERATOR_RUNTIME_VALUES`: the regular-session
+UTC end time, VPS-local endpoint, port, and read-only client ID remain pending,
+so no proof has run and the command is not executable. It preserves all
+non-secret credential/configuration fields and closed authorities, including
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=PARKED`.
+
+The next permissible gate is a source-controlled update supplying all four
+operator-confirmed runtime values. It does not authorize any account, order,
+execution, cleanup, flatten, sell, cancel, live-trading, runtime, timer,
+service, systemd, strategy, risk, replay, scoring, or candidate-generation
+activity.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
