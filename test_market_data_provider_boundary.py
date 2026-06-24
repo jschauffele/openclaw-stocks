@@ -1435,6 +1435,39 @@ def test_d11_31_run_3_preflight_packet_preserves_repeatability_and_authority() -
     assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
 
 
+def test_d11_33_evidence_count_completion_preserves_sufficiency_boundaries() -> None:
+    ledger_text = Path(
+        "docs/ibkr_market_data_repeatability_ledger_template.md"
+    ).read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "`completed_repeatability_runs` | `3`" in ledger_text
+    assert "`invalidated_repeatability_runs` | `0`" in ledger_text
+    assert "| 1 | 2026-06-22 |" in ledger_text
+    assert "| 2 | 2026-06-23 |" in ledger_text
+    assert "| 3 | 2026-06-24 |" in ledger_text
+    assert "### D11.33 Evidence-Count Completion / Sufficiency-Boundary Review" in map_text
+    assert "`completed_repeatability_runs=3`" in map_text
+    assert "`invalidated_repeatability_runs=0`" in map_text
+    assert "completes the\nD11.21 three-run evidence-count and distinct-day requirement only" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`ibkr_market_data_candidate`" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+    assert "separately authorized final\nprovider-approval review" in map_text
+    assert "remains separate from\nD11 sufficiency, Unit 12" in map_text
+    assert "package capture, replay, scoring" in map_text
+    assert "candidate generation, broker/API or account/position/margin/buying-power/" in map_text
+    assert "portfolio/order/balance/execution queries" in map_text
+    assert "runtime, timer, service, systemd,\nstrategy, risk, execution, orders, cleanup, flatten, sell, cancel, or live\ntrading" in map_text
+    assert "`EVIDENCE_COUNT_COMPLETE`" in map_text
+    assert "`IBKR_CANDIDATE_ONLY`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

@@ -3809,6 +3809,34 @@ remain unchanged. No replay, scoring, candidate generation, broker/account/
 order/execution query, cleanup, flatten, sell, cancel, or live-trading
 authority is granted.
 
+### D11.33 Evidence-Count Completion / Sufficiency-Boundary Review
+
+D11.33 records a source-controlled boundary review after the accepted Run #3
+ledger update. `completed_repeatability_runs=3` and
+`invalidated_repeatability_runs=0`; Runs #1 (2026-06-22), #2 (2026-06-23), and
+#3 (2026-06-24) are clean, countable, and completed. This completes the
+D11.21 three-run evidence-count and distinct-day requirement only.
+
+Under D11.21, the completed evidence count independently changes none of the
+following: IBKR remains `ibkr_market_data_candidate` with
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`; D11 remains `D11_INSUFFICIENT`; Unit
+12 remains `UNIT_12_BLOCKED`; `PACKAGE_CAPTURE=BLOCKED`; and
+`VPS_RUNTIME=PARKED`. It does not authorize package capture, replay, scoring,
+candidate generation, broker/API or account/position/margin/buying-power/
+portfolio/order/balance/execution queries, runtime, timer, service, systemd,
+strategy, risk, execution, orders, cleanup, flatten, sell, cancel, or live
+trading.
+
+The next permissible gate is the ledger's separately authorized final
+provider-approval review. That review may decide only whether the completed
+repeatability evidence supports provider approval; it remains separate from
+D11 sufficiency, Unit 12, package inventory, candidate evidence,
+baseline-vs-candidate pairing, replay, scoring, and every operational or
+trading authority. Current status labels are: `EVIDENCE_COUNT_COMPLETE`,
+`D11_INSUFFICIENT`, `IBKR_CANDIDATE_ONLY`,
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `UNIT_12_BLOCKED`, and
+`VPS_RUNTIME=PARKED`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
