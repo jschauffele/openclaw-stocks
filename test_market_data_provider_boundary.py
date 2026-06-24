@@ -1546,6 +1546,64 @@ def test_d11_35_vps_freshness_control_prep_preserves_all_boundaries() -> None:
     assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
+def test_d11_36_vps_command_contract_is_prep_only_and_non_secret() -> None:
+    packet_path = Path("docs/ibkr_market_data_vps_read_only_command_contract.md")
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.36 VPS Read-Only Market-Data Freshness Command Contract" in packet_text
+    assert "source-controlled command contract only" in packet_text
+    assert "does not implement the\nnamed module, run a VPS proof" in packet_text
+    assert "`vps_freshness_proof_run` | `false`" in packet_text
+    assert "`credential_configuration_recorded` | `false`" in packet_text
+    assert "`credentials_stored_in_repository` | `false`" in packet_text
+    assert "local-only `tools.ops.ibkr_market_data_read_only_smoke` module" in packet_text
+    assert "explicitly prohibited from\nthis VPS contract" in packet_text
+    assert "/opt/openclaw-stocks/venv/bin/python -m tools.ops.ibkr_market_data_vps_read_only_freshness_proof" in packet_text
+    assert "--repo-root /opt/openclaw-stocks" in packet_text
+    assert "--expected-source-commit <authorized-40-hex-commit>" in packet_text
+    assert "--execution-context VPS" in packet_text
+    assert "--symbol AAPL --symbol MSFT --symbol NVDA --symbol TSLA --symbol MSTR" in packet_text
+    assert "--timeframe 15Min --requested-end <authorized-utc-z> --lookback-minutes 120" in packet_text
+    assert "--authorize-vps-ibkr-read-only-freshness-proof" in packet_text
+    assert "neither is implemented or\nauthorized by D11.36" in packet_text
+    assert "`credentials_stored_in_repository=false`, `credential_values_emitted=false`" in packet_text
+    assert "`secrets_captured=false`" in packet_text
+    assert "`execution_context=VPS`, `repo_root=/opt/openclaw-stocks`" in packet_text
+    assert "`connection_mode=vps_read_only_historical_market_data`" in packet_text
+    assert "`vps_runtime=NOT_TOUCHED`" in packet_text
+    assert "`package_capture=false`, `replay=false`" in packet_text
+    assert "`broker_api_authority=false`,\n`account_query_authority=false`" in packet_text
+    assert "`cleanup_authority=false`" in packet_text
+    assert "`flatten_authority=false`" in packet_text
+    assert "`sell_authority=false`" in packet_text
+    assert "`cancel_authority=false`" in packet_text
+    assert "`live_trading_authority=false`" in packet_text
+    assert "must not read\nor print secrets; query account, position, margin, buying power, portfolio" in packet_text
+    assert "place, modify, route, cancel, flatten,\nsell, or otherwise trade" in packet_text
+    assert "capture packages, replay, score, generate\ncandidates, mutate timer/service/systemd/runtime state" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `PARKED`" in packet_text
+    assert "separate authorization to implement or otherwise approve\nthis VPS-specific command contract and execute one bounded VPS proof" in packet_text
+
+    assert "### D11.36 VPS-Specific Read-Only Diagnostic Command Contract" in map_text
+    assert str(packet_path) in map_text
+    assert "neither implements nor authorizes the command, runs no VPS\nproof" in map_text
+    assert "its `venv` Python path" in map_text
+    assert ".venv-312 Python path" not in map_text
+    assert "does not permit the local-only IBKR smoke command on VPS" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

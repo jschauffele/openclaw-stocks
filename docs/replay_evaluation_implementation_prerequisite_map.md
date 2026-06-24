@@ -3890,6 +3890,28 @@ D11.35 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
 cleanup, flatten, sell, cancel, live-trading, runtime, timer, service,
 systemd, strategy, risk, replay, scoring, or candidate-generation authority.
 
+### D11.36 VPS-Specific Read-Only Diagnostic Command Contract
+
+D11.36 adds the exact future VPS-only diagnostic command contract:
+
+```text
+docs/ibkr_market_data_vps_read_only_command_contract.md
+```
+
+It names `/opt/openclaw-stocks`, its `venv` Python path, a future
+VPS-specific module and authorization flag, the pinned diagnostic dependency,
+the existing five-symbol `15Min` / 120-minute request scope, non-secret
+credential/configuration fields, required output fields, and all closed
+authority flags. It neither implements nor authorizes the command, runs no VPS
+proof, and does not permit the local-only IBKR smoke command on VPS.
+
+D11.36 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and
+`VPS_RUNTIME=PARKED`. Its next permissible gate is separately authorizing the
+VPS-specific command contract and one bounded proof; that gate remains separate
+from provider approval, D11 sufficiency, Unit 12, and all operational or
+trading authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
