@@ -1763,6 +1763,62 @@ def test_d11_37_authorized_path_records_source_state_with_injected_historical_re
     assert result["d11_status"] == D11_STATUS_INSUFFICIENT
 
 
+def test_d11_38_vps_proof_authorization_packet_is_bounded_and_not_executed() -> None:
+    packet_path = Path("docs/ibkr_market_data_vps_proof_authorization_packet.md")
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.38 Bounded VPS Read-Only Freshness Proof Authorization Packet" in packet_text
+    assert "source-controlled preparation for one later bounded VPS" in packet_text
+    assert "`vps_freshness_proof_run` | `false`" in packet_text
+    assert "`expected_source_commit` | `c175ac79191d6d82291dea27aaa1976c8bb6ca50`" in packet_text
+    assert "`execution_context` | `VPS`" in packet_text
+    assert "`repo_root` | `/opt/openclaw-stocks`" in packet_text
+    assert "`python_path` | `/opt/openclaw-stocks/venv/bin/python`" in packet_text
+    assert "--expected-source-commit c175ac79191d6d82291dea27aaa1976c8bb6ca50" in packet_text
+    assert "--execution-context VPS" in packet_text
+    assert "--authorize-vps-ibkr-read-only-freshness-proof" in packet_text
+    assert "--symbol AAPL --symbol MSFT --symbol NVDA --symbol TSLA --symbol MSTR" in packet_text
+    assert "--timeframe 15Min --requested-end <authorized-regular-session-utc-z> --lookback-minutes 120" in packet_text
+    assert "--exchange SMART --currency USD" in packet_text
+    assert "--sec-type STK --timeout-seconds 10" in packet_text
+    assert "`requirements-diagnostics.txt / ib_insync==0.9.86`" in packet_text
+    assert "credential_configuration_status=operator_managed_tws_gateway_session_attested" in packet_text
+    assert "credentials_stored_in_repository=false" in packet_text
+    assert "credential_values_emitted=false" in packet_text
+    assert "secrets_captured=false" in packet_text
+    assert "`vps_runtime=NOT_TOUCHED`" in packet_text
+    assert "`timer_service=NOT_TOUCHED`" in packet_text
+    assert "`package_capture=false`, `replay=false`, `scoring=false`" in packet_text
+    assert "`candidate_generation=false`, `broker_api_authority=false`" in packet_text
+    assert "`account_query_authority=false`, `order_authority=false`" in packet_text
+    assert "`cleanup_authority=false`" in packet_text
+    assert "`flatten_authority=false`" in packet_text
+    assert "`sell_authority=false`" in packet_text
+    assert "`cancel_authority=false`" in packet_text
+    assert "`live_trading_authority=false`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime_before_proof` | `PARKED`" in packet_text
+    assert "does not approve IBKR, complete D11, unblock Unit 12" in packet_text
+    assert "runtime-parameter addendum" in packet_text
+
+    assert "### D11.38 Bounded VPS Read-Only Freshness Proof Authorization Packet" in map_text
+    assert str(packet_path) in map_text
+    assert "`c175ac79191d6d82291dea27aaa1976c8bb6ca50`" in map_text
+    assert "`/opt/openclaw-stocks/venv/bin/python`" in map_text
+    assert "No proof has run and no credentials are" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

@@ -3937,6 +3937,32 @@ next permissible gate is separately authorizing the implemented bounded VPS
 proof; provider approval, D11 sufficiency, Unit 12, and all operational or
 trading authority remain separate.
 
+### D11.38 Bounded VPS Read-Only Freshness Proof Authorization Packet
+
+D11.38 adds the source-controlled authorization packet for the implemented
+D11.37 proof:
+
+```text
+docs/ibkr_market_data_vps_proof_authorization_packet.md
+```
+
+It pins expected source commit
+`c175ac79191d6d82291dea27aaa1976c8bb6ca50`, execution context `VPS`, repo
+root `/opt/openclaw-stocks`, and Python path
+`/opt/openclaw-stocks/venv/bin/python`, and it bounds the future invocation to
+the five-symbol `15Min`, 120-minute, historical-market-data-only contract with
+the explicit VPS authorization flag. No proof has run and no credentials are
+stored or emitted.
+
+The live regular-session UTC end time, VPS-local endpoint, port, and read-only
+client ID have no source-controlled values yet; D11.38 keeps them as required
+runtime-parameter-addendum fields rather than inventing them. It preserves
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=PARKED`, and
+opens no account/order/execution, cleanup, flatten, sell, cancel, live trading,
+runtime, timer, service, systemd, strategy, risk, replay, scoring, or
+candidate-generation authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
