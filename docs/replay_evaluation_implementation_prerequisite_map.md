@@ -3868,6 +3868,28 @@ That future gate remains separate from D11 sufficiency, Unit 12, package
 capture, replay, scoring, candidate generation, and all operational or trading
 authority.
 
+### D11.35 VPS Read-Only Freshness Proof / Credential-Configuration Control Prep
+
+D11.35 adds the control-prep packet for the missing D11.11 VPS read-only
+freshness proof and D11.20 diagnostic credential/configuration record:
+
+```text
+docs/ibkr_market_data_vps_freshness_preflight_packet.md
+```
+
+It records no VPS proof and no credentials. The existing IBKR smoke command is
+local-only and cannot be used as a VPS command. Before any proof, a separate
+source-controlled VPS-specific command contract and authorization must capture
+the pinned diagnostic environment, non-secret operator-managed
+credential/configuration attestation, read-only historical-market-data scope,
+clean source state, required diagnostic output, and closed authority boundary.
+
+D11.35 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and
+`VPS_RUNTIME=PARKED`. It opens no broker/API, account, order, execution,
+cleanup, flatten, sell, cancel, live-trading, runtime, timer, service,
+systemd, strategy, risk, replay, scoring, or candidate-generation authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

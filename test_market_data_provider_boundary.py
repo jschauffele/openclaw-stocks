@@ -1498,6 +1498,54 @@ def test_d11_34_final_provider_review_is_not_approved_without_vps_proof() -> Non
     assert "remains separate from D11 sufficiency, Unit 12, package\ncapture, replay, scoring, candidate generation" in map_text
 
 
+def test_d11_35_vps_freshness_control_prep_preserves_all_boundaries() -> None:
+    packet_path = Path("docs/ibkr_market_data_vps_freshness_preflight_packet.md")
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.35 VPS Read-Only Freshness Proof / Credential-Configuration Control Prep" in packet_text
+    assert "source-controlled control preparation only" in packet_text
+    assert "does not run a\nVPS proof" in packet_text
+    assert "`vps_freshness_proof_run` | `false`" in packet_text
+    assert "`credential_configuration_recorded` | `false`" in packet_text
+    assert "`credentials_stored_in_repository` | `false`" in packet_text
+    assert "existing `tools.ops.ibkr_market_data_read_only_smoke` command is explicitly\nlocal-only" in packet_text
+    assert "No VPS diagnostic command is currently authorized" in packet_text
+    assert "`requirements-diagnostics.txt` and\n  `ib_insync==0.9.86`" in packet_text
+    assert "no credential value is\n  printed or committed" in packet_text
+    assert "`secrets_captured=false`" in packet_text
+    assert "`execution_context=VPS`, `read_only=true`" in packet_text
+    assert "`vps_runtime=NOT_TOUCHED`" in packet_text
+    assert "`timer_service=NOT_TOUCHED`" in packet_text
+    assert "`package_capture=false`, `replay=false`, `scoring=false`" in packet_text
+    assert "`candidate_generation=false`, `broker_api_authority=false`" in packet_text
+    assert "`order_authority=false`, `execution_authority=false`" in packet_text
+    assert "`d11_completion_authority=false`" in packet_text
+    assert "must not\nquery account, position, margin, buying power, portfolio, order, balance, or\nexecution state" in packet_text
+    assert "place, modify, route, cancel, flatten, sell, or\notherwise trade" in packet_text
+    assert "No exact VPS command exists yet" in packet_text
+    assert "<approved-vps-read-only-diagnostic-module>" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `PARKED`" in packet_text
+    assert "D11.35 does not authorize provider approval, D11 completion, Unit 12 opening" in packet_text
+    assert "separate authorization of the VPS-specific\nread-only command contract and the bounded VPS proof" in packet_text
+
+    assert "### D11.35 VPS Read-Only Freshness Proof / Credential-Configuration Control Prep" in map_text
+    assert str(packet_path) in map_text
+    assert "It records no VPS proof and no credentials" in map_text
+    assert "local-only and cannot be used as a VPS command" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
