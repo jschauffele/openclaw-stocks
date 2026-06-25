@@ -2996,6 +2996,120 @@ def test_d11_48_static_provenance_adjudication_preserves_no_approval() -> None:
     assert "gateway mutation" in map_text
 
 
+def test_d11_49_negative_path_decision_closes_current_vps_bridge_path() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_vps_bridge_protocol_negative_path_decision.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.49 VPS Bridge/Protocol Negative-Path Decision" in packet_text
+    assert (
+        "`decision_status` | `VPS_BRIDGE_PROTOCOL_NEGATIVE_PATH_DECISION`"
+        in packet_text
+    )
+    assert (
+        "`current_validated_source_commit` | "
+        "`3c49b5cdfcb1e135fcad10c4af7a8af9ce00ab32`" in packet_text
+    )
+    assert "`d11_48_vps_validation` | `68 passed in 1.85s`" in packet_text
+    assert "`current_vps_bridge_path_approved` | `false`" in packet_text
+    assert "`current_18789_endpoint_approved` | `false`" in packet_text
+    assert "`current_18791_endpoint_approved` | `false`" in packet_text
+    assert "`current_7497_endpoint_available` | `false`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`protocol_probe_authorized` | `false`" in packet_text
+    assert "`endpoint_switch_authorized` | `false`" in packet_text
+    assert "`bridge_protocol_approved` | `false`" in packet_text
+    assert "`provider_approval_evidence` | `false`" in packet_text
+    assert "`market_data_proof_evidence` | `false`" in packet_text
+    assert "`d11_completion_authority` | `false`" in packet_text
+    assert "`openclaw_gateway_binary_on_path` | `false`" in packet_text
+    assert "`npm_global_openclaw_package_observed` | `true`" in packet_text
+    assert "`openclaw_gateway_service_found` | `false`" in packet_text
+    assert "`package_source_provenance_complete` | `false`" in packet_text
+    assert "`repo_reference_search_too_broad` | `true`" in packet_text
+    assert "`protocol_semantics_proven` | `false`" in packet_text
+    assert "current VPS bridge/protocol path is not approved" in packet_text
+    assert "liveness-only/non-approved endpoints" in packet_text
+    assert "`7497` remains unavailable from the VPS proof context" in packet_text
+    assert "No current VPS endpoint\ncan be used for D11 countable market-data proof" in packet_text
+    assert "negative-path decision only" in packet_text
+    assert "not a new test plan" in packet_text
+    assert "closes the immediate current path to proof rerun" in packet_text
+    assert "exact binary/source provenance" in packet_text
+    assert "exact protocol semantics" in packet_text
+    assert "explicit non-mutating probe boundary" in packet_text
+    assert "explicit\noperator-output compression" in packet_text
+    assert "separate authorization before any traffic" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "account, position, margin, buying-power, portfolio" in packet_text
+    assert "cleanup_authority=false" in packet_text
+    assert "flatten_authority=false" in packet_text
+    assert "sell_authority=false" in packet_text
+    assert "cancel_authority=false" in packet_text
+    assert "live_trading_authority=false" in packet_text
+    assert "package_capture=false" in packet_text
+    assert "replay=false" in packet_text
+    assert "scoring=false" in packet_text
+    assert "candidate_generation=false" in packet_text
+    assert "timer_service=NOT_TOUCHED" in packet_text
+    assert "service, systemd, or runtime\nmutation" in packet_text
+    assert "gateway mutation" in packet_text
+    assert "proof_rerun_authorized=false" in packet_text
+    assert "protocol_probe_authorized=false" in packet_text
+    assert "endpoint_switch_authorized=false" in packet_text
+
+    assert "### D11.49 VPS Bridge/Protocol Negative-Path Decision" in map_text
+    assert str(packet_path) in map_text
+    assert "`VPS_BRIDGE_PROTOCOL_NEGATIVE_PATH_DECISION`" in map_text
+    assert "`3c49b5cdfcb1e135fcad10c4af7a8af9ce00ab32`" in map_text
+    assert "`68 passed in 1.85s`" in map_text
+    assert "`openclaw_gateway_binary_on_path=false`" in map_text
+    assert "`npm_global_openclaw_package_observed=true`" in map_text
+    assert "`openclaw_gateway_service_found=false`" in map_text
+    assert "`package_source_provenance_complete=false`" in map_text
+    assert "`repo_reference_search_too_broad=true`" in map_text
+    assert "`protocol_semantics_proven=false`" in map_text
+    assert "current VPS bridge/protocol path is not approved" in map_text
+    assert "liveness-only/non-approved\nendpoints" in map_text
+    assert "`7497` remains unavailable from the VPS proof context" in map_text
+    assert "No\ncurrent VPS endpoint can be used for D11 countable market-data proof" in (
+        map_text
+    )
+    assert "negative-path decision, not a new test plan" in map_text
+    assert "immediate current path is closed to proof rerun" in map_text
+    assert "`current_vps_bridge_path_approved=false`" in map_text
+    assert "`current_18789_endpoint_approved=false`" in map_text
+    assert "`current_18791_endpoint_approved=false`" in map_text
+    assert "`current_7497_endpoint_available=false`" in map_text
+    assert "`proof_rerun_authorized=false`" in map_text
+    assert "`protocol_probe_authorized=false`" in map_text
+    assert "`endpoint_switch_authorized=false`" in map_text
+    assert "`bridge_protocol_approved=false`" in map_text
+    assert "`provider_approval_evidence=false`" in map_text
+    assert "`market_data_proof_evidence=false`" in map_text
+    assert "`d11_completion_authority=false`" in map_text
+    assert "exact\nbinary/source provenance" in map_text
+    assert "exact protocol semantics" in map_text
+    assert "explicit non-mutating probe\nboundary" in map_text
+    assert "explicit operator-output compression" in map_text
+    assert "separate authorization\nbefore any traffic" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "opens no account, position, margin" in map_text
+    assert "proof rerun,\nendpoint switch, or protocol-probe authority" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
