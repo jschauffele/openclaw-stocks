@@ -4105,6 +4105,48 @@ execution, cleanup, flatten, sell, cancel, live-trading, package capture,
 replay, scoring, candidate generation, timer, service, systemd, runtime
 mutation, strategy, risk, or execution authority.
 
+### D11.43 VPS Endpoint/Context Correction Gate
+
+D11.43 adds the source-controlled endpoint/context correction gate after D11.42
+VPS validation:
+
+```text
+docs/ibkr_market_data_vps_endpoint_context_correction_gate.md
+```
+
+It records current validated source commit
+`de2fcb8efbc9843333f004db45c75c603c744312` and D11.42 VPS validation
+`62 passed in 1.47s`. It preserves the D11.42 labels
+`PROOF_RUN_BUT_NON_COUNTABLE`, `VPS_LOCALHOST_CONTEXT_MISMATCH`,
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`,
+`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`, `NOT_PROVEN_TWS_ISSUE`, and
+`NOT_PROVEN_IB_GATEWAY_ISSUE`.
+
+D11.43 records that the proof ran from VPS, targeted `127.0.0.1:7497` from the
+VPS process context, `127.0.0.1:7497` refused connection, no listener was
+observed on `127.0.0.1:7497`, `openclaw-gateway` was present as a Node process,
+`openclaw-gateway` listened on `127.0.0.1:18789` and `127.0.0.1:18791`, and
+`openclaw-gateway.service` was not found in systemd. Existing doctrine states
+`127.0.0.1` is process-context-local loopback and VPS/CODEX_LOCAL IBKR socket
+paths are not valid for Mac-local TWS evidence without separate
+execution-context proof.
+
+D11.43 does not choose a new endpoint blindly. It forbids proof rerun until
+endpoint/context correction is source-controlled and validated, and it forbids
+changing to `18789` or `18791` without a separate source-controlled approval
+explaining what those ports are and why the selected port is the approved
+read-only bridge. The next allowed operator evidence must decide among using an
+approved `openclaw-gateway` exposed local port, creating a separately
+source-controlled tunnel prerequisite, or abandoning VPS-local proof and
+returning to Mac-local IBKR evidence only.
+
+D11.43 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no account, position, margin, buying-power, portfolio, order,
+balance, execution, cleanup, flatten, sell, cancel, live-trading, package
+capture, replay, scoring, candidate generation, timer, service, systemd,
+runtime mutation, gateway mutation, strategy, risk, or execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
