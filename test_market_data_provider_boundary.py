@@ -2721,6 +2721,145 @@ def test_d11_46_bridge_protocol_decision_prerequisite_preserves_boundaries() -> 
     assert "gateway mutation" in map_text
 
 
+def test_d11_47_bridge_protocol_static_evidence_packet_forbids_traffic() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_vps_bridge_protocol_static_evidence_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.47 VPS Bridge/Protocol Static Evidence Packet" in packet_text
+    assert (
+        "`evidence_packet_status` | `BRIDGE_PROTOCOL_STATIC_EVIDENCE_DEFINED`"
+        in packet_text
+    )
+    assert (
+        "`current_validated_source_commit` | "
+        "`2d68d0d3d5ca72be0fd39c751148bd4d1c392c9b`" in packet_text
+    )
+    assert "`d11_46_vps_validation` | `66 passed in 1.89s`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`proof_endpoint_approved` | `false`" in packet_text
+    assert "`protocol_probe_authorized` | `false`" in packet_text
+    assert "`openclaw_gateway_protocol_approved` | `false`" in packet_text
+    assert "`provider_approval_evidence` | `false`" in packet_text
+    assert "`market_data_proof_evidence` | `false`" in packet_text
+    assert "`endpoint_liveness_confirmed_for_18789` | `true`" in packet_text
+    assert "`endpoint_liveness_confirmed_for_18791` | `true`" in packet_text
+    assert "`endpoint_liveness_confirmed_for_7497` | `false`" in packet_text
+    assert "`port_18789_classification` | `OPEN_LIVENESS_ONLY`" in packet_text
+    assert "`port_18791_classification` | `OPEN_LIVENESS_ONLY`" in packet_text
+    assert "`port_7497_classification` | `CLOSED_OR_REFUSED`" in packet_text
+    assert "liveness on `18789` and `18791` is identity/liveness\nonly" in packet_text
+    assert "package/source identity is not protocol\napproval" in packet_text
+    assert "service identity is not protocol approval" in packet_text
+    assert "liveness is not\nprotocol approval" in packet_text
+    assert "Future Read-Only Static Evidence Commands" in packet_text
+    assert "git status --short" in packet_text
+    assert "git rev-parse HEAD" in packet_text
+    assert "git log -1 --oneline" in packet_text
+    assert "which openclaw-gateway" in packet_text
+    assert "command -v openclaw-gateway" in packet_text
+    assert 'readlink -f "$(command -v openclaw-gateway)"' in packet_text
+    assert 'file "$(command -v openclaw-gateway)"' in packet_text
+    assert 'ls -l "$(command -v openclaw-gateway)"' in packet_text
+    assert 'dpkg -S "$(command -v openclaw-gateway)"' in packet_text
+    assert "npm root -g" in packet_text
+    assert "npm list -g --depth=0" in packet_text
+    assert "node --version" in packet_text
+    assert "npm --version" in packet_text
+    assert "systemctl status openclaw-gateway --no-pager" in packet_text
+    assert "service-identity evidence only and not service mutation" in packet_text
+    assert (
+        'rg -n "openclaw-gateway|18789|18791|7497|WebSocket|websocket|http|'
+        'HTTP|rpc|RPC|proxy|tunnel|IBKR|market data|market-data" .'
+        in packet_text
+    )
+    assert "repo-only static search" in packet_text
+    assert "Explicitly Forbidden Evidence Collection" in packet_text
+    assert "does not authorize protocol probing or traffic" in packet_text
+    assert "curl" in packet_text
+    assert "nc" in packet_text
+    assert "telnet" in packet_text
+    assert "/dev/tcp" in packet_text
+    assert "protocol handshake" in packet_text
+    assert "broker API import or connect" in packet_text
+    assert "forbids treating package/source identity as protocol approval" in packet_text
+    assert "service\nidentity as protocol approval" in packet_text
+    assert "liveness as protocol approval" in packet_text
+    assert "forbids\nswitching the proof command to `18789` or `18791`" in packet_text
+    assert "Package/source provenance evidence is required before any protocol decision" in packet_text
+    assert "Protocol semantics evidence is required before any bridge approval" in packet_text
+    assert "Separate\nsource-controlled protocol-probe approval" in packet_text
+    assert "before any traffic is\nsent to `18789` or `18791`" in packet_text
+    assert "separately source-controlled, non-mutating,\nfail-closed" in packet_text
+    assert "no account, position, margin, buying-power,\nportfolio, order, balance" in packet_text
+    assert "no gateway/runtime/service/systemd mutation" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "account, position, margin, buying-power, portfolio" in packet_text
+    assert "cleanup_authority=false" in packet_text
+    assert "flatten_authority=false" in packet_text
+    assert "sell_authority=false" in packet_text
+    assert "cancel_authority=false" in packet_text
+    assert "live_trading_authority=false" in packet_text
+    assert "package_capture=false" in packet_text
+    assert "replay=false" in packet_text
+    assert "scoring=false" in packet_text
+    assert "candidate_generation=false" in packet_text
+    assert "timer_service=NOT_TOUCHED" in packet_text
+    assert "service, systemd, or runtime\nmutation" in packet_text
+    assert "gateway start/stop/restart/reload" in packet_text
+    assert "enable/disable, kill, or mutation" in packet_text
+    assert "strategy, risk, or execution changes" in packet_text
+
+    assert "### D11.47 VPS Bridge/Protocol Static Evidence Packet" in map_text
+    assert str(packet_path) in map_text
+    assert "`2d68d0d3d5ca72be0fd39c751148bd4d1c392c9b`" in map_text
+    assert "`66 passed in 1.89s`" in map_text
+    assert "`openclaw_gateway_protocol_approved=false`" in map_text
+    assert "`proof_endpoint_approved=false`" in map_text
+    assert "`proof_rerun_authorized=false`" in map_text
+    assert "`provider_approval_evidence=false`" in map_text
+    assert "`market_data_proof_evidence=false`" in map_text
+    assert "does not approve `18789` or `18791` as proof endpoints" in map_text
+    assert "does not\nauthorize proof rerun" in map_text
+    assert "does not authorize protocol probing" in map_text
+    assert "read-only static evidence" in map_text
+    assert "`which openclaw-gateway`" in map_text
+    assert "`command -v`" in map_text
+    assert "`readlink`" in map_text
+    assert "`file`" in map_text
+    assert "`ls -l`" in map_text
+    assert "optional `dpkg -S`" in map_text
+    assert "optional `npm root -g`" in map_text
+    assert "optional `npm list -g --depth=0`" in map_text
+    assert "optional `node --version`" in map_text
+    assert "optional\n`npm --version`" in map_text
+    assert "service-identity only" in map_text
+    assert "repo-only `rg` search" in map_text
+    assert "forbids `curl`, `nc`, `telnet`, `/dev/tcp`, protocol\nhandshake" in map_text
+    assert "broker API import or connect" in map_text
+    assert "any traffic to `18789`, `18791`,\nor `7497`" in map_text
+    assert "forbids treating package/source identity, service identity, or\nliveness as protocol approval" in map_text
+    assert "forbids switching the proof command to\n`18789` or `18791`" in map_text
+    assert "package/source provenance evidence before any protocol decision" in map_text
+    assert "protocol semantics evidence before any bridge approval" in map_text
+    assert "protocol-probe approval before any traffic is sent to `18789`\nor `18791`" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "opens no account, position, margin" in map_text
+    assert "gateway mutation" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

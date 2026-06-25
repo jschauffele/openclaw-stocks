@@ -4291,6 +4291,50 @@ balance, execution, cleanup, flatten, sell, cancel, live-trading, package
 capture, replay, scoring, candidate generation, timer, service, systemd,
 runtime mutation, gateway mutation, strategy, risk, or execution authority.
 
+### D11.47 VPS Bridge/Protocol Static Evidence Packet
+
+D11.47 adds the source-controlled bridge/protocol static evidence-collection
+packet:
+
+```text
+docs/ibkr_market_data_vps_bridge_protocol_static_evidence_packet.md
+```
+
+It records current validated source commit
+`2d68d0d3d5ca72be0fd39c751148bd4d1c392c9b`, D11.46 VPS validation
+`66 passed in 1.89s`, and that D11.46 remains unchanged: `18789` and `18791`
+are liveness-confirmed only, `7497` is closed/refused,
+`openclaw_gateway_protocol_approved=false`, `proof_endpoint_approved=false`,
+`proof_rerun_authorized=false`, `provider_approval_evidence=false`, and
+`market_data_proof_evidence=false`.
+
+D11.47 does not approve `18789` or `18791` as proof endpoints, does not
+authorize proof rerun, and does not authorize protocol probing. It defines only
+read-only static evidence to identify `openclaw-gateway` package/source/protocol
+provenance: source state commands, `which openclaw-gateway`, `command -v`,
+`readlink`, `file`, `ls -l`, optional `dpkg -S`, optional `npm root -g`,
+optional `npm list -g --depth=0`, optional `node --version`, optional
+`npm --version`, optional `systemctl status openclaw-gateway --no-pager` as
+service-identity only, and repo-only `rg` search for gateway, port, protocol,
+proxy, tunnel, IBKR, and market-data references.
+
+D11.47 explicitly forbids `curl`, `nc`, `telnet`, `/dev/tcp`, protocol
+handshake, broker API import or connect, and any traffic to `18789`, `18791`,
+or `7497`. It forbids treating package/source identity, service identity, or
+liveness as protocol approval, and forbids switching the proof command to
+`18789` or `18791`.
+
+D11.47 requires package/source provenance evidence before any protocol decision,
+protocol semantics evidence before any bridge approval, and separate
+source-controlled protocol-probe approval before any traffic is sent to `18789`
+or `18791`. It preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and
+`VPS_RUNTIME=NOT_TOUCHED`, and opens no account, position, margin,
+buying-power, portfolio, order, balance, execution, cleanup, flatten, sell,
+cancel, live-trading, package capture, replay, scoring, candidate generation,
+timer, service, systemd, runtime mutation, gateway mutation, strategy, risk, or
+execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
