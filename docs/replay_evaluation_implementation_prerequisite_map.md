@@ -3993,6 +3993,37 @@ execution, cleanup, flatten, sell, cancel, live-trading, runtime, timer,
 service, systemd, strategy, risk, replay, scoring, or candidate-generation
 activity.
 
+### D11.40 VPS Runtime-Value Confirmation
+
+D11.40 adds the source-controlled runtime-value confirmation required by
+D11.39:
+
+```text
+docs/ibkr_market_data_vps_runtime_value_confirmation.md
+```
+
+It pins expected source commit
+`5e2d07110080a90b7d9f9d6f4a37c06f7e56c7b9`, repo root
+`/opt/openclaw-stocks`, Python path `/opt/openclaw-stocks/venv/bin/python`,
+execution context `VPS`, and the four operator-confirmed runtime values:
+`authorized_regular_session_utc_z=2026-06-24T14:00:00Z`,
+`authorized_vps_local_endpoint=127.0.0.1`, `authorized_port=7497`, and
+`authorized_read_only_client_id=9118`.
+
+The requested end is at 7:00 AM Pacific / 10:00 AM Eastern on 2026-06-24;
+official market open is not the D11 diagnostic target. The exact future command
+is now source-controlled but has not been executed. D11.40 preserves the
+non-secret credential/configuration attestation and all closed-authority flags,
+including `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=PARKED`.
+
+The next permissible gate is a separate operator terminal step on the VPS that
+runs exactly the source-controlled bounded proof command and captures output
+for source-controlled adjudication. D11.40 does not authorize account, order,
+execution, cleanup, flatten, sell, cancel, live-trading, runtime, timer,
+service, systemd, strategy, risk, replay, scoring, or candidate-generation
+activity.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
