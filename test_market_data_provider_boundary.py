@@ -2289,6 +2289,161 @@ def test_d11_43_endpoint_context_correction_gate_blocks_blind_endpoint_change() 
     assert "gateway mutation" in map_text
 
 
+def test_d11_44_operator_endpoint_context_evidence_packet_is_identity_only() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_vps_endpoint_context_operator_evidence_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.44 VPS Endpoint/Context Operator Evidence Packet" in packet_text
+    assert (
+        "`evidence_packet_status` | "
+        "`OPERATOR_ENDPOINT_CONTEXT_EVIDENCE_DEFINED`" in packet_text
+    )
+    assert (
+        "`current_validated_source_commit` | "
+        "`3905f9ab4cf993103ff9aaa3c4619851ba00ae2d`" in packet_text
+    )
+    assert "`d11_43_vps_validation` | `63 passed in 1.10s`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`endpoint_replacement_selected` | `false`" in packet_text
+    assert "`proof_command_allowed` | `false`" in packet_text
+    assert "`ibkr_tws_gateway_connection_allowed` | `false`" in packet_text
+    assert "`account_order_execution_access_allowed` | `false`" in packet_text
+    assert "`gateway_mutation_allowed` | `false`" in packet_text
+    assert "`root_operational_blocker` | `VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert (
+        "`authorized_endpoint_status` | "
+        "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    )
+    assert (
+        "`observed_gateway_context` | "
+        "`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`" in packet_text
+    )
+    assert "`desktop_terminal_issue_status` | `NOT_PROVEN_TWS_ISSUE`" in packet_text
+    assert (
+        "`broker_gateway_issue_status` | `NOT_PROVEN_IB_GATEWAY_ISSUE`"
+        in packet_text
+    )
+    assert "`prior_failed_vps_endpoint` | `127.0.0.1:7497`" in packet_text
+    assert (
+        "`observed_openclaw_gateway_ports` | "
+        "`127.0.0.1:18789; 127.0.0.1:18791`" in packet_text
+    )
+    assert (
+        "`openclaw_gateway_ports_approved_as_proof_endpoints` | `false`"
+        in packet_text
+    )
+    assert (
+        "`endpoint_liveness_is_provider_approval_evidence` | `false`"
+        in packet_text
+    )
+    assert (
+        "`open_tcp_port_is_approved_read_only_ibkr_market_data_bridge` | `false`"
+        in packet_text
+    )
+    assert "`execution_context_for_future_evidence` | `VPS`" in packet_text
+    assert (
+        "`future_evidence_is_read_only_process_port_identity_only` | `true`"
+        in packet_text
+    )
+    assert "not approved proof endpoints" in packet_text
+    assert "Future Read-Only Operator Evidence Commands" in packet_text
+    assert "must not run the proof command" in packet_text
+    assert "connect to IBKR/TWS/Gateway" in packet_text
+    assert "query account,\norder, or execution state" in packet_text
+    assert "mutate `openclaw-gateway`" in packet_text
+    assert "git status --short" in packet_text
+    assert "git rev-parse HEAD" in packet_text
+    assert "git log -1 --oneline" in packet_text
+    assert "ss -ltnp | grep -E '(:18789|:18791|:7497)'" in packet_text
+    assert "ps -fp <openclaw_gateway_pid>" in packet_text
+    assert "readlink -f /proc/<openclaw_gateway_pid>/exe" in packet_text
+    assert "pwdx <openclaw_gateway_pid>" in packet_text
+    assert "tr '\\0' ' ' < /proc/<openclaw_gateway_pid>/cmdline" in packet_text
+    assert 'rg -n "openclaw-gateway|18789|18791|7497" .' in packet_text
+    assert "raw TCP checks" in packet_text
+    assert "endpoint\nliveness only" in packet_text
+    assert "Endpoint liveness is not protocol approval" in packet_text
+    assert "provider approval" in packet_text
+    assert "market-data proof evidence" in packet_text
+    assert "An open TCP port must not be treated as proof" in packet_text
+    assert "approved read-only IBKR market-data bridge" in packet_text
+    assert "D11.44 must not choose a new endpoint" in packet_text
+    assert "must not authorize changing a future\nproof command" in packet_text
+    assert "127.0.0.1:18789" in packet_text
+    assert "127.0.0.1:18791" in packet_text
+    assert "later\nsource-controlled approval identifies the protocol and bridge semantics" in packet_text
+    assert "Approved `openclaw-gateway` bridge path" in packet_text
+    assert "Separately source-controlled tunnel prerequisite path" in packet_text
+    assert "Abandon VPS-local proof and return to Mac-local IBKR evidence only" in packet_text
+    assert "no endpoint\nreplacement is selected and no proof rerun is authorized" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "account, position,\nmargin, buying-power, portfolio, order, balance" in packet_text
+    assert "cleanup_authority=false" in packet_text
+    assert "flatten_authority=false" in packet_text
+    assert "sell_authority=false" in packet_text
+    assert "cancel_authority=false" in packet_text
+    assert "live_trading_authority=false" in packet_text
+    assert "package_capture=false" in packet_text
+    assert "replay=false" in packet_text
+    assert "scoring=false" in packet_text
+    assert "candidate_generation=false" in packet_text
+    assert "timer_service=NOT_TOUCHED" in packet_text
+    assert "service, systemd, or runtime mutation" in packet_text
+    assert "gateway start/stop/restart/reload" in packet_text
+    assert "enable/disable, kill, or mutation" in packet_text
+    assert "strategy, risk, or execution changes" in packet_text
+
+    assert "### D11.44 VPS Endpoint/Context Operator Evidence Packet" in map_text
+    assert str(packet_path) in map_text
+    assert "`3905f9ab4cf993103ff9aaa3c4619851ba00ae2d`" in map_text
+    assert "`63 passed in 1.10s`" in map_text
+    assert "`PROOF_RUN_BUT_NON_COUNTABLE`" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert "`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`" in map_text
+    assert "`NOT_PROVEN_TWS_ISSUE`" in map_text
+    assert "`NOT_PROVEN_IB_GATEWAY_ISSUE`" in map_text
+    assert "no endpoint replacement selected and no proof rerun authorized" in map_text
+    assert "`127.0.0.1:7497` as the prior failed VPS-local endpoint" in map_text
+    assert "`127.0.0.1:18789` and `127.0.0.1:18791` as observed" in map_text
+    assert "not approved proof endpoints" in map_text
+    assert "Endpoint liveness\nis not provider approval evidence" in map_text
+    assert "open TCP port is not proof" in map_text
+    assert "future read-only operator evidence for VPS process/port identity\nonly" in map_text
+    assert "`git status --short`" in map_text
+    assert "`git rev-parse HEAD`" in map_text
+    assert "`git log -1 --oneline`" in map_text
+    assert "`ss -ltnp` filtered for `18789`, `18791`, and `7497`" in map_text
+    assert "`ps` identity for the\n`openclaw-gateway` PID" in map_text
+    assert "`readlink -f /proc/<pid>/exe`" in map_text
+    assert "`pwdx <pid>`" in map_text
+    assert "`/proc/<pid>/cmdline` with nulls converted to spaces" in map_text
+    assert "repo references to\n`openclaw-gateway`, `18789`, `18791`, and `7497`" in map_text
+    assert "does not choose a new endpoint" in map_text
+    assert "forbids switching a proof command to\n`18789` or `18791`" in map_text
+    assert "protocol/bridge semantics" in map_text
+    assert "approved\nread-only bridge" in map_text
+    assert "approved\n`openclaw-gateway` bridge path" in map_text
+    assert "source-controlled tunnel\nprerequisite path" in map_text
+    assert "returning to Mac-local\nIBKR evidence only" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "opens no account, position, margin, buying-power, portfolio, order" in map_text
+    assert "gateway mutation" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

@@ -4147,6 +4147,52 @@ balance, execution, cleanup, flatten, sell, cancel, live-trading, package
 capture, replay, scoring, candidate generation, timer, service, systemd,
 runtime mutation, gateway mutation, strategy, risk, or execution authority.
 
+### D11.44 VPS Endpoint/Context Operator Evidence Packet
+
+D11.44 adds the source-controlled operator endpoint/context evidence packet:
+
+```text
+docs/ibkr_market_data_vps_endpoint_context_operator_evidence_packet.md
+```
+
+It records current validated source commit
+`3905f9ab4cf993103ff9aaa3c4619851ba00ae2d` and D11.43 VPS validation
+`63 passed in 1.10s`. It preserves the D11.42/D11.43 labels
+`PROOF_RUN_BUT_NON_COUNTABLE`, `VPS_LOCALHOST_CONTEXT_MISMATCH`,
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`,
+`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`, `NOT_PROVEN_TWS_ISSUE`, and
+`NOT_PROVEN_IB_GATEWAY_ISSUE`.
+
+D11.44 records no endpoint replacement selected and no proof rerun authorized.
+It preserves `127.0.0.1:7497` as the prior failed VPS-local endpoint and
+records `127.0.0.1:18789` and `127.0.0.1:18791` as observed
+`openclaw-gateway` ports only, not approved proof endpoints. Endpoint liveness
+is not provider approval evidence, protocol approval, or market-data proof
+evidence; an open TCP port is not proof that it is an approved read-only IBKR
+market-data bridge.
+
+D11.44 defines future read-only operator evidence for VPS process/port identity
+only: `git status --short`, `git rev-parse HEAD`, `git log -1 --oneline`,
+`ss -ltnp` filtered for `18789`, `18791`, and `7497`, `ps` identity for the
+`openclaw-gateway` PID, `readlink -f /proc/<pid>/exe`, `pwdx <pid>`,
+`/proc/<pid>/cmdline` with nulls converted to spaces, and repo references to
+`openclaw-gateway`, `18789`, `18791`, and `7497`.
+
+D11.44 does not choose a new endpoint and forbids switching a proof command to
+`18789` or `18791` until a later source-controlled approval identifies
+protocol/bridge semantics and explains why the selected port is the approved
+read-only bridge. The future evidence must decide among an approved
+`openclaw-gateway` bridge path, a separately source-controlled tunnel
+prerequisite path, or abandoning VPS-local proof and returning to Mac-local
+IBKR evidence only.
+
+D11.44 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no account, position, margin, buying-power, portfolio, order,
+balance, execution, cleanup, flatten, sell, cancel, live-trading, package
+capture, replay, scoring, candidate generation, timer, service, systemd,
+runtime mutation, gateway mutation, strategy, risk, or execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
