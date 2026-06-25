@@ -70,12 +70,17 @@ readlink -f /proc/<openclaw_gateway_pid>/exe
 pwdx <openclaw_gateway_pid>
 tr '\0' ' ' < /proc/<openclaw_gateway_pid>/cmdline
 rg -n "openclaw-gateway|18789|18791|7497" .
+printf '%s\n' "--- pid=$pid ---"
 ```
 
 If raw TCP checks are included later, they must be classified as endpoint
 liveness only. Endpoint liveness is not protocol approval, provider approval,
 or market-data proof evidence. An open TCP port must not be treated as proof
 that the port is an approved read-only IBKR market-data bridge.
+
+Future runbooks must avoid leading dash `printf` format strings such as
+`printf '--- pid=%s ---\n' "$pid"` and use
+`printf '%s\n' "--- pid=$pid ---"` instead.
 
 ## Decision Boundary
 

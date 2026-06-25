@@ -2365,6 +2365,7 @@ def test_d11_44_operator_endpoint_context_evidence_packet_is_identity_only() -> 
     assert "pwdx <openclaw_gateway_pid>" in packet_text
     assert "tr '\\0' ' ' < /proc/<openclaw_gateway_pid>/cmdline" in packet_text
     assert 'rg -n "openclaw-gateway|18789|18791|7497" .' in packet_text
+    assert 'printf \'%s\\n\' "--- pid=$pid ---"' in packet_text
     assert "raw TCP checks" in packet_text
     assert "endpoint\nliveness only" in packet_text
     assert "Endpoint liveness is not protocol approval" in packet_text
@@ -2435,6 +2436,162 @@ def test_d11_44_operator_endpoint_context_evidence_packet_is_identity_only() -> 
     assert "approved\n`openclaw-gateway` bridge path" in map_text
     assert "source-controlled tunnel\nprerequisite path" in map_text
     assert "returning to Mac-local\nIBKR evidence only" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "opens no account, position, margin, buying-power, portfolio, order" in map_text
+    assert "gateway mutation" in map_text
+
+
+def test_d11_45_endpoint_context_evidence_adjudicates_liveness_only() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_vps_endpoint_context_evidence_adjudication.md"
+    )
+    d11_44_packet_path = Path(
+        "docs/ibkr_market_data_vps_endpoint_context_operator_evidence_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    d11_44_packet_text = d11_44_packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.45 VPS Endpoint/Context Evidence Adjudication" in packet_text
+    assert (
+        "`adjudication_status` | `OPERATOR_ENDPOINT_CONTEXT_EVIDENCE_ADJUDICATED`"
+        in packet_text
+    )
+    assert "`execution_context` | `VPS`" in packet_text
+    assert (
+        "`source_commit_during_evidence_collection` | "
+        "`7ca0f2904f4d3b7376df0d699d2bc6d6bd128a4b`" in packet_text
+    )
+    assert (
+        "`source_commit_message` | "
+        "`7ca0f29 Define D11 VPS endpoint context operator evidence`"
+        in packet_text
+    )
+    assert "`current_utc` | `2026-06-25 15:29:39 UTC`" in packet_text
+    assert "`d11_44_vps_validation` | `64 passed in 1.27s`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`endpoint_replacement_selected` | `false`" in packet_text
+    assert "`provider_approval_evidence` | `false`" in packet_text
+    assert "`market_data_proof_evidence` | `false`" in packet_text
+    assert "`endpoint_liveness_confirmed_for_18789` | `true`" in packet_text
+    assert "`endpoint_liveness_confirmed_for_18791` | `true`" in packet_text
+    assert "`endpoint_liveness_confirmed_for_7497` | `false`" in packet_text
+    assert "`openclaw_gateway_identity_confirmed` | `true`" in packet_text
+    assert "`openclaw_gateway_protocol_approved` | `false`" in packet_text
+    assert "`proof_endpoint_approved` | `false`" in packet_text
+    assert "`root_operational_blocker` | `VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert (
+        "`authorized_endpoint_status` | "
+        "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    )
+    assert (
+        "`observed_gateway_context` | "
+        "`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`" in packet_text
+    )
+    assert "`desktop_terminal_issue_status` | `NOT_PROVEN_TWS_ISSUE`" in packet_text
+    assert (
+        "`broker_gateway_issue_status` | `NOT_PROVEN_IB_GATEWAY_ISSUE`"
+        in packet_text
+    )
+    assert (
+        "| `127.0.0.1:18791` | `LISTEN` | `openclaw-gateway` | `846` | "
+        "`29` | `OPEN_LIVENESS_ONLY` |"
+    ) in packet_text
+    assert (
+        "| `127.0.0.1:18789` | `LISTEN` | `openclaw-gateway` | `846` | "
+        "`22` | `OPEN_LIVENESS_ONLY` |"
+    ) in packet_text
+    assert (
+        "| `[::1]:18789` | `LISTEN` | `openclaw-gateway` | `846` | "
+        "`23` | `OPEN_LIVENESS_ONLY` |"
+    ) in packet_text
+    assert (
+        "| `127.0.0.1:7497` | `CLOSED_OR_REFUSED` | `none observed` | "
+        "`none` | `none` | `NOT_LISTENING_ON_VPS` |"
+    ) in packet_text
+    assert "`openclaw_gateway_pids` | `846`" in packet_text
+    assert "`pid` | `846`" in packet_text
+    assert "`command` | `openclaw-gateway`" in packet_text
+    assert "`executable` | `/usr/bin/node`" in packet_text
+    assert "`pwd` | `/root`" in packet_text
+    assert "`cmdline` | `openclaw-gateway`" in packet_text
+    assert "tcp_127_0_0_1_18789=OPEN_LIVENESS_ONLY" in packet_text
+    assert "tcp_127_0_0_1_18791=OPEN_LIVENESS_ONLY" in packet_text
+    assert "tcp_127_0_0_1_7497=CLOSED_OR_REFUSED" in packet_text
+    assert "not approved proof endpoints" in packet_text
+    assert "not approve their protocol semantics" in packet_text
+    assert "not approve them as an IBKR read-only market-data bridge" in packet_text
+    assert "authorize switching a future proof command" in packet_text
+    assert "OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791" in packet_text
+    assert "missing its final\n  `9`" in packet_text
+    assert "missing its final `y`" in packet_text
+    assert 'rg -n "openclaw-gateway|18789|18791|7497" .' in packet_text
+    assert "printf '--- pid=%s ---\\n' \"$pid\"" in packet_text
+    assert "-bash: printf: --: invalid option" in packet_text
+    assert "printf: usage: printf [-v var] format [arguments]" in packet_text
+    assert 'printf \'%s\\n\' "--- pid=$pid ---"' in packet_text
+    assert "forbids treating open TCP liveness as approved protocol semantics" in packet_text
+    assert "provider approval evidence" in packet_text
+    assert "market-data proof evidence" in packet_text
+    assert "forbids switching the proof command to\n`18789` or `18791`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "account, position, margin, buying-power, portfolio" in packet_text
+    assert "cleanup_authority=false" in packet_text
+    assert "flatten_authority=false" in packet_text
+    assert "sell_authority=false" in packet_text
+    assert "cancel_authority=false" in packet_text
+    assert "live_trading_authority=false" in packet_text
+    assert "package_capture=false" in packet_text
+    assert "replay=false" in packet_text
+    assert "scoring=false" in packet_text
+    assert "candidate_generation=false" in packet_text
+    assert "timer_service=NOT_TOUCHED" in packet_text
+    assert "service, systemd, or runtime mutation" in packet_text
+    assert "gateway start/stop/restart/reload" in packet_text
+    assert "enable/disable, kill, or mutation" in packet_text
+    assert "strategy, risk, or execution changes" in packet_text
+
+    assert 'rg -n "openclaw-gateway|18789|18791|7497" .' in d11_44_packet_text
+    assert 'printf \'%s\\n\' "--- pid=$pid ---"' in d11_44_packet_text
+    incorrect_repo_search = 'rg -n "openclaw-' + 'gatewa|18789|18791|7497" .'
+    assert incorrect_repo_search not in d11_44_packet_text
+
+    assert "### D11.45 VPS Endpoint/Context Evidence Adjudication" in map_text
+    assert str(packet_path) in map_text
+    assert "`OPERATOR_ENDPOINT_CONTEXT_EVIDENCE_ADJUDICATED`" in map_text
+    assert "`7ca0f2904f4d3b7376df0d699d2bc6d6bd128a4b`" in map_text
+    assert "`64 passed in 1.27s`" in map_text
+    assert "`OPEN_LIVENESS_ONLY`" in map_text
+    assert "`CLOSED_OR_REFUSED`" in map_text
+    assert "`/usr/bin/node`" in map_text
+    assert "`/root`" in map_text
+    assert "`openclaw-gateway`" in map_text
+    assert "`endpoint_liveness_confirmed_for_18789=true`" in map_text
+    assert "`endpoint_liveness_confirmed_for_18791=true`" in map_text
+    assert "`endpoint_liveness_confirmed_for_7497=false`" in map_text
+    assert "`openclaw_gateway_identity_confirmed=true`" in map_text
+    assert "`openclaw_gateway_protocol_approved=false`" in map_text
+    assert "`proof_endpoint_approved=false`" in map_text
+    assert "`provider_approval_evidence=false`" in map_text
+    assert "`market_data_proof_evidence=false`" in map_text
+    assert "`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`" in map_text
+    assert 'rg -n "openclaw-gateway|18789|18791|7497" .' in map_text
+    assert "omitted the final `9` in `18789`" in map_text
+    assert "omitted the final `y` in `openclaw-gateway`" in map_text
+    assert "avoid `printf '--- pid=%s ---\\n' \"$pid\"`" in map_text
+    assert "`printf '%s\\n' \"--- pid=$pid ---\"`" in map_text
+    assert "forbids treating open TCP liveness" in map_text
+    assert "forbids switching the proof command to `18789` or `18791`" in map_text
     assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
     assert "`D11_INSUFFICIENT`" in map_text
     assert "`UNIT_12_BLOCKED`" in map_text

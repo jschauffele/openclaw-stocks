@@ -4193,6 +4193,61 @@ balance, execution, cleanup, flatten, sell, cancel, live-trading, package
 capture, replay, scoring, candidate generation, timer, service, systemd,
 runtime mutation, gateway mutation, strategy, risk, or execution authority.
 
+### D11.45 VPS Endpoint/Context Evidence Adjudication
+
+D11.45 adds the source-controlled adjudication for the D11.44 VPS operator
+endpoint/context evidence:
+
+```text
+docs/ibkr_market_data_vps_endpoint_context_evidence_adjudication.md
+```
+
+It records `OPERATOR_ENDPOINT_CONTEXT_EVIDENCE_ADJUDICATED`, execution context
+`VPS`, source commit `7ca0f2904f4d3b7376df0d699d2bc6d6bd128a4b`, commit
+message `7ca0f29 Define D11 VPS endpoint context operator evidence`,
+`current_utc=2026-06-25 15:29:39 UTC`, and D11.44 VPS validation
+`64 passed in 1.27s`. The evidence is identity/liveness only: no proof was
+rerun, no endpoint was changed, no gateway/runtime/service/systemd mutation
+occurred, and no IBKR/TWS/Gateway connection or account/order/execution access
+was opened.
+
+D11.45 classifies `127.0.0.1:18789` and `127.0.0.1:18791` as
+`OPEN_LIVENESS_ONLY`, with `openclaw-gateway` PID `846`, command
+`openclaw-gateway`, executable `/usr/bin/node`, working directory `/root`, and
+cmdline `openclaw-gateway`. It records `[::1]:18789` as
+`OPEN_LIVENESS_ONLY` and `127.0.0.1:7497` as `CLOSED_OR_REFUSED`.
+
+D11.45 preserves the corrected labels `VPS_LOCALHOST_CONTEXT_MISMATCH`,
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`,
+`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`, `NOT_PROVEN_TWS_ISSUE`, and
+`NOT_PROVEN_IB_GATEWAY_ISSUE`. It records
+`endpoint_liveness_confirmed_for_18789=true`,
+`endpoint_liveness_confirmed_for_18791=true`,
+`endpoint_liveness_confirmed_for_7497=false`,
+`openclaw_gateway_identity_confirmed=true`,
+`openclaw_gateway_protocol_approved=false`, `proof_endpoint_approved=false`,
+`proof_rerun_authorized=false`, `provider_approval_evidence=false`, and
+`market_data_proof_evidence=false`.
+
+D11.45 corrects source-document typos by requiring
+`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791` and
+`rg -n "openclaw-gateway|18789|18791|7497" .`. It records that the former
+gateway label typo omitted the final `9` in `18789`, and the former repository
+search typo omitted the final `y` in `openclaw-gateway`. It also records the
+future runbook formatting fix: avoid `printf '--- pid=%s ---\n' "$pid"` and
+use `printf '%s\n' "--- pid=$pid ---"`.
+
+D11.45 forbids treating open TCP liveness as approved protocol/bridge
+semantics, provider approval evidence, endpoint approval, or market-data proof
+evidence. It forbids switching the proof command to `18789` or `18791` without
+a later source-controlled bridge/protocol approval. It preserves
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no account, position, margin, buying-power, portfolio, order,
+balance, execution, cleanup, flatten, sell, cancel, live-trading, package
+capture, replay, scoring, candidate generation, timer, service, systemd,
+runtime mutation, gateway mutation, strategy, risk, or execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
