@@ -1949,6 +1949,100 @@ def test_d11_40_runtime_value_confirmation_is_bounded_and_not_executed() -> None
     assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
+def test_d11_41_next_session_runtime_value_update_is_bounded_and_not_executed() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_vps_next_session_runtime_value_update.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.41 Next-Session VPS Runtime-Value Update" in packet_text
+    assert "next-session runtime-value update only" in packet_text
+    assert (
+        "`update_status` | `NEXT_SESSION_RUNTIME_VALUES_CONFIRMED_PROOF_NOT_RUN`"
+        in packet_text
+    )
+    assert "`vps_freshness_proof_run` | `false`" in packet_text
+    assert "`prior_bounded_proof_attempt_run` | `false`" in packet_text
+    assert "`prior_failure_reason` | `ib_insync dependency unavailable`" in packet_text
+    assert "`expected_source_commit` | `c90168d0c655c88183bdac03c4f5de2898387428`" in packet_text
+    assert "`repo_root` | `/opt/openclaw-stocks`" in packet_text
+    assert "`python_path` | `/opt/openclaw-stocks/venv/bin/python`" in packet_text
+    assert "`execution_context` | `VPS`" in packet_text
+    assert "`python_version_ready_after_hours` | `Python 3.12.3`" in packet_text
+    assert (
+        "`dependency_readiness_after_hours_verified` | "
+        "`requirements-diagnostics.txt / ib_insync==0.9.86`" in packet_text
+    )
+    assert "`dependency_readiness_is_proof_evidence` | `false`" in packet_text
+    assert "`vps_boundary_validation_after_hours` | `60 passed`" in packet_text
+    assert "`superseded_authorized_regular_session_utc_z` | `2026-06-24T14:00:00Z`" in packet_text
+    assert "`authorized_regular_session_utc_z` | `2026-06-25T14:00:00Z`" in packet_text
+    assert "`authorized_vps_local_endpoint` | `127.0.0.1`" in packet_text
+    assert "`authorized_port` | `7497`" in packet_text
+    assert "`authorized_read_only_client_id` | `9118`" in packet_text
+    assert "7:00 AM Pacific\n/ 10:00 AM Eastern" in packet_text
+    assert "Official market open is not the D11\ndiagnostic target" in packet_text
+    assert "after-hours VPS dependency readiness record only clears" in packet_text
+    assert "is not market-data proof evidence" in packet_text
+    assert "exact future command is source-controlled" in packet_text
+    assert "D11.41 does not execute it" in packet_text
+    assert "--expected-source-commit c90168d0c655c88183bdac03c4f5de2898387428" in packet_text
+    assert "--execution-context VPS" in packet_text
+    assert "--requested-end 2026-06-25T14:00:00Z" in packet_text
+    assert "--host 127.0.0.1 --port 7497" in packet_text
+    assert "--client-id 9118 --exchange SMART --currency USD" in packet_text
+    assert "--authorize-vps-ibkr-read-only-freshness-proof" in packet_text
+    assert "credential_configuration_status=operator_managed_tws_gateway_session_attested" in packet_text
+    assert "credentials_stored_in_repository=false" in packet_text
+    assert "credential_values_emitted=false" in packet_text
+    assert "secrets_captured=false" in packet_text
+    assert "`vps_runtime=NOT_TOUCHED`, `timer_service=NOT_TOUCHED`" in packet_text
+    assert "`package_capture=false`, `replay=false`, `scoring=false`" in packet_text
+    assert "`candidate_generation=false`, `broker_api_authority=false`" in packet_text
+    assert "`account_query_authority=false`, `order_authority=false`" in packet_text
+    assert "`cleanup_authority=false`" in packet_text
+    assert "`flatten_authority=false`" in packet_text
+    assert "`sell_authority=false`" in packet_text
+    assert "`cancel_authority=false`" in packet_text
+    assert "`live_trading_authority=false`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime_before_proof` | `PARKED`" in packet_text
+    assert "does not approve IBKR, complete D11, unblock Unit 12" in packet_text
+    assert "does not permit account, position" in packet_text
+    assert "separate operator terminal step on the VPS" in packet_text
+
+    assert "### D11.41 Next-Session VPS Runtime-Value Update" in map_text
+    assert str(packet_path) in map_text
+    assert "`vps_freshness_proof_run=false`" in map_text
+    assert "`ib_insync` was unavailable" in map_text
+    assert "`/opt/openclaw-stocks/venv/bin/python`" in map_text
+    assert "Python 3.12.3" in map_text
+    assert "`requirements-diagnostics.txt / ib_insync==0.9.86`" in map_text
+    assert "`60 passed`" in map_text
+    assert "after-hours readiness is not proof evidence" in map_text
+    assert "`2026-06-24T14:00:00Z`" in map_text
+    assert "`2026-06-25T14:00:00Z`" in map_text
+    assert "`127.0.0.1`" in map_text
+    assert "`7497`" in map_text
+    assert "`9118`" in map_text
+    assert "`c90168d0c655c88183bdac03c4f5de2898387428`" in map_text
+    assert "`/opt/openclaw-stocks`" in map_text
+    assert "execution context `VPS`" in map_text
+    assert "official market open is not the D11 diagnostic target" in map_text
+    assert "future command\nis source-controlled but has not been executed" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=PARKED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
