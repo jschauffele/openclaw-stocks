@@ -2860,6 +2860,142 @@ def test_d11_47_bridge_protocol_static_evidence_packet_forbids_traffic() -> None
     assert "gateway mutation" in map_text
 
 
+def test_d11_48_static_provenance_adjudication_preserves_no_approval() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_vps_bridge_protocol_static_evidence_adjudication.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.48 VPS Bridge/Protocol Static Evidence Adjudication" in packet_text
+    assert (
+        "`adjudication_status` | `STATIC_PROVENANCE_EVIDENCE_ADJUDICATED`"
+        in packet_text
+    )
+    assert (
+        "`static_evidence_file_path` | "
+        "`/tmp/d11_47_static_evidence_20260625T202035Z.txt`" in packet_text
+    )
+    assert "`static_evidence_file_existed` | `true`" in packet_text
+    assert "`static_evidence_line_count` | `30022`" in packet_text
+    assert "`static_evidence_byte_count` | `3132489`" in packet_text
+    assert (
+        "`static_evidence_sha256` | "
+        "`26c21cdf1a3af3e4e15e8e7e8e9c9c3f3ce24c806c97110ede6a1a9050b2676c`"
+        in packet_text
+    )
+    assert (
+        "`source_commit_after_evidence_collection` | "
+        "`3592b3068fd6bce0296d28db6ddd579ae90e8574`" in packet_text
+    )
+    assert (
+        "`source_commit_message` | "
+        "`3592b30 Define D11 VPS bridge protocol static evidence`" in packet_text
+    )
+    assert "`d11_47_vps_validation` | `67 passed in 1.67s`" in packet_text
+    assert "`openclaw_gateway_command_v` | `empty`" in packet_text
+    assert "`openclaw_gateway_binary` | `NOT_FOUND`" in packet_text
+    assert "`openclaw_gateway_binary_on_path` | `false`" in packet_text
+    assert "`npm_global_openclaw_package_observed` | `true`" in packet_text
+    assert "`npm_global_openclaw_package` | `openclaw@2026.3.24`" in packet_text
+    assert "`node_version` | `v24.13.0`" in packet_text
+    assert "`npm_version` | `11.6.2`" in packet_text
+    assert "`openclaw_gateway_service_found` | `false`" in packet_text
+    assert "`repo_reference_search_too_broad` | `true`" in packet_text
+    assert "`package_source_provenance_complete` | `false`" in packet_text
+    assert "`protocol_semantics_proven` | `false`" in packet_text
+    assert "`bridge_protocol_approved` | `false`" in packet_text
+    assert "`proof_endpoint_approved` | `false`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`provider_approval_evidence` | `false`" in packet_text
+    assert "`market_data_proof_evidence` | `false`" in packet_text
+    assert "without rerunning the VPS proof" in packet_text
+    assert "without protocol probing" in packet_text
+    assert "without\ntraffic to `18789`, `18791`, or `7497`" in packet_text
+    assert "without endpoint switch" in packet_text
+    assert "without\ngateway/runtime/service/systemd mutation" in packet_text
+    assert "openclaw_gateway_command_v` was empty" in packet_text
+    assert "`openclaw_gateway_binary=NOT_FOUND`" in packet_text
+    assert "`openclaw@2026.3.24`" in packet_text
+    assert "`node_version=v24.13.0`" in packet_text
+    assert "`npm_version=11.6.2`" in packet_text
+    assert "`openclaw-gateway.service` could not be found" in packet_text
+    assert "too broad/noisy for protocol approval" in packet_text
+    assert "does not complete package/source provenance" in packet_text
+    assert "does not prove\nprotocol semantics" in packet_text
+    assert "does not approve `18789` or `18791` as proof endpoints" in packet_text
+    assert "does not\nauthorize proof rerun" in packet_text
+    assert "protocol probing" in packet_text
+    assert "endpoint switch" in packet_text
+    assert "account/order/execution access" in packet_text
+    assert "forbids treating static package/source\nidentity" in packet_text
+    assert "npm package observation" in packet_text
+    assert "service absence" in packet_text
+    assert "noisy repo references" in packet_text
+    assert "open TCP liveness as approved protocol/bridge semantics" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "account, position, margin, buying-power, portfolio" in packet_text
+    assert "cleanup_authority=false" in packet_text
+    assert "flatten_authority=false" in packet_text
+    assert "sell_authority=false" in packet_text
+    assert "cancel_authority=false" in packet_text
+    assert "live_trading_authority=false" in packet_text
+    assert "package_capture=false" in packet_text
+    assert "replay=false" in packet_text
+    assert "scoring=false" in packet_text
+    assert "candidate_generation=false" in packet_text
+    assert "timer_service=NOT_TOUCHED" in packet_text
+    assert "service, systemd, or runtime\nmutation" in packet_text
+    assert "gateway start/stop/restart/reload" in packet_text
+    assert "enable/disable, kill, or mutation" in packet_text
+    assert "strategy, risk, or execution changes" in packet_text
+
+    assert "### D11.48 VPS Bridge/Protocol Static Evidence Adjudication" in map_text
+    assert str(packet_path) in map_text
+    assert "`STATIC_PROVENANCE_EVIDENCE_ADJUDICATED`" in map_text
+    assert "`67 passed in 1.67s`" in map_text
+    assert "`/tmp/d11_47_static_evidence_20260625T202035Z.txt`" in map_text
+    assert "line count `30022`" in map_text
+    assert "byte\ncount `3132489`" in map_text
+    assert "`26c21cdf1a3af3e4e15e8e7e8e9c9c3f3ce24c806c97110ede6a1a9050b2676c`" in map_text
+    assert "`3592b3068fd6bce0296d28db6ddd579ae90e8574`" in map_text
+    assert "`3592b30 Define D11 VPS bridge protocol static evidence`" in map_text
+    assert "`openclaw_gateway_command_v` was empty" in map_text
+    assert "`openclaw_gateway_binary=NOT_FOUND`" in map_text
+    assert "`openclaw_gateway_binary_on_path=false`" in map_text
+    assert "`npm_global_openclaw_package_observed=true`" in map_text
+    assert "`openclaw@2026.3.24`" in map_text
+    assert "`node_version=v24.13.0`" in map_text
+    assert "`npm_version=11.6.2`" in map_text
+    assert "`openclaw_gateway_service_found=false`" in map_text
+    assert "repo reference output was too\nbroad/noisy for protocol approval" in map_text
+    assert "`package_source_provenance_complete=false`" in map_text
+    assert "`protocol_semantics_proven=false`" in map_text
+    assert "`bridge_protocol_approved=false`" in map_text
+    assert "`proof_endpoint_approved=false`" in map_text
+    assert "`proof_rerun_authorized=false`" in map_text
+    assert "`provider_approval_evidence=false`" in map_text
+    assert "`market_data_proof_evidence=false`" in map_text
+    assert "does not approve `18789` or `18791`" in map_text
+    assert "does not authorize proof rerun" in map_text
+    assert "does not authorize protocol\nprobing" in map_text
+    assert "does not authorize endpoint switch" in map_text
+    assert "does not authorize\naccount/order/execution access" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "opens no account, position, margin" in map_text
+    assert "gateway mutation" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

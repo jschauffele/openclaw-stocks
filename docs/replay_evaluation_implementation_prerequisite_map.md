@@ -4335,6 +4335,45 @@ cancel, live-trading, package capture, replay, scoring, candidate generation,
 timer, service, systemd, runtime mutation, gateway mutation, strategy, risk, or
 execution authority.
 
+### D11.48 VPS Bridge/Protocol Static Evidence Adjudication
+
+D11.48 adds the source-controlled adjudication of D11.47 VPS static provenance
+evidence:
+
+```text
+docs/ibkr_market_data_vps_bridge_protocol_static_evidence_adjudication.md
+```
+
+It records `STATIC_PROVENANCE_EVIDENCE_ADJUDICATED`, D11.47 VPS validation
+`67 passed in 1.67s`, static evidence file
+`/tmp/d11_47_static_evidence_20260625T202035Z.txt`, line count `30022`, byte
+count `3132489`, SHA-256
+`26c21cdf1a3af3e4e15e8e7e8e9c9c3f3ce24c806c97110ede6a1a9050b2676c`, source
+commit `3592b3068fd6bce0296d28db6ddd579ae90e8574`, and commit message
+`3592b30 Define D11 VPS bridge protocol static evidence`.
+
+D11.48 adjudicates that `openclaw_gateway_command_v` was empty,
+`openclaw_gateway_binary=NOT_FOUND`, `openclaw_gateway_binary_on_path=false`,
+`npm_global_openclaw_package_observed=true` with `openclaw@2026.3.24`,
+`node_version=v24.13.0`, `npm_version=11.6.2`, and
+`openclaw_gateway_service_found=false`. The repo reference output was too
+broad/noisy for protocol approval, so `package_source_provenance_complete=false`
+and `protocol_semantics_proven=false`.
+
+D11.48 keeps `bridge_protocol_approved=false`, `proof_endpoint_approved=false`,
+`proof_rerun_authorized=false`, `provider_approval_evidence=false`, and
+`market_data_proof_evidence=false`. It does not approve `18789` or `18791` as
+proof endpoints, does not authorize proof rerun, does not authorize protocol
+probing, does not authorize endpoint switch, and does not authorize
+account/order/execution access.
+
+D11.48 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no account, position, margin, buying-power, portfolio, order,
+balance, execution, cleanup, flatten, sell, cancel, live-trading, package
+capture, replay, scoring, candidate generation, timer, service, systemd,
+runtime mutation, gateway mutation, strategy, risk, or execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
