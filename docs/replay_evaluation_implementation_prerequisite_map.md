@@ -4248,6 +4248,49 @@ balance, execution, cleanup, flatten, sell, cancel, live-trading, package
 capture, replay, scoring, candidate generation, timer, service, systemd,
 runtime mutation, gateway mutation, strategy, risk, or execution authority.
 
+### D11.46 VPS Bridge/Protocol Decision Prerequisite
+
+D11.46 adds the source-controlled bridge/protocol decision prerequisite gate:
+
+```text
+docs/ibkr_market_data_vps_bridge_protocol_decision_prerequisite.md
+```
+
+It records current validated source commit
+`73b3b22297ba82d61eb915351349eb758589724a`, D11.45 VPS validation
+`65 passed in 0.23s`, and the D11.45 classification: `18789` and `18791` are
+liveness-confirmed only, `7497` is closed/refused, `openclaw-gateway` identity
+is confirmed, `openclaw_gateway_protocol_approved=false`,
+`proof_endpoint_approved=false`, `proof_rerun_authorized=false`,
+`provider_approval_evidence=false`, and `market_data_proof_evidence=false`.
+
+D11.46 preserves the adjudicated facts that `openclaw-gateway` was PID `846`,
+executable `/usr/bin/node`, working directory `/root`, cmdline
+`openclaw-gateway`, with `127.0.0.1:18789` and `127.0.0.1:18791` classified as
+`OPEN_LIVENESS_ONLY`, `[::1]:18789` also open liveness only, and
+`127.0.0.1:7497` classified as `CLOSED_OR_REFUSED`.
+
+D11.46 does not approve `18789` or `18791` as proof endpoints and does not
+authorize a proof rerun. Before any later approval could classify an
+`openclaw-gateway` port as an approved read-only IBKR market-data bridge, future
+source-controlled evidence must identify package/source provenance, protocol
+on `18789` and `18791`, whether either port exposes IBKR API, HTTP, WebSocket,
+RPC, proxy, tunnel, or other bridge semantics, whether historical market-data
+read-only requests can occur without account/order/execution authority, exact
+command boundaries for any protocol probe, separate approval before execution,
+and a non-mutating fail-closed probe design.
+
+D11.46 requires a clear negative path: if protocol semantics cannot be proven
+source-controlled, abandon VPS-local proof or create a separate tunnel
+prerequisite. It forbids treating liveness as bridge/protocol approval and
+forbids switching the proof command to `18789` or `18791`. It preserves
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no account, position, margin, buying-power, portfolio, order,
+balance, execution, cleanup, flatten, sell, cancel, live-trading, package
+capture, replay, scoring, candidate generation, timer, service, systemd,
+runtime mutation, gateway mutation, strategy, risk, or execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
