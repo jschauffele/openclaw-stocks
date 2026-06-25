@@ -4062,6 +4062,49 @@ execution, cleanup, flatten, sell, cancel, live-trading, runtime, timer,
 service, systemd, strategy, risk, replay, scoring, or candidate-generation
 activity.
 
+### D11.42 VPS Read-Only Freshness Proof Connection-Refused Adjudication
+
+D11.42 adds the source-controlled adjudication record for the bounded VPS
+read-only proof attempt:
+
+```text
+docs/ibkr_market_data_vps_proof_connection_refused_adjudication.md
+```
+
+The proof command ran during the authorized proof window
+(`authorized_pacific=2026-06-25 07:00:00 PDT`,
+`authorized_utc=2026-06-25 14:00:00 UTC`) on branch `main` with expected and
+observed source commit `04e856c8a8d3387ccf2b0af5e55b493ea853a401`, clean
+pre/post worktree status, repo root `/opt/openclaw-stocks`, and satisfied
+dependency contract `requirements-diagnostics.txt / ib_insync==0.9.86`.
+
+D11.42 classifies the attempt as `PROOF_RUN_BUT_NON_COUNTABLE`:
+`vps_freshness_proof_run=true`, but `d11_countable_evidence_produced=false`.
+All five requested symbols (`AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`) are
+recorded as `freshness_classification=unavailable`, `d11_countable=false`,
+`d11_primary_eligible=false`, `latest_candle_timestamp=null`,
+`lag_minutes=null`, with failure reason `historical read-only request failed:
+ConnectionRefusedError`.
+
+The proven blocker is `VPS_LOCALHOST_CONTEXT_MISMATCH`:
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`. The proof targeted
+`127.0.0.1:7497` from the VPS context, that endpoint refused connection, later
+VPS audit showed no listener on `127.0.0.1:7497`, and later VPS audit showed
+`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`. Existing docs state
+`127.0.0.1` means loopback of the current process context. The adjudication
+therefore records `NOT_PROVEN_TWS_ISSUE` and `NOT_PROVEN_IB_GATEWAY_ISSUE`.
+This is not provider approval evidence and does not complete D11.
+
+D11.42 preserves read-only historical-market-data boundaries and closed
+authority flags, including `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11_INSUFFICIENT`, `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and
+`VPS_RUNTIME=NOT_TOUCHED`. The next permissible gate is operator-managed VPS
+endpoint/context readiness confirmation only, not bot-started gateway/runtime
+and not account, position, margin, buying-power, portfolio, order, balance,
+execution, cleanup, flatten, sell, cancel, live-trading, package capture,
+replay, scoring, candidate generation, timer, service, systemd, runtime
+mutation, strategy, risk, or execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

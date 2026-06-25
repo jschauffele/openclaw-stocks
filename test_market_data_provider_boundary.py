@@ -2043,6 +2043,139 @@ def test_d11_41_next_session_runtime_value_update_is_bounded_and_not_executed() 
     assert "`VPS_RUNTIME=PARKED`" in map_text
 
 
+def test_d11_42_vps_connection_refused_adjudication_is_non_countable() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_vps_proof_connection_refused_adjudication.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "D11.42 VPS Read-Only Freshness Proof Connection-Refused Adjudication"
+        in packet_text
+    )
+    assert "`adjudication_status` | `PROOF_RUN_BUT_NON_COUNTABLE`" in packet_text
+    assert "`vps_freshness_proof_run` | `true`" in packet_text
+    assert "`d11_countable_evidence_produced` | `false`" in packet_text
+    assert "`provider_approval_evidence` | `false`" in packet_text
+    assert "`root_operational_blocker` | `VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert (
+        "`authorized_endpoint_status` | "
+        "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    )
+    assert (
+        "`observed_gateway_context` | "
+        "`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`" in packet_text
+    )
+    assert "`desktop_terminal_issue_status` | `NOT_PROVEN_TWS_ISSUE`" in packet_text
+    assert (
+        "`broker_gateway_issue_status` | `NOT_PROVEN_IB_GATEWAY_ISSUE`"
+        in packet_text
+    )
+    assert "`top_level_failure_reason` | `empty`" in packet_text
+    assert "`execution_context` | `VPS`" in packet_text
+    assert "`authorized_pacific` | `2026-06-25 07:00:00 PDT`" in packet_text
+    assert "`authorized_utc` | `2026-06-25 14:00:00 UTC`" in packet_text
+    assert "2026-06-25 14:12:49 UTC; 2026-06-25 14:13:35 UTC" in packet_text
+    assert "`expected_source_commit` | `04e856c8a8d3387ccf2b0af5e55b493ea853a401`" in packet_text
+    assert "`observed_head` | `04e856c8a8d3387ccf2b0af5e55b493ea853a401`" in packet_text
+    assert "`branch` | `main`" in packet_text
+    assert "`repo_root` | `/opt/openclaw-stocks`" in packet_text
+    assert "`worktree_status_before_run` | `clean`" in packet_text
+    assert "`worktree_status_after_run` | `clean`" in packet_text
+    assert "`dependency_contract` | `requirements-diagnostics.txt / ib_insync==0.9.86`" in packet_text
+    assert "`observed_dependency` | `ib_insync==0.9.86`" in packet_text
+    assert "`requested_start` | `2026-06-25T12:00:00+00:00`" in packet_text
+    assert "`requested_end` | `2026-06-25T14:00:00+00:00`" in packet_text
+    assert "`symbols` | `AAPL, MSFT, NVDA, TSLA, MSTR`" in packet_text
+    assert "`timeframe` | `15Min`" in packet_text
+    assert "`host` | `127.0.0.1`" in packet_text
+    assert "`port` | `7497`" in packet_text
+    assert "`read_only` | `true`" in packet_text
+    assert "API connection failed: ConnectionRefusedError" in packet_text
+    assert "Connect call failed ('127.0.0.1', 7497)" in packet_text
+    assert "openclaw-gateway` present on `127.0.0.1:18789`" in packet_text
+    assert "`127.0.0.1:18791`" in packet_text
+    assert "loopback of\nthe current process context" in packet_text
+    assert "endpoint/context\nmismatch" in packet_text
+
+    for symbol in ("AAPL", "MSFT", "NVDA", "TSLA", "MSTR"):
+        assert (
+            f"| `{symbol}` | `unavailable` | `false` | `false` | "
+            "`null` | `null` | "
+            "`historical read-only request failed: ConnectionRefusedError` |"
+        ) in packet_text
+
+    assert "Because all five results are unavailable and non-countable" in packet_text
+    assert "historical-market-data-only boundary" in packet_text
+    assert "account, position, margin, buying-power, portfolio, order, balance" in packet_text
+    assert "execution queries" in packet_text
+    assert "flattening, selling, or live trading" in packet_text
+    assert "package capture; replay; scoring;\ncandidate generation" in packet_text
+    assert "timer, service, systemd, or runtime mutation" in packet_text
+    assert "strategy, risk, or execution changes" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "vps_runtime=NOT_TOUCHED" in packet_text
+    assert "timer_service=NOT_TOUCHED" in packet_text
+    assert "package_capture=false" in packet_text
+    assert "replay=false" in packet_text
+    assert "scoring=false" in packet_text
+    assert "candidate_generation=false" in packet_text
+    assert "broker_api_authority=false" in packet_text
+    assert "account_query_authority=false" in packet_text
+    assert "order_authority=false" in packet_text
+    assert "execution_authority=false" in packet_text
+    assert "cleanup_authority=false" in packet_text
+    assert "flatten_authority=false" in packet_text
+    assert "sell_authority=false" in packet_text
+    assert "cancel_authority=false" in packet_text
+    assert "live_trading_authority=false" in packet_text
+    assert "d11_completion_authority=false" in packet_text
+    assert "operator-managed VPS endpoint/context readiness\nconfirmation" in packet_text
+    assert "not authorization for the bot to start or\nmutate gateway" in packet_text
+
+    assert (
+        "### D11.42 VPS Read-Only Freshness Proof Connection-Refused Adjudication"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`authorized_pacific=2026-06-25 07:00:00 PDT`" in map_text
+    assert "`authorized_utc=2026-06-25 14:00:00 UTC`" in map_text
+    assert "`04e856c8a8d3387ccf2b0af5e55b493ea853a401`" in map_text
+    assert "`requirements-diagnostics.txt / ib_insync==0.9.86`" in map_text
+    assert "`PROOF_RUN_BUT_NON_COUNTABLE`" in map_text
+    assert "`vps_freshness_proof_run=true`" in map_text
+    assert "`d11_countable_evidence_produced=false`" in map_text
+    assert "`AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in map_text
+    assert "`freshness_classification=unavailable`" in map_text
+    assert "`d11_countable=false`" in map_text
+    assert "`d11_primary_eligible=false`" in map_text
+    assert "`latest_candle_timestamp=null`" in map_text
+    assert "`lag_minutes=null`" in map_text
+    assert "ConnectionRefusedError" in map_text
+    assert "`127.0.0.1:7497`" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert "`OPENCLAW_GATEWAY_PRESENT_ON_18789_AND_18791`" in map_text
+    assert "`NOT_PROVEN_TWS_ISSUE`" in map_text
+    assert "`NOT_PROVEN_IB_GATEWAY_ISSUE`" in map_text
+    assert "loopback of the current process context" in map_text
+    assert "not provider approval evidence and does not complete D11" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "operator-managed VPS\nendpoint/context readiness confirmation" in map_text
+    assert "not bot-started gateway/runtime" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
