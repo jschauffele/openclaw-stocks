@@ -4423,6 +4423,54 @@ capture, replay, scoring, candidate generation, timer, service, systemd,
 runtime mutation, gateway mutation, strategy, risk, execution, proof rerun,
 endpoint switch, or protocol-probe authority.
 
+### D11.50 Post-VPS Negative-Path Routing Decision
+
+D11.50 adds the source-controlled post-VPS routing decision:
+
+```text
+docs/ibkr_market_data_post_vps_negative_path_routing_decision.md
+```
+
+It records `POST_VPS_NEGATIVE_PATH_ROUTING_DECISION`, current validated commit
+`ce132ae4334f2e9c315fbfdd9133affc1f070be5`, and D11.49 VPS validation
+`69 passed in 1.75s`.
+
+D11.50 carries forward the D11.49 result:
+`VPS_BRIDGE_PROTOCOL_NEGATIVE_PATH_DECISION`,
+`current_vps_bridge_path_approved=false`,
+`current_18789_endpoint_approved=false`,
+`current_18791_endpoint_approved=false`,
+`current_7497_endpoint_available=false`, `proof_rerun_authorized=false`,
+`protocol_probe_authorized=false`, `endpoint_switch_authorized=false`,
+`bridge_protocol_approved=false`, `provider_approval_evidence=false`,
+`market_data_proof_evidence=false`, and `d11_completion_authority=false`.
+
+D11.50 records `vps_bridge_path_closed=true` and
+`current_vps_endpoint_available_for_countable_proof=false`. Ports `18789` and
+`18791` are not approved endpoints, `7497` remains unavailable from the VPS
+proof context, and no current VPS endpoint can be used for D11 countable
+market-data proof.
+
+D11.50 sets `next_route=MAC_LOCAL_IBKR_EVIDENCE_REVIEW_ONLY` while keeping
+`mac_local_market_test_authorized=false`, `vps_market_test_authorized=false`,
+`proof_rerun_authorized=false`, `protocol_probe_authorized=false`, and
+`endpoint_switch_authorized=false`. The immediate current step is
+evidence/routing documentation, not proof execution.
+
+Any future Mac-local market test requires a separately source-controlled
+preflight gate with explicit date and session window, explicit TWS/manual
+operator readiness boundary, explicit historical-market-data-only command,
+explicit compact output handling, expected commit, clean worktree requirement,
+and no account/order/execution authority.
+
+D11.50 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no account, position, margin, buying-power, portfolio, order,
+balance, execution, cleanup, flatten, sell, cancel, live-trading, package
+capture, replay, scoring, candidate generation, timer, service, systemd,
+runtime mutation, gateway mutation, strategy, risk, execution, proof rerun,
+endpoint switch, protocol probe, or market-test authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
