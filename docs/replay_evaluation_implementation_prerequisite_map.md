@@ -5238,6 +5238,73 @@ mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
 openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
 opening, broker submit readiness, or live-trading authority.
 
+### D11.64 IBKR Primary Eligibility Blocker Resolution Plan
+
+D11.64 adds the source-controlled blocker-resolution plan:
+
+```text
+docs/ibkr_market_data_d11_64_primary_eligibility_blocker_resolution_plan.md
+```
+
+It records `IBKR_D11_PRIMARY_ELIGIBILITY_BLOCKER_RESOLUTION_PLAN`,
+`source_commit=ac78409fa0c81c97f2a357671cbc55fd55988f4b`,
+`d11_63_decision=BLOCKED_INSUFFICIENT_PRIMARY_ELIGIBILITY_EVIDENCE`,
+`criteria_revision_result=NOT_APPROVED`,
+`primary_eligibility_revision=NOT_REVISED`, and
+`separate_vps_proof_rule_revision=NOT_REVISED`.
+
+D11.64 records
+`d11_64_decision=BLOCKER_RESOLUTION_PLAN_RECORDED_FAIL_CLOSED`. It keeps
+`ibkr_primary_eligibility=NOT_APPROVED`, `d11_status=D11_INSUFFICIENT`,
+`unit_12_status=UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`VPS_RUNTIME=NOT_TOUCHED`, and `account_order_execution_authority=false`.
+
+D11.64 records that D11.57 LOCAL_MAC historical evidence remains accepted:
+`mac_local_historical_diagnostic_evidence=ACCEPTED`,
+`all_symbols_d11_countable=true`, and
+`all_symbols_freshness_classification=clean`, with
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_mac_local_endpoint=127.0.0.1:7497`, and
+`endpoint_scope=LOCAL_MAC_ONLY`.
+
+D11.64 identifies the missing evidence classes before any future IBKR primary
+eligibility reconsideration: historical data availability governance mapping,
+endpoint locality governance mapping, broker-coupling resolution,
+provider-primary eligibility evidence satisfying `candidate_can_count_for_d11`,
+VPS production/runtime eligibility evidence, broker submit readiness evidence,
+and live trading readiness evidence.
+
+D11.64 separates governance/documentation blockers from future runtime, broker,
+VPS, or market-session evidence blockers. Governance blockers include the lack
+of an adopted criteria rule mapping LOCAL_MAC historical evidence to primary
+eligibility reconsideration and the lack of a source-controlled
+evidence-requirements packet. Future evidence blockers include absent VPS
+production/runtime eligibility, absent broker submit readiness, and absent live
+trading readiness; D11.64 does not capture that evidence and does not create
+commands for it.
+
+D11.64 preserves the localhost and endpoint boundaries:
+`127.0.0.1` is process-context local, LOCAL_MAC `127.0.0.1:7497` is not
+equivalent to VPS `127.0.0.1:7497`, `vps_127_0_0_1_7497_validated=false`, the
+prior VPS failure remains `VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, and `18789` and `18791`
+remain not approved market-data endpoints unless separately approved by
+source-controlled criteria.
+
+The exact next permissible gate is
+`D11.65_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_EVIDENCE_REQUIREMENTS_PREREQUISITE`.
+That gate must be a narrowly scoped source-controlled evidence-requirements
+prerequisite. It is not runtime activation, broker activation, Unit 12 opening,
+or IBKR primary eligibility approval.
+
+D11.64 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
+opening, broker submit readiness, live-trading readiness, or IBKR primary
+eligibility approval.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
