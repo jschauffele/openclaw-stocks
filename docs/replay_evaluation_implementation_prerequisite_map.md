@@ -5164,6 +5164,80 @@ probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
 mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
 openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
 
+### D11.63 Formal LOCAL_MAC-Only IBKR Criteria Revision
+
+D11.63 adds the source-controlled criteria-revision adjudication:
+
+```text
+docs/ibkr_market_data_d11_63_formal_local_mac_only_criteria_revision.md
+```
+
+It records `IBKR_D11_LOCAL_MAC_ONLY_CRITERIA_REVISION_ADJUDICATION`,
+`source_commit=94fdbbe93ff4b9d4b46018a3a9cef211dd142049`,
+`d11_62_decision=LOCAL_MAC_CRITERIA_REVISION_PATH_SELECTED`, and
+`d11_62_next_gate=D11.63_FORMAL_LOCAL_MAC_ONLY_IBKR_PRIMARY_ELIGIBILITY_CRITERIA_REVISION`.
+
+D11.63 fails closed:
+`d11_63_decision=BLOCKED_INSUFFICIENT_PRIMARY_ELIGIBILITY_EVIDENCE`,
+`criteria_revision_result=NOT_APPROVED`,
+`primary_eligibility_revision=NOT_REVISED`, and
+`separate_vps_proof_rule_revision=NOT_REVISED`.
+
+D11.63 keeps `ibkr_primary_eligibility=NOT_APPROVED`,
+`d11_status=D11_INSUFFICIENT`, `unit_12_status=UNIT_12_BLOCKED`,
+`PACKAGE_CAPTURE=BLOCKED`, `VPS_RUNTIME=NOT_TOUCHED`, and
+`account_order_execution_authority=false`.
+
+D11.63 records that D11.57 LOCAL_MAC historical evidence remains accepted:
+`mac_local_historical_diagnostic_evidence=ACCEPTED`,
+`all_symbols_d11_countable=true`, and
+`all_symbols_freshness_classification=clean`, with
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_mac_local_endpoint=127.0.0.1:7497`, and
+`endpoint_scope=LOCAL_MAC_ONLY`.
+
+D11.63 distinguishes historical data availability evidence from endpoint
+locality evidence, provider primary eligibility, runtime deployment
+eligibility, broker submit readiness, and live trading readiness. The accepted
+LOCAL_MAC evidence supports only historical data availability through a local
+TWS paper endpoint for the diagnostic window.
+
+D11.63 does not revise
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility`.
+The inspected provider-selection source still requires
+`candidate_can_count_for_d11`, and `ibkr_market_data_candidate` remains
+`d11_primary_candidate_status=candidate`, `d11_primary_eligible=false`,
+`broker_coupled=true`, `order_authority=false`, and
+`execution_authority=false`.
+
+D11.63 records that `127.0.0.1` is process-context local, LOCAL_MAC
+`127.0.0.1:7497` is not equivalent to VPS `127.0.0.1:7497`,
+`vps_127_0_0_1_7497_validated=false`, and the prior VPS failure remains
+`VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue or
+proven IB Gateway issue. `18789` and `18791` remain not approved market-data
+endpoints unless separately approved by source-controlled criteria.
+
+D11.63 preserves separation between LOCAL_MAC evidence and VPS production or
+runtime eligibility. It also preserves separation between market-data
+availability, broker submit readiness, and live trading readiness.
+
+The exact next permissible gate is
+`D11.64_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_BLOCKER_RESOLUTION_PLAN`.
+That future gate may plan source-controlled blocker resolution only; it must not
+imply broker/TWS/API/runtime/network/service/scheduler/systemd/credential/VPS
+actions, market-session diagnostics, package capture, replay, scoring,
+candidate generation, strategy/risk/execution behavior changes,
+provider-selection runtime behavior changes, account/order/execution
+authority, Unit 12 opening, broker submit readiness, or live trading readiness.
+
+D11.63 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
+opening, broker submit readiness, or live-trading authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
