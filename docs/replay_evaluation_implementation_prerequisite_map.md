@@ -4947,6 +4947,69 @@ probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
 mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
 openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
 
+### D11.60 VPS Proof Safe Preflight Or LOCAL_MAC Criteria Revision
+
+D11.60 adds the source-controlled decision artifact:
+
+```text
+docs/ibkr_market_data_vps_proof_safe_preflight_or_local_mac_criteria_revision.md
+```
+
+It records `IBKR_VPS_PROOF_SAFE_PREFLIGHT_OR_LOCAL_MAC_CRITERIA_REVISION`,
+`source_commit=002602313f022ea2581cd7d30d3453aca9b4f50f`, D11.59 VPS
+validation `79 passed in 2.77s`,
+`d11_59_route=REMAINS_ACTIVE_SAFE_PREFLIGHT_REQUIRED`, and
+`d11_58_result=BLOCKED_CRITERIA_UNRESOLVED`.
+
+D11.60 chooses Option C:
+`d11_60_decision=BLOCKED_NO_VALID_VPS_PROOF_TARGET_OR_CRITERIA_REVISION`.
+It records `vps_proof_safe_target_status=NO_VALIDATED_TARGET` and
+`local_mac_criteria_revision_status=NOT_SUPPORTED`.
+
+D11.60 keeps `ibkr_primary_eligibility=NOT_APPROVED`,
+`d11_status=D11_INSUFFICIENT`, `unit_12_status=UNIT_12_BLOCKED`,
+`PACKAGE_CAPTURE=BLOCKED`, `VPS_RUNTIME=NOT_TOUCHED`, and
+`account_order_execution_authority=false`.
+
+D11.60 records that D11.57 Mac-local evidence remains accepted:
+`mac_local_historical_diagnostic_evidence=ACCEPTED`,
+`all_symbols_d11_countable=true`, and
+`all_symbols_freshness_classification=clean` for all five symbols, with
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_mac_local_endpoint=127.0.0.1:7497`, and
+`endpoint_scope=LOCAL_MAC_ONLY`.
+
+The active rule remains
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility` in
+`D11_PRIMARY_PROVIDER_SELECTION_CRITERIA`. D11.60 finds no validated
+VPS-accessible proof target and no source-controlled basis to retire or narrow
+that rule for `LOCAL_MAC_ONLY` evidence.
+
+D11.60 records `vps_127_0_0_1_7497_validated=false`. VPS `127.0.0.1:7497`
+must not be reused as a proof target because `127.0.0.1` is process-context
+local, LOCAL_MAC `127.0.0.1:7497` is not equivalent to VPS `127.0.0.1:7497`,
+and the prior VPS proof failed because VPS `127.0.0.1:7497` was not listening.
+The prior failure remains `VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue.
+
+D11.60 records that `18789` and `18791` are not approved market-data endpoints
+unless a separate source-controlled approval exists. Existing evidence
+classifies them as liveness/provenance-only paths without approved
+bridge/protocol semantics or market-data proof authority.
+
+The next permissible gate is
+`D11.61_SOURCE_CONTROLLED_VPS_ENDPOINT_EVIDENCE_OR_CRITERIA_REVISION_PREREQUISITE`.
+That future gate may only create source-controlled prerequisite evidence for a
+validated VPS-accessible endpoint or a formal criteria revision; it does not
+authorize proof execution, endpoint inspection, protocol probing, broker
+endpoint traffic, runtime mutation, Unit 12 opening, or IBKR primary approval.
+
+D11.60 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
