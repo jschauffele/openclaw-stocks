@@ -4520,6 +4520,57 @@ package capture, replay, scoring, candidate generation, timer/service/systemd
 or runtime mutation, gateway mutation, strategy/risk/execution authority, D11
 completion authority, or Unit 12 opening authority.
 
+### D11.52 Official IBKR Endpoint Documentation Adjudication
+
+D11.52 adds the source-controlled official IBKR endpoint documentation
+adjudication:
+
+```text
+docs/ibkr_market_data_official_endpoint_documentation_adjudication.md
+```
+
+It records `OFFICIAL_IBKR_ENDPOINT_DOCUMENTATION_ADJUDICATION`, current
+validated commit `79e5d354c1bba7b1b3b45d1b3ec8267c5a32e052`, and D11.51 VPS
+validation `71 passed in 2.36s`.
+
+D11.52 records the official IBKR documentation sources reviewed:
+`https://interactivebrokers.github.io/tws-api/initial_setup.html`,
+`https://ibkrcampus.com/campus/ibkr-api-page/twsapi-doc/`, and
+`https://ibkrcampus.com/campus/trading-lessons/accessing-the-tws-python-api-source-code/`.
+
+D11.52 records `official_tws_api_transport=TCP_SOCKET`,
+`official_tws_live_default_port=7496`, `official_tws_paper_default_port=7497`,
+`official_gateway_live_default_port=4001`,
+`official_gateway_paper_default_port=4002`, and
+`configured_port_must_match_client_port=true`. The endpoint is not guessed; it
+must match the configured TWS/Gateway socket port.
+
+D11.52 keeps `mac_local_endpoint_selection_authorized=false`,
+`mac_local_endpoint_inspection_authorized=false`,
+`mac_local_market_test_authorized=false`, `vps_market_test_authorized=false`,
+`proof_rerun_authorized=false`, `protocol_probe_authorized=false`, and
+`endpoint_switch_authorized=false`. It does not authorize TWS/Gateway
+connection commands or broker API import/connect.
+
+Any future Mac-local endpoint-inspection gate must be separately
+source-controlled and include exact expected source commit, clean worktree
+requirement, explicit operator-readiness boundary, exact non-mutating inspection
+commands only, no broker API import/connect, no market-data request, and no
+account/order/execution authority.
+
+Any future Mac-local market-test preflight must be separately source-controlled
+and include exact future date, explicit regular-session window, explicit
+diagnostic target at or after 7:00 AM Pacific / 10:00 AM Eastern, 6:55 AM
+Pacific readiness-check boundary only, explicit expected source commit, clean
+worktree requirement before and after, explicit TWS/manual operator readiness
+boundary, historical-market-data-only command, explicit compact output handling,
+no account/position/margin/buying-power/portfolio/order/balance/execution/
+cleanup/flatten/sell/cancel/live-trading authority, and no package capture,
+replay, scoring, candidate generation, strategy, risk, or execution authority.
+
+D11.52 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

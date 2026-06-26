@@ -3360,6 +3360,138 @@ def test_d11_51_mac_local_evidence_review_prerequisite_opens_review_only() -> No
     assert "Unit 12 opening authority" in map_text
 
 
+def test_d11_52_official_ibkr_endpoint_docs_adjudication_preserves_boundaries() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_official_endpoint_documentation_adjudication.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.52 Official IBKR Endpoint Documentation Adjudication" in packet_text
+    assert (
+        "`adjudication_status` | "
+        "`OFFICIAL_IBKR_ENDPOINT_DOCUMENTATION_ADJUDICATION`" in packet_text
+    )
+    assert (
+        "`current_validated_source_commit` | "
+        "`79e5d354c1bba7b1b3b45d1b3ec8267c5a32e052`" in packet_text
+    )
+    assert "`d11_51_vps_validation` | `71 passed in 2.36s`" in packet_text
+    assert "`official_tws_api_transport` | `TCP_SOCKET`" in packet_text
+    assert "`official_tws_live_default_port` | `7496`" in packet_text
+    assert "`official_tws_paper_default_port` | `7497`" in packet_text
+    assert "`official_gateway_live_default_port` | `4001`" in packet_text
+    assert "`official_gateway_paper_default_port` | `4002`" in packet_text
+    assert "`configured_port_must_match_client_port` | `true`" in packet_text
+    assert "`mac_local_endpoint_selection_authorized` | `false`" in packet_text
+    assert "`mac_local_endpoint_inspection_authorized` | `false`" in packet_text
+    assert "`mac_local_market_test_authorized` | `false`" in packet_text
+    assert "`vps_market_test_authorized` | `false`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`protocol_probe_authorized` | `false`" in packet_text
+    assert "`endpoint_switch_authorized` | `false`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "https://interactivebrokers.github.io/tws-api/initial_setup.html" in (
+        packet_text
+    )
+    assert "https://ibkrcampus.com/campus/ibkr-api-page/twsapi-doc/" in packet_text
+    assert (
+        "https://ibkrcampus.com/campus/trading-lessons/"
+        "accessing-the-tws-python-api-source-code/" in packet_text
+    )
+    assert "TWS API uses a TCP socket\nconnection" in packet_text
+    assert "default TWS socket ports as `7496` for live TWS and `7497` for paper TWS" in packet_text
+    assert "live IB\nGateway `4001`" in packet_text
+    assert "simulated/paper IB Gateway\n`4002`" in packet_text
+    assert "endpoint is not guessed" in packet_text
+    assert "API client port and the configured TWS/Gateway\nsocket port must match" in packet_text
+    assert "does not authorize endpoint inspection yet" in packet_text
+    assert "does not authorize Mac-local market testing yet" in packet_text
+    assert "TWS/Gateway connection commands" in packet_text
+    assert "broker API import/connect" in packet_text
+    assert "Exact expected source commit" in packet_text
+    assert "Clean worktree requirement" in packet_text
+    assert "Explicit operator-readiness boundary" in packet_text
+    assert "Exact non-mutating inspection commands only" in packet_text
+    assert "No broker API import/connect" in packet_text
+    assert "No market-data request" in packet_text
+    assert "No account/order/execution authority" in packet_text
+    assert "Exact future date" in packet_text
+    assert "Explicit regular-session window" in packet_text
+    assert "at or after 7:00 AM Pacific / 10:00 AM Eastern" in packet_text
+    assert "6:55 AM Pacific readiness-check boundary only" in packet_text
+    assert "Explicit TWS/manual operator readiness boundary" in packet_text
+    assert "Historical-market-data-only command" in packet_text
+    assert "Explicit compact output handling" in packet_text
+    assert "No account, position, margin, buying-power, portfolio" in packet_text
+    assert "No package capture, replay, scoring, candidate generation" in packet_text
+    assert "endpoint selection" in packet_text
+    assert "endpoint inspection" in packet_text
+    assert "market-test authority" in packet_text
+    assert "VPS proof authority" in packet_text
+    assert "protocol-probe authority" in packet_text
+    assert "endpoint-switch authority" in packet_text
+    assert "d11_completion_authority=false" in packet_text
+    assert "unit_12_opening_authority=false" in packet_text
+
+    assert "### D11.52 Official IBKR Endpoint Documentation Adjudication" in map_text
+    assert str(packet_path) in map_text
+    assert "`OFFICIAL_IBKR_ENDPOINT_DOCUMENTATION_ADJUDICATION`" in map_text
+    assert "`79e5d354c1bba7b1b3b45d1b3ec8267c5a32e052`" in map_text
+    assert "`71 passed in 2.36s`" in map_text
+    assert "https://interactivebrokers.github.io/tws-api/initial_setup.html" in (
+        map_text
+    )
+    assert "https://ibkrcampus.com/campus/ibkr-api-page/twsapi-doc/" in map_text
+    assert (
+        "https://ibkrcampus.com/campus/trading-lessons/"
+        "accessing-the-tws-python-api-source-code/" in map_text
+    )
+    assert "`official_tws_api_transport=TCP_SOCKET`" in map_text
+    assert "`official_tws_live_default_port=7496`" in map_text
+    assert "`official_tws_paper_default_port=7497`" in map_text
+    assert "`official_gateway_live_default_port=4001`" in map_text
+    assert "`official_gateway_paper_default_port=4002`" in map_text
+    assert "`configured_port_must_match_client_port=true`" in map_text
+    assert "endpoint is not guessed" in map_text
+    assert "must match the configured TWS/Gateway socket port" in map_text
+    assert "`mac_local_endpoint_selection_authorized=false`" in map_text
+    assert "`mac_local_endpoint_inspection_authorized=false`" in map_text
+    assert "`mac_local_market_test_authorized=false`" in map_text
+    assert "`vps_market_test_authorized=false`" in map_text
+    assert "`proof_rerun_authorized=false`" in map_text
+    assert "`protocol_probe_authorized=false`" in map_text
+    assert "`endpoint_switch_authorized=false`" in map_text
+    assert "does not authorize TWS/Gateway\nconnection commands" in map_text
+    assert "broker API import/connect" in map_text
+    assert "exact expected source commit" in map_text
+    assert "clean worktree\nrequirement" in map_text
+    assert "explicit operator-readiness boundary" in map_text
+    assert "exact non-mutating inspection\ncommands only" in map_text
+    assert "no broker API import/connect" in map_text
+    assert "no market-data request" in map_text
+    assert "no\naccount/order/execution authority" in map_text
+    assert "exact future date" in map_text
+    assert "explicit regular-session window" in map_text
+    assert "at or after 7:00 AM Pacific / 10:00 AM Eastern" in map_text
+    assert "6:55 AM\nPacific readiness-check boundary only" in map_text
+    assert "historical-market-data-only command" in map_text
+    assert "explicit compact output handling" in map_text
+    assert "no account/position/margin/buying-power/portfolio/order/balance/execution/" in map_text
+    assert "no package capture,\nreplay, scoring, candidate generation" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
