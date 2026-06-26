@@ -4843,6 +4843,55 @@ D11.57 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
 `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and
 `VPS_RUNTIME=NOT_TOUCHED`.
 
+### D11.58 IBKR Primary Market-Data Eligibility Adjudication
+
+D11.58 adds the source-controlled IBKR primary market-data eligibility
+adjudication:
+
+```text
+docs/ibkr_market_data_primary_eligibility_adjudication.md
+```
+
+It records `IBKR_PRIMARY_MARKET_DATA_ELIGIBILITY_ADJUDICATION`,
+`source_commit=4839f8ff3f09f746edcca3ab464a4771ae922f0d`, and D11.57 VPS
+validation `77 passed in 3.05s and 77 passed in 0.25s`.
+
+D11.58 accepts D11.57 as Mac-local historical diagnostic evidence:
+`mac_local_historical_diagnostic_evidence=ACCEPTED`,
+`all_symbols_d11_countable=true`, and
+`all_symbols_freshness_classification=clean` for `AAPL`, `MSFT`, `NVDA`,
+`TSLA`, and `MSTR`.
+
+D11.58 fails closed on primary eligibility. Existing source-controlled criteria
+do not clearly support IBKR primary approval because
+`D11_PRIMARY_PROVIDER_SELECTION_CRITERIA` still requires
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility`,
+and D11.57 records only `LOCAL_MAC` evidence.
+
+D11.58 records `selected_mac_local_endpoint=127.0.0.1:7497`,
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_endpoint_port=7497`, `endpoint_scope=LOCAL_MAC_ONLY`, and
+`vps_127_0_0_1_7497_validated=false`. The prior VPS failure remains
+`VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue.
+
+The unresolved criteria are the absent separate VPS read-only freshness proof,
+the `LOCAL_MAC_ONLY` endpoint scope, the lack of VPS `127.0.0.1:7497`
+validation, and the existing source provider candidate remaining broker-coupled
+and not approved primary under `candidate_can_count_for_d11`.
+
+D11.58 sets `ibkr_primary_eligibility=NOT_APPROVED`,
+`d11_primary_eligibility_adjudication=BLOCKED_CRITERIA_UNRESOLVED`,
+`d11_primary_candidate_status=candidate`, and `d11_status=D11_INSUFFICIENT`.
+It preserves `unit_12_status=UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`VPS_RUNTIME=NOT_TOUCHED`, and `account_order_execution_authority=false`.
+
+D11.58 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof, VPS market test, broker
+endpoint traffic, runtime mutation, timer mutation, service mutation, systemd
+mutation, TWS mutation, Gateway mutation, Unit 12 opening, or live-trading
+authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
