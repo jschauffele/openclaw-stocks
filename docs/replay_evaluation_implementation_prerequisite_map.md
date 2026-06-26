@@ -4471,6 +4471,55 @@ capture, replay, scoring, candidate generation, timer, service, systemd,
 runtime mutation, gateway mutation, strategy, risk, execution, proof rerun,
 endpoint switch, protocol probe, or market-test authority.
 
+### D11.51 Mac-Local IBKR Evidence-Review Prerequisite
+
+D11.51 adds the source-controlled Mac-local evidence-review prerequisite:
+
+```text
+docs/ibkr_market_data_mac_local_evidence_review_prerequisite.md
+```
+
+It records `MAC_LOCAL_IBKR_EVIDENCE_REVIEW_PREREQUISITE`, current validated
+commit `cf7e9bb0a62c1d6e94524b0f7597090fe80596c6`, and D11.50 VPS validation
+`70 passed in 0.21s`.
+
+D11.51 carries forward the D11.50 routing result:
+`POST_VPS_NEGATIVE_PATH_ROUTING_DECISION`, `vps_bridge_path_closed=true`,
+`current_vps_endpoint_available_for_countable_proof=false`,
+`next_route=MAC_LOCAL_IBKR_EVIDENCE_REVIEW_ONLY`,
+`mac_local_market_test_authorized=false`,
+`vps_market_test_authorized=false`, `proof_rerun_authorized=false`,
+`protocol_probe_authorized=false`, and `endpoint_switch_authorized=false`.
+
+D11.51 records that the VPS bridge/protocol path remains closed, no current VPS
+endpoint can be used for D11 countable market-data proof, and the only active
+next route is Mac-local IBKR evidence review. It sets
+`mac_local_evidence_review_authorized=true` while keeping
+`mac_local_market_test_authorized=false`.
+
+D11.51 authorizes documentation/evidence review only. It does not authorize
+Mac-local market testing yet, TWS/Gateway connection commands, broker API
+import/connect, proof rerun, protocol probing, endpoint switching, or
+account/order/execution access.
+
+Any future Mac-local market-test preflight must be separately source-controlled
+and include exact future date, explicit regular-session window, explicit
+diagnostic target at or after 7:00 AM Pacific / 10:00 AM Eastern, 6:55 AM
+Pacific readiness-check boundary only, explicit expected source commit, clean
+worktree requirement before and after, explicit TWS/manual operator readiness
+boundary, historical-market-data-only command, explicit compact output handling,
+no account/position/margin/buying-power/portfolio/order/balance/execution/
+cleanup/flatten/sell/cancel/live-trading authority, and no package capture,
+replay, scoring, candidate generation, strategy, risk, or execution authority.
+
+D11.51 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no market-test authority, VPS proof authority, protocol-probe
+authority, endpoint-switch authority, account/order/execution authority,
+package capture, replay, scoring, candidate generation, timer/service/systemd
+or runtime mutation, gateway mutation, strategy/risk/execution authority, D11
+completion authority, or Unit 12 opening authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

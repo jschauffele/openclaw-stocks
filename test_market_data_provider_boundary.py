@@ -3235,6 +3235,131 @@ def test_d11_50_post_vps_routing_decision_routes_to_mac_review_only() -> None:
     assert "protocol probe, or market-test authority" in map_text
 
 
+def test_d11_51_mac_local_evidence_review_prerequisite_opens_review_only() -> None:
+    packet_path = Path("docs/ibkr_market_data_mac_local_evidence_review_prerequisite.md")
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.51 Mac-Local IBKR Evidence-Review Prerequisite" in packet_text
+    assert (
+        "`prerequisite_status` | `MAC_LOCAL_IBKR_EVIDENCE_REVIEW_PREREQUISITE`"
+        in packet_text
+    )
+    assert (
+        "`current_validated_source_commit` | "
+        "`cf7e9bb0a62c1d6e94524b0f7597090fe80596c6`" in packet_text
+    )
+    assert "`d11_50_vps_validation` | `70 passed in 0.21s`" in packet_text
+    assert "`vps_bridge_path_closed` | `true`" in packet_text
+    assert (
+        "`current_vps_endpoint_available_for_countable_proof` | `false`"
+        in packet_text
+    )
+    assert "`next_route` | `MAC_LOCAL_IBKR_EVIDENCE_REVIEW_ONLY`" in packet_text
+    assert "`mac_local_evidence_review_authorized` | `true`" in packet_text
+    assert "`mac_local_market_test_authorized` | `false`" in packet_text
+    assert "`vps_market_test_authorized` | `false`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`protocol_probe_authorized` | `false`" in packet_text
+    assert "`endpoint_switch_authorized` | `false`" in packet_text
+    assert "`tws_gateway_connection_commands_authorized` | `false`" in packet_text
+    assert "`broker_api_import_connect_authorized` | `false`" in packet_text
+    assert "`account_order_execution_access_authorized` | `false`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "`POST_VPS_NEGATIVE_PATH_ROUTING_DECISION`" in packet_text
+    assert "`vps_bridge_path_closed=true`" in packet_text
+    assert "`current_vps_endpoint_available_for_countable_proof=false`" in (
+        packet_text
+    )
+    assert "`next_route=MAC_LOCAL_IBKR_EVIDENCE_REVIEW_ONLY`" in packet_text
+    assert "VPS bridge/protocol path remains closed" in packet_text
+    assert "No current VPS endpoint can be used\nfor D11 countable market-data proof" in packet_text
+    assert "only active next route is Mac-local\nIBKR evidence review" in packet_text
+    assert "authorizes documentation/evidence review" in packet_text
+    assert "does not authorize Mac-local market testing yet" in packet_text
+    assert "does not authorize TWS/Gateway connection commands" in packet_text
+    assert "does not authorize\nbroker API import/connect" in packet_text
+    assert "does not authorize proof rerun" in packet_text
+    assert "authorize account/order/execution access" in packet_text
+    assert "Exact future date" in packet_text
+    assert "Explicit regular-session window" in packet_text
+    assert "at or after 7:00 AM Pacific / 10:00 AM Eastern" in packet_text
+    assert "6:55 AM Pacific readiness-check boundary only" in packet_text
+    assert "Explicit expected source commit" in packet_text
+    assert "Clean worktree requirement before and after" in packet_text
+    assert "Explicit TWS/manual operator readiness boundary" in packet_text
+    assert "Historical-market-data-only command" in packet_text
+    assert "Explicit compact output handling" in packet_text
+    assert "No account, position, margin, buying-power, portfolio" in packet_text
+    assert "No package capture, replay, scoring, candidate generation" in packet_text
+    assert "market-test authority" in packet_text
+    assert "VPS proof authority" in packet_text
+    assert "protocol-probe\nauthority" in packet_text
+    assert "endpoint-switch authority" in packet_text
+    assert "account/order/execution authority" in packet_text
+    assert "timer/service/systemd\nor runtime mutation" in packet_text
+    assert "gateway mutation" in packet_text
+    assert "strategy/risk/execution authority" in packet_text
+    assert "D11\ncompletion authority" in packet_text
+    assert "Unit 12 opening authority" in packet_text
+    assert "vps_proof_authority=false" in packet_text
+    assert "d11_completion_authority=false" in packet_text
+    assert "unit_12_opening_authority=false" in packet_text
+
+    assert "### D11.51 Mac-Local IBKR Evidence-Review Prerequisite" in map_text
+    assert str(packet_path) in map_text
+    assert "`MAC_LOCAL_IBKR_EVIDENCE_REVIEW_PREREQUISITE`" in map_text
+    assert "`cf7e9bb0a62c1d6e94524b0f7597090fe80596c6`" in map_text
+    assert "`70 passed in 0.21s`" in map_text
+    assert "`POST_VPS_NEGATIVE_PATH_ROUTING_DECISION`" in map_text
+    assert "`vps_bridge_path_closed=true`" in map_text
+    assert "`current_vps_endpoint_available_for_countable_proof=false`" in map_text
+    assert "`next_route=MAC_LOCAL_IBKR_EVIDENCE_REVIEW_ONLY`" in map_text
+    assert "`mac_local_evidence_review_authorized=true`" in map_text
+    assert "`mac_local_market_test_authorized=false`" in map_text
+    assert "`vps_market_test_authorized=false`" in map_text
+    assert "`proof_rerun_authorized=false`" in map_text
+    assert "`protocol_probe_authorized=false`" in map_text
+    assert "`endpoint_switch_authorized=false`" in map_text
+    assert "VPS bridge/protocol path remains closed" in map_text
+    assert "no current VPS\nendpoint can be used for D11 countable market-data proof" in map_text
+    assert "only active\nnext route is Mac-local IBKR evidence review" in map_text
+    assert "documentation/evidence review only" in map_text
+    assert "does not authorize\nMac-local market testing yet" in map_text
+    assert "TWS/Gateway connection commands" in map_text
+    assert "broker API\nimport/connect" in map_text
+    assert "proof rerun" in map_text
+    assert "account/order/execution access" in map_text
+    assert "exact future date" in map_text
+    assert "explicit regular-session window" in map_text
+    assert "at or after 7:00 AM Pacific / 10:00 AM Eastern" in map_text
+    assert "6:55 AM\nPacific readiness-check boundary only" in map_text
+    assert "explicit expected source commit" in map_text
+    assert "clean\nworktree requirement before and after" in map_text
+    assert "explicit TWS/manual operator readiness\nboundary" in map_text
+    assert "historical-market-data-only command" in map_text
+    assert "explicit compact output handling" in map_text
+    assert "no account/position/margin/buying-power/portfolio/order/balance/execution/" in map_text
+    assert "no package capture,\nreplay, scoring, candidate generation" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+    assert "opens no market-test authority" in map_text
+    assert "VPS proof authority" in map_text
+    assert "protocol-probe\nauthority" in map_text
+    assert "endpoint-switch authority" in map_text
+    assert "D11\ncompletion authority" in map_text
+    assert "Unit 12 opening authority" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
