@@ -4892,6 +4892,61 @@ endpoint traffic, runtime mutation, timer mutation, service mutation, systemd
 mutation, TWS mutation, Gateway mutation, Unit 12 opening, or live-trading
 authority.
 
+### D11.59 IBKR VPS Proof Requirement Route Adjudication
+
+D11.59 adds the source-controlled route adjudication for the remaining IBKR
+primary-eligibility blocker:
+
+```text
+docs/ibkr_market_data_vps_proof_requirement_route_adjudication.md
+```
+
+It records `IBKR_VPS_PROOF_REQUIREMENT_ROUTE_ADJUDICATION`,
+`source_commit=874544fb1b860bf753d788f20bf3f143b027ff11`, D11.58 VPS
+validation `78 passed in 2.39s`, and
+`d11_58_result=BLOCKED_CRITERIA_UNRESOLVED`.
+
+D11.59 keeps `ibkr_primary_eligibility=NOT_APPROVED`,
+`d11_status=D11_INSUFFICIENT`, `unit_12_status=UNIT_12_BLOCKED`,
+`PACKAGE_CAPTURE=BLOCKED`, `VPS_RUNTIME=NOT_TOUCHED`, and
+`account_order_execution_authority=false`.
+
+D11.59 records that D11.57 Mac-local evidence remains accepted:
+`mac_local_historical_diagnostic_evidence=ACCEPTED`,
+`all_symbols_d11_countable=true`, and
+`all_symbols_freshness_classification=clean` for all five symbols.
+
+The exact active rule remains
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility` in
+`D11_PRIMARY_PROVIDER_SELECTION_CRITERIA`. D11.59 finds no existing
+source-controlled rule that retires or narrows the requirement for the selected
+`LOCAL_MAC_ONLY` architecture.
+
+D11.59 records `selected_endpoint_context=LOCAL_MAC`,
+`selected_endpoint_type=TWS_PAPER`,
+`selected_mac_local_endpoint=127.0.0.1:7497`,
+`endpoint_scope=LOCAL_MAC_ONLY`, and
+`vps_127_0_0_1_7497_validated=false`. VPS `127.0.0.1:7497` must not be reused
+as a proof target because `127.0.0.1` is process-context local, the previous
+VPS proof failed from the VPS process context, and the prior failure remains
+`VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue.
+
+D11.59 sets
+`vps_proof_requirement_route=REMAINS_ACTIVE_SAFE_PREFLIGHT_REQUIRED` and
+`next_permissible_gate=D11.60_SOURCE_CONTROLLED_VPS_PROOF_SAFE_PREFLIGHT_OR_FORMAL_LOCAL_MAC_CRITERIA_REVISION`.
+That future gate must either identify an explicitly validated VPS-accessible
+endpoint that is not guessed and not `127.0.0.1:7497` unless observed listening
+in the VPS process context and separately authorized, or formally revise the
+source-controlled criteria to retire or narrow VPS proof for a
+`LOCAL_MAC_ONLY` architecture.
+
+D11.59 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
