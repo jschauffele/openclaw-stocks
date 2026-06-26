@@ -4696,6 +4696,149 @@ def test_d11_61_vps_endpoint_or_criteria_revision_prerequisite_dual_path() -> No
     assert "grants no account, order, execution, package capture, replay" in map_text
 
 
+def test_d11_62_prerequisite_path_selection_selects_local_mac_revision() -> None:
+    packet_path = Path("docs/ibkr_market_data_d11_62_prerequisite_path_selection.md")
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.62 IBKR Prerequisite Path Selection" in packet_text
+    assert (
+        "`classification` | `IBKR_D11_PREREQUISITE_PATH_SELECTION`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `eb54ef6d8affb13ec8f6909208b0a8c1de729bde`"
+        in packet_text
+    )
+    assert "`d11_61_vps_validation` | `81 passed in 3.42s`" in packet_text
+    assert "`d11_61_decision` | `DUAL_PREREQUISITE_REQUIRED`" in packet_text
+    assert (
+        "`d11_60_decision` | "
+        "`BLOCKED_NO_VALID_VPS_PROOF_TARGET_OR_CRITERIA_REVISION`" in packet_text
+    )
+    assert "`d11_59_route` | `REMAINS_ACTIVE_SAFE_PREFLIGHT_REQUIRED`" in packet_text
+    assert "`d11_58_result` | `BLOCKED_CRITERIA_UNRESOLVED`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`mac_local_historical_diagnostic_evidence` | `ACCEPTED`" in packet_text
+    assert "`all_symbols_d11_countable` | `true`" in packet_text
+    assert "`all_symbols_freshness_classification` | `clean`" in packet_text
+    assert "`selected_endpoint_context` | `LOCAL_MAC`" in packet_text
+    assert "`selected_endpoint_type` | `TWS_PAPER`" in packet_text
+    assert "`selected_mac_local_endpoint` | `127.0.0.1:7497`" in packet_text
+    assert "`endpoint_scope` | `LOCAL_MAC_ONLY`" in packet_text
+    assert "`vps_127_0_0_1_7497_validated` | `false`" in packet_text
+    assert (
+        "`prior_vps_failure` | "
+        "`VPS_LOCALHOST_CONTEXT_MISMATCH / "
+        "AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    )
+    assert "`vps_endpoint_evidence_path` | `NOT_SELECTED`" in packet_text
+    assert "`local_mac_criteria_revision_path` | `SELECTED`" in packet_text
+    assert (
+        "`d11_62_decision` | "
+        "`LOCAL_MAC_CRITERIA_REVISION_PATH_SELECTED`" in packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.63_FORMAL_LOCAL_MAC_ONLY_IBKR_PRIMARY_ELIGIBILITY_CRITERIA_REVISION`"
+        in packet_text
+    )
+    assert (
+        "separate_vps_read_only_freshness_proof_required_before_primary_eligibility"
+        in packet_text
+    )
+    assert "all five symbols were clean/countable" in packet_text
+    assert "does not validate VPS `127.0.0.1:7497`" in packet_text
+    assert "no validated VPS-accessible IBKR market-data endpoint" in packet_text
+    assert "VPS `127.0.0.1:7497` was not listening" in packet_text
+    assert "`18789` and `18791` are not approved IBKR market-data endpoints" in (
+        packet_text
+    )
+    assert "`127.0.0.1` is process-context local" in packet_text
+    assert "LOCAL_MAC `127.0.0.1:7497` is not equivalent to VPS" in packet_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    assert "not a proven TWS issue" in packet_text
+    assert "not a proven IB Gateway\n  issue" in packet_text
+    assert (
+        "No future VPS proof may target `127.0.0.1:7497` unless that endpoint is\n"
+        "  observed listening in the VPS process context and separately authorized"
+        in packet_text
+    )
+    assert "No future proof may target `18789` or `18791`" in packet_text
+    assert "Path A, VPS endpoint evidence, is not selected" in packet_text
+    assert "Path B, LOCAL_MAC criteria revision, is selected" in packet_text
+    assert "Path C, blocked/no path selected, is not selected" in packet_text
+    assert "without broker traffic, runtime mutation, account/order/execution" in (
+        packet_text
+    )
+    assert "D11.63 must evaluate whether `LOCAL_MAC_ONLY` accepted" in packet_text
+    assert "must not run broker traffic, endpoint inspection" in packet_text
+    assert "account_order_execution_authority=false" in packet_text
+    assert "records no package capture, replay, scoring, candidate generation" in (
+        packet_text
+    )
+    assert "Unit 12 opening" in packet_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in packet_text
+    assert "`D11_INSUFFICIENT`" in packet_text
+    assert "`UNIT_12_BLOCKED`" in packet_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in packet_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in packet_text
+
+    assert "### D11.62 IBKR Prerequisite Path Selection" in map_text
+    assert str(packet_path) in map_text
+    assert "`IBKR_D11_PREREQUISITE_PATH_SELECTION`" in map_text
+    assert "`source_commit=eb54ef6d8affb13ec8f6909208b0a8c1de729bde`" in map_text
+    assert "`81 passed in 3.42s`" in map_text
+    assert "`d11_61_decision=DUAL_PREREQUISITE_REQUIRED`" in map_text
+    assert (
+        "`d11_60_decision=BLOCKED_NO_VALID_VPS_PROOF_TARGET_OR_CRITERIA_REVISION`"
+        in map_text
+    )
+    assert "`d11_59_route=REMAINS_ACTIVE_SAFE_PREFLIGHT_REQUIRED`" in map_text
+    assert "`d11_58_result=BLOCKED_CRITERIA_UNRESOLVED`" in map_text
+    assert "`d11_62_decision=LOCAL_MAC_CRITERIA_REVISION_PATH_SELECTED`" in map_text
+    assert "`vps_endpoint_evidence_path=NOT_SELECTED`" in map_text
+    assert "`local_mac_criteria_revision_path=SELECTED`" in map_text
+    assert (
+        "`D11.63_FORMAL_LOCAL_MAC_ONLY_IBKR_PRIMARY_ELIGIBILITY_CRITERIA_REVISION`"
+        in map_text
+    )
+    assert "`ibkr_primary_eligibility=NOT_APPROVED`" in map_text
+    assert "`d11_status=D11_INSUFFICIENT`" in map_text
+    assert "`unit_12_status=UNIT_12_BLOCKED`" in map_text
+    assert "`account_order_execution_authority=false`" in map_text
+    assert "`mac_local_historical_diagnostic_evidence=ACCEPTED`" in map_text
+    assert "`all_symbols_d11_countable=true`" in map_text
+    assert "`all_symbols_freshness_classification=clean`" in map_text
+    assert "`endpoint_scope=LOCAL_MAC_ONLY`" in map_text
+    assert "`vps_127_0_0_1_7497_validated=false`" in map_text
+    assert "no validated\nVPS-accessible IBKR market-data endpoint" in map_text
+    assert "`18789` and `18791` are not\napproved IBKR market-data endpoints" in (
+        map_text
+    )
+    assert "`127.0.0.1` is process-context local" in map_text
+    assert "LOCAL_MAC\n`127.0.0.1:7497` is not equivalent to VPS" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert "not a proven TWS issue or\nproven IB Gateway issue" in map_text
+    assert "No future VPS proof may target `127.0.0.1:7497`" in map_text
+    assert "No future proof may target `18789` or `18791`" in map_text
+    assert (
+        "evaluates whether\n`LOCAL_MAC_ONLY` accepted historical diagnostic evidence"
+        in map_text
+    )
+    assert "must not run broker traffic, endpoint inspection" in map_text
+    assert "grants no account, order, execution, package capture, replay" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

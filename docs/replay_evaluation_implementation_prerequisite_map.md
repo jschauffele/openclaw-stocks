@@ -5087,6 +5087,83 @@ probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
 mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
 openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
 
+### D11.62 IBKR Prerequisite Path Selection
+
+D11.62 adds the source-controlled path-selection packet:
+
+```text
+docs/ibkr_market_data_d11_62_prerequisite_path_selection.md
+```
+
+It records `IBKR_D11_PREREQUISITE_PATH_SELECTION`,
+`source_commit=eb54ef6d8affb13ec8f6909208b0a8c1de729bde`, D11.61 VPS
+validation `81 passed in 3.42s`,
+`d11_61_decision=DUAL_PREREQUISITE_REQUIRED`,
+`d11_60_decision=BLOCKED_NO_VALID_VPS_PROOF_TARGET_OR_CRITERIA_REVISION`,
+`d11_59_route=REMAINS_ACTIVE_SAFE_PREFLIGHT_REQUIRED`, and
+`d11_58_result=BLOCKED_CRITERIA_UNRESOLVED`.
+
+D11.62 selects
+`d11_62_decision=LOCAL_MAC_CRITERIA_REVISION_PATH_SELECTED` with
+`vps_endpoint_evidence_path=NOT_SELECTED` and
+`local_mac_criteria_revision_path=SELECTED`. The exact next permissible gate is
+`D11.63_FORMAL_LOCAL_MAC_ONLY_IBKR_PRIMARY_ELIGIBILITY_CRITERIA_REVISION`.
+
+D11.62 keeps `ibkr_primary_eligibility=NOT_APPROVED`,
+`d11_status=D11_INSUFFICIENT`, `unit_12_status=UNIT_12_BLOCKED`,
+`PACKAGE_CAPTURE=BLOCKED`, `VPS_RUNTIME=NOT_TOUCHED`, and
+`account_order_execution_authority=false`.
+
+D11.62 records that D11.57 Mac-local evidence remains accepted:
+`mac_local_historical_diagnostic_evidence=ACCEPTED`,
+`all_symbols_d11_countable=true`, and
+`all_symbols_freshness_classification=clean` for all five symbols, with
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_mac_local_endpoint=127.0.0.1:7497`, and
+`endpoint_scope=LOCAL_MAC_ONLY`.
+
+The active rule remains
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility` in
+`D11_PRIMARY_PROVIDER_SELECTION_CRITERIA`. D11.62 selects the LOCAL_MAC
+criteria-revision path because the selected architecture is `LOCAL_MAC_ONLY`,
+accepted IBKR historical diagnostic evidence already exists from `LOCAL_MAC`,
+and a formal criteria revision can evaluate whether that evidence supersedes,
+narrows, or replaces the separate VPS proof requirement without broker traffic,
+runtime mutation, account/order/execution authority, or inventing a VPS
+endpoint.
+
+D11.62 does not select VPS endpoint evidence because there is no validated
+VPS-accessible IBKR market-data endpoint, VPS `127.0.0.1:7497` was not
+listening during the prior failed proof, and `18789` and `18791` are not
+approved IBKR market-data endpoints unless separately approved by
+source-controlled criteria.
+
+D11.62 records that `127.0.0.1` is process-context local, LOCAL_MAC
+`127.0.0.1:7497` is not equivalent to VPS `127.0.0.1:7497`,
+`vps_127_0_0_1_7497_validated=false`, and the prior VPS failure remains
+`VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue or
+proven IB Gateway issue. No future VPS proof may target `127.0.0.1:7497`
+unless that endpoint is observed listening in the VPS process context and
+separately authorized. No future proof may target `18789` or `18791` as
+market-data endpoints unless source-controlled evidence explicitly approves
+them.
+
+D11.63 must be a formal criteria revision gate that evaluates whether
+`LOCAL_MAC_ONLY` accepted historical diagnostic evidence can supersede, narrow,
+or replace
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility`.
+It must preserve no account/order/execution authority, preserve Unit 12 blocked
+unless separately opened, add focused boundary tests before any approval, and
+must not run broker traffic, endpoint inspection, market testing, VPS proof,
+protocol probing, or runtime mutation.
+
+D11.62 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
