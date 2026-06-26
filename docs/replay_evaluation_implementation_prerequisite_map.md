@@ -4729,6 +4729,66 @@ replay, scoring, candidate generation, strategy, risk, or execution authority.
 D11.55 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
 `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`.
 
+### D11.56 Mac-Local Historical Market-Data Test Preflight
+
+D11.56 adds the source-controlled Mac-local historical market-data diagnostic
+preflight:
+
+```text
+docs/ibkr_market_data_mac_local_historical_data_test_preflight.md
+```
+
+It records `MAC_LOCAL_HISTORICAL_MARKET_DATA_TEST_PREFLIGHT`,
+`source_commit=d64ee84942533a4727df66b72c9e4175bb6713c1`, and D11.55 VPS
+validation `75 passed in 2.07s`.
+
+D11.56 carries forward `selected_mac_local_endpoint=127.0.0.1:7497`,
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`, and
+`selected_endpoint_port=7497`. The endpoint remains valid only for the
+`LOCAL_MAC` process context; it does not validate VPS `127.0.0.1:7497`, and the
+prior VPS failure remains `VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue.
+
+D11.56 records `test_date=2026-06-26`,
+`readiness_check_time_pacific=06:55`, `readiness_check_time_eastern=09:55`,
+`diagnostic_not_before_pacific=07:00`, and
+`diagnostic_not_before_eastern=10:00`. The `06:55` Pacific readiness check is
+only a readiness boundary; the diagnostic must not use 6:30 AM Pacific / 9:30
+AM Eastern as its diagnostic time.
+
+D11.56 sets `mac_local_market_test_preflight_authorized=true` and
+`mac_local_market_test_authorized_for_2026_06_26_after_0700_pacific=true` while
+preserving `vps_market_test_authorized=false`, `proof_rerun_authorized=false`,
+`protocol_probe_authorized=false`, `endpoint_switch_authorized=false`, and
+`account_order_execution_authority=false`.
+
+The future diagnostic is Mac-local only. VPS is only for source sync and tests,
+not IBKR/TWS connectivity. TWS must be manually open and logged into paper mode
+before the diagnostic. Source worktree must be clean before and after the
+diagnostic.
+
+D11.56 derives the future command from the existing accepted LOCAL_MAC
+repeatability diagnostic pattern using `.venv-312/bin/python -m
+tools.ops.ibkr_market_data_read_only_smoke` with
+`--authorize-local-ibkr-read-only-smoke`, host `127.0.0.1`, port `7497`,
+symbols `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`, timeframe `15Min`,
+`--requested-end 2026-06-26T14:00:00Z`, and `--lookback-minutes 120`.
+The command starts with `cd /Users/openclawcontrol/Documents/openclaw-stocks`
+and emits compact evidence between `SUMMARY_START` and `SUMMARY_END`.
+
+The compact output requirement includes command used, source commit, clean
+pre-worktree, clean post-worktree, dependency versions, endpoint host and port,
+instruments, requested UTC window, latest candle timestamp per instrument,
+pass/fail classification, and no account/order/execution fields. Expected
+regular-session evidence behavior is that the latest returned candle should be
+explainable by market-data freshness and 15-minute candle timing.
+
+D11.56 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`,
+and opens no account, position, margin, buying-power, portfolio, balance, order,
+execution, cleanup, flatten, sell, cancel, live-trading, package capture,
+replay, scoring, candidate generation, strategy, risk, or execution authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

@@ -3908,6 +3908,155 @@ def test_d11_55_mac_local_endpoint_selection_adjudication_preserves_boundaries()
     assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
 
 
+def test_d11_56_mac_local_historical_data_preflight_authorizes_bounded_future_run() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_mac_local_historical_data_test_preflight.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.56 Mac-Local Historical Market-Data Test Preflight" in packet_text
+    assert (
+        "`preflight_status` | `MAC_LOCAL_HISTORICAL_MARKET_DATA_TEST_PREFLIGHT`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `d64ee84942533a4727df66b72c9e4175bb6713c1`"
+        in packet_text
+    )
+    assert "`d11_55_vps_validation` | `75 passed in 2.07s`" in packet_text
+    assert "`test_date` | `2026-06-26`" in packet_text
+    assert "`readiness_check_time_pacific` | `06:55`" in packet_text
+    assert "`readiness_check_time_eastern` | `09:55`" in packet_text
+    assert "`diagnostic_not_before_pacific` | `07:00`" in packet_text
+    assert "`diagnostic_not_before_eastern` | `10:00`" in packet_text
+    assert "`selected_mac_local_endpoint` | `127.0.0.1:7497`" in packet_text
+    assert "`selected_endpoint_context` | `LOCAL_MAC`" in packet_text
+    assert "`selected_endpoint_type` | `TWS_PAPER`" in packet_text
+    assert "`selected_endpoint_port` | `7497`" in packet_text
+    assert "`mac_local_market_test_preflight_authorized` | `true`" in packet_text
+    assert (
+        "`mac_local_market_test_authorized_for_2026_06_26_after_0700_pacific` "
+        "| `true`" in packet_text
+    )
+    assert "`vps_market_test_authorized` | `false`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`protocol_probe_authorized` | `false`" in packet_text
+    assert "`endpoint_switch_authorized` | `false`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert (
+        "`diagnostic_command_status` | "
+        "`AUTHORIZED_FROM_EXISTING_LOCAL_READ_ONLY_SMOKE_PATTERN`" in packet_text
+    )
+    assert "`selected_mac_local_endpoint=127.0.0.1:7497`" in packet_text
+    assert "valid only for the `LOCAL_MAC` process context" in packet_text
+    assert "does not validate VPS `127.0.0.1:7497`" in packet_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    assert "not a proven TWS issue" in packet_text
+    assert "future diagnostic is Mac-local only" in packet_text
+    assert "VPS is only for source sync and tests" in packet_text
+    assert "Trader Workstation must be manually open and logged\ninto paper mode" in (
+        packet_text
+    )
+    assert "Source worktree must be clean before and\nafter the diagnostic" in (
+        packet_text
+    )
+    assert "`06:55` Pacific / `09:55` Eastern time is a readiness-check boundary only" in (
+        packet_text
+    )
+    assert "must not run before `07:00` Pacific /\n`10:00` Eastern" in packet_text
+    assert "Do not use 6:30 AM Pacific / 9:30 AM Eastern" in packet_text
+    assert "docs/ibkr_market_data_repeatability_ledger_template.md" in packet_text
+    assert "tools.ops.ibkr_market_data_read_only_smoke" in packet_text
+    assert "--authorize-local-ibkr-read-only-smoke" in packet_text
+    assert "cd /Users/openclawcontrol/Documents/openclaw-stocks" in packet_text
+    assert ".venv-312/bin/python -m tools.ops.ibkr_market_data_read_only_smoke" in (
+        packet_text
+    )
+    assert "REQUESTED_END_UTC='2026-06-26T14:00:00Z'" in packet_text
+    assert "--host 127.0.0.1" in packet_text
+    assert "--port 7497" in packet_text
+    assert "--lookback-minutes 120" in packet_text
+    assert "SUMMARY_START" in packet_text
+    assert "SUMMARY_END" in packet_text
+    for symbol in ("AAPL", "MSFT", "NVDA", "TSLA", "MSTR"):
+        assert f"--symbol {symbol}" in packet_text
+        assert f"`{symbol}`" in packet_text
+    assert "Timeframe: `15Min`" in packet_text
+    assert "historical-market-data-only" in packet_text
+    assert "market-data freshness and 15-minute candle timing" in packet_text
+    assert "command used" in packet_text
+    assert "source commit" in packet_text
+    assert "clean pre-worktree" in packet_text
+    assert "clean post-worktree" in packet_text
+    assert "dependency versions" in packet_text
+    assert "endpoint host and port" in packet_text
+    assert "requested UTC window" in packet_text
+    assert "latest candle timestamp per instrument" in packet_text
+    assert "pass/fail classification" in packet_text
+    assert "no account/order/execution fields" in packet_text
+    assert "no account, position, margin, buying-power" in packet_text
+    assert "no package capture, replay, scoring, candidate\ngeneration" in packet_text
+    assert "account_order_execution_authority=false" in packet_text
+    assert "d11_completion_authority=false" in packet_text
+    assert "unit_12_opening_authority=false" in packet_text
+
+    assert "### D11.56 Mac-Local Historical Market-Data Test Preflight" in map_text
+    assert str(packet_path) in map_text
+    assert "`MAC_LOCAL_HISTORICAL_MARKET_DATA_TEST_PREFLIGHT`" in map_text
+    assert "`source_commit=d64ee84942533a4727df66b72c9e4175bb6713c1`" in map_text
+    assert "`75 passed in 2.07s`" in map_text
+    assert "`selected_mac_local_endpoint=127.0.0.1:7497`" in map_text
+    assert "`selected_endpoint_context=LOCAL_MAC`" in map_text
+    assert "`selected_endpoint_type=TWS_PAPER`" in map_text
+    assert "`selected_endpoint_port=7497`" in map_text
+    assert "not validate VPS `127.0.0.1:7497`" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert "`test_date=2026-06-26`" in map_text
+    assert "`readiness_check_time_pacific=06:55`" in map_text
+    assert "`diagnostic_not_before_pacific=07:00`" in map_text
+    assert "must not use 6:30 AM Pacific / 9:30\nAM Eastern" in map_text
+    assert "`mac_local_market_test_preflight_authorized=true`" in map_text
+    assert "`mac_local_market_test_authorized_for_2026_06_26_after_0700_pacific=true`" in (
+        map_text
+    )
+    assert "`vps_market_test_authorized=false`" in map_text
+    assert "`proof_rerun_authorized=false`" in map_text
+    assert "`protocol_probe_authorized=false`" in map_text
+    assert "`endpoint_switch_authorized=false`" in map_text
+    assert "`account_order_execution_authority=false`" in map_text
+    assert "future diagnostic is Mac-local only" in map_text
+    assert "VPS is only for source sync and tests" in map_text
+    assert "TWS must be manually open and logged into paper mode" in map_text
+    assert "worktree must be clean before and after" in map_text
+    assert ".venv-312/bin/python -m\ntools.ops.ibkr_market_data_read_only_smoke" in (
+        map_text
+    )
+    assert "`--authorize-local-ibkr-read-only-smoke`" in map_text
+    assert "host `127.0.0.1`, port `7497`" in map_text
+    assert "symbols `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in map_text
+    assert "`--requested-end 2026-06-26T14:00:00Z`" in map_text
+    assert "`--lookback-minutes 120`" in map_text
+    assert "cd /Users/openclawcontrol/Documents/openclaw-stocks" in map_text
+    assert "`SUMMARY_START` and `SUMMARY_END`" in map_text
+    assert "latest candle timestamp per instrument" in map_text
+    assert "market-data freshness and 15-minute candle timing" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
