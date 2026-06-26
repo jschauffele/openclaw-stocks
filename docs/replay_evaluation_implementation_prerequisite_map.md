@@ -4677,6 +4677,58 @@ replay, scoring, candidate generation, strategy, risk, or execution authority.
 D11.54 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
 `UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`.
 
+### D11.55 Mac-Local Endpoint Selection Adjudication
+
+D11.55 adds the source-controlled Mac-local endpoint selection adjudication:
+
+```text
+docs/ibkr_market_data_mac_local_endpoint_selection_adjudication.md
+```
+
+It records `MAC_LOCAL_ENDPOINT_SELECTION_ADJUDICATION`,
+`source_commit=90545de3c6fcfb8ebacea282a751ae3305b78f26`, and D11.54 VPS
+validation `74 passed in 2.24s`.
+
+D11.55 carries forward D11.54 listener evidence:
+`observed_mac_local_tws_paper_listener=true`,
+`observed_mac_local_tws_paper_port=7497`,
+`observed_mac_local_tws_process=Trader Workstation JavaApplicationStub`, and
+`candidate_mac_local_endpoint=127.0.0.1:7497`.
+
+D11.54 observed Trader Workstation JavaApplicationStub listening on
+`TCP *:7497`, and `7497` matches the official IBKR paper TWS default
+adjudicated in D11.52. D11.55 selects
+`candidate_mac_local_endpoint=127.0.0.1:7497` as
+`selected_mac_local_endpoint=127.0.0.1:7497` with
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_endpoint_port=7497`, and
+`selected_endpoint_basis=D11.54 observed Mac-local TWS paper listener evidence`.
+
+The selected endpoint is valid only for the `LOCAL_MAC` process context. It does
+not validate VPS `127.0.0.1:7497`; the prior VPS failure remains
+`VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue.
+
+D11.55 sets `endpoint_selection_authorized=true` while preserving
+`mac_local_market_test_authorized=false`, `vps_market_test_authorized=false`,
+`proof_rerun_authorized=false`, `protocol_probe_authorized=false`,
+`endpoint_switch_authorized=false`, `broker_api_import_authorized=false`,
+`broker_connect_authorized=false`, `market_data_request_authorized=false`, and
+`account_order_execution_authority=false`.
+
+Any later Mac-local market-test preflight must be separately source-controlled
+and include exact future date, explicit regular-session window, explicit
+diagnostic target at or after 7:00 AM Pacific / 10:00 AM Eastern, 6:55 AM
+Pacific readiness-check boundary only, explicit expected source commit, clean
+worktree requirement before and after, explicit TWS/manual operator readiness
+boundary, historical-market-data-only command, explicit compact output handling,
+no account/position/margin/buying-power/portfolio/order/balance/execution/
+cleanup/flatten/sell/cancel/live-trading authority, and no package capture,
+replay, scoring, candidate generation, strategy, risk, or execution authority.
+
+D11.55 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and `VPS_RUNTIME=NOT_TOUCHED`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

@@ -3780,6 +3780,134 @@ def test_d11_54_mac_local_endpoint_listener_adjudication_preserves_boundaries() 
     assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
 
 
+def test_d11_55_mac_local_endpoint_selection_adjudication_preserves_boundaries() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_mac_local_endpoint_selection_adjudication.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.55 Mac-Local Endpoint Selection Adjudication" in packet_text
+    assert (
+        "`adjudication_status` | `MAC_LOCAL_ENDPOINT_SELECTION_ADJUDICATION`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `90545de3c6fcfb8ebacea282a751ae3305b78f26`"
+        in packet_text
+    )
+    assert "`d11_54_vps_validation` | `74 passed in 2.24s`" in packet_text
+    assert "`selected_mac_local_endpoint` | `127.0.0.1:7497`" in packet_text
+    assert "`selected_endpoint_context` | `LOCAL_MAC`" in packet_text
+    assert "`selected_endpoint_type` | `TWS_PAPER`" in packet_text
+    assert "`selected_endpoint_port` | `7497`" in packet_text
+    assert (
+        "`selected_endpoint_basis` | "
+        "`D11.54 observed Mac-local TWS paper listener evidence`" in packet_text
+    )
+    assert "`endpoint_selection_authorized` | `true`" in packet_text
+    assert "`mac_local_market_test_authorized` | `false`" in packet_text
+    assert "`vps_market_test_authorized` | `false`" in packet_text
+    assert "`proof_rerun_authorized` | `false`" in packet_text
+    assert "`protocol_probe_authorized` | `false`" in packet_text
+    assert "`endpoint_switch_authorized` | `false`" in packet_text
+    assert "`broker_api_import_authorized` | `false`" in packet_text
+    assert "`broker_connect_authorized` | `false`" in packet_text
+    assert "`market_data_request_authorized` | `false`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "Trader Workstation JavaApplicationStub listening on\n`TCP *:7497`" in (
+        packet_text
+    )
+    assert "Port `7497` matches the official IBKR paper TWS default" in packet_text
+    assert "`candidate_mac_local_endpoint=127.0.0.1:7497`" in packet_text
+    assert "`selected_mac_local_endpoint=127.0.0.1:7497`" in packet_text
+    assert "valid only for the `LOCAL_MAC` process context" in packet_text
+    assert "does not validate VPS `127.0.0.1:7497`" in packet_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    assert "not a proven TWS issue" in packet_text
+    assert "does not authorize Mac-local\nmarket testing" in packet_text
+    assert "broker API import/connect" in packet_text
+    assert "market-data requests" in packet_text
+    assert "account/order/\nexecution authority" in packet_text
+    assert "Exact future date" in packet_text
+    assert "Explicit regular-session window" in packet_text
+    assert "at or after 7:00 AM Pacific / 10:00 AM Eastern" in packet_text
+    assert "6:55 AM Pacific readiness-check boundary only" in packet_text
+    assert "Explicit expected source commit" in packet_text
+    assert "Clean worktree requirement before and after" in packet_text
+    assert "Explicit TWS/manual operator readiness boundary" in packet_text
+    assert "Historical-market-data-only command" in packet_text
+    assert "Explicit compact output handling" in packet_text
+    assert "No account, position, margin, buying-power, portfolio" in packet_text
+    assert "No package capture, replay, scoring, candidate generation" in packet_text
+    assert "broker_api_import_authorized=false" in packet_text
+    assert "broker_connect_authorized=false" in packet_text
+    assert "market_data_request_authorized=false" in packet_text
+    assert "account_order_execution_authority=false" in packet_text
+    assert "d11_completion_authority=false" in packet_text
+    assert "unit_12_opening_authority=false" in packet_text
+
+    assert "### D11.55 Mac-Local Endpoint Selection Adjudication" in map_text
+    assert str(packet_path) in map_text
+    assert "`MAC_LOCAL_ENDPOINT_SELECTION_ADJUDICATION`" in map_text
+    assert "`source_commit=90545de3c6fcfb8ebacea282a751ae3305b78f26`" in map_text
+    assert "`74 passed in 2.24s`" in map_text
+    assert "`observed_mac_local_tws_paper_listener=true`" in map_text
+    assert "`observed_mac_local_tws_paper_port=7497`" in map_text
+    assert "`observed_mac_local_tws_process=Trader Workstation JavaApplicationStub`" in (
+        map_text
+    )
+    assert "`candidate_mac_local_endpoint=127.0.0.1:7497`" in map_text
+    assert "Trader Workstation JavaApplicationStub listening on\n`TCP *:7497`" in (
+        map_text
+    )
+    assert "`7497` matches the official IBKR paper TWS default" in map_text
+    assert "`selected_mac_local_endpoint=127.0.0.1:7497`" in map_text
+    assert "`selected_endpoint_context=LOCAL_MAC`" in map_text
+    assert "`selected_endpoint_type=TWS_PAPER`" in map_text
+    assert "`selected_endpoint_port=7497`" in map_text
+    assert (
+        "`selected_endpoint_basis=D11.54 observed Mac-local TWS paper listener "
+        "evidence`" in map_text
+    )
+    assert "valid only for the `LOCAL_MAC` process context" in map_text
+    assert "not validate VPS `127.0.0.1:7497`" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert "not a proven TWS issue" in map_text
+    assert "`endpoint_selection_authorized=true`" in map_text
+    assert "`mac_local_market_test_authorized=false`" in map_text
+    assert "`vps_market_test_authorized=false`" in map_text
+    assert "`proof_rerun_authorized=false`" in map_text
+    assert "`protocol_probe_authorized=false`" in map_text
+    assert "`endpoint_switch_authorized=false`" in map_text
+    assert "`broker_api_import_authorized=false`" in map_text
+    assert "`broker_connect_authorized=false`" in map_text
+    assert "`market_data_request_authorized=false`" in map_text
+    assert "`account_order_execution_authority=false`" in map_text
+    assert "exact future date" in map_text
+    assert "explicit regular-session window" in map_text
+    assert "at or after 7:00 AM Pacific / 10:00 AM Eastern" in map_text
+    assert "6:55 AM\nPacific readiness-check boundary only" in map_text
+    assert "historical-market-data-only command" in map_text
+    assert "explicit compact output handling" in map_text
+    assert "no account/position/margin/buying-power/portfolio/order/balance/execution/" in map_text
+    assert "no package capture,\nreplay, scoring, candidate generation" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
