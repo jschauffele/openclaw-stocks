@@ -5135,6 +5135,168 @@ def test_d11_64_primary_eligibility_blocker_resolution_plan_fails_closed() -> No
     assert "grants no account, order, execution, package capture, replay" in map_text
 
 
+def test_d11_65_primary_eligibility_evidence_requirements_prerequisite() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_65_primary_eligibility_evidence_requirements_prerequisite.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "D11.65 IBKR Primary Eligibility Evidence Requirements Prerequisite"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`IBKR_D11_PRIMARY_ELIGIBILITY_EVIDENCE_REQUIREMENTS_PREREQUISITE`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `cee9f5237e2ff220d4230fabd1d905be90e79b9a`"
+        in packet_text
+    )
+    assert (
+        "`d11_64_decision` | "
+        "`BLOCKER_RESOLUTION_PLAN_RECORDED_FAIL_CLOSED`" in packet_text
+    )
+    assert (
+        "`d11_63_decision` | "
+        "`BLOCKED_INSUFFICIENT_PRIMARY_ELIGIBILITY_EVIDENCE`" in packet_text
+    )
+    assert "`criteria_revision_result` | `NOT_APPROVED`" in packet_text
+    assert "`primary_eligibility_revision` | `NOT_REVISED`" in packet_text
+    assert "`separate_vps_proof_rule_revision` | `NOT_REVISED`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`mac_local_historical_diagnostic_evidence` | `ACCEPTED`" in packet_text
+    assert "`all_symbols_d11_countable` | `true`" in packet_text
+    assert "`all_symbols_freshness_classification` | `clean`" in packet_text
+    assert "`selected_endpoint_context` | `LOCAL_MAC`" in packet_text
+    assert "`selected_endpoint_type` | `TWS_PAPER`" in packet_text
+    assert "`selected_mac_local_endpoint` | `127.0.0.1:7497`" in packet_text
+    assert "`endpoint_scope` | `LOCAL_MAC_ONLY`" in packet_text
+    assert "`vps_127_0_0_1_7497_validated` | `false`" in packet_text
+    assert (
+        "`prior_vps_failure` | "
+        "`VPS_LOCALHOST_CONTEXT_MISMATCH / "
+        "AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    )
+    assert (
+        "`d11_65_decision` | "
+        "`EVIDENCE_REQUIREMENTS_PREREQUISITE_RECORDED_FAIL_CLOSED`"
+        in packet_text
+    )
+    assert "`evidence_collected` | `false`" in packet_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.66_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN`"
+        in packet_text
+    )
+    assert "It defines requirements only" in packet_text
+    assert "It does not collect evidence" in packet_text
+    assert "Evidence Requirements Table" in packet_text
+    assert "Historical data availability evidence" in packet_text
+    assert "Already satisfied by prior source-controlled evidence" in packet_text
+    assert "Endpoint locality evidence" in packet_text
+    assert "Source-controlled documentation/test requirement" in packet_text
+    assert "VPS production/runtime reachability evidence" in packet_text
+    assert "Future VPS evidence requirement" in packet_text
+    assert "Broker-coupling evidence" in packet_text
+    assert "Provider primary-eligibility evidence" in packet_text
+    assert "`candidate_can_count_for_d11` evidence" in packet_text
+    assert "Broker submit readiness evidence" in packet_text
+    assert "Explicitly out of scope for D11 primary eligibility" in packet_text
+    assert "Live trading readiness evidence" in packet_text
+    assert "Unit 12 opening prerequisites" in packet_text
+    assert "Blocker-to-Requirement Mapping" in packet_text
+    assert "Already-Satisfied Evidence" in packet_text
+    assert "Still-Missing Evidence" in packet_text
+    assert "Fail-Closed Criteria" in packet_text
+    assert "Disqualifiers" in packet_text
+    assert "treating historical data availability as provider primary eligibility" in (
+        packet_text
+    )
+    assert "treating LOCAL_MAC `127.0.0.1:7497` as VPS" in packet_text
+    assert "treating `18789` or `18791` as approved market-data endpoints" in (
+        packet_text
+    )
+    assert "modifying production provider-selection behavior inside this gate" in (
+        packet_text
+    )
+    assert "collecting new runtime, broker, TWS, VPS" in packet_text
+    assert "D11.66_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN" in (
+        packet_text
+    )
+    assert "must not activate runtime, activate broker systems" in packet_text
+    assert "must not run broker/TWS/API/runtime/network/service" not in packet_text
+    assert "account_order_execution_authority=false" in packet_text
+    assert "runtime_broker_vps_scheduler_systemd_credential_action=false" in (
+        packet_text
+    )
+
+    assert (
+        "### D11.65 IBKR Primary Eligibility Evidence Requirements Prerequisite"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`IBKR_D11_PRIMARY_ELIGIBILITY_EVIDENCE_REQUIREMENTS_PREREQUISITE`"
+        in map_text
+    )
+    assert "`source_commit=cee9f5237e2ff220d4230fabd1d905be90e79b9a`" in (
+        map_text
+    )
+    assert "`d11_64_decision=BLOCKER_RESOLUTION_PLAN_RECORDED_FAIL_CLOSED`" in (
+        map_text
+    )
+    assert (
+        "`d11_65_decision=EVIDENCE_REQUIREMENTS_PREREQUISITE_RECORDED_FAIL_CLOSED`"
+        in map_text
+    )
+    assert "`evidence_collected=false`" in map_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action=false`"
+        in map_text
+    )
+    assert "`production_provider_selection_behavior_changed=false`" in map_text
+    assert "`ibkr_primary_eligibility=NOT_APPROVED`" in map_text
+    assert "`d11_status=D11_INSUFFICIENT`" in map_text
+    assert "`unit_12_status=UNIT_12_BLOCKED`" in map_text
+    assert "`account_order_execution_authority=false`" in map_text
+    assert "historical data availability evidence" in map_text
+    assert "endpoint locality\nevidence" in map_text
+    assert "VPS production/runtime reachability evidence" in map_text
+    assert "broker-coupling\nevidence" in map_text
+    assert "`candidate_can_count_for_d11`\nevidence" in map_text
+    assert "broker submit readiness evidence" in map_text
+    assert "live trading readiness evidence" in map_text
+    assert "Unit 12 opening prerequisites" in map_text
+    assert "already-satisfied evidence" in map_text
+    assert "Still-missing evidence" in map_text or "still-missing evidence" in map_text
+    assert "fail-closed disqualifiers" in map_text
+    assert (
+        "`D11.66_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN`"
+        in map_text
+    )
+    assert "must not activate runtime, activate broker systems" in map_text
+    assert "create operational commands for broker, TWS" in map_text
+    assert "grants no account, order, execution, package capture, replay" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

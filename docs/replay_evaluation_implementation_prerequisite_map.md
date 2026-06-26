@@ -5305,6 +5305,82 @@ openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
 opening, broker submit readiness, live-trading readiness, or IBKR primary
 eligibility approval.
 
+### D11.65 IBKR Primary Eligibility Evidence Requirements Prerequisite
+
+D11.65 adds the source-controlled evidence-requirements prerequisite:
+
+```text
+docs/ibkr_market_data_d11_65_primary_eligibility_evidence_requirements_prerequisite.md
+```
+
+It records `IBKR_D11_PRIMARY_ELIGIBILITY_EVIDENCE_REQUIREMENTS_PREREQUISITE`,
+`source_commit=cee9f5237e2ff220d4230fabd1d905be90e79b9a`,
+`d11_64_decision=BLOCKER_RESOLUTION_PLAN_RECORDED_FAIL_CLOSED`,
+`d11_63_decision=BLOCKED_INSUFFICIENT_PRIMARY_ELIGIBILITY_EVIDENCE`,
+`criteria_revision_result=NOT_APPROVED`,
+`primary_eligibility_revision=NOT_REVISED`, and
+`separate_vps_proof_rule_revision=NOT_REVISED`.
+
+D11.65 records
+`d11_65_decision=EVIDENCE_REQUIREMENTS_PREREQUISITE_RECORDED_FAIL_CLOSED`,
+`evidence_collected=false`,
+`runtime_broker_vps_scheduler_systemd_credential_action=false`, and
+`production_provider_selection_behavior_changed=false`. It keeps
+`ibkr_primary_eligibility=NOT_APPROVED`, `d11_status=D11_INSUFFICIENT`,
+`unit_12_status=UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`VPS_RUNTIME=NOT_TOUCHED`, and `account_order_execution_authority=false`.
+
+D11.65 converts the D11.64 blockers into explicit auditable evidence
+requirements for historical data availability evidence, endpoint locality
+evidence, VPS production/runtime reachability evidence, broker-coupling
+evidence, provider primary-eligibility evidence, `candidate_can_count_for_d11`
+evidence, broker submit readiness evidence, live trading readiness evidence,
+and Unit 12 opening prerequisites.
+
+D11.65 records already-satisfied evidence: D11.57 accepted LOCAL_MAC
+historical diagnostic evidence, all five symbols were clean/countable, and the
+selected endpoint was LOCAL_MAC `127.0.0.1:7497` / `TWS_PAPER` with
+`endpoint_scope=LOCAL_MAC_ONLY`. This evidence remains historical data
+availability and endpoint locality evidence only.
+
+D11.65 records still-missing evidence: source-controlled governance mapping
+from historical data availability to any allowable primary-eligibility evidence
+bundle, source-controlled endpoint locality rule for `LOCAL_MAC_ONLY` evidence,
+source-controlled broker-coupling adjudication for `broker_coupled=true`,
+source-controlled provider primary-eligibility evidence for changing
+candidate-only status, proof that `candidate_can_count_for_d11` is satisfied or
+has been explicitly revised, VPS production/runtime reachability evidence if a
+future path keeps a VPS requirement, and separate future authorization for any
+broker/TWS evidence if later required.
+
+D11.65 records fail-closed disqualifiers: approving from lane name, option
+order, prior assistant expectation, or user framing; treating historical data
+availability as provider primary eligibility; treating LOCAL_MAC
+`127.0.0.1:7497` as VPS `127.0.0.1:7497`; treating `18789` or `18791` as
+approved market-data endpoints without separate source-controlled approval;
+implying broker submit readiness or live trading readiness from market-data
+evidence; modifying production provider-selection behavior; or collecting new
+runtime, broker, TWS, VPS, scheduler, systemd, credential, package-capture,
+replay, scoring, candidate-generation, or live-trading evidence inside this
+gate.
+
+The exact next permissible gate is
+`D11.66_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN`.
+That gate may authorize only a source-controlled read-only evidence
+authorization plan. It must not activate runtime, activate broker systems, open
+Unit 12, approve IBKR primary eligibility, imply broker submit readiness, imply
+live trading readiness, or create operational commands for broker, TWS,
+runtime, VPS, scheduler, systemd, credentials, package capture, replay,
+scoring, candidate generation, or live trading.
+
+D11.65 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
+opening, broker submit readiness, live-trading readiness, or IBKR primary
+eligibility approval.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
