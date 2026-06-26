@@ -5010,6 +5010,83 @@ probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
 mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
 openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
 
+### D11.61 VPS Endpoint Evidence Or Criteria Revision Prerequisite
+
+D11.61 adds the source-controlled prerequisite gate:
+
+```text
+docs/ibkr_market_data_vps_endpoint_evidence_or_criteria_revision_prerequisite.md
+```
+
+It records
+`IBKR_VPS_ENDPOINT_EVIDENCE_OR_CRITERIA_REVISION_PREREQUISITE`,
+`source_commit=fd2258ee6efaff23886914b519b971b2f58c15c9`, D11.60 VPS
+validation `80 passed in 2.54s`,
+`d11_60_decision=BLOCKED_NO_VALID_VPS_PROOF_TARGET_OR_CRITERIA_REVISION`,
+`d11_59_route=REMAINS_ACTIVE_SAFE_PREFLIGHT_REQUIRED`, and
+`d11_58_result=BLOCKED_CRITERIA_UNRESOLVED`.
+
+D11.61 chooses `d11_61_decision=DUAL_PREREQUISITE_REQUIRED` with
+`vps_endpoint_evidence_prerequisite=REQUIRED` and
+`local_mac_criteria_revision_prerequisite=REQUIRED`. It keeps
+`ibkr_primary_eligibility=NOT_APPROVED`, `d11_status=D11_INSUFFICIENT`,
+`unit_12_status=UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`VPS_RUNTIME=NOT_TOUCHED`, and `account_order_execution_authority=false`.
+
+D11.61 records that D11.57 Mac-local evidence remains accepted:
+`mac_local_historical_diagnostic_evidence=ACCEPTED`,
+`all_symbols_d11_countable=true`, and
+`all_symbols_freshness_classification=clean` for all five symbols, with
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_mac_local_endpoint=127.0.0.1:7497`, and
+`endpoint_scope=LOCAL_MAC_ONLY`.
+
+The active rule remains
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility` in
+`D11_PRIMARY_PROVIDER_SELECTION_CRITERIA`. The accepted LOCAL_MAC evidence does
+not validate VPS `127.0.0.1:7497`.
+
+D11.61 records missing VPS-proof evidence: no validated VPS-accessible IBKR
+market-data endpoint, VPS `127.0.0.1:7497` was not listening during the prior
+proof, `18789` and `18791` are not approved IBKR market-data endpoints unless
+separately approved by source-controlled criteria, and no source-controlled
+proof exists that a VPS process can safely reach a broker market-data endpoint.
+
+D11.61 records missing LOCAL_MAC criteria-revision evidence: no explicit
+source-controlled rule yet states that `LOCAL_MAC_ONLY` accepted historical
+evidence supersedes the separate VPS proof requirement, no committed criteria
+revision packet exists, and no focused test yet proves the revision path
+preserves fail-closed account/order/execution authority and Unit 12 blocking
+unless separately opened.
+
+D11.61 records that `127.0.0.1` is process-context local; LOCAL_MAC
+`127.0.0.1:7497` is not equivalent to VPS `127.0.0.1:7497`; prior VPS failure
+remains `VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`; and that failure is not a
+proven TWS issue or proven IB Gateway issue.
+
+Future bounded VPS endpoint evidence collection requires a separate
+source-controlled authorization gate before any endpoint inspection. It must be
+non-mutating only, with no service/timer/runtime/systemd/TWS/Gateway/
+openclaw-gateway/VPS mutation, no market-data request, no broker connection,
+no protocol probe, no account/order/execution authority, compact output only,
+and evidence identifying process context, listening endpoints, process names,
+and whether each endpoint is approved or only observed.
+
+Future formal LOCAL_MAC criteria revision requires a separate source-controlled
+revision packet identifying the superseded rule, stating whether
+`LOCAL_MAC_ONLY` architecture is intended for provider eligibility, proving no
+account/order/execution expansion, preserving `UNIT_12_BLOCKED` unless later
+opened, and adding focused boundary tests before any approval.
+
+The exact next permissible gate is
+`D11.62_SOURCE_CONTROLLED_PREREQUISITE_PATH_SELECTION_FOR_VPS_ENDPOINT_EVIDENCE_OR_LOCAL_MAC_CRITERIA_REVISION`.
+D11.61 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, Unit 12 opening, or live-trading authority.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
