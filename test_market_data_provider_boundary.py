@@ -4057,6 +4057,131 @@ def test_d11_56_mac_local_historical_data_preflight_authorizes_bounded_future_ru
     assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
 
 
+def test_d11_57_mac_local_historical_diagnostic_evidence_adjudication() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_mac_local_historical_data_diagnostic_evidence_adjudication.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "D11.57 Mac-Local Historical Market-Data Diagnostic Evidence Adjudication"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`MAC_LOCAL_HISTORICAL_MARKET_DATA_DIAGNOSTIC_EVIDENCE_ADJUDICATION`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `5fa8a8e221b79219c86eb3abcd67ad491692de21`"
+        in packet_text
+    )
+    assert "`d11_56_vps_validation` | `76 passed in 2.49s`" in packet_text
+    assert "`diagnostic_date` | `2026-06-26`" in packet_text
+    assert "`authorized_utc` | `2026-06-26T14:00:00Z`" in packet_text
+    assert "`observed_run_utc` | `2026-06-26T14:00:26Z`" in packet_text
+    assert "`diagnostic_window_guard` | `PASSED`" in packet_text
+    assert "`selected_mac_local_endpoint` | `127.0.0.1:7497`" in packet_text
+    assert "`selected_endpoint_context` | `LOCAL_MAC`" in packet_text
+    assert "`selected_endpoint_type` | `TWS_PAPER`" in packet_text
+    assert "`selected_endpoint_port` | `7497`" in packet_text
+    assert "`observed_listener` | `TCP *:7497 (LISTEN)`" in packet_text
+    assert "`observed_dependency_ib_insync` | `0.9.86`" in packet_text
+    assert "`symbols` | `AAPL,MSFT,NVDA,TSLA,MSTR`" in packet_text
+    assert "`timeframe` | `15Min`" in packet_text
+    assert "`requested_start_utc` | `2026-06-26T12:00:00+00:00`" in packet_text
+    assert "`requested_end_utc` | `2026-06-26T14:00:00+00:00`" in packet_text
+    assert "`worktree_before` | `CLEAN`" in packet_text
+    assert "`worktree_after` | `CLEAN`" in packet_text
+    assert "`all_symbols_d11_countable` | `true`" in packet_text
+    assert "`all_symbols_freshness_classification` | `clean`" in packet_text
+    assert "`d11_primary_candidate_status` | `candidate`" in packet_text
+    assert "`d11_primary_eligible` | `false`" in packet_text
+    assert "`mac_local_historical_diagnostic_evidence` | `ACCEPTED`" in packet_text
+    assert "`vps_market_test_authorized` | `false`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "after the authorized\n`2026-06-26T14:00:00Z` boundary" in packet_text
+    assert "valid only for the\n`LOCAL_MAC` process context" in packet_text
+    assert "does not validate VPS `127.0.0.1:7497`" in packet_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    assert "not a proven TWS issue" in packet_text
+    assert "historical-market-data-only" in packet_text
+    assert "No account, position, margin, buying-power, portfolio, order, execution" in (
+        packet_text
+    )
+    assert "No package capture, replay,\nscoring, candidate generation" in packet_text
+    assert "does not approve IBKR as primary" in packet_text
+    assert "does not complete D11" in packet_text
+    assert "does not unblock Unit 12" in packet_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in packet_text
+    assert "`D11_INSUFFICIENT`" in packet_text
+    assert "`UNIT_12_BLOCKED`" in packet_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in packet_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in packet_text
+    for symbol, timestamp, lag in (
+        ("AAPL", "2026-06-26T13:30:00+00:00", "30.0"),
+        ("MSFT", "2026-06-26T13:30:00+00:00", "30.0"),
+        ("NVDA", "2026-06-26T13:45:00+00:00", "15.0"),
+        ("TSLA", "2026-06-26T13:45:00+00:00", "15.0"),
+        ("MSTR", "2026-06-26T13:45:00+00:00", "15.0"),
+    ):
+        assert f"| `{symbol}` | `true` | `clean` | `{timestamp}` | `{lag}` |" in (
+            packet_text
+        )
+
+    assert "### D11.57 Mac-Local Historical Diagnostic Evidence Adjudication" in (
+        map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`MAC_LOCAL_HISTORICAL_MARKET_DATA_DIAGNOSTIC_EVIDENCE_ADJUDICATION`"
+        in map_text
+    )
+    assert "`source_commit=5fa8a8e221b79219c86eb3abcd67ad491692de21`" in map_text
+    assert "`76 passed in 2.49s`" in map_text
+    assert "`authorized_utc=2026-06-26T14:00:00Z`" in map_text
+    assert "`observed_run_utc=2026-06-26T14:00:26Z`" in map_text
+    assert "`diagnostic_window_guard=PASSED`" in map_text
+    assert "`worktree_before=CLEAN`" in map_text
+    assert "`worktree_after=CLEAN`" in map_text
+    assert "`selected_mac_local_endpoint=127.0.0.1:7497`" in map_text
+    assert "`selected_endpoint_context=LOCAL_MAC`" in map_text
+    assert "`selected_endpoint_type=TWS_PAPER`" in map_text
+    assert "`selected_endpoint_port=7497`" in map_text
+    assert "`observed_listener=TCP *:7497 (LISTEN)`" in map_text
+    assert "`observed_dependency_ib_insync=0.9.86`" in map_text
+    assert "does not validate VPS\n`127.0.0.1:7497`" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert "`requested_start_utc=2026-06-26T12:00:00+00:00`" in map_text
+    assert "`requested_end_utc=2026-06-26T14:00:00+00:00`" in map_text
+    assert "All five symbols returned\n`d11_countable=true`" in map_text
+    assert "`freshness_classification=clean`" in map_text
+    assert "`AAPL=2026-06-26T13:30:00+00:00/30.0`" in map_text
+    assert "`MSFT=2026-06-26T13:30:00+00:00/30.0`" in map_text
+    assert "`NVDA=2026-06-26T13:45:00+00:00/15.0`" in map_text
+    assert "`TSLA=2026-06-26T13:45:00+00:00/15.0`" in map_text
+    assert "`MSTR=2026-06-26T13:45:00+00:00/15.0`" in map_text
+    assert "`mac_local_historical_diagnostic_evidence=ACCEPTED`" in map_text
+    assert "`vps_market_test_authorized=false`" in map_text
+    assert "`account_order_execution_authority=false`" in map_text
+    assert "grants no account, order, execution, package capture, replay" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12_BLOCKED`" in map_text
+    assert "`PACKAGE_CAPTURE=BLOCKED`" in map_text
+    assert "`VPS_RUNTIME=NOT_TOUCHED`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

@@ -4789,6 +4789,60 @@ and opens no account, position, margin, buying-power, portfolio, balance, order,
 execution, cleanup, flatten, sell, cancel, live-trading, package capture,
 replay, scoring, candidate generation, strategy, risk, or execution authority.
 
+### D11.57 Mac-Local Historical Diagnostic Evidence Adjudication
+
+D11.57 adds the source-controlled Mac-local historical diagnostic evidence
+adjudication:
+
+```text
+docs/ibkr_market_data_mac_local_historical_data_diagnostic_evidence_adjudication.md
+```
+
+It records
+`MAC_LOCAL_HISTORICAL_MARKET_DATA_DIAGNOSTIC_EVIDENCE_ADJUDICATION`,
+`source_commit=5fa8a8e221b79219c86eb3abcd67ad491692de21`, and D11.56 VPS
+validation `76 passed in 2.49s`.
+
+D11.57 adjudicates the D11.56 operator evidence for diagnostic date
+`2026-06-26`: `authorized_utc=2026-06-26T14:00:00Z`,
+`observed_run_utc=2026-06-26T14:00:26Z`, and
+`diagnostic_window_guard=PASSED`. The run occurred after the authorized UTC
+boundary and recorded `worktree_before=CLEAN` and `worktree_after=CLEAN`.
+
+The evidence is accepted only as `LOCAL_MAC` historical market-data diagnostic
+evidence. It records `selected_mac_local_endpoint=127.0.0.1:7497`,
+`selected_endpoint_context=LOCAL_MAC`, `selected_endpoint_type=TWS_PAPER`,
+`selected_endpoint_port=7497`, `observed_listener=TCP *:7497 (LISTEN)`, and
+`observed_dependency_ib_insync=0.9.86`. It does not validate VPS
+`127.0.0.1:7497`; the prior VPS failure remains
+`VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`, not a proven TWS issue.
+
+D11.57 records symbols `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`, timeframe
+`15Min`, `requested_start_utc=2026-06-26T12:00:00+00:00`, and
+`requested_end_utc=2026-06-26T14:00:00+00:00`. All five symbols returned
+`d11_countable=true` and `freshness_classification=clean`. Latest candles and
+lags were `AAPL=2026-06-26T13:30:00+00:00/30.0`,
+`MSFT=2026-06-26T13:30:00+00:00/30.0`,
+`NVDA=2026-06-26T13:45:00+00:00/15.0`,
+`TSLA=2026-06-26T13:45:00+00:00/15.0`, and
+`MSTR=2026-06-26T13:45:00+00:00/15.0`. Each symbol retained
+`d11_primary_candidate_status=candidate`, `d11_primary_eligible=false`, and an
+empty failure reason.
+
+D11.57 sets `mac_local_historical_diagnostic_evidence=ACCEPTED` while
+preserving `vps_market_test_authorized=false`,
+`account_order_execution_authority=false`, and historical-market-data-only
+scope. It grants no account, order, execution, package capture, replay,
+scoring, candidate generation, strategy, risk, live-trading, VPS proof, VPS
+market test, broker endpoint traffic, gateway mutation, runtime mutation, timer
+mutation, service mutation, systemd mutation, D11 completion, Unit 12 opening,
+or IBKR primary approval authority.
+
+D11.57 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`, `D11_INSUFFICIENT`,
+`UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`, and
+`VPS_RUNTIME=NOT_TOUCHED`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
