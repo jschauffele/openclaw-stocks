@@ -5477,6 +5477,183 @@ def test_d11_66_read_only_evidence_authorization_plan_fails_closed() -> None:
     assert "IBKR primary\neligibility approval" in map_text
 
 
+def test_d11_67_read_only_evidence_preflight_design_fails_closed() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_67_read_only_evidence_preflight_design.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.67 Read-Only Evidence Preflight Design" in packet_text
+    assert (
+        "`classification` | `IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `fbef77a96eac9e7552ac739250113e328225c579`"
+        in packet_text
+    )
+    assert (
+        "`d11_66_classification` | "
+        "`IBKR_D11_PRIMARY_ELIGIBILITY_READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN`"
+        in packet_text
+    )
+    assert (
+        "`d11_66_decision` | "
+        "`READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN_RECORDED_FAIL_CLOSED`"
+        in packet_text
+    )
+    assert (
+        "`d11_67_decision` | "
+        "`READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_RECORDED_FAIL_CLOSED`"
+        in packet_text
+    )
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`mac_local_historical_diagnostic_evidence` | `ACCEPTED`" in packet_text
+    assert "`all_symbols_d11_countable` | `true`" in packet_text
+    assert "`all_symbols_freshness_classification` | `clean`" in packet_text
+    assert "`selected_endpoint_context` | `LOCAL_MAC`" in packet_text
+    assert "`selected_endpoint_type` | `TWS_PAPER`" in packet_text
+    assert "`selected_mac_local_endpoint` | `127.0.0.1:7497`" in packet_text
+    assert "`endpoint_scope` | `LOCAL_MAC_ONLY`" in packet_text
+    assert "`vps_127_0_0_1_7497_validated` | `false`" in packet_text
+    assert (
+        "`prior_vps_failure` | "
+        "`VPS_LOCALHOST_CONTEXT_MISMATCH / "
+        "AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    )
+    assert "`evidence_collected` | `false`" in packet_text
+    assert "`evidence_collection_authorized` | `false`" in packet_text
+    assert (
+        "`executable_evidence_capture_commands_created` | `false`"
+        in packet_text
+    )
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.68_SOURCE_CONTROLLED_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_REVIEW`"
+        in packet_text
+    )
+    assert "It is design-only" in packet_text
+    assert "does not authorize or perform evidence collection" in packet_text
+    assert "does\nnot create executable evidence-capture commands" in packet_text
+    assert "Read-Only Evidence Preflight Design Table" in packet_text
+    assert "LOCAL_MAC read-only evidence preflight design" in packet_text
+    assert "VPS read-only evidence preflight design" in packet_text
+    assert "Broker/TWS read-only evidence preflight design" in packet_text
+    assert "Source-controlled documentation/test adjudication" in packet_text
+    assert "Evidence collection" in packet_text
+    assert "Evidence adjudication" in packet_text
+    assert "Provider primary eligibility" in packet_text
+    assert "Runtime deployment eligibility" in packet_text
+    assert "Broker submit readiness" in packet_text
+    assert "Live trading readiness" in packet_text
+    assert "Unit 12 opening" in packet_text
+    assert "D11.66 Authorization Boundary to Preflight Design Mapping" in (
+        packet_text
+    )
+    assert "Allowed Design-Only Evidence Classes" in packet_text
+    assert "Forbidden Evidence Classes and Forbidden Actions" in packet_text
+    assert "Required Preflight Safety Checks for a Later Gate" in packet_text
+    assert "Fail-Closed Stop Criteria Before Evidence Capture" in packet_text
+    assert "Disqualifiers for Later Read-Only Evidence Capture Authorization" in (
+        packet_text
+    )
+    assert "No listed class is collected, authorized for collection" in packet_text
+    assert "executable evidence-capture commands" in packet_text
+    assert "D11.67 does not authorize those future checks to be executed" in (
+        packet_text
+    )
+    assert "LOCAL_MAC `127.0.0.1:7497` is treated as VPS" in packet_text
+    assert "`18789` or `18791` are treated as approved market-data endpoints" in (
+        packet_text
+    )
+    assert "proposal includes executable commands before a separate authorization" in (
+        packet_text
+    )
+    assert "treats broker-coupled candidate status as resolved" in packet_text
+    assert "treats historical data availability as provider primary eligibility" in (
+        packet_text
+    )
+    assert "`127.0.0.1` is process-context local" in packet_text
+    assert "LOCAL_MAC `127.0.0.1:7497` is not\nequivalent to VPS" in packet_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    assert "`ibkr_market_data_candidate` remains `broker_coupled=true`" in (
+        packet_text
+    )
+    assert "`d11_primary_eligible=false`" in packet_text
+    assert "`d11_primary_candidate_status=candidate`" in packet_text
+    assert "`candidate_can_count_for_d11` remains unsatisfied" in packet_text
+    assert (
+        "D11.68_SOURCE_CONTROLLED_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_REVIEW"
+        in packet_text
+    )
+    assert "must not be\nruntime activation, broker activation" in packet_text
+    assert "evidence_collected=false" in packet_text
+    assert "evidence_collection_authorized=false" in packet_text
+    assert "executable_evidence_capture_commands_created=false" in packet_text
+    assert "runtime_broker_vps_scheduler_systemd_credential_action=false" in (
+        packet_text
+    )
+
+    assert "### D11.67 Read-Only Evidence Preflight Design" in map_text
+    assert str(packet_path) in map_text
+    assert "`IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN`" in map_text
+    assert "`source_commit=fbef77a96eac9e7552ac739250113e328225c579`" in (
+        map_text
+    )
+    assert (
+        "`d11_67_decision=READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_RECORDED_FAIL_CLOSED`"
+        in map_text
+    )
+    assert "`evidence_collected=false`" in map_text
+    assert "`evidence_collection_authorized=false`" in map_text
+    assert "`executable_evidence_capture_commands_created=false`" in map_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action=false`"
+        in map_text
+    )
+    assert "`production_provider_selection_behavior_changed=false`" in map_text
+    assert "`ibkr_primary_eligibility=NOT_APPROVED`" in map_text
+    assert "`d11_status=D11_INSUFFICIENT`" in map_text
+    assert "`unit_12_status=UNIT_12_BLOCKED`" in map_text
+    assert "design-only lanes for LOCAL_MAC read-only evidence" in map_text
+    assert "evidence collection and evidence adjudication are not performed" in (
+        map_text
+    )
+    assert "allows only design-form evidence classes" in map_text
+    assert "forbids account/order/execution" in map_text
+    assert "executable\nevidence-capture commands" in map_text
+    assert "preflight safety checks required for a later gate" in map_text
+    assert "LOCAL_MAC\n`127.0.0.1:7497` is not equivalent to VPS" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert "`ibkr_market_data_candidate` remains `broker_coupled=true`" in (
+        map_text
+    )
+    assert (
+        "`D11.68_SOURCE_CONTROLLED_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_REVIEW`"
+        in map_text
+    )
+    assert "must not be\nruntime activation, broker activation" in map_text
+    assert "evidence collection,\nexecutable evidence-capture commands" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
