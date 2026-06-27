@@ -6000,6 +6000,72 @@ source-controlled adjudication gate that decides whether this D11.72 capture
 is sufficient, insufficient due to the recency caveat, or requires a fresh
 regular-session rerun under a new authorization.
 
+### D11.73 LOCAL_MAC Read-Only Evidence Capture Adjudication
+
+D11.73 adds the source-controlled adjudication packet for the completed D11.72
+operator-run record:
+
+```text
+docs/ibkr_market_data_d11_73_local_mac_read_only_evidence_capture_adjudication.md
+```
+
+It records
+`IBKR_D11_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`,
+`source_commit=7f62130f08a03167975f9187c5a0314f95074568`,
+`d11_72_evidence_classification=READ_ONLY_CAPTURE_SUCCEEDED_WITH_RECENCY_CAVEAT`,
+and
+`d11_73_decision=D11_72_EVIDENCE_ADJUDICATED_INSUFFICIENT_REQUIRES_FRESH_REGULAR_SESSION_RERUN`.
+D11.73 adjudicates only the D11.72 recorded evidence. It does not rerun IBKR,
+does not execute evidence capture, does not create executable evidence-capture
+commands, and does not perform runtime, broker, TWS, API, VPS, scheduler,
+systemd, or credential action.
+
+D11.73 records the D11.72 evidence as operationally useful proof that the
+LOCAL_MAC read-only diagnostic path returned historical bar metadata. It is
+not countable for D11 primary eligibility because all five symbols returned
+`d11_countable=false`, `d11_primary_eligible=false`,
+`freshness_classification=recency_caveated`, and
+`failure_reason=regular_session_closed_latest_candle_valid_for_last_session`.
+
+D11.73 records per-symbol adjudication for `AAPL`, `MSFT`, `NVDA`, `TSLA`,
+and `MSTR`: `read_only=true`, `provider_key=ibkr_market_data_candidate`,
+`connection_mode=local_read_only_smoke`,
+`latest_candle_timestamp=2026-06-26T19:45:00+00:00`,
+`requested_start=2026-06-27T01:40:31.383039+00:00`,
+`requested_end=2026-06-27T03:40:31.383039+00:00`,
+`lag_minutes=475.52305065`,
+`freshness_classification=recency_caveated`,
+`failure_reason=regular_session_closed_latest_candle_valid_for_last_session`,
+`d11_countable=false`, `d11_primary_eligible=false`, and
+`d11_primary_candidate_status=candidate`.
+
+D11.73 adjudicates that the D11.72 run occurred outside the usable freshness
+window for countable primary-eligibility evidence. `candidate_can_count_for_d11`
+remains unsatisfied, and the IBKR candidate remains candidate-only and
+`d11_primary_eligible=false`.
+
+D11.73 accepts the D11.72 negative-authority record for this adjudication: no
+account query, position query, margin query, buying-power query, portfolio
+query, order placement, order modification, order cancellation, order routing,
+execution authority, package capture, replay, scoring, candidate generation,
+Unit 12 opening, or VPS runtime/systemd/timer mutation appeared. The D11.72
+record used no VPS path, no `18789`, no `18791`, no bridge, no tunnel, and no
+proxy.
+
+D11.73 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11=D11_INSUFFICIENT`, `UNIT_12=UNIT_12_BLOCKED`,
+`broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`. It does not approve IBKR primary
+eligibility, does not mark D11 complete, does not open Unit 12, and does not
+modify production provider-selection behavior.
+
+The exact next permissible gate is
+`D11.74_SOURCE_CONTROLLED_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`.
+D11.74 must be source-controlled authorization only for a fresh LOCAL_MAC-only
+regular-session read-only evidence capture. It must preserve the
+D11.69/D11.70/D11.71 boundaries unless explicitly narrowed, must not itself
+perform evidence capture, and must not approve IBKR primary eligibility.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
