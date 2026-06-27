@@ -5713,6 +5713,123 @@ openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
 opening, broker submit readiness, live-trading readiness, evidence collection,
 executable evidence-capture commands, or IBKR primary eligibility approval.
 
+### D11.70 LOCAL_MAC Read-Only Evidence Capture Authorization Packet
+
+D11.70 adds the source-controlled LOCAL_MAC read-only evidence capture
+authorization packet:
+
+```text
+docs/ibkr_market_data_d11_70_local_mac_read_only_evidence_capture_authorization_packet.md
+```
+
+It records `IBKR_D11_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`,
+`source_commit=36342c53ef9ae0fc026c8588511d4a9c8d05f90f`,
+`d11_69_classification=IBKR_D11_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION`,
+`d11_69_decision=READ_ONLY_EVIDENCE_CAPTURE_CONTRACT_READY`, and
+`d11_70_decision=LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZED_FOR_NEXT_GATE`.
+
+D11.70 authorizes only a future
+`D11.71_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET`. It records
+`d11_70_evidence_collected=false`,
+`d11_70_executable_evidence_capture_commands_created=false`,
+`runtime_broker_vps_scheduler_systemd_credential_action=false`,
+`production_provider_selection_behavior_changed=false`,
+`ibkr_primary_eligibility=NOT_APPROVED`, `d11_status=D11_INSUFFICIENT`,
+`unit_12_status=UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`VPS_RUNTIME=NOT_TOUCHED`, `account_order_execution_authority=false`,
+`broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`.
+
+D11.70 records satisfied preconditions: D11.68 forced a concrete blocker
+review, D11.69 remediated capture-contract blockers, the exact source context
+exists, the exact target set exists, allowed and forbidden field boundaries
+exist, and provider eligibility remains closed. No source-controlled
+contradiction was found that blocks a later D11.71 LOCAL_MAC-only read-only
+evidence capture execution packet.
+
+D11.70 authorizes the future source context only as `LOCAL_MAC_ONLY`,
+`DIRECT_MAC_TERMINAL`, LOCAL_MAC process context, endpoint candidate
+`127.0.0.1:7497`, IBKR Paper TWS/Gateway local socket candidate,
+market-data/provider-readiness evidence only, no VPS reliance, no `18789` or
+`18791` reliance, no bridge/tunnel/proxy reliance, no runtime mutation, and no
+account/order/execution authority.
+
+D11.70 authorizes the future target set only as LOCAL_MAC process-context
+endpoint identity, read-only local socket configuration, API connection mode,
+historical bars availability for `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`,
+timeframe `15Min`, lookback/request scope `120 minutes`, response metadata
+needed for adjudication, and negative evidence proving no
+account/order/execution/submit authority was requested, returned, retained,
+logged, or used.
+
+D11.70 records allowed fields: source context, operator surface, process
+context, endpoint host/port/class, localhost process-context statement,
+rejected VPS equivalence, authorization gate, source commit, read-only socket
+scope, market-data-only scope, mutation flags fixed false, API connection
+mode, paper-mode candidate, market-data request scope, account/order/execution/
+position/submit-cancel-modify requested flags fixed false, symbols, timeframe,
+lookback, UTC request window, regular-session window, historical-market-data
+flag, bar count, latest candle timestamp, freshness classification,
+provider/feed metadata, redacted errors or warnings, PASS/FAIL markers,
+adjudication-ready summary, and negative authority markers.
+
+D11.70 records forbidden fields and activities: account IDs, balances, buying
+power, margin, portfolio, positions, open orders, executions, trade history,
+P&L, order IDs, credentials, tokens, secrets, submit/cancel/modify endpoints,
+flatten/sell/cleanup evidence, service/systemd/scheduler/timer/runtime/
+environment/TWS/Gateway/openclaw-gateway/VPS mutation, VPS `127.0.0.1:7497`,
+`18789`, `18791`, bridge/tunnel/proxy endpoints, broker submit readiness, live
+trading readiness, package capture, replay, scoring, candidate generation,
+strategy/risk/execution behavior, and Unit 12 opening.
+
+D11.70 requires D11.71 artifacts to include artifact identity, operator
+context, source-control references, target results, redactions,
+prohibited-fields attestation, negative-authority attestation, locality
+attestation, and adjudication summary sections. It requires PASS/FAIL markers
+for LOCAL_MAC context, endpoint candidate scope, read-only socket scope, API
+connection mode, historical bars scope, forbidden-fields absence, negative
+authority, and adjudication readiness.
+
+D11.70 requires future capture to fail closed if the source context, operator
+surface, endpoint candidate, target set, allowed fields, artifact sections,
+timestamps/timezone fields, source-control references, redactions, or PASS/FAIL
+markers deviate from the authorization. It also requires fail-closed handling
+if account/order/execution/position/balance/portfolio/P&L/margin/buying-power/
+trade/credential data is requested, returned, retained, or logged; if VPS,
+`18789`, `18791`, bridge, tunnel, proxy, service, scheduler, systemd, runtime
+mutation, credential mutation, package capture, replay, scoring,
+candidate generation, strategy/risk/execution mutation, broker submit
+readiness, live trading readiness, or Unit 12 opening is introduced.
+
+D11.70 preserves the LOCAL_MAC/VPS locality distinction. LOCAL_MAC
+`127.0.0.1:7497` is not equivalent to VPS `127.0.0.1:7497`. D11.70 rejects
+treating LOCAL_MAC `127.0.0.1:7497` as VPS `127.0.0.1:7497`, and rejects
+`18789` and `18791` as approved market-data endpoints.
+
+D11.70 preserves provider eligibility blockers: `ibkr_market_data_candidate`
+remains `broker_coupled=true`, `d11_primary_eligible=false`,
+`d11_primary_candidate_status=candidate`, and `candidate_can_count_for_d11`
+remains unsatisfied. Future evidence capture may support later market-data
+provider-readiness adjudication, but it cannot itself approve IBKR primary
+eligibility.
+
+The exact next permissible gate is
+`D11.71_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET`. D11.71 may be
+the first gate allowed to contain exact bounded execution instructions for
+LOCAL_MAC-only read-only market-data evidence capture, but only if it remains
+inside the D11.70 authorization packet and the D11.69 contract. D11.70 itself
+does not collect evidence and does not create executable evidence-capture
+commands.
+
+D11.70 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
+opening, broker submit readiness, live-trading readiness, evidence collection
+in D11.70, executable evidence-capture commands in D11.70, or IBKR primary
+eligibility approval.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
