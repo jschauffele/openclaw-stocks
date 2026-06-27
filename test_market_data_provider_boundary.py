@@ -5817,6 +5817,197 @@ def test_d11_68_read_only_evidence_preflight_design_review_forces_blocker() -> N
     assert "evidence collection,\nexecutable evidence-capture commands" in map_text
 
 
+def test_d11_69_read_only_evidence_capture_contract_ready_local_mac_only() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_69_read_only_evidence_capture_blocker_remediation.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.69 Read-Only Evidence Capture Blocker Remediation" in packet_text
+    assert (
+        "`classification` | "
+        "`IBKR_D11_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `9d59af162232bbf0d54dd95d4c55b4dfc475fb57`"
+        in packet_text
+    )
+    assert (
+        "`d11_68_decision` | "
+        "`READ_ONLY_EVIDENCE_CAPTURE_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in packet_text
+    )
+    assert (
+        "`d11_69_decision` | "
+        "`READ_ONLY_EVIDENCE_CAPTURE_CONTRACT_READY`" in packet_text
+    )
+    assert (
+        "`selected_future_source_context` | "
+        "`LOCAL_MAC_ONLY / DIRECT_MAC_TERMINAL / "
+        "IBKR_PAPER_TWS_GATEWAY_LOCAL_SOCKET_CANDIDATE / 127.0.0.1:7497`"
+        in packet_text
+    )
+    assert "`future_vps_endpoint_reliance` | `false`" in packet_text
+    assert "`future_18789_18791_reliance` | `false`" in packet_text
+    assert "`future_bridge_tunnel_reliance` | `false`" in packet_text
+    assert "`evidence_collected` | `false`" in packet_text
+    assert "`evidence_collection_authorized` | `false`" in packet_text
+    assert (
+        "`executable_evidence_capture_commands_created` | `false`"
+        in packet_text
+    )
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`remaining_capture_contract_blockers` | `NONE`" in packet_text
+    assert (
+        "`remaining_provider_eligibility_blockers` | "
+        "`broker_coupled_candidate_unresolved; "
+        "candidate_can_count_for_d11_unsatisfied`" in packet_text
+    )
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.70_SOURCE_CONTROLLED_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert "D11.68 Blocker Remediation Table" in packet_text
+    assert "| No exact target set | Selects the exact future evidence target set" in (
+        packet_text
+    )
+    assert "| No selected source context | Selects `LOCAL_MAC_ONLY`" in packet_text
+    assert "No for capture contract; yes for provider eligibility" in packet_text
+    assert "Selected Future Source Context" in packet_text
+    assert "| Source context | `LOCAL_MAC_ONLY` |" in packet_text
+    assert "| Operator surface | `DIRECT_MAC_TERMINAL` only" in packet_text
+    assert "| Process context | LOCAL_MAC process context only |" in packet_text
+    assert "| Endpoint candidate | `127.0.0.1:7497` |" in packet_text
+    assert "| VPS reliance | Forbidden |" in packet_text
+    assert "| `18789`/`18791` reliance | Forbidden |" in packet_text
+    assert "| Bridge/tunnel/proxy reliance | Forbidden |" in packet_text
+    assert "Exact Future Evidence Target Set" in packet_text
+    assert "symbols `AAPL`, `MSFT`, `NVDA`, `TSLA`,\nand `MSTR`" in packet_text
+    assert "timeframe `15Min`; lookback `120 minutes`" in packet_text
+    assert "`target_1_local_process_endpoint_identity`" in packet_text
+    assert "`target_2_read_only_socket_configuration`" in packet_text
+    assert "`target_3_api_connection_mode`" in packet_text
+    assert "`target_4_historical_bars_availability`" in packet_text
+    assert "`target_5_response_metadata_for_adjudication`" in packet_text
+    assert "`target_6_negative_authority_evidence`" in packet_text
+    assert "Allowed Fields Table" in packet_text
+    assert "`endpoint_host`, `endpoint_port`, `endpoint_type_candidate`" in (
+        packet_text
+    )
+    assert "`account_data_requested=false`" in packet_text
+    assert "`order_data_requested=false`" in packet_text
+    assert "`execution_data_requested=false`" in packet_text
+    assert "`submit_cancel_modify_requested=false`" in packet_text
+    assert "`historical_market_data_only=true`" in packet_text
+    assert "Forbidden Fields Table" in packet_text
+    assert "Account IDs, account aliases, account values, balances" in packet_text
+    assert "Open orders, order IDs, order status, executions" in packet_text
+    assert "Usernames, passwords, tokens, API keys" in packet_text
+    assert "VPS `127.0.0.1:7497`, `18789`, `18791`" in packet_text
+    assert "Non-Executable Artifact Contract" in packet_text
+    assert "does not include shell commands, Python\ncommands" in packet_text
+    assert "`artifact_identity`" in packet_text
+    assert "`operator_context`" in packet_text
+    assert "`source_control_references`" in packet_text
+    assert "`target_results`" in packet_text
+    assert "`redactions`" in packet_text
+    assert "`prohibited_fields_attestation`" in packet_text
+    assert "`negative_authority_attestation`" in packet_text
+    assert "`locality_attestation`" in packet_text
+    assert "`adjudication_summary`" in packet_text
+    assert "`LOCAL_MAC_CONTEXT_PASS` or `LOCAL_MAC_CONTEXT_FAIL`" in packet_text
+    assert "`FORBIDDEN_FIELDS_ABSENT_PASS` or `FORBIDDEN_FIELDS_ABSENT_FAIL`" in (
+        packet_text
+    )
+    assert "`NEGATIVE_AUTHORITY_PASS` or `NEGATIVE_AUTHORITY_FAIL`" in packet_text
+    assert "Any FAIL marker, missing marker" in packet_text
+    assert "No D11.68 blocker remains active as a blocker" in packet_text
+    assert "`ibkr_market_data_candidate` remains `broker_coupled=true`" in (
+        packet_text
+    )
+    assert "`candidate_can_count_for_d11` remains unsatisfied" in packet_text
+    assert "LOCAL_MAC `127.0.0.1:7497` is not\nequivalent to VPS" in packet_text
+    assert "rejects VPS `127.0.0.1:7497` evidence" in packet_text
+    assert "rejects `18789` and `18791`\nas approved market-data endpoints" in (
+        packet_text
+    )
+    assert (
+        "D11.70_SOURCE_CONTROLLED_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET"
+        in packet_text
+    )
+    assert "D11.69 itself\ndoes not authorize capture" in packet_text
+
+    assert "### D11.69 Read-Only Evidence Capture Blocker Remediation" in map_text
+    assert str(packet_path) in map_text
+    assert (
+        "`IBKR_D11_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION`"
+        in map_text
+    )
+    assert "`source_commit=9d59af162232bbf0d54dd95d4c55b4dfc475fb57`" in (
+        map_text
+    )
+    assert (
+        "`d11_69_decision=READ_ONLY_EVIDENCE_CAPTURE_CONTRACT_READY`"
+        in map_text
+    )
+    assert (
+        "`selected_future_source_context=LOCAL_MAC_ONLY_DIRECT_MAC_TERMINAL_127_0_0_1_7497`"
+        in map_text
+    )
+    assert "`future_vps_endpoint_reliance=false`" in map_text
+    assert "`future_18789_18791_reliance=false`" in map_text
+    assert "`future_bridge_tunnel_reliance=false`" in map_text
+    assert "`evidence_collected=false`" in map_text
+    assert "`evidence_collection_authorized=false`" in map_text
+    assert "`executable_evidence_capture_commands_created=false`" in map_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action=false`"
+        in map_text
+    )
+    assert "`remaining_capture_contract_blockers=NONE`" in map_text
+    assert "`ibkr_primary_eligibility=NOT_APPROVED`" in map_text
+    assert "`d11_status=D11_INSUFFICIENT`" in map_text
+    assert "`unit_12_status=UNIT_12_BLOCKED`" in map_text
+    assert "first\nfuture evidence context as `LOCAL_MAC_ONLY`" in map_text
+    assert "no VPS endpoint reliance, no `18789`/`18791`\nreliance" in map_text
+    assert "historical bars\navailability for `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in (
+        map_text
+    )
+    assert "records forbidden fields: account IDs, balances, buying power, margin" in (
+        map_text
+    )
+    assert "non-executable artifact contract" in map_text
+    assert "`ibkr_market_data_candidate` remains `broker_coupled=true`" in (
+        map_text
+    )
+    assert "`candidate_can_count_for_d11` remains unsatisfied" in map_text
+    assert "LOCAL_MAC\n`127.0.0.1:7497` is not equivalent to VPS" in map_text
+    assert "rejects VPS\n`127.0.0.1:7497` evidence" in map_text
+    assert "rejects `18789` and `18791` as approved market-data endpoints" in (
+        map_text
+    )
+    assert (
+        "`D11.70_SOURCE_CONTROLLED_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+    assert "D11.69\nitself does not authorize capture" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

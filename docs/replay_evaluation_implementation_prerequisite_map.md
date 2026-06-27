@@ -5615,6 +5615,104 @@ openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
 opening, broker submit readiness, live-trading readiness, evidence collection,
 executable evidence-capture commands, or IBKR primary eligibility approval.
 
+### D11.69 Read-Only Evidence Capture Blocker Remediation
+
+D11.69 adds the source-controlled read-only evidence capture blocker
+remediation packet:
+
+```text
+docs/ibkr_market_data_d11_69_read_only_evidence_capture_blocker_remediation.md
+```
+
+It records `IBKR_D11_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION`,
+`source_commit=9d59af162232bbf0d54dd95d4c55b4dfc475fb57`,
+`d11_68_classification=IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_REVIEW`,
+`d11_68_decision=READ_ONLY_EVIDENCE_CAPTURE_BLOCKED_WITH_CONCRETE_BLOCKER`,
+and `d11_67_classification=IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN`.
+
+D11.69 records
+`d11_69_decision=READ_ONLY_EVIDENCE_CAPTURE_CONTRACT_READY`,
+`selected_future_source_context=LOCAL_MAC_ONLY_DIRECT_MAC_TERMINAL_127_0_0_1_7497`,
+`future_vps_endpoint_reliance=false`,
+`future_18789_18791_reliance=false`, `future_bridge_tunnel_reliance=false`,
+`evidence_collected=false`, `evidence_collection_authorized=false`,
+`executable_evidence_capture_commands_created=false`,
+`runtime_broker_vps_scheduler_systemd_credential_action=false`,
+`production_provider_selection_behavior_changed=false`,
+`remaining_capture_contract_blockers=NONE`, and
+`remaining_provider_eligibility_blockers=broker_coupled_candidate_unresolved;
+candidate_can_count_for_d11_unsatisfied`. It keeps
+`ibkr_primary_eligibility=NOT_APPROVED`, `d11_status=D11_INSUFFICIENT`,
+`unit_12_status=UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`VPS_RUNTIME=NOT_TOUCHED`, and `account_order_execution_authority=false`.
+
+D11.69 remediates each D11.68 capture-contract blocker by selecting the first
+future evidence context as `LOCAL_MAC_ONLY`, `DIRECT_MAC_TERMINAL`, LOCAL_MAC
+process context only, IBKR Paper TWS/Gateway local socket candidate, endpoint
+candidate `127.0.0.1:7497`, no VPS endpoint reliance, no `18789`/`18791`
+reliance, and no bridge, tunnel, or proxy reliance.
+
+D11.69 defines the exact future evidence target set as market-data/provider-
+readiness evidence only: LOCAL_MAC process-context endpoint identity, read-only
+socket configuration evidence, API connection mode evidence, historical bars
+availability for `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`, `15Min`, `120
+minutes`, response metadata needed for adjudication, and negative evidence
+that no account/order/execution/submit authority was requested or used.
+
+D11.69 records allowed fields for each target: source context, operator
+surface, process context, endpoint host/port/type candidate, localhost
+process-context statement, no VPS equivalence, read-only socket scope,
+market-data-only scope, mutation flags fixed false, API connection mode,
+paper-mode candidate, historical request window, bar count, latest candle
+timestamp, freshness classification, provider/feed metadata, redacted warnings
+or errors, PASS/FAIL markers, adjudication summary, and negative authority
+markers.
+
+D11.69 records forbidden fields: account IDs, balances, buying power, margin,
+portfolio contents, positions, open orders, executions, trade history, P&L,
+order IDs, credentials, tokens, session secrets, submit/cancel/modify
+endpoints, live trading status changes, service/systemd/scheduler mutations,
+environment changes, VPS runtime mutation, VPS `127.0.0.1:7497`, `18789`,
+`18791`, bridge/tunnel/proxy endpoints, package capture, replay, scoring,
+candidate generation, strategy, risk, execution behavior, and Unit 12 opening.
+
+D11.69 defines a non-executable artifact contract with artifact identity,
+operator context, source-control references, target results, required
+redactions, prohibited-fields attestation, negative-authority attestation,
+locality attestation, and adjudication summary sections. It requires
+PASS/FAIL markers for LOCAL_MAC context, endpoint candidate scope, read-only
+socket scope, historical bars scope, forbidden-fields absence, negative
+authority, and adjudication readiness. Any missing marker, prohibited field,
+VPS field, `18789`/`18791` market-data endpoint field, bridge/tunnel field,
+runtime mutation field, or executable command forces fail-closed adjudication.
+
+D11.69 preserves the provider-eligibility blockers as later adjudication
+blockers only: `ibkr_market_data_candidate` remains `broker_coupled=true`,
+`d11_primary_eligible=false`, `d11_primary_candidate_status=candidate`, and
+`candidate_can_count_for_d11` remains unsatisfied. These blockers do not block
+the LOCAL_MAC-only evidence-capture contract because the contract forbids
+account/order/execution authority and does not approve eligibility.
+
+D11.69 preserves the LOCAL_MAC/VPS locality distinction. LOCAL_MAC
+`127.0.0.1:7497` is not equivalent to VPS `127.0.0.1:7497`; D11.69 rejects VPS
+`127.0.0.1:7497` evidence unless separately authorized and validated later;
+D11.69 rejects `18789` and `18791` as approved market-data endpoints unless a
+later source-controlled endpoint adjudication approves them.
+
+The exact next permissible gate is
+`D11.70_SOURCE_CONTROLLED_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`.
+D11.70 may authorize a bounded future LOCAL_MAC-only read-only evidence capture
+if it preserves the D11.69 contract and remains source controlled. D11.69
+itself does not authorize capture.
+
+D11.69 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
+opening, broker submit readiness, live-trading readiness, evidence collection,
+executable evidence-capture commands, or IBKR primary eligibility approval.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
