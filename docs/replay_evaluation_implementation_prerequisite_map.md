@@ -5830,6 +5830,106 @@ opening, broker submit readiness, live-trading readiness, evidence collection
 in D11.70, executable evidence-capture commands in D11.70, or IBKR primary
 eligibility approval.
 
+### D11.71 LOCAL_MAC Read-Only Evidence Capture Execution Packet
+
+D11.71 adds the source-controlled LOCAL_MAC read-only evidence capture
+execution packet:
+
+```text
+docs/ibkr_market_data_d11_71_local_mac_read_only_evidence_capture_execution_packet.md
+```
+
+It records `IBKR_D11_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET`,
+`source_commit=2f05f254f54f2feb87760820ddc48456e48f0c89`,
+`d11_70_classification=IBKR_D11_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`,
+`d11_70_decision=LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZED_FOR_NEXT_GATE`,
+`d11_70_authorized_gate_only=D11.71_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET`,
+`d11_69_decision=READ_ONLY_EVIDENCE_CAPTURE_CONTRACT_READY`, and
+`d11_71_decision=LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET_READY`.
+
+D11.71 records the future execution source context as `LOCAL_MAC_ONLY`,
+operator surface as `DIRECT_MAC_TERMINAL`, endpoint candidate as
+`127.0.0.1:7497`, endpoint class as IBKR Paper TWS/Gateway local socket
+candidate, symbols `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`, timeframe `15Min`,
+and lookback/request scope `120 minutes`. It records
+`d11_71_evidence_capture_executed=false`,
+`d11_71_broker_tws_api_network_runtime_action=false`,
+`d11_71_executable_commands_run_by_codex=false`,
+`production_provider_selection_behavior_changed=false`,
+`ibkr_primary_eligibility=NOT_APPROVED`, `d11_status=D11_INSUFFICIENT`,
+`unit_12_status=UNIT_12_BLOCKED`, `broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`.
+
+D11.71 defines the exact future D11.72 operator command block and marks it
+`FUTURE D11.72 ONLY - DO NOT RUN IN D11.71`. The future command starts from
+`/Users/openclawcontrol/Documents/openclaw-stocks`, uses
+`.venv-312/bin/python`, targets only `127.0.0.1:7497`, requests only
+`AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`, timeframe `15Min`, lookback
+`120 minutes`, exchange `SMART`, currency `USD`, security type `STK`, and the
+existing local read-only smoke authorization flag.
+
+D11.71 requires future output to be compact and adjudication-ready with run
+identity, operator context, request scope, per-symbol result, provider
+metadata, negative authority, locality summary, and adjudication summary
+fields. It requires negative-authority markers showing no broker API authority,
+order authority, execution authority, package capture, replay, scoring,
+candidate generation, D11 completion authority, or Unit 12 opening.
+
+D11.71 requires PASS/FAIL markers for LOCAL_MAC context, direct Mac terminal,
+endpoint `127.0.0.1:7497` scope, no VPS/`18789`/`18791`/bridge/tunnel/proxy,
+symbol scope, `15Min` timeframe, `120 minutes` lookback, historical bars scope,
+forbidden-fields absence, negative authority, and adjudication readiness.
+Missing, ambiguous, duplicated, or contradictory markers force fail-closed
+handling.
+
+D11.71 forbids account IDs, account aliases, account values, balances, buying
+power, margin, portfolio contents, positions, position quantities, position
+values, P&L, cash, equity, net liquidation, account summary, account ledger,
+open orders, order IDs, order status, executions, fills, trade history,
+commission reports, submit/cancel/modify endpoints, flatten/sell/cleanup
+evidence, credentials, tokens, secrets, VPS, `18789`, `18791`, bridge, tunnel,
+proxy, service/systemd/scheduler/timer/runtime/environment/TWS/Gateway/
+openclaw-gateway/VPS/credential/strategy/risk/execution/provider-selection
+runtime mutation, broker submit readiness, live trading readiness, package
+capture, replay, scoring, candidate generation, Unit 12 opening, and IBKR
+primary eligibility approval.
+
+D11.71 requires future D11.72 to fail closed on wrong branch, dirty worktree,
+HEAD mismatch, endpoint other than `127.0.0.1:7497`, source context other than
+`LOCAL_MAC_ONLY`, operator surface other than `DIRECT_MAC_TERMINAL`,
+TWS/Gateway not already manually open by the operator before future capture,
+account/order/execution/position/balance/portfolio/credential access attempts,
+forbidden fields in output, symbols outside `AAPL`, `MSFT`, `NVDA`, `TSLA`,
+`MSTR`, timeframe other than `15Min`, lookback/request scope other than
+`120 minutes`, VPS/`18789`/`18791`/bridge/tunnel/proxy/service/systemd/
+scheduler/timer/runtime/environment/package capture/replay/scoring/
+candidate-generation/strategy/risk/execution/live-readiness/broker-submit/
+Unit 12/IBKR-primary-approval expansion, or missing artifact fields,
+PASS/FAIL markers, redactions, or source-control references.
+
+D11.71 preserves provider eligibility blockers: `ibkr_market_data_candidate`
+remains `broker_coupled=true`, `d11_primary_eligible=false`,
+`d11_primary_candidate_status=candidate`, and `candidate_can_count_for_d11`
+remains unsatisfied. `IBKR_PRIMARY_ELIGIBILITY` remains `NOT_APPROVED`, D11
+remains `D11_INSUFFICIENT`, Unit 12 remains `UNIT_12_BLOCKED`, broker submit
+readiness remains `NOT_APPROVED`, and live trading readiness remains
+`NOT_APPROVED`.
+
+The exact next permissible gate is
+`D11.72_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`. D11.72 may be the
+first gate where the operator actually runs the bounded LOCAL_MAC-only
+read-only evidence capture, but only if the run remains inside the D11.71
+execution packet, the D11.70 authorization packet, and the D11.69 contract.
+
+D11.71 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic by Codex, runtime mutation,
+timer mutation, service mutation, systemd mutation, TWS mutation, Gateway
+mutation, openclaw-gateway mutation, scheduler mutation, credential access,
+Unit 12 opening, broker submit readiness, live-trading readiness, evidence
+capture in D11.71, executable command execution by Codex, or IBKR primary
+eligibility approval.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

@@ -6214,6 +6214,196 @@ def test_d11_70_local_mac_read_only_evidence_capture_authorization_packet() -> N
     assert "does not create executable evidence-capture\ncommands" in map_text
 
 
+def test_d11_71_local_mac_read_only_evidence_capture_execution_packet_ready() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_71_local_mac_read_only_evidence_capture_execution_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.71 LOCAL_MAC Read-Only Evidence Capture Execution Packet" in (
+        packet_text
+    )
+    assert (
+        "`classification` | "
+        "`IBKR_D11_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `2f05f254f54f2feb87760820ddc48456e48f0c89`"
+        in packet_text
+    )
+    assert (
+        "`d11_70_decision` | "
+        "`LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZED_FOR_NEXT_GATE`"
+        in packet_text
+    )
+    assert (
+        "`d11_71_decision` | "
+        "`LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET_READY`"
+        in packet_text
+    )
+    assert "`future_execution_source_context` | `LOCAL_MAC_ONLY`" in packet_text
+    assert (
+        "`future_execution_operator_surface` | `DIRECT_MAC_TERMINAL`"
+        in packet_text
+    )
+    assert (
+        "`future_execution_endpoint_candidate` | `127.0.0.1:7497`"
+        in packet_text
+    )
+    assert (
+        "`future_execution_endpoint_class` | "
+        "`IBKR_PAPER_TWS_GATEWAY_LOCAL_SOCKET_CANDIDATE`" in packet_text
+    )
+    assert (
+        "`future_execution_symbol_scope` | `AAPL,MSFT,NVDA,TSLA,MSTR`"
+        in packet_text
+    )
+    assert "`future_execution_timeframe` | `15Min`" in packet_text
+    assert "`future_execution_lookback_minutes` | `120`" in packet_text
+    assert "`d11_71_evidence_capture_executed` | `false`" in packet_text
+    assert (
+        "`d11_71_broker_tws_api_network_runtime_action` | `false`"
+        in packet_text
+    )
+    assert "`d11_71_executable_commands_run_by_codex` | `false`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`broker_submit_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`live_trading_readiness` | `NOT_APPROVED`" in packet_text
+    assert (
+        "`remaining_provider_eligibility_blockers` | "
+        "`broker_coupled_true; d11_primary_eligible_false; "
+        "d11_primary_candidate_status_candidate; "
+        "candidate_can_count_for_d11_unsatisfied`" in packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.72_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`"
+        in packet_text
+    )
+    assert "Source-Controlled Preconditions for Future Execution" in packet_text
+    assert "| Working directory | `/Users/openclawcontrol/Documents/openclaw-stocks` |" in (
+        packet_text
+    )
+    assert "| Python | `.venv-312/bin/python` |" in packet_text
+    assert "| Endpoint candidate | `127.0.0.1:7497` only |" in packet_text
+    assert "Future Operator Command: Not Run in D11.71" in packet_text
+    assert "# FUTURE D11.72 ONLY - DO NOT RUN IN D11.71" in packet_text
+    assert "cd /Users/openclawcontrol/Documents/openclaw-stocks" in packet_text
+    assert ".venv-312/bin/python -m tools.ops.ibkr_market_data_read_only_smoke" in (
+        packet_text
+    )
+    assert "--symbol AAPL --symbol MSFT --symbol NVDA --symbol TSLA --symbol MSTR" in (
+        packet_text
+    )
+    assert "--timeframe 15Min" in packet_text
+    assert "--lookback-minutes 120" in packet_text
+    assert "--host 127.0.0.1 --port 7497" in packet_text
+    assert "--authorize-local-ibkr-read-only-smoke" in packet_text
+    assert "Codex did not run this\ncommand in D11.71" in packet_text
+    assert "Expected Artifact Fields" in packet_text
+    assert "`source_context=LOCAL_MAC_ONLY`" in packet_text
+    assert "`operator_surface=DIRECT_MAC_TERMINAL`" in packet_text
+    assert "`endpoint_port=7497`" in packet_text
+    assert "`symbols=AAPL,MSFT,NVDA,TSLA,MSTR`" in packet_text
+    assert "`timeframe=15Min`" in packet_text
+    assert "`lookback_minutes=120`" in packet_text
+    assert "`broker_api_authority=false`" in packet_text
+    assert "`order_authority=false`" in packet_text
+    assert "`execution_authority=false`" in packet_text
+    assert "`unit_12_opened=false`" in packet_text
+    assert "`port_18789_used=false`" in packet_text
+    assert "`port_18791_used=false`" in packet_text
+    assert "Required PASS/FAIL Markers" in packet_text
+    assert "`DIRECT_MAC_TERMINAL_PASS` or `DIRECT_MAC_TERMINAL_FAIL`" in (
+        packet_text
+    )
+    assert "`ENDPOINT_127_0_0_1_7497_SCOPE_PASS`" in packet_text
+    assert "`NO_VPS_18789_18791_BRIDGE_TUNNEL_PROXY_PASS`" in packet_text
+    assert "`SYMBOL_SCOPE_PASS` or `SYMBOL_SCOPE_FAIL`" in packet_text
+    assert "`TIMEFRAME_15MIN_PASS` or `TIMEFRAME_15MIN_FAIL`" in packet_text
+    assert "`LOOKBACK_120_MINUTES_PASS` or `LOOKBACK_120_MINUTES_FAIL`" in (
+        packet_text
+    )
+    assert "`FORBIDDEN_FIELDS_ABSENT_PASS` or `FORBIDDEN_FIELDS_ABSENT_FAIL`" in (
+        packet_text
+    )
+    assert "`NEGATIVE_AUTHORITY_PASS` or `NEGATIVE_AUTHORITY_FAIL`" in packet_text
+    assert "Required Redactions" in packet_text
+    assert "Redaction never converts a forbidden-field violation" in packet_text
+    assert "Forbidden Fields and Forbidden Contexts" in packet_text
+    assert "account IDs, account aliases, account values, balances" in packet_text
+    assert "open orders, order IDs, order status, executions" in packet_text
+    assert "usernames, passwords, tokens, API keys" in packet_text
+    assert "VPS, `18789`, `18791`, bridge, tunnel, proxy" in packet_text
+    assert "broker submit readiness, live trading readiness" in packet_text
+    assert "Future Run Fail-Closed Conditions" in packet_text
+    assert "branch is not `main`" in packet_text
+    assert "worktree is dirty" in packet_text
+    assert "endpoint is not `127.0.0.1:7497`" in packet_text
+    assert "source context is not `LOCAL_MAC_ONLY`" in packet_text
+    assert "operator surface is not `DIRECT_MAC_TERMINAL`" in packet_text
+    assert "TWS/Gateway is not already manually open" in packet_text
+    assert "any symbol outside `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in (
+        packet_text
+    )
+    assert "any timeframe other than `15Min`" in packet_text
+    assert "lookback/request scope is not `120 minutes`" in packet_text
+    assert "Post-Capture Review Requirements for the Next Gate" in packet_text
+    assert "`ibkr_market_data_candidate` remains `broker_coupled=true`" in (
+        packet_text
+    )
+    assert "`candidate_can_count_for_d11` remains unsatisfied" in packet_text
+    assert "D11.72_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN" in (
+        packet_text
+    )
+    assert "d11_71_evidence_capture_executed=false" in packet_text
+    assert "d11_71_executable_commands_run_by_codex=false" in packet_text
+
+    assert (
+        "### D11.71 LOCAL_MAC Read-Only Evidence Capture Execution Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`IBKR_D11_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET`"
+        in map_text
+    )
+    assert "`source_commit=2f05f254f54f2feb87760820ddc48456e48f0c89`" in (
+        map_text
+    )
+    assert (
+        "`d11_71_decision=LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET_READY`"
+        in map_text
+    )
+    assert "future execution source context as `LOCAL_MAC_ONLY`" in map_text
+    assert "operator surface as `DIRECT_MAC_TERMINAL`" in map_text
+    assert "`127.0.0.1:7497`" in map_text
+    assert "symbols `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in map_text
+    assert "timeframe `15Min`" in map_text
+    assert "lookback/request scope `120 minutes`" in map_text
+    assert "`d11_71_evidence_capture_executed=false`" in map_text
+    assert "`d11_71_broker_tws_api_network_runtime_action=false`" in map_text
+    assert "`d11_71_executable_commands_run_by_codex=false`" in map_text
+    assert "marks it\n`FUTURE D11.72 ONLY - DO NOT RUN IN D11.71`" in map_text
+    assert ".venv-312/bin/python" in map_text
+    assert "targets only `127.0.0.1:7497`" in map_text
+    assert "requests only\n`AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in map_text
+    assert "no VPS/`18789`/`18791`/bridge/tunnel/proxy" in map_text
+    assert "forbids account IDs, account aliases" in map_text
+    assert "requires future D11.72 to fail closed" in map_text
+    assert "`candidate_can_count_for_d11`\nremains unsatisfied" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY` remains `NOT_APPROVED`" in map_text
+    assert "`D11.72_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`" in map_text
+    assert "evidence\ncapture in D11.71" in map_text
+    assert "executable command execution by Codex" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
