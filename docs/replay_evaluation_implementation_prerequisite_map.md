@@ -5930,6 +5930,76 @@ Unit 12 opening, broker submit readiness, live-trading readiness, evidence
 capture in D11.71, executable command execution by Codex, or IBKR primary
 eligibility approval.
 
+### D11.72 LOCAL_MAC Read-Only Evidence Capture Operator Run Record
+
+D11.72 adds the source-controlled LOCAL_MAC read-only evidence capture
+operator-run record:
+
+```text
+docs/ibkr_market_data_d11_72_local_mac_read_only_evidence_capture_operator_run_record.md
+```
+
+It records
+`IBKR_D11_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN_RECORD`,
+`source_commit=7479f708c53067980491c31bb37b41c2bcbf4eea`,
+`d11_71_decision=LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_EXECUTION_PACKET_READY`,
+`d11_72_run_status=COMPLETED_BY_OPERATOR`, and
+`d11_72_evidence_classification=READ_ONLY_CAPTURE_SUCCEEDED_WITH_RECENCY_CAVEAT`.
+The command was run by the operator, not by Codex, using the
+D11.71-authorized LOCAL_MAC-only read-only smoke path.
+
+D11.72 records the completed run context as `LOCAL_MAC_ONLY`,
+`DIRECT_MAC_TERMINAL`, endpoint candidate `127.0.0.1:7497`, endpoint class
+IBKR Paper TWS/Gateway local socket candidate, symbols `AAPL`, `MSFT`, `NVDA`,
+`TSLA`, `MSTR`, timeframe `15Min`, lookback `120 minutes`, and result type
+`ibkr_local_read_only_market_data_smoke`.
+
+D11.72 records that all five symbols returned `read_only=true`,
+`provider_key=ibkr_market_data_candidate`, provider name `IBKR read-only
+market-data diagnostic candidate`, `connection_mode=local_read_only_smoke`,
+`d11_primary_candidate_status=candidate`, `d11_primary_eligible=false`,
+`d11_countable=false`,
+`failure_reason=regular_session_closed_latest_candle_valid_for_last_session`,
+`freshness_classification=recency_caveated`,
+`latest_candle_timestamp=2026-06-26T19:45:00+00:00`,
+`requested_start=2026-06-27T01:40:31.383039+00:00`,
+`requested_end=2026-06-27T03:40:31.383039+00:00`, and
+`lag_minutes=475.52305065`.
+
+D11.72 classifies the evidence as
+`READ_ONLY_CAPTURE_SUCCEEDED_WITH_RECENCY_CAVEAT`. The evidence is not
+D11-countable for primary eligibility because all five symbols returned
+`d11_countable=false` and
+`failure_reason=regular_session_closed_latest_candle_valid_for_last_session`.
+
+D11.72 records negative authority: no account query, position query, margin
+query, buying-power query, portfolio query, order placement, order
+modification, order cancellation, order routing, execution authority, package
+capture, replay, scoring, candidate generation, Unit 12 opening, or VPS
+runtime/systemd/timer mutation. It records `broker_api_authority=false`,
+`order_authority=false`, `execution_authority=false`,
+`package_capture=false`, `replay=false`, `scoring=false`, and
+`candidate_generation=false`.
+
+D11.72 preserves the LOCAL_MAC/VPS locality distinction. LOCAL_MAC
+`127.0.0.1:7497` evidence is not VPS `127.0.0.1:7497` evidence. The operator
+result used no VPS path, no `18789`, no `18791`, no bridge, no tunnel, and no
+proxy. D11.72 does not approve `18789` or `18791` as market-data endpoints and
+does not authorize rerun or endpoint substitution.
+
+D11.72 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11=D11_INSUFFICIENT`, `UNIT_12=UNIT_12_BLOCKED`,
+`broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`. It does not approve IBKR primary
+eligibility, does not mark D11 complete, does not open Unit 12, does not
+approve broker submit readiness, and does not approve live trading readiness.
+
+D11.72 does not authorize a rerun. The exact next permissible gate is
+`D11.73_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`. D11.73 must be a
+source-controlled adjudication gate that decides whether this D11.72 capture
+is sufficient, insufficient due to the recency caveat, or requires a fresh
+regular-session rerun under a new authorization.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
