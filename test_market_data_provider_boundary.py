@@ -5654,6 +5654,169 @@ def test_d11_67_read_only_evidence_preflight_design_fails_closed() -> None:
     assert "evidence collection,\nexecutable evidence-capture commands" in map_text
 
 
+def test_d11_68_read_only_evidence_preflight_design_review_forces_blocker() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_68_read_only_evidence_preflight_design_review.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "D11.68 Read-Only Evidence Preflight Design Review" in packet_text
+    assert (
+        "`classification` | "
+        "`IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_REVIEW`" in packet_text
+    )
+    assert (
+        "`source_commit` | `469fe863578693cf01171198a66a0fcd2204e37f`"
+        in packet_text
+    )
+    assert (
+        "`d11_67_classification` | "
+        "`IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN`" in packet_text
+    )
+    assert (
+        "`d11_67_decision` | "
+        "`READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_RECORDED_FAIL_CLOSED`"
+        in packet_text
+    )
+    assert (
+        "`d11_68_decision` | "
+        "`READ_ONLY_EVIDENCE_CAPTURE_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in packet_text
+    )
+    assert (
+        "`minimum_future_evidence_capture_target_set` | "
+        "`NOT_SELECTED_BLOCKED`" in packet_text
+    )
+    assert "`concrete_blocker_status` | `PRESENT`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`vps_runtime` | `NOT_TOUCHED`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`evidence_collected` | `false`" in packet_text
+    assert "`evidence_collection_authorized` | `false`" in packet_text
+    assert (
+        "`executable_evidence_capture_commands_created` | `false`"
+        in packet_text
+    )
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.69_SOURCE_CONTROLLED_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION`"
+        in packet_text
+    )
+    assert "Forced Binary Review Outcome" in packet_text
+    assert "READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_READY" in packet_text
+    assert (
+        "READ_ONLY_EVIDENCE_CAPTURE_BLOCKED_WITH_CONCRETE_BLOCKER"
+        in packet_text
+    )
+    assert "does not create another open-ended planning or design-only gate" in (
+        packet_text
+    )
+    assert "D11.67 Review Table" in packet_text
+    assert "LOCAL_MAC read-only evidence preflight design" in packet_text
+    assert "VPS read-only evidence preflight design" in packet_text
+    assert "Broker/TWS read-only evidence preflight design" in packet_text
+    assert "Documentation/test adjudication boundary" in packet_text
+    assert "Evidence collection boundary" in packet_text
+    assert "Evidence adjudication boundary" in packet_text
+    assert "Provider primary eligibility boundary" in packet_text
+    assert "Runtime deployment eligibility boundary" in packet_text
+    assert "Broker submit readiness boundary" in packet_text
+    assert "Live trading readiness boundary" in packet_text
+    assert "Unit 12 opening boundary" in packet_text
+    assert "Concrete Blocker List" in packet_text
+    assert "does not select an exact minimum future evidence-capture target set" in (
+        packet_text
+    )
+    assert "does not select a single source context" in packet_text
+    assert "does not define per-target allowed fields and forbidden fields" in (
+        packet_text
+    )
+    assert "does not define a per-target non-executable artifact" in packet_text
+    assert "does not select an approved endpoint or process context" in packet_text
+    assert "VPS `127.0.0.1:7497` remains unvalidated" in packet_text
+    assert "`18789` and `18791` remain not approved market-data endpoints" in (
+        packet_text
+    )
+    assert "`ibkr_market_data_candidate` remains `broker_coupled=true`" in (
+        packet_text
+    )
+    assert "`d11_primary_eligible=false`" in packet_text
+    assert "`d11_primary_candidate_status=candidate`" in packet_text
+    assert "`candidate_can_count_for_d11` remains unsatisfied" in packet_text
+    assert "minimum_future_evidence_capture_target_set=NOT_SELECTED_BLOCKED" in (
+        packet_text
+    )
+    assert "`127.0.0.1` is process-context local" in packet_text
+    assert "LOCAL_MAC `127.0.0.1:7497` is not\nequivalent to VPS" in packet_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in packet_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in packet_text
+    assert "D11.69_SOURCE_CONTROLLED_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION" in (
+        packet_text
+    )
+    assert "evidence_collected=false" in packet_text
+    assert "evidence_collection_authorized=false" in packet_text
+    assert "executable_evidence_capture_commands_created=false" in packet_text
+    assert "runtime_broker_vps_scheduler_systemd_credential_action=false" in (
+        packet_text
+    )
+
+    assert "### D11.68 Read-Only Evidence Preflight Design Review" in map_text
+    assert str(packet_path) in map_text
+    assert "`IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_REVIEW`" in map_text
+    assert "`source_commit=469fe863578693cf01171198a66a0fcd2204e37f`" in (
+        map_text
+    )
+    assert (
+        "`d11_68_decision=READ_ONLY_EVIDENCE_CAPTURE_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in map_text
+    )
+    assert "`minimum_future_evidence_capture_target_set=NOT_SELECTED_BLOCKED`" in (
+        map_text
+    )
+    assert "`concrete_blocker_status=PRESENT`" in map_text
+    assert "`evidence_collected=false`" in map_text
+    assert "`evidence_collection_authorized=false`" in map_text
+    assert "`executable_evidence_capture_commands_created=false`" in map_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action=false`"
+        in map_text
+    )
+    assert "`production_provider_selection_behavior_changed=false`" in map_text
+    assert "`ibkr_primary_eligibility=NOT_APPROVED`" in map_text
+    assert "`d11_status=D11_INSUFFICIENT`" in map_text
+    assert "`unit_12_status=UNIT_12_BLOCKED`" in map_text
+    assert "forces exactly one of the two permitted review outcomes" in map_text
+    assert "does not select an exact minimum future\nevidence-capture target set" in (
+        map_text
+    )
+    assert "no exact target set, no selected source\ncontext" in map_text
+    assert "`ibkr_market_data_candidate`\nremains `broker_coupled=true`" in map_text
+    assert "`candidate_can_count_for_d11`\nremains unsatisfied" in map_text
+    assert "LOCAL_MAC\n`127.0.0.1:7497` is not equivalent to VPS" in map_text
+    assert "`VPS_LOCALHOST_CONTEXT_MISMATCH`" in map_text
+    assert "`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`" in map_text
+    assert (
+        "`D11.69_SOURCE_CONTROLLED_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION`"
+        in map_text
+    )
+    assert "must not be runtime activation, broker\nactivation" in map_text
+    assert "evidence collection,\nexecutable evidence-capture commands" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

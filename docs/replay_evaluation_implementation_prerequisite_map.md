@@ -5543,6 +5543,78 @@ openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
 opening, broker submit readiness, live-trading readiness, evidence collection,
 executable evidence-capture commands, or IBKR primary eligibility approval.
 
+### D11.68 Read-Only Evidence Preflight Design Review
+
+D11.68 adds the source-controlled read-only evidence preflight design review:
+
+```text
+docs/ibkr_market_data_d11_68_read_only_evidence_preflight_design_review.md
+```
+
+It records `IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_REVIEW`,
+`source_commit=469fe863578693cf01171198a66a0fcd2204e37f`,
+`d11_67_classification=IBKR_D11_READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN`,
+`d11_67_decision=READ_ONLY_EVIDENCE_PREFLIGHT_DESIGN_RECORDED_FAIL_CLOSED`,
+`d11_66_classification=IBKR_D11_PRIMARY_ELIGIBILITY_READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN`,
+and `d11_66_decision=READ_ONLY_EVIDENCE_AUTHORIZATION_PLAN_RECORDED_FAIL_CLOSED`.
+
+D11.68 records
+`d11_68_decision=READ_ONLY_EVIDENCE_CAPTURE_BLOCKED_WITH_CONCRETE_BLOCKER`,
+`minimum_future_evidence_capture_target_set=NOT_SELECTED_BLOCKED`,
+`concrete_blocker_status=PRESENT`, `evidence_collected=false`,
+`evidence_collection_authorized=false`,
+`executable_evidence_capture_commands_created=false`,
+`runtime_broker_vps_scheduler_systemd_credential_action=false`, and
+`production_provider_selection_behavior_changed=false`. It keeps
+`ibkr_primary_eligibility=NOT_APPROVED`, `d11_status=D11_INSUFFICIENT`,
+`unit_12_status=UNIT_12_BLOCKED`, `PACKAGE_CAPTURE=BLOCKED`,
+`VPS_RUNTIME=NOT_TOUCHED`, and `account_order_execution_authority=false`.
+
+D11.68 forces exactly one of the two permitted review outcomes and selects
+`READ_ONLY_EVIDENCE_CAPTURE_BLOCKED_WITH_CONCRETE_BLOCKER`. It does not select
+`READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_READY` because D11.67 defines
+design lanes and fail-closed checks but does not select an exact minimum future
+evidence-capture target set, single source context, allowed fields, forbidden
+fields, endpoint/process context, or adjudication artifact contract.
+
+D11.68 reviews the D11.67 dimensions for LOCAL_MAC read-only evidence, VPS
+read-only evidence, broker/TWS read-only evidence, documentation/test
+adjudication, evidence collection, evidence adjudication, provider primary
+eligibility, runtime deployment eligibility, broker submit readiness, live
+trading readiness, and Unit 12 opening. It records that the boundaries exist
+but are not authorization-ready.
+
+D11.68 records concrete blockers: no exact target set, no selected source
+context, no per-target allowed or forbidden fields, no non-executable artifact
+contract, no approved endpoint or process context for future capture, VPS
+`127.0.0.1:7497` remains unvalidated, `18789` and `18791` remain unapproved
+market-data endpoints unless separately approved, `ibkr_market_data_candidate`
+remains `broker_coupled=true`, `d11_primary_eligible=false`, and
+`d11_primary_candidate_status=candidate`, and `candidate_can_count_for_d11`
+remains unsatisfied.
+
+D11.68 preserves the LOCAL_MAC/VPS locality distinction. LOCAL_MAC
+`127.0.0.1:7497` is not equivalent to VPS `127.0.0.1:7497`,
+`vps_127_0_0_1_7497_validated=false`, and prior VPS failure remains
+`VPS_LOCALHOST_CONTEXT_MISMATCH` /
+`AUTHORIZED_ENDPOINT_7497_NOT_LISTENING_ON_VPS`.
+
+The exact next permissible gate is
+`D11.69_SOURCE_CONTROLLED_READ_ONLY_EVIDENCE_CAPTURE_BLOCKER_REMEDIATION`.
+That gate may only remediate the concrete source-controlled blockers listed by
+D11.68 or remain fail-closed. It must not be runtime activation, broker
+activation, submit readiness, live trading, package capture, replay, scoring,
+candidate generation, actual evidence execution, or IBKR primary eligibility
+approval.
+
+D11.68 grants no account, order, execution, package capture, replay, scoring,
+candidate generation, strategy, risk, VPS proof run, VPS market test, protocol
+probe, endpoint inspection, broker endpoint traffic, runtime mutation, timer
+mutation, service mutation, systemd mutation, TWS mutation, Gateway mutation,
+openclaw-gateway mutation, scheduler mutation, credential access, Unit 12
+opening, broker submit readiness, live-trading readiness, evidence collection,
+executable evidence-capture commands, or IBKR primary eligibility approval.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
