@@ -6750,6 +6750,253 @@ def test_d11_73_local_mac_read_only_capture_adjudication_requires_fresh_rerun() 
     )
 
 
+def test_d11_74_fresh_regular_session_capture_authorization_packet() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_74_fresh_regular_session_read_only_evidence_capture_authorization_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "D11.74 Fresh Regular-Session Read-Only Evidence Capture "
+        "Authorization Packet" in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`IBKR_D11_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `08bc4cbedd4b465eb6308deadb4a781acc991512`"
+        in packet_text
+    )
+    assert (
+        "`d11_73_decision` | "
+        "`D11_72_EVIDENCE_ADJUDICATED_INSUFFICIENT_REQUIRES_FRESH_REGULAR_SESSION_RERUN`"
+        in packet_text
+    )
+    assert (
+        "`d11_74_decision` | "
+        "`FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZED_FOR_OPERATOR_RUN`"
+        in packet_text
+    )
+    assert (
+        "`authorized_gate_only` | "
+        "`D11.75_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`"
+        in packet_text
+    )
+    assert "`d11_74_evidence_collected` | `false`" in packet_text
+    assert (
+        "`d11_74_executable_evidence_capture_command_run` | `false`"
+        in packet_text
+    )
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`broker_submit_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`live_trading_readiness` | `NOT_APPROVED`" in packet_text
+    assert (
+        "`remaining_provider_eligibility_blockers` | "
+        "`broker_coupled_true; d11_primary_eligible_false; "
+        "d11_primary_candidate_status_candidate; "
+        "candidate_can_count_for_d11_unsatisfied`" in packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.75_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`"
+        in packet_text
+    )
+
+    assert "D11.73 Adjudication Basis" in packet_text
+    assert "`READ_ONLY_CAPTURE_SUCCEEDED_WITH_RECENCY_CAVEAT`" in packet_text
+    assert "all five symbols returned `d11_countable=false`" in packet_text
+    assert "all five symbols returned `d11_primary_eligible=false`" in (
+        packet_text
+    )
+    assert "all five symbols returned `freshness_classification=recency_caveated`" in (
+        packet_text
+    )
+    assert (
+        "`failure_reason=regular_session_closed_latest_candle_valid_for_last_session`"
+        in packet_text
+    )
+    assert "`latest_candle_timestamp=2026-06-26T19:45:00+00:00`" in (
+        packet_text
+    )
+    assert "`requested_start=2026-06-27T01:40:31.383039+00:00`" in (
+        packet_text
+    )
+    assert "`requested_end=2026-06-27T03:40:31.383039+00:00`" in packet_text
+    assert "`lag_minutes=475.52305065`" in packet_text
+    assert "outside the usable freshness window" in packet_text
+
+    assert "| Source context | `LOCAL_MAC_ONLY` |" in packet_text
+    assert "| Operator surface | `DIRECT_MAC_TERMINAL` only |" in packet_text
+    assert "| Endpoint candidate | `127.0.0.1:7497` |" in packet_text
+    assert "| Timing | Fresh regular-session evidence capture only |" in (
+        packet_text
+    )
+    assert "`AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in packet_text
+    assert "timeframe `15Min`" in packet_text
+    assert "lookback `120 minutes`" in packet_text
+    assert (
+        "next operator run may use the D11.71 bounded command/procedure only"
+        in packet_text
+    )
+    assert "D11.74 itself does not create executable commands for Codex to run" in (
+        packet_text
+    )
+
+    assert "Regular-Session Timing Boundary" in packet_text
+    assert (
+        "current or\nsufficiently recent `15Min` candle is expected"
+        in packet_text
+    )
+    assert "explicitly rejects after-session reruns" in packet_text
+    assert "regular_session_closed_latest_candle_valid_for_last_session" in (
+        packet_text
+    )
+    for required_field in (
+        "requested_start",
+        "requested_end",
+        "latest_candle_timestamp",
+        "lag_minutes",
+        "freshness_classification",
+        "failure_reason",
+        "d11_countable",
+        "d11_primary_eligible",
+    ):
+        assert f"`{required_field}`" in packet_text
+    assert (
+        "fail closed if all symbols remain `d11_countable=false` due to the\n"
+        "regular-session-closed recency caveat" in packet_text
+    )
+
+    assert "Allowed Fields" in packet_text
+    assert "`target_1_local_process_endpoint_identity`" in packet_text
+    assert "`target_2_read_only_socket_configuration`" in packet_text
+    assert "`target_3_regular_session_historical_bars_availability`" in (
+        packet_text
+    )
+    assert "`target_4_response_metadata_for_adjudication`" in packet_text
+    assert "`target_5_negative_authority_evidence`" in packet_text
+    assert "`broker_api_authority=false`" in packet_text
+    assert "`order_authority=false`" in packet_text
+    assert "`execution_authority=false`" in packet_text
+
+    assert "Forbidden Fields" in packet_text
+    assert "Account IDs, account aliases, account values, balances" in (
+        packet_text
+    )
+    assert "Open orders, order IDs, order status, executions" in packet_text
+    assert "Usernames, passwords, tokens, API keys" in packet_text
+    assert "VPS `127.0.0.1:7497`, `18789`, `18791`, bridge" in packet_text
+    assert "Service changes, scheduler changes, systemd changes" in packet_text
+    assert "Package capture, replay, scoring, candidate generation" in (
+        packet_text
+    )
+    assert "IBKR primary eligibility approval" in packet_text
+
+    assert "Required PASS/FAIL Markers" in packet_text
+    assert "`REGULAR_SESSION_TIMING_PASS` or `REGULAR_SESSION_TIMING_FAIL`" in (
+        packet_text
+    )
+    assert (
+        "`NO_AFTER_SESSION_STALE_CAPTURE_PASS` or "
+        "`NO_AFTER_SESSION_STALE_CAPTURE_FAIL`" in packet_text
+    )
+    assert "`FORBIDDEN_FIELDS_ABSENT_PASS`" in packet_text
+    assert "`NEGATIVE_AUTHORITY_PASS`" in packet_text
+    assert "`ADJUDICATION_READY_PASS`" in packet_text
+
+    assert "Required Artifact Sections" in packet_text
+    for section in (
+        "artifact_identity",
+        "operator_context",
+        "regular_session_timing",
+        "request_scope",
+        "target_results",
+        "negative_authority_attestation",
+        "locality_attestation",
+        "adjudication_summary",
+    ):
+        assert f"`{section}`" in packet_text
+
+    assert "Future Run Fail-Closed Conditions" in packet_text
+    assert "source context is not `LOCAL_MAC_ONLY`" in packet_text
+    assert "operator surface is not `DIRECT_MAC_TERMINAL`" in packet_text
+    assert "endpoint is not `127.0.0.1:7497`" in packet_text
+    assert "run timing is not a regular-session window" in packet_text
+    assert "all symbols remain `d11_countable=false`" in packet_text
+    assert "any symbol outside `AAPL`, `MSFT`, `NVDA`, `TSLA`, `MSTR`" in (
+        packet_text
+    )
+    assert "any timeframe other than `15Min`" in packet_text
+    assert "lookback/request scope is not `120 minutes`" in packet_text
+    assert "account/order/execution/position/balance/portfolio/credential data" in (
+        packet_text
+    )
+    assert "VPS, `18789`, `18791`, bridge, tunnel, proxy" in packet_text
+    assert "LOCAL_MAC `127.0.0.1:7497` is treated as VPS" in packet_text
+
+    assert "D11.74 does not authorize VPS evidence" in packet_text
+    assert "LOCAL_MAC `127.0.0.1:7497` is not\nequivalent to VPS" in (
+        packet_text
+    )
+    assert "rejects `18789` and `18791`" in packet_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in packet_text
+    assert "`D11=D11_INSUFFICIENT`" in packet_text
+    assert "`UNIT_12=UNIT_12_BLOCKED`" in packet_text
+    assert "`ibkr_market_data_candidate` remains `broker_coupled=true`" in (
+        packet_text
+    )
+    assert "`candidate_can_count_for_d11` remains unsatisfied" in packet_text
+    assert "Future evidence capture may support later adjudication but cannot itself\napprove IBKR primary eligibility" in (
+        packet_text
+    )
+
+    assert (
+        "### D11.74 Fresh Regular-Session Read-Only Evidence Capture "
+        "Authorization Packet" in map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`IBKR_D11_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+    assert "`source_commit=08bc4cbedd4b465eb6308deadb4a781acc991512`" in (
+        map_text
+    )
+    assert (
+        "`d11_74_decision=FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZED_FOR_OPERATOR_RUN`"
+        in map_text
+    )
+    assert "D11.74 authorizes only the next operator-run gate" in map_text
+    assert "collects no\nevidence" in map_text
+    assert "runs no executable evidence-capture command" in map_text
+    assert "fresh regular-session timing" in map_text
+    assert "explicitly rejects after-session\nreruns" in map_text
+    assert "`REGULAR_SESSION_TIMING_PASS`" in map_text
+    assert "`NO_AFTER_SESSION_STALE_CAPTURE_PASS`" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11=D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12=UNIT_12_BLOCKED`" in map_text
+    assert (
+        "`D11.75_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

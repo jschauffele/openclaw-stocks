@@ -6066,6 +6066,91 @@ regular-session read-only evidence capture. It must preserve the
 D11.69/D11.70/D11.71 boundaries unless explicitly narrowed, must not itself
 perform evidence capture, and must not approve IBKR primary eligibility.
 
+### D11.74 Fresh Regular-Session Read-Only Evidence Capture Authorization Packet
+
+D11.74 adds the source-controlled authorization packet for a fresh
+regular-session LOCAL_MAC-only read-only operator rerun:
+
+```text
+docs/ibkr_market_data_d11_74_fresh_regular_session_read_only_evidence_capture_authorization_packet.md
+```
+
+It records
+`IBKR_D11_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZATION_PACKET`,
+`source_commit=08bc4cbedd4b465eb6308deadb4a781acc991512`,
+`d11_73_decision=D11_72_EVIDENCE_ADJUDICATED_INSUFFICIENT_REQUIRES_FRESH_REGULAR_SESSION_RERUN`,
+and
+`d11_74_decision=FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_AUTHORIZED_FOR_OPERATOR_RUN`.
+D11.74 authorizes only the next operator-run gate. D11.74 itself collects no
+evidence, runs no executable evidence-capture command, performs no runtime,
+broker, TWS, API, VPS, scheduler, systemd, or credential action, and changes
+no production provider-selection behavior.
+
+D11.74 uses the D11.73 adjudication basis: D11.72 was operationally useful but
+non-countable because all five symbols returned `d11_countable=false`,
+`d11_primary_eligible=false`, `freshness_classification=recency_caveated`, and
+`failure_reason=regular_session_closed_latest_candle_valid_for_last_session`.
+The prior recorded values were
+`latest_candle_timestamp=2026-06-26T19:45:00+00:00`,
+`requested_start=2026-06-27T01:40:31.383039+00:00`,
+`requested_end=2026-06-27T03:40:31.383039+00:00`, and
+`lag_minutes=475.52305065`.
+
+D11.74 authorizes the future source context only as `LOCAL_MAC_ONLY`,
+`DIRECT_MAC_TERMINAL`, LOCAL_MAC process context, endpoint candidate
+`127.0.0.1:7497`, IBKR Paper TWS/Gateway local socket candidate,
+market-data/provider-readiness only, symbols `AAPL`, `MSFT`, `NVDA`, `TSLA`,
+`MSTR`, timeframe `15Min`, and lookback `120 minutes`.
+
+D11.74 requires fresh regular-session timing: the future operator run must
+occur during a regular-session window where a current or sufficiently recent
+`15Min` candle is expected to be available. It explicitly rejects after-session
+reruns expected to reproduce
+`regular_session_closed_latest_candle_valid_for_last_session`. The future run
+must record `requested_start`, `requested_end`, `latest_candle_timestamp`,
+`lag_minutes`, `freshness_classification`, `failure_reason`, `d11_countable`,
+and `d11_primary_eligible` for every symbol, and must fail closed if all
+symbols remain `d11_countable=false` due to the regular-session-closed recency
+caveat.
+
+D11.74 records allowed fields for LOCAL_MAC process endpoint identity,
+read-only socket/API mode, regular-session historical bars availability,
+response metadata for adjudication, and negative authority evidence. It
+forbids account IDs, account values, balances, buying power, margin, portfolio,
+positions, P&L, open orders, order IDs, order status, executions, fills, trade
+history, credentials, tokens, secrets, VPS `127.0.0.1:7497`, `18789`, `18791`,
+bridge, tunnel, proxy, service/scheduler/systemd/timer/runtime/environment/
+TWS/Gateway/openclaw-gateway/VPS/credential mutation, package capture, replay,
+scoring, candidate generation, strategy/risk/execution mutation, Unit 12
+opening, D11 completion, broker submit readiness, live trading readiness, and
+IBKR primary eligibility approval.
+
+D11.74 requires PASS/FAIL markers for LOCAL_MAC context, direct Mac terminal,
+endpoint `127.0.0.1:7497`, regular-session timing, no after-session stale
+capture, symbol scope, `15Min` timeframe, `120 minutes` lookback, historical
+bars scope, forbidden-fields absence, negative authority, and adjudication
+readiness, including `REGULAR_SESSION_TIMING_PASS` or
+`REGULAR_SESSION_TIMING_FAIL` and `NO_AFTER_SESSION_STALE_CAPTURE_PASS` or
+`NO_AFTER_SESSION_STALE_CAPTURE_FAIL`. It requires artifact sections for identity, operator context,
+regular-session timing, request scope, target results, negative authority,
+locality, and adjudication summary.
+
+D11.74 preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11=D11_INSUFFICIENT`, `UNIT_12=UNIT_12_BLOCKED`,
+`broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`. It preserves provider eligibility
+blockers: `broker_coupled=true`, `d11_primary_eligible=false`,
+`d11_primary_candidate_status=candidate`, and `candidate_can_count_for_d11`
+unsatisfied. Future evidence capture may support later adjudication but cannot
+itself approve IBKR primary eligibility.
+
+The exact next permissible gate is
+`D11.75_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`.
+D11.75 may be the operator-run gate where the bounded fresh regular-session
+LOCAL_MAC-only read-only evidence capture is actually run, but only if it
+remains inside the D11.69 contract, D11.70 authorization packet, D11.71
+execution packet, D11.73 adjudication, and D11.74 authorization packet.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
