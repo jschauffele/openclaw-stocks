@@ -7824,6 +7824,222 @@ def test_d11_79_final_primary_eligibility_and_d11_closure_adjudication() -> None
     )
 
 
+def test_post_d11_replay_package_prerequisite_and_unit_12_boundary_review() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_prerequisite_and_unit_12_boundary_review.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Post-D11 Replay Package Prerequisite And Unit 12 Boundary Review" in (
+        packet_text
+    )
+    assert (
+        "POST_D11_SOURCE_CONTROLLED_REPLAY_PACKAGE_PREREQUISITE_AND_UNIT_12_BOUNDARY_REVIEW"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_SOURCE_CONTROLLED_REPLAY_PACKAGE_PREREQUISITE_AND_UNIT_12_BOUNDARY_REVIEW`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `a09ce5e477d568907f32f43732dd5dd2e6741eda`"
+        in packet_text
+    )
+    assert (
+        "`d11_79_decision` | "
+        "`IBKR_READ_ONLY_MARKET_DATA_PRIMARY_ELIGIBILITY_APPROVED_AND_D11_CLOSED`"
+        in packet_text
+    )
+    assert (
+        "`ibkr_primary_eligibility_after_d11_79` | "
+        "`APPROVED_READ_ONLY_MARKET_DATA_PROVIDER_QUALIFICATION_ONLY`"
+        in packet_text
+    )
+    assert (
+        "`d11_status_after_d11_79` | "
+        "`D11_CLOSED_READ_ONLY_MARKET_DATA_PROVIDER_QUALIFICATION_ONLY`"
+        in packet_text
+    )
+    assert (
+        "`unit_12_status_after_d11_79` | "
+        "`UNIT_12_NOT_OPENED_BOUNDARY_REVIEW_REQUIRED`" in packet_text
+    )
+    assert (
+        "`post_d11_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_AND_UNIT_12_BOUNDARY_REVIEW_COMPLETED_READY_FOR_SOURCE_CONTROLLED_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert "`package_capture_executed` | `false`" in packet_text
+    assert "`replay_executed` | `false`" in packet_text
+    assert "`scoring_executed` | `false`" in packet_text
+    assert "`candidate_generation_executed` | `false`" in packet_text
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_runtime_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`unit_12_implemented_or_opened` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert "`broker_submit_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`live_trading_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`account_authority` | `NONE`" in packet_text
+    assert "`order_authority` | `NONE`" in packet_text
+    assert "`execution_authority` | `NONE`" in packet_text
+    assert "`package_capture_execution` | `NOT_AUTHORIZED`" in packet_text
+    assert "`replay_execution` | `NOT_AUTHORIZED`" in packet_text
+    assert "`scoring_execution` | `NOT_AUTHORIZED`" in packet_text
+    assert (
+        "`candidate_generation_execution` | `NOT_AUTHORIZED`"
+        in packet_text
+    )
+    assert "`strategy_risk_execution_changes` | `BLOCKED`" in packet_text
+    assert (
+        "`scheduler_runtime_service_systemd_timer_changes` | `BLOCKED`"
+        in packet_text
+    )
+    assert "`credential_environment_changes` | `BLOCKED`" in packet_text
+    assert "`vps_endpoint_approval` | `NOT_APPROVED`" in packet_text
+    assert "`bridge_tunnel_proxy_approval` | `NOT_APPROVED`" in packet_text
+    assert "`unit_12_implementation` | `NOT_OPENED`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+
+    assert "D11 closure unlocks only a governance transition" in packet_text
+    assert "It does not convert any other\nGate D, package, replay" in packet_text
+    assert "D11 closure does not unlock:" in packet_text
+    for denied in (
+        "package capture execution",
+        "replay execution",
+        "scoring execution",
+        "candidate generation execution",
+        "broker submit readiness",
+        "live trading readiness",
+        "account authority",
+        "order authority",
+        "execution authority",
+        "VPS endpoint approval",
+        "`18789` or `18791` endpoint approval",
+        "bridge, tunnel, or proxy approval",
+        "Unit 12 opening or implementation",
+    ):
+        assert denied in packet_text
+
+    for boundary in (
+        "| Read-only market-data provider qualification | Approved by D11.79",
+        "| Package capture authorization | Not authorized by D11.79 or this gate",
+        "| Replay authorization | Not authorized.",
+        "| Scoring authorization | Not authorized.",
+        "| Candidate generation authorization | Not authorized.",
+        "| Unit 12 implementation | Not opened and not implemented.",
+        "| Broker submit/live trading authority | Not approved.",
+    ):
+        assert boundary in packet_text
+
+    assert "PACKAGE_CAPTURE_EXECUTION=NOT_AUTHORIZED" in packet_text
+    assert "REPLAY_EXECUTION=NOT_AUTHORIZED" in packet_text
+    assert "SCORING_EXECUTION=NOT_AUTHORIZED" in packet_text
+    assert "CANDIDATE_GENERATION_EXECUTION=NOT_AUTHORIZED" in packet_text
+    assert "UNIT_12_IMPLEMENTATION=NOT_OPENED" in packet_text
+    assert "Before any future package capture can be authorized" in packet_text
+    assert "eligible `run_id` selection rule from scheduled runtime evidence only" in (
+        packet_text
+    )
+    assert "D13 market-session eligibility requirement" in packet_text
+    assert "explicit `order_state.json` exclusion" in packet_text
+    assert "Before any future Unit 12 work can be authorized" in packet_text
+    assert "completed package evidence exists and is source-control reviewed" in (
+        packet_text
+    )
+    assert "package ledger or equivalent inventory evidence" in packet_text
+    assert "broker submit readiness and live trading readiness remain separate gates" in (
+        packet_text
+    )
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This gate performed no package capture, no replay, no scoring" in (
+        packet_text
+    )
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no IBKR connection" in packet_text
+    assert "no\nTWS/Gateway inspection" in packet_text
+    assert "no Unit 12 implementation, and no\nUnit 12 opening" in packet_text
+    assert "This gate performed no commit and no push" in packet_text
+    assert "No concrete blocker prevents drafting the next source-controlled package" in (
+        packet_text
+    )
+    assert (
+        "This next gate is still an authorization packet only unless it explicitly\n"
+        "authorizes a later operator run" in packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Prerequisite And Unit 12 Boundary Review"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=a09ce5e477d568907f32f43732dd5dd2e6741eda`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_AND_UNIT_12_BOUNDARY_REVIEW_COMPLETED_READY_FOR_SOURCE_CONTROLLED_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+    assert "D11 closure unlocks only a governance transition" in map_text
+    assert "It does not unlock package capture execution" in map_text
+    assert "`package_capture_execution=NOT_AUTHORIZED`" in map_text
+    assert "`replay_execution=NOT_AUTHORIZED`" in map_text
+    assert "`scoring_execution=NOT_AUTHORIZED`" in map_text
+    assert "`candidate_generation_execution=NOT_AUTHORIZED`" in map_text
+    assert "`unit_12_implementation=NOT_OPENED`" in map_text
+    assert "eligible `run_id` selection from scheduled runtime\nevidence only" in (
+        map_text
+    )
+    assert "completed and reviewed package evidence" in map_text
+    assert "no package capture, no replay, no scoring" in map_text
+    assert "no\ncandidate generation" in map_text
+    assert "no broker/TWS/API/network/runtime action" in map_text
+    assert "no Unit 12\nimplementation" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET`" in map_text
+    )
+    assert "still\nan authorization packet only" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

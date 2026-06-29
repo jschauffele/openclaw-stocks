@@ -6365,6 +6365,78 @@ This next gate is a review/authorization prerequisite only and must not itself
 perform package capture, replay, scoring, candidate generation, strategy/risk/
 execution changes, broker actions, live trading, or Unit 12 implementation.
 
+### Post-D11 Replay Package Prerequisite And Unit 12 Boundary Review
+
+The post-D11 source-controlled boundary review packet is recorded here:
+
+docs/post_d11_replay_package_prerequisite_and_unit_12_boundary_review.md
+
+The packet records
+`POST_D11_SOURCE_CONTROLLED_REPLAY_PACKAGE_PREREQUISITE_AND_UNIT_12_BOUNDARY_REVIEW`
+at `source_commit=a09ce5e477d568907f32f43732dd5dd2e6741eda` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_AND_UNIT_12_BOUNDARY_REVIEW_COMPLETED_READY_FOR_SOURCE_CONTROLLED_AUTHORIZATION_PACKET`.
+
+D11 closure unlocks only a governance transition from the read-only
+market-data primary-eligibility lane into a post-D11 prerequisite review lane.
+It allows a later source-controlled authorization packet to be drafted for
+package-capture criteria. It does not unlock package capture execution, replay
+execution, scoring execution, candidate generation execution, strategy/risk/
+execution changes, scheduler/runtime/service/systemd/timer changes, credential
+or environment-file changes, broker submit readiness, live trading readiness,
+account authority, order authority, execution authority, VPS endpoint approval,
+`18789` or `18791` endpoint approval, bridge/tunnel/proxy approval, or Unit 12
+opening or implementation.
+
+The boundary review preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`package_capture_execution=NOT_AUTHORIZED`, `replay_execution=NOT_AUTHORIZED`,
+`scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The packet defines the required prerequisites before any future package capture
+can be authorized: expected source commit and clean worktree, exact operator
+surface and source context, eligible `run_id` selection from scheduled runtime
+evidence only, JSONL and `last_run_report.json` alignment, D13
+market-session eligibility, no-overwrite checks, immutable package lifecycle,
+hash/manifest/integrity evidence, redaction/provenance requirements,
+`order_state.json` exclusion or absent/not-applicable treatment, fail-closed
+conditions, and explicit proof that package capture does not imply replay,
+scoring, candidate generation, Unit 12, broker authority, strategy/risk/
+execution changes, paper approval, or live approval.
+
+The packet defines the required prerequisites before any future Unit 12 work
+can be authorized: completed and reviewed package evidence, ledger or inventory
+evidence, separately authorized replay/scoring/evaluation prerequisites,
+candidate-generation prerequisites if candidate work is in scope, broker
+submit/live trading separation, account/order/execution exclusion unless a
+later broker-authority gate exists, and a source-controlled Unit 12 scope with
+allowed fields, forbidden fields, fail-closed conditions, and non-runtime
+behavior boundaries.
+
+The boundary review performed no package capture, no replay, no scoring, no
+candidate generation, no broker/TWS/API/network/runtime action, no IBKR
+connection, no TWS/Gateway inspection, no VPS action, no service/systemd/
+scheduler/timer/runtime command, no credential or environment-file access, no
+account/portfolio/balance/position/order/execution/trade/P&L/margin/
+buying-power access, no strategy/risk/execution/scheduler behavior change, no
+production runtime or provider-selection runtime behavior change, no Unit 12
+implementation, no Unit 12 opening, and no commit or push.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET`. That next gate is still
+an authorization packet only unless it explicitly authorizes a later bounded
+operator run. It must not itself perform package capture, replay, scoring,
+candidate generation, broker actions, runtime actions, live trading, or Unit
+12 implementation.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
