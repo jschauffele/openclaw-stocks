@@ -7388,6 +7388,217 @@ def test_d11_77_fresh_regular_session_adjudication_countable_but_insufficient() 
     )
 
 
+def test_d11_78_primary_eligibility_criteria_remediation_ready_for_final_adjudication() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_78_primary_eligibility_criteria_and_candidate_status_remediation.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "D11.78 Source-Controlled IBKR Primary Eligibility Criteria And "
+        "Candidate Status Remediation" in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`IBKR_D11_PRIMARY_ELIGIBILITY_CRITERIA_AND_CANDIDATE_STATUS_REMEDIATION`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `b3ecf93cc49e45787c963930a14a4b7256cc9122`"
+        in packet_text
+    )
+    assert (
+        "`d11_77_decision` | "
+        "`D11_75_76_CLEAN_COUNTABLE_EVIDENCE_ADJUDICATED_COUNTABLE_BUT_INSUFFICIENT_TO_APPROVE_PRIMARY_ELIGIBILITY`"
+        in packet_text
+    )
+    assert (
+        "`d11_77_blocker_basis` | "
+        "`d11_primary_candidate_status_candidate; d11_primary_eligible_false; "
+        "broker_coupled_true; candidate_can_count_for_d11_unsatisfied; "
+        "separate_vps_read_only_freshness_proof_required_before_primary_eligibility_unrevised`"
+        in packet_text
+    )
+    assert (
+        "`d11_75_76_evidence_classification` | "
+        "`FRESH_REGULAR_SESSION_READ_ONLY_CAPTURE_SUCCEEDED_WITH_CLEAN_COUNTABLE_EVIDENCE`"
+        in packet_text
+    )
+    assert "`d11_75_76_symbol_scope` | `AAPL,MSFT,NVDA,TSLA,MSTR`" in packet_text
+    assert "`d11_75_76_timeframe` | `15Min`" in packet_text
+    assert "`d11_75_76_lookback_minutes` | `120`" in packet_text
+    assert (
+        "`d11_75_76_latest_candle_timestamp_all_symbols` | "
+        "`2026-06-29T14:00:00+00:00`" in packet_text
+    )
+    assert (
+        "`d11_75_76_requested_start_all_symbols` | "
+        "`2026-06-29T12:20:17.713714+00:00`" in packet_text
+    )
+    assert (
+        "`d11_75_76_requested_end_all_symbols` | "
+        "`2026-06-29T14:20:17.713714+00:00`" in packet_text
+    )
+    assert (
+        "`d11_75_76_lag_minutes_all_symbols` | `20.295228566666665`"
+        in packet_text
+    )
+    assert "`d11_75_76_freshness_classification_all_symbols` | `clean`" in (
+        packet_text
+    )
+    assert "`d11_75_76_failure_reason_all_symbols` | ``" in packet_text
+    assert "`d11_75_76_d11_countable_all_symbols` | `true`" in packet_text
+    assert (
+        "`d11_78_decision` | "
+        "`IBKR_PRIMARY_ELIGIBILITY_CRITERIA_REMEDIATED_READY_FOR_FINAL_D11_CLOSURE_ADJUDICATION`"
+        in packet_text
+    )
+    assert "`d11_78_evidence_collected` | `false`" in packet_text
+    assert (
+        "`d11_78_executable_broker_tws_api_network_runtime_command_run` | `false`"
+        in packet_text
+    )
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_runtime_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`d11_78_commit_performed` | `false`" in packet_text
+    assert "`d11_78_push_performed` | `false`" in packet_text
+    assert (
+        "`ibkr_primary_eligibility_through_d11_78` | "
+        "`NOT_APPROVED_READY_FOR_FINAL_ADJUDICATION_ONLY`" in packet_text
+    )
+    assert "`d11_status_through_d11_78` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status_through_d11_78` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`broker_submit_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`live_trading_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`package_capture` | `BLOCKED`" in packet_text
+    assert "`replay` | `BLOCKED`" in packet_text
+    assert "`scoring` | `BLOCKED`" in packet_text
+    assert "`candidate_generation` | `BLOCKED`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.79_FINAL_IBKR_PRIMARY_ELIGIBILITY_AND_D11_CLOSURE_ADJUDICATION`"
+        in packet_text
+    )
+
+    for blocker in (
+        "`d11_primary_candidate_status=candidate`",
+        "`d11_primary_eligible=false`",
+        "`broker_coupled=true`",
+        "`candidate_can_count_for_d11` unsatisfied",
+        "`separate_vps_read_only_freshness_proof_required_before_primary_eligibility`",
+    ):
+        assert blocker in packet_text
+
+    for status in (
+        "`REMEDIATED_FOR_FINAL_ADJUDICATION`",
+        "`REMEDIATED_FOR_READ_ONLY_MARKET_DATA_QUALIFICATION_ONLY`",
+        "`NARROWED_AND_RETIRED_FOR_THIS_LOCAL_MAC_ONLY_PATH`",
+    ):
+        assert status in packet_text
+
+    assert "artifact row status remains `candidate`" in packet_text
+    assert (
+        "`READY_FOR_FINAL_D11_CLOSURE_ADJUDICATION`" in packet_text
+    )
+    assert "D11.78 does not change production provider-selection runtime metadata" in (
+        packet_text
+    )
+    assert "`d11_primary_eligible=false` in the diagnostic artifact is" in (
+        packet_text
+    )
+    assert (
+        "candidate_can_count_for_d11=D11_75_76_CLEAN_COUNTABLE_LOCAL_MAC_READ_ONLY_EVIDENCE_SATISFIES_PROVIDER_READINESS_FOR_FINAL_ADJUDICATION"
+        in packet_text
+    )
+    assert "D11.78 narrows and retires" in packet_text
+    assert "for this LOCAL_MAC-only read-only market-data provider qualification path" in (
+        packet_text
+    )
+    assert "D11.78 does not approve IBKR primary eligibility" in packet_text
+    assert "D11 remains insufficient through D11.78" in packet_text
+    assert "Unit 12 remains blocked through D11.78" in packet_text
+    assert "D11.78 collected no evidence" in packet_text
+    assert "D11.78 ran no executable broker/TWS/API/network/\nruntime command" in (
+        packet_text
+    )
+    assert "D11.78 performed no commit and no push" in packet_text
+    assert "No D11.77 criteria blocker remains as a blocker to final adjudication" in (
+        packet_text
+    )
+
+    for authority in (
+        "broker submit readiness `NOT_APPROVED`",
+        "live trading readiness `NOT_APPROVED`",
+        "account authority none",
+        "order authority none",
+        "execution authority none",
+        "package capture blocked",
+        "replay blocked",
+        "scoring blocked",
+        "candidate generation blocked",
+        "strategy behavior changes blocked",
+        "risk behavior changes blocked",
+        "execution behavior changes blocked",
+        "scheduler behavior changes blocked",
+        "credential or environment-file changes blocked",
+        "production runtime configuration changes blocked",
+        "VPS runtime/systemd/timer mutation blocked",
+        "Unit 12 not opened by D11.78",
+    ):
+        assert authority in packet_text
+
+    assert (
+        "### D11.78 Source-Controlled IBKR Primary Eligibility Criteria And "
+        "Candidate Status Remediation" in map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`IBKR_D11_PRIMARY_ELIGIBILITY_CRITERIA_AND_CANDIDATE_STATUS_REMEDIATION`"
+        in map_text
+    )
+    assert "`source_commit=b3ecf93cc49e45787c963930a14a4b7256cc9122`" in (
+        map_text
+    )
+    assert (
+        "`IBKR_PRIMARY_ELIGIBILITY_CRITERIA_REMEDIATED_READY_FOR_FINAL_D11_CLOSURE_ADJUDICATION`"
+        in map_text
+    )
+    assert "`freshness_classification=clean`" in map_text
+    assert "`d11_countable=true`" in map_text
+    assert "Artifact row status remains `candidate`" in map_text
+    assert "`d11_primary_eligible=false`" in map_text
+    assert "`broker_coupled=true`" in map_text
+    assert "`candidate_can_count_for_d11` is revised" in map_text
+    assert "separate VPS read-only freshness proof criterion is\nnarrowed and retired" in (
+        map_text
+    )
+    assert (
+        "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED_READY_FOR_FINAL_ADJUDICATION_ONLY`"
+        in map_text
+    )
+    assert "`D11=D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12=UNIT_12_BLOCKED`" in map_text
+    assert "`broker_submit_readiness=NOT_APPROVED`" in map_text
+    assert "`live_trading_readiness=NOT_APPROVED`" in map_text
+    assert "collected no evidence" in map_text
+    assert "ran no executable broker/TWS/API/network/runtime\ncommand" in map_text
+    assert "changed no production provider-selection runtime behavior" in map_text
+    assert (
+        "`D11.79_FINAL_IBKR_PRIMARY_ELIGIBILITY_AND_D11_CLOSURE_ADJUDICATION`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

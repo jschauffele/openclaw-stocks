@@ -6254,6 +6254,57 @@ D11.78 must remediate the remaining candidate-status, primary-eligible,
 broker-coupling, `candidate_can_count_for_d11`, and unrevised separate VPS
 read-only freshness proof blockers before any later approval attempt.
 
+### D11.78 Source-Controlled IBKR Primary Eligibility Criteria And Candidate Status Remediation
+
+D11.78 adds the source-controlled criteria and candidate-status remediation
+packet for the blockers identified by D11.77:
+
+docs/ibkr_market_data_d11_78_primary_eligibility_criteria_and_candidate_status_remediation.md
+
+D11.78 records
+`IBKR_D11_PRIMARY_ELIGIBILITY_CRITERIA_AND_CANDIDATE_STATUS_REMEDIATION`
+at `source_commit=b3ecf93cc49e45787c963930a14a4b7256cc9122` and selects the
+single decision
+`IBKR_PRIMARY_ELIGIBILITY_CRITERIA_REMEDIATED_READY_FOR_FINAL_D11_CLOSURE_ADJUDICATION`.
+
+D11.78 uses the D11.75/D11.76 clean countable evidence only as a
+provider-readiness evidence input: all five symbols `AAPL`, `MSFT`, `NVDA`,
+`TSLA`, and `MSTR` returned `freshness_classification=clean`,
+`d11_countable=true`, empty `failure_reason`,
+`latest_candle_timestamp=2026-06-29T14:00:00+00:00`,
+`requested_start=2026-06-29T12:20:17.713714+00:00`,
+`requested_end=2026-06-29T14:20:17.713714+00:00`, and
+`lag_minutes=20.295228566666665`.
+
+D11.78 remediates the D11.77 blockers at the source-controlled governance
+layer only. Artifact row status remains `candidate`, but governance status is
+`READY_FOR_FINAL_D11_CLOSURE_ADJUDICATION`. The artifact
+`d11_primary_eligible=false` value is treated as a non-self-approval safety
+marker, not as a final adjudication blocker. `broker_coupled=true` is narrowed
+as compatible with read-only market-data qualification only under D11.69-D11.77
+negative-authority controls. `candidate_can_count_for_d11` is revised for this
+source-controlled evidence bundle only as satisfied for provider-readiness
+final adjudication. The separate VPS read-only freshness proof criterion is
+narrowed and retired for this LOCAL_MAC-only path; this does not approve any
+VPS endpoint and does not treat LOCAL_MAC `127.0.0.1:7497` as VPS
+`127.0.0.1:7497`.
+
+D11.78 preserves
+`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED_READY_FOR_FINAL_ADJUDICATION_ONLY`,
+`D11=D11_INSUFFICIENT`, `UNIT_12=UNIT_12_BLOCKED`,
+`broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`.
+
+D11.78 collected no evidence, ran no executable broker/TWS/API/network/runtime
+command, performed no broker/runtime/VPS/scheduler/systemd/credential action,
+changed no production provider-selection runtime behavior, opened no Unit 12,
+and performed no commit or push.
+
+The exact next permissible gate is
+`D11.79_FINAL_IBKR_PRIMARY_ELIGIBILITY_AND_D11_CLOSURE_ADJUDICATION`.
+D11.79 must perform the final source-controlled IBKR primary eligibility and
+D11 closure adjudication.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
