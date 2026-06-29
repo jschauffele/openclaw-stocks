@@ -6203,6 +6203,57 @@ sufficient to change IBKR primary eligibility or close D11. D11.76 itself does
 not approve IBKR primary eligibility, does not complete D11, and does not open
 Unit 12.
 
+### D11.77 Fresh Regular-Session Read-Only Evidence Capture Adjudication
+
+D11.77 adds the source-controlled adjudication packet for the D11.75/D11.76
+fresh regular-session LOCAL_MAC-only read-only evidence:
+
+docs/ibkr_market_data_d11_77_fresh_regular_session_read_only_evidence_capture_adjudication.md
+
+D11.77 records
+`IBKR_D11_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`
+at `source_commit=1afb04c64275e039d598203dcbcc40b3b2ef9bc2` and selects the
+single decision
+`D11_75_76_CLEAN_COUNTABLE_EVIDENCE_ADJUDICATED_COUNTABLE_BUT_INSUFFICIENT_TO_APPROVE_PRIMARY_ELIGIBILITY`.
+
+D11.77 accepts the D11.75/D11.76 evidence as clean and countable: all five
+symbols returned `freshness_classification=clean`, `d11_countable=true`, empty
+`failure_reason`, `latest_candle_timestamp=2026-06-29T14:00:00+00:00`,
+`requested_start=2026-06-29T12:20:17.713714+00:00`,
+`requested_end=2026-06-29T14:20:17.713714+00:00`, and
+`lag_minutes=20.295228566666665`.
+
+D11.77 adjudicates that countability is not provider approval. All five
+D11.75/D11.76 rows still returned `d11_primary_eligible=false` and
+`d11_primary_candidate_status=candidate`. The source-controlled provider
+candidate still records `broker_coupled=true`, and `candidate_can_count_for_d11`
+still requires `approved_primary`, `d11_primary_eligible=true`, and
+`broker_coupled=false`. The active criteria still include
+`separate_vps_read_only_freshness_proof_required_before_primary_eligibility`.
+
+D11.77 therefore preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11=D11_INSUFFICIENT`, `UNIT_12=UNIT_12_BLOCKED`,
+`broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`.
+
+D11.77 accepts the negative-authority evidence: no account query, position
+query, portfolio query, balance query, margin query, buying-power query, order
+placement, order modification, order cancellation, order routing, execution
+authority, package capture, replay, scoring, candidate generation, Unit 12
+opening, VPS runtime/systemd/timer mutation, VPS endpoint, `18789`, `18791`,
+bridge, tunnel, or proxy appeared.
+
+D11.77 collected no evidence, ran no executable broker/TWS/API/network/runtime
+command, performed no broker/runtime/VPS/scheduler/systemd/credential action,
+changed no production provider-selection runtime behavior, and performed no
+commit or push.
+
+The exact next permissible gate is
+`D11.78_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_CRITERIA_AND_CANDIDATE_STATUS_REMEDIATION`.
+D11.78 must remediate the remaining candidate-status, primary-eligible,
+broker-coupling, `candidate_can_count_for_d11`, and unrevised separate VPS
+read-only freshness proof blockers before any later approval attempt.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

@@ -6698,9 +6698,9 @@ def test_d11_73_local_mac_read_only_capture_adjudication_requires_fresh_rerun() 
     ):
         assert f"`{marker}`" in packet_text
 
-    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in packet_text
-    assert "`D11=D11_INSUFFICIENT`" in packet_text
-    assert "`UNIT_12=UNIT_12_BLOCKED`" in packet_text
+    assert "IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED" in packet_text
+    assert "D11=D11_INSUFFICIENT" in packet_text
+    assert "UNIT_12=UNIT_12_BLOCKED" in packet_text
     assert "`candidate_can_count_for_d11` remains unsatisfied" in packet_text
     assert "broker submit readiness remains `NOT_APPROVED`" in packet_text
     assert "live trading readiness remains `NOT_APPROVED`" in packet_text
@@ -7108,10 +7108,10 @@ def test_d11_76_fresh_regular_session_operator_run_record_clean_countable() -> N
         assert f"| `{symbol}` | `true` | `ibkr_market_data_candidate` |" in (
             packet_text
         )
-    assert packet_text.count("`2026-06-29T14:00:00+00:00`") >= 6
-    assert packet_text.count("`2026-06-29T12:20:17.713714+00:00`") >= 6
-    assert packet_text.count("`2026-06-29T14:20:17.713714+00:00`") >= 6
-    assert packet_text.count("`20.295228566666665`") >= 6
+    assert packet_text.count("`2026-06-29T14:00:00+00:00`") >= 5
+    assert packet_text.count("`2026-06-29T12:20:17.713714+00:00`") >= 5
+    assert packet_text.count("`2026-06-29T14:20:17.713714+00:00`") >= 5
+    assert packet_text.count("`20.295228566666665`") >= 5
     assert packet_text.count("`clean`") >= 6
     assert packet_text.count("| `true` | `false` | `candidate` | `15Min` |") == 5
 
@@ -7190,6 +7190,200 @@ def test_d11_76_fresh_regular_session_operator_run_record_clean_countable() -> N
     assert "does not\nexecute evidence capture" in map_text
     assert (
         "`D11.77_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`"
+        in map_text
+    )
+
+
+def test_d11_77_fresh_regular_session_adjudication_countable_but_insufficient() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_77_fresh_regular_session_read_only_evidence_capture_adjudication.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "D11.77 Fresh Regular-Session Read-Only Evidence Capture "
+        "Adjudication" in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`IBKR_D11_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `1afb04c64275e039d598203dcbcc40b3b2ef9bc2`"
+        in packet_text
+    )
+    assert (
+        "`d11_76_evidence_classification` | "
+        "`FRESH_REGULAR_SESSION_READ_ONLY_CAPTURE_SUCCEEDED_WITH_CLEAN_COUNTABLE_EVIDENCE`"
+        in packet_text
+    )
+    assert (
+        "`d11_77_decision` | "
+        "`D11_75_76_CLEAN_COUNTABLE_EVIDENCE_ADJUDICATED_COUNTABLE_BUT_INSUFFICIENT_TO_APPROVE_PRIMARY_ELIGIBILITY`"
+        in packet_text
+    )
+    assert "`d11_77_evidence_collected` | `false`" in packet_text
+    assert (
+        "`d11_77_executable_broker_tws_api_network_runtime_command_run` | `false`"
+        in packet_text
+    )
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`d11_77_commit_performed` | `false`" in packet_text
+    assert "`d11_77_push_performed` | `false`" in packet_text
+    assert "`d11_75_76_all_symbols_freshness_classification` | `clean`" in (
+        packet_text
+    )
+    assert "`d11_75_76_all_symbols_d11_countable` | `true`" in packet_text
+    assert "`d11_75_76_all_symbols_failure_reason` | ``" in packet_text
+    assert (
+        "`d11_75_76_all_symbols_d11_primary_eligible` | `false`"
+        in packet_text
+    )
+    assert (
+        "`d11_75_76_all_symbols_d11_primary_candidate_status` | `candidate`"
+        in packet_text
+    )
+    assert (
+        "`ibkr_primary_eligibility_after_d11_77` | `NOT_APPROVED`"
+        in packet_text
+    )
+    assert "`d11_status_after_d11_77` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status_after_d11_77` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`broker_submit_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`live_trading_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`account_order_execution_authority` | `false`" in packet_text
+    assert "`package_capture` | `false`" in packet_text
+    assert "`replay` | `false`" in packet_text
+    assert "`scoring` | `false`" in packet_text
+    assert "`candidate_generation` | `false`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.78_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_CRITERIA_AND_CANDIDATE_STATUS_REMEDIATION`"
+        in packet_text
+    )
+
+    assert "This evidence basis is countability evidence" in packet_text
+    assert "It is not, by itself, provider\napproval evidence" in packet_text
+    assert "Countability is not the same as provider approval" in packet_text
+    assert (
+        "the D11.75/D11.76 evidence is clean\nand countable, but the same rows"
+        in packet_text
+    )
+    assert "Clean `d11_countable=true` evidence is not enough" in packet_text
+
+    for symbol in ("AAPL", "MSFT", "NVDA", "TSLA", "MSTR"):
+        assert f"| `{symbol}` | `true` | `ibkr_market_data_candidate` |" in (
+            packet_text
+        )
+    assert packet_text.count("`2026-06-29T14:00:00+00:00`") >= 5
+    assert packet_text.count("`2026-06-29T12:20:17.713714+00:00`") >= 5
+    assert packet_text.count("`2026-06-29T14:20:17.713714+00:00`") >= 5
+    assert packet_text.count("`20.295228566666665`") >= 5
+    assert packet_text.count("`clean`") >= 6
+    assert (
+        packet_text.count(
+            "| `true` | `false` | `candidate` | `15Min` | "
+            "`COUNTABLE_BUT_PRIMARY_ELIGIBILITY_NOT_APPROVED` |"
+        )
+        == 5
+    )
+
+    assert "d11_75_76_clean_countable_evidence=ACCEPTED" in packet_text
+    assert "IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED" in packet_text
+    assert "D11=D11_INSUFFICIENT" in packet_text
+    assert "UNIT_12=UNIT_12_BLOCKED" in packet_text
+    assert "D11.77 does not open Unit 12" in packet_text
+    assert "does not approve broker\nsubmit readiness" in packet_text
+    assert "does not approve live trading readiness" in packet_text
+
+    for blocker in (
+        "`d11_primary_candidate_status=candidate`",
+        "`d11_primary_eligible=false`",
+        "`ibkr_market_data_candidate` remains `broker_coupled=true`",
+        "`candidate_can_count_for_d11` remains unsatisfied",
+        "`separate_vps_read_only_freshness_proof_required_before_primary_eligibility`",
+    ):
+        assert blocker in packet_text
+
+    for marker in (
+        "no_account_query",
+        "no_position_query",
+        "no_portfolio_query",
+        "no_balance_query",
+        "no_margin_query",
+        "no_buying_power_query",
+        "no_order_placement",
+        "no_order_modification",
+        "no_order_cancellation",
+        "no_order_routing",
+        "no_execution_authority",
+        "no_package_capture",
+        "no_replay",
+        "no_scoring",
+        "no_candidate_generation",
+        "no_unit_12_opening",
+        "no_vps_runtime_systemd_timer_mutation",
+        "no_vps_endpoint",
+        "no_18789",
+        "no_18791",
+        "no_bridge",
+        "no_tunnel",
+        "no_proxy",
+    ):
+        assert f"`{marker}`" in packet_text
+
+    assert "D11.77 collected no evidence" in packet_text
+    assert "D11.77 ran no executable broker/TWS/API/network/\nruntime command" in (
+        packet_text
+    )
+    assert "D11.77 performed no commit and no push" in packet_text
+    assert "Still-Unapproved Authorities" in packet_text
+    assert "IBKR primary eligibility" in packet_text
+    assert "D11 completion" in packet_text
+    assert "broker submit readiness" in packet_text
+    assert "live trading readiness" in packet_text
+
+    assert (
+        "### D11.77 Fresh Regular-Session Read-Only Evidence Capture "
+        "Adjudication" in map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`IBKR_D11_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`"
+        in map_text
+    )
+    assert "`source_commit=1afb04c64275e039d598203dcbcc40b3b2ef9bc2`" in (
+        map_text
+    )
+    assert (
+        "`D11_75_76_CLEAN_COUNTABLE_EVIDENCE_ADJUDICATED_COUNTABLE_BUT_INSUFFICIENT_TO_APPROVE_PRIMARY_ELIGIBILITY`"
+        in map_text
+    )
+    assert "`freshness_classification=clean`" in map_text
+    assert "`d11_countable=true`" in map_text
+    assert "`d11_primary_eligible=false`" in map_text
+    assert "`d11_primary_candidate_status=candidate`" in map_text
+    assert "`broker_coupled=true`" in map_text
+    assert "`candidate_can_count_for_d11`" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11=D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12=UNIT_12_BLOCKED`" in map_text
+    assert "no account query, position\nquery" in map_text
+    assert "collected no evidence" in map_text
+    assert "performed no\ncommit or push" in map_text
+    assert (
+        "`D11.78_SOURCE_CONTROLLED_IBKR_PRIMARY_ELIGIBILITY_CRITERIA_AND_CANDIDATE_STATUS_REMEDIATION`"
         in map_text
     )
 
