@@ -6997,6 +6997,203 @@ def test_d11_74_fresh_regular_session_capture_authorization_packet() -> None:
     )
 
 
+def test_d11_76_fresh_regular_session_operator_run_record_clean_countable() -> None:
+    packet_path = Path(
+        "docs/ibkr_market_data_d11_76_fresh_regular_session_local_mac_read_only_evidence_capture_operator_run_record.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "D11.76 Fresh Regular-Session LOCAL_MAC Read-Only Evidence Capture "
+        "Operator Run Record" in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`IBKR_D11_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN_RECORD`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `6db5d0b2f1cc47679dd194c846206a0dde36693c`"
+        in packet_text
+    )
+    assert (
+        "`d11_75_gate` | "
+        "`D11.75_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN`"
+        in packet_text
+    )
+    assert "`d11_75_run_status` | `COMPLETED_BY_OPERATOR`" in packet_text
+    assert (
+        "`d11_76_evidence_classification` | "
+        "`FRESH_REGULAR_SESSION_READ_ONLY_CAPTURE_SUCCEEDED_WITH_CLEAN_COUNTABLE_EVIDENCE`"
+        in packet_text
+    )
+    assert (
+        "`evidence_record_only_not_provider_approval` | `true`"
+        in packet_text
+    )
+    assert "`tool_run_by` | `OPERATOR_NOT_CODEX`" in packet_text
+    assert "`source_context` | `LOCAL_MAC_ONLY`" in packet_text
+    assert "`operator_surface` | `DIRECT_MAC_TERMINAL`" in packet_text
+    assert "`endpoint_candidate` | `127.0.0.1:7497`" in packet_text
+    assert "`symbol_scope` | `AAPL,MSFT,NVDA,TSLA,MSTR`" in packet_text
+    assert "`timeframe` | `15Min`" in packet_text
+    assert "`lookback_minutes` | `120`" in packet_text
+    assert "`authority` | `READ_ONLY_MARKET_DATA_ONLY`" in packet_text
+    assert (
+        "`result_type` | `ibkr_local_read_only_market_data_smoke`"
+        in packet_text
+    )
+    assert (
+        "`all_symbols_latest_candle_timestamp` | "
+        "`2026-06-29T14:00:00+00:00`" in packet_text
+    )
+    assert (
+        "`all_symbols_requested_start` | "
+        "`2026-06-29T12:20:17.713714+00:00`" in packet_text
+    )
+    assert (
+        "`all_symbols_requested_end` | "
+        "`2026-06-29T14:20:17.713714+00:00`" in packet_text
+    )
+    assert (
+        "`all_symbols_lag_minutes` | `20.295228566666665`" in packet_text
+    )
+    assert "`all_symbols_freshness_classification` | `clean`" in packet_text
+    assert "`all_symbols_failure_reason` | ``" in packet_text
+    assert "`all_symbols_d11_countable` | `true`" in packet_text
+    assert (
+        "`all_symbols_d11_primary_candidate_status` | `candidate`"
+        in packet_text
+    )
+    assert "`all_symbols_d11_primary_eligible` | `false`" in packet_text
+    assert "`broker_api_authority` | `false`" in packet_text
+    assert "`order_authority` | `false`" in packet_text
+    assert "`execution_authority` | `false`" in packet_text
+    assert "`package_capture` | `false`" in packet_text
+    assert "`replay` | `false`" in packet_text
+    assert "`scoring` | `false`" in packet_text
+    assert "`candidate_generation` | `false`" in packet_text
+    assert "`d11_completion_authority` | `false`" in packet_text
+    assert "`ibkr_primary_eligibility` | `NOT_APPROVED`" in packet_text
+    assert "`d11_status` | `D11_INSUFFICIENT`" in packet_text
+    assert "`unit_12_status` | `UNIT_12_BLOCKED`" in packet_text
+    assert "`broker_submit_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`live_trading_readiness` | `NOT_APPROVED`" in packet_text
+    assert (
+        "`production_provider_selection_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`D11.77_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`"
+        in packet_text
+    )
+
+    assert "This is an evidence record only, not provider approval" in (
+        packet_text
+    )
+    assert "does not\ndecide whether that evidence is sufficient" in packet_text
+    assert "D11.77 is the first permissible gate to adjudicate" in packet_text
+    assert (
+        "D11.76 itself must\nnot approve IBKR primary eligibility"
+        in packet_text
+    )
+    assert "must not complete D11" in packet_text
+    assert "must not open\nUnit 12" in packet_text
+
+    for symbol in ("AAPL", "MSFT", "NVDA", "TSLA", "MSTR"):
+        assert f"| `{symbol}` | `true` | `ibkr_market_data_candidate` |" in (
+            packet_text
+        )
+    assert packet_text.count("`2026-06-29T14:00:00+00:00`") >= 6
+    assert packet_text.count("`2026-06-29T12:20:17.713714+00:00`") >= 6
+    assert packet_text.count("`2026-06-29T14:20:17.713714+00:00`") >= 6
+    assert packet_text.count("`20.295228566666665`") >= 6
+    assert packet_text.count("`clean`") >= 6
+    assert packet_text.count("| `true` | `false` | `candidate` | `15Min` |") == 5
+
+    for marker in (
+        "no_account_query",
+        "no_position_query",
+        "no_portfolio_query",
+        "no_balance_query",
+        "no_margin_query",
+        "no_buying_power_query",
+        "no_order_placement",
+        "no_order_modification",
+        "no_order_cancellation",
+        "no_order_routing",
+        "no_execution_authority",
+        "no_package_capture",
+        "no_replay",
+        "no_scoring",
+        "no_candidate_generation",
+        "no_unit_12_opening",
+        "no_vps_runtime_systemd_timer_mutation",
+    ):
+        assert f"`{marker}`" in packet_text
+
+    assert "not VPS localhost evidence" in packet_text
+    assert "does not validate VPS `127.0.0.1:7497`" in packet_text
+    assert "used no VPS path, no `18789`, no `18791`, no\nbridge" in (
+        packet_text
+    )
+    assert "does not approve `18789` or `18791`" in packet_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in packet_text
+    assert "`D11=D11_INSUFFICIENT`" in packet_text
+    assert "`UNIT_12=UNIT_12_BLOCKED`" in packet_text
+    assert "does not approve broker submit readiness" in packet_text
+    assert "does not\napprove live trading readiness" in packet_text
+    assert "D11.76 does not rerun IBKR" in packet_text
+    assert "does not execute evidence capture" in packet_text
+    assert "does not run\nbroker/TWS/API/network/runtime commands" in packet_text
+    assert "does not access credentials or environment files" in packet_text
+    assert "does not\nperform package capture, replay, scoring" in packet_text
+
+    assert (
+        "### D11.76 Fresh Regular-Session LOCAL_MAC Read-Only Evidence "
+        "Capture Operator Run Record" in map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`IBKR_D11_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN_RECORD`"
+        in map_text
+    )
+    assert "`source_commit=6db5d0b2f1cc47679dd194c846206a0dde36693c`" in (
+        map_text
+    )
+    assert "`d11_75_run_status=COMPLETED_BY_OPERATOR`" in map_text
+    assert (
+        "`d11_76_evidence_classification=FRESH_REGULAR_SESSION_READ_ONLY_CAPTURE_SUCCEEDED_WITH_CLEAN_COUNTABLE_EVIDENCE`"
+        in map_text
+    )
+    assert "not provider approval" in map_text
+    assert "`LOCAL_MAC_ONLY`" in map_text
+    assert "`DIRECT_MAC_TERMINAL`" in map_text
+    assert "endpoint candidate `127.0.0.1:7497`" in map_text
+    assert "`latest_candle_timestamp=2026-06-29T14:00:00+00:00`" in (
+        map_text
+    )
+    assert "`lag_minutes=20.295228566666665`" in map_text
+    assert "`freshness_classification=clean`" in map_text
+    assert "`d11_countable=true`" in map_text
+    assert "`d11_primary_eligible=false`" in map_text
+    assert "`d11_primary_candidate_status=candidate`" in map_text
+    assert "`IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`" in map_text
+    assert "`D11=D11_INSUFFICIENT`" in map_text
+    assert "`UNIT_12=UNIT_12_BLOCKED`" in map_text
+    assert "no account query, position query, portfolio\nquery" in map_text
+    assert "does not rerun IBKR" in map_text
+    assert "does not\nexecute evidence capture" in map_text
+    assert (
+        "`D11.77_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

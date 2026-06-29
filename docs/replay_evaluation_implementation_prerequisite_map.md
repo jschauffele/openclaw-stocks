@@ -6151,6 +6151,58 @@ LOCAL_MAC-only read-only evidence capture is actually run, but only if it
 remains inside the D11.69 contract, D11.70 authorization packet, D11.71
 execution packet, D11.73 adjudication, and D11.74 authorization packet.
 
+### D11.76 Fresh Regular-Session LOCAL_MAC Read-Only Evidence Capture Operator Run Record
+
+D11.76 adds the source-controlled operator-run record for the completed D11.75
+fresh regular-session LOCAL_MAC-only read-only evidence capture:
+
+docs/ibkr_market_data_d11_76_fresh_regular_session_local_mac_read_only_evidence_capture_operator_run_record.md
+
+D11.76 records
+`IBKR_D11_FRESH_REGULAR_SESSION_LOCAL_MAC_READ_ONLY_EVIDENCE_CAPTURE_OPERATOR_RUN_RECORD`
+at `source_commit=6db5d0b2f1cc47679dd194c846206a0dde36693c` with
+`d11_75_run_status=COMPLETED_BY_OPERATOR` and
+`d11_76_evidence_classification=FRESH_REGULAR_SESSION_READ_ONLY_CAPTURE_SUCCEEDED_WITH_CLEAN_COUNTABLE_EVIDENCE`.
+The capture was run by the operator, not by Codex. D11.76 is an evidence
+record only and is not provider approval.
+
+D11.76 records the completed run context as `LOCAL_MAC_ONLY`,
+`DIRECT_MAC_TERMINAL`, endpoint candidate `127.0.0.1:7497`, symbols `AAPL`,
+`MSFT`, `NVDA`, `TSLA`, `MSTR`, timeframe `15Min`, lookback `120 minutes`,
+authority `READ_ONLY_MARKET_DATA_ONLY`, and result type
+`ibkr_local_read_only_market_data_smoke`.
+
+D11.76 records that all five symbols returned `read_only=true`,
+`provider_key=ibkr_market_data_candidate`, connection mode
+`local_read_only_smoke`, `latest_candle_timestamp=2026-06-29T14:00:00+00:00`,
+`requested_start=2026-06-29T12:20:17.713714+00:00`,
+`requested_end=2026-06-29T14:20:17.713714+00:00`,
+`lag_minutes=20.295228566666665`, `freshness_classification=clean`,
+empty `failure_reason`, and `d11_countable=true`.
+
+D11.76 also records that all five symbols remain
+`d11_primary_eligible=false` with `d11_primary_candidate_status=candidate`.
+The record preserves `IBKR_PRIMARY_ELIGIBILITY=NOT_APPROVED`,
+`D11=D11_INSUFFICIENT`, `UNIT_12=UNIT_12_BLOCKED`,
+`broker_submit_readiness=NOT_APPROVED`, and
+`live_trading_readiness=NOT_APPROVED`.
+
+D11.76 records negative authority: no account query, position query, portfolio
+query, balance query, margin query, buying-power query, order placement, order
+modification, order cancellation, order routing, execution authority, package
+capture, replay, scoring, candidate generation, Unit 12 opening, or VPS
+runtime/systemd/timer mutation appeared. D11.76 does not rerun IBKR, does not
+execute evidence capture, does not perform broker/TWS/API/network/runtime/
+VPS/scheduler/systemd/credential work, and does not modify production
+provider-selection behavior.
+
+The exact next permissible gate is
+`D11.77_FRESH_REGULAR_SESSION_READ_ONLY_EVIDENCE_CAPTURE_ADJUDICATION`.
+D11.77 must adjudicate whether the D11.75/D11.76 clean countable evidence is
+sufficient to change IBKR primary eligibility or close D11. D11.76 itself does
+not approve IBKR primary eligibility, does not complete D11, and does not open
+Unit 12.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
