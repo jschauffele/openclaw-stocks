@@ -6437,6 +6437,88 @@ operator run. It must not itself perform package capture, replay, scoring,
 candidate generation, broker actions, runtime actions, live trading, or Unit
 12 implementation.
 
+### Post-D11 Replay Package Capture Authorization Packet
+
+The post-D11 source-controlled package-capture authorization packet is recorded
+here:
+
+docs/post_d11_replay_package_capture_authorization_packet.md
+
+The packet records `POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET` at
+`source_commit=cd9768f1ae39f91ef513bf1ab68fe1c737e6bd2f` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET_APPROVED_FOR_BOUNDED_OPERATOR_RUN`.
+
+D11.79 read-only IBKR market-data provider qualification plus the post-D11
+boundary review are sufficient to authorize the later bounded operator-run
+gate `POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN`. The authorization packet
+does not execute package capture and does not infer package-capture execution
+authority from D11 closure alone.
+
+The future operator run is authorized only as `LOCAL_MAC_ONLY`. The approved
+provider scope remains
+`IBKR_READ_ONLY_MARKET_DATA_PROVIDER_QUALIFICATION_ONLY`. LOCAL_MAC
+`127.0.0.1:7497` remains a LOCAL_MAC process-context endpoint from the D11
+read-only market-data qualification lane. The packet approves no endpoint use
+for package capture, no broker/TWS/API traffic, no VPS endpoint, no VPS
+`127.0.0.1:7497`, no `18789`, no `18791`, no bridge, no tunnel, no proxy, and
+no endpoint substitution.
+
+The future operator-run package-capture scope is one bounded replay package for
+exactly one `run_id`, with aligned JSONL event stream, terminal completion
+event, terminal status and reason, aligned `last_run_report.json`, explicit
+`order_state.json` exclusion or absent/not-applicable declaration, package
+identity and layout metadata, package creation timestamp, code/version
+metadata, configuration metadata, market input evidence, strategy input/output
+evidence, risk/reconciliation evidence, provenance and redaction status,
+manifest, hash, integrity, persistence, and finalized immutability evidence.
+
+Required future preflight checks include expected source commit, clean
+worktree, LOCAL_MAC-only source context, exact selected `run_id`, scheduled
+runtime evidence source, aligned `logs/{run_id}.jsonl`, aligned
+`last_run_report.json`, terminal completion event, D13 market-session
+eligibility, approved LOCAL_MAC package root/path, no existing package
+directory, no mixed `run_id`, no stale report, no hash mismatch, no path
+traversal, no overwrite, no future/leaked/post-decision evidence, no broker/
+order-state binding, no credential or environment-file access, and no runtime,
+scheduler, service, systemd, or timer mutation.
+
+Expected future artifacts include `run_id`, source commit, clean worktree
+evidence, JSONL path, last-run-report alignment, terminal event/status/reason,
+D13 eligibility, package path, manifest path, manifest schema version,
+manifest package id, manifest canonical run id, manifest source references,
+section provenance, section redaction status, package sha256,
+integrity-validation result, finalized immutable marker, no-overwrite
+attestation, order-state handling, and operator attestation that no replay,
+scoring, candidate generation, broker action, runtime mutation, or Unit 12
+occurred.
+
+The packet preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The authorization packet performed no package capture, no replay, no scoring,
+no candidate generation, no broker/TWS/API/network/runtime action, no IBKR
+connection, no TWS/Gateway inspection, no VPS action, no service/systemd/
+scheduler/timer/runtime command, no credential or environment-file access, no
+account/portfolio/balance/position/order/execution/trade/P&L/margin/
+buying-power access, no strategy/risk/execution/scheduler behavior change, no
+production runtime or provider-selection runtime behavior change, no Unit 12
+implementation, no Unit 12 opening, and no commit or push.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

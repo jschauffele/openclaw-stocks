@@ -8040,6 +8040,228 @@ def test_post_d11_replay_package_prerequisite_and_unit_12_boundary_review() -> N
     assert "still\nan authorization packet only" in map_text
 
 
+def test_post_d11_replay_package_capture_authorization_packet() -> None:
+    packet_path = Path("docs/post_d11_replay_package_capture_authorization_packet.md")
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Post-D11 Replay Package Capture Authorization Packet" in packet_text
+    assert "POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET" in packet_text
+    assert (
+        "`classification` | `POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `cd9768f1ae39f91ef513bf1ab68fe1c737e6bd2f`"
+        in packet_text
+    )
+    assert (
+        "`d11_79_decision` | "
+        "`IBKR_READ_ONLY_MARKET_DATA_PRIMARY_ELIGIBILITY_APPROVED_AND_D11_CLOSED`"
+        in packet_text
+    )
+    assert (
+        "`post_d11_boundary_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_AND_UNIT_12_BOUNDARY_REVIEW_COMPLETED_READY_FOR_SOURCE_CONTROLLED_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`package_capture_authorization_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET_APPROVED_FOR_BOUNDED_OPERATOR_RUN`"
+        in packet_text
+    )
+    assert (
+        "`authorized_future_operator_run_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN`" in packet_text
+    )
+    assert "`authorized_future_source_context` | `LOCAL_MAC_ONLY`" in packet_text
+    assert (
+        "`approved_provider_scope` | "
+        "`IBKR_READ_ONLY_MARKET_DATA_PROVIDER_QUALIFICATION_ONLY`"
+        in packet_text
+    )
+    assert "`package_capture_executed_by_this_gate` | `false`" in packet_text
+    assert "`replay_executed_by_this_gate` | `false`" in packet_text
+    assert "`scoring_executed_by_this_gate` | `false`" in packet_text
+    assert (
+        "`candidate_generation_executed_by_this_gate` | `false`"
+        in packet_text
+    )
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_runtime_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`unit_12_implemented_or_opened` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert "`broker_submit_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`live_trading_readiness` | `NOT_APPROVED`" in packet_text
+    assert "`account_authority` | `NONE`" in packet_text
+    assert "`order_authority` | `NONE`" in packet_text
+    assert "`execution_authority` | `NONE`" in packet_text
+    assert "`replay_execution` | `NOT_AUTHORIZED`" in packet_text
+    assert "`scoring_execution` | `NOT_AUTHORIZED`" in packet_text
+    assert (
+        "`candidate_generation_execution` | `NOT_AUTHORIZED`"
+        in packet_text
+    )
+    assert "`strategy_risk_execution_changes` | `BLOCKED`" in packet_text
+    assert (
+        "`scheduler_runtime_service_systemd_timer_changes` | `BLOCKED`"
+        in packet_text
+    )
+    assert "`credential_environment_changes` | `BLOCKED`" in packet_text
+    assert (
+        "`production_runtime_provider_selection_runtime_changes` | `BLOCKED`"
+        in packet_text
+    )
+    assert "`vps_endpoint_approval` | `NOT_APPROVED`" in packet_text
+    assert "`endpoint_18789_18791_approval` | `NOT_APPROVED`" in packet_text
+    assert "`bridge_tunnel_proxy_approval` | `NOT_APPROVED`" in packet_text
+    assert "`unit_12_implementation` | `NOT_OPENED`" in packet_text
+    assert (
+        "`next_permissible_gate` | `POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN`"
+        in packet_text
+    )
+
+    assert "does not itself\nrun the operator gate" in packet_text
+    assert "does\nnot infer package-capture execution authority from D11 closure alone" in (
+        packet_text
+    )
+    assert "The future operator run is `LOCAL_MAC_ONLY`" in packet_text
+    assert "no VPS endpoint approval" in packet_text
+    assert "no `18789` approval" in packet_text
+    assert "no `18791` approval" in packet_text
+    assert "no bridge approval" in packet_text
+    assert "no tunnel approval" in packet_text
+    assert "no proxy approval" in packet_text
+    assert "no broker/TWS/API/network traffic" in packet_text
+
+    for requirement in (
+        "exactly one `run_id`",
+        "aligned JSONL event stream",
+        "terminal completion event",
+        "aligned `last_run_report.json`",
+        "explicit `order_state.json` exclusion",
+        "package identity and layout metadata",
+        "manifest, hash, integrity, persistence, and finalized immutability evidence",
+        "expected source commit",
+        "clean worktree before capture",
+        "D13 market-session eligibility result",
+        "no existing package directory",
+        "no mixed `run_id`",
+        "no hash mismatch",
+        "no path traversal",
+        "no overwrite attempt",
+        "no future/leaked/post-decision evidence",
+        "no broker/order-state binding",
+    ):
+        assert requirement in packet_text
+
+    for artifact in (
+        "| `run_id` | Exactly one selected run identifier. |",
+        "| `source_commit` | Commit used for the operator run. |",
+        "| `worktree_before` | Must be clean. |",
+        "| `worktree_after` | Must be clean or explicitly explained without mutation. |",
+        "| `jsonl_path` | `logs/{run_id}.jsonl` or source-controlled LOCAL_MAC equivalent. |",
+        "| `last_run_report_alignment` | Must prove report `run_id` equals JSONL `run_id`. |",
+        "| `terminal_event` | Terminal completion event must be present. |",
+        "| `d13_eligibility` | Must pass or fail closed. |",
+        "| `manifest_schema_version` | Required if manifest is emitted. |",
+        "| `manifest_canonical_run_id` | Must equal selected `run_id`. |",
+        "| `section_provenance` | Required for every package section. |",
+        "| `section_redaction_status` | Required for every package section. |",
+        "| `package_sha256` | Required package or artifact hash. |",
+        "| `integrity_validation_result` | Must pass or fail closed. |",
+        "| `finalized_immutable_marker` | Required. |",
+        "| `no_overwrite_attestation` | Required. |",
+        "| `order_state_handling` | Excluded, absent, or not-applicable only unless later gate authorizes binding. |",
+    ):
+        assert artifact in packet_text
+
+    assert "PACKAGE_CAPTURE_OPERATOR_RUN_FAILED_CLOSED" in packet_text
+    assert "REPLAY_EXECUTION=NOT_AUTHORIZED" in packet_text
+    assert "SCORING_EXECUTION=NOT_AUTHORIZED" in packet_text
+    assert "CANDIDATE_GENERATION_EXECUTION=NOT_AUTHORIZED" in packet_text
+    assert "UNIT_12_IMPLEMENTATION=NOT_OPENED" in packet_text
+    assert "broker_submit_readiness=NOT_APPROVED" in packet_text
+    assert "live_trading_readiness=NOT_APPROVED" in packet_text
+    assert "account_authority=NONE" in packet_text
+    assert "order_authority=NONE" in packet_text
+    assert "execution_authority=NONE" in packet_text
+    assert "vps_endpoint_approval=NOT_APPROVED" in packet_text
+    assert "endpoint_18789_18791_approval=NOT_APPROVED" in packet_text
+    assert "bridge_tunnel_proxy_approval=NOT_APPROVED" in packet_text
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This authorization packet performed no package capture" in packet_text
+    assert "no replay, no scoring" in packet_text
+    assert "no candidate generation" in packet_text
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no IBKR\nconnection" in packet_text
+    assert "no TWS/Gateway inspection" in packet_text
+    assert "no Unit 12 implementation, and no\nUnit 12 opening" in packet_text
+    assert "This authorization packet performed no commit and no push" in (
+        packet_text
+    )
+
+    assert "### Post-D11 Replay Package Capture Authorization Packet" in map_text
+    assert str(packet_path) in map_text
+    assert "`source_commit=cd9768f1ae39f91ef513bf1ab68fe1c737e6bd2f`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET_APPROVED_FOR_BOUNDED_OPERATOR_RUN`"
+        in map_text
+    )
+    assert "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN`" in map_text
+    assert "does not execute package capture" in map_text
+    assert "The future operator run is authorized only as `LOCAL_MAC_ONLY`" in (
+        map_text
+    )
+    assert "`IBKR_READ_ONLY_MARKET_DATA_PROVIDER_QUALIFICATION_ONLY`" in map_text
+    assert "no VPS endpoint, no VPS\n`127.0.0.1:7497`" in map_text
+    assert "no `18789`, no `18791`, no bridge, no tunnel, no proxy" in map_text
+    assert "one bounded replay package for\nexactly one `run_id`" in map_text
+    assert "aligned JSONL event stream" in map_text
+    assert "D13 market-session\neligibility" in map_text
+    assert "`replay_execution=NOT_AUTHORIZED`" in map_text
+    assert "`scoring_execution=NOT_AUTHORIZED`" in map_text
+    assert "`candidate_generation_execution=NOT_AUTHORIZED`" in map_text
+    assert "`unit_12_implementation=NOT_OPENED`" in map_text
+    assert "performed no package capture, no replay, no scoring" in map_text
+    assert "no Unit 12\nimplementation" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
