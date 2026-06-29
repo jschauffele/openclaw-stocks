@@ -8262,6 +8262,179 @@ def test_post_d11_replay_package_capture_authorization_packet() -> None:
     assert "no Unit 12\nimplementation" in map_text
 
 
+def test_post_d11_replay_package_capture_operator_run_preflight_blocker_record() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_operator_run_preflight_blocker_record.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture Operator Run Preflight Blocker Record"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_PREFLIGHT_BLOCKER_RECORD`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `917af7e67e20faf8494afabe425716efd6ae3ae7`"
+        in packet_text
+    )
+    assert (
+        "`authorization_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET_APPROVED_FOR_BOUNDED_OPERATOR_RUN`"
+        in packet_text
+    )
+    assert (
+        "`authorized_operator_run_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN`" in packet_text
+    )
+    assert "`authorized_source_context` | `LOCAL_MAC_ONLY`" in packet_text
+    assert (
+        "`operator_run_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKED_PENDING_LOCAL_ARTIFACTS_AND_AUTHORITY_SURFACE_REMEDIATION`"
+        in packet_text
+    )
+    assert "`local_head` | `917af7e67e20faf8494afabe425716efd6ae3ae7`" in (
+        packet_text
+    )
+    assert "`origin_main` | `917af7e67e20faf8494afabe425716efd6ae3ae7`" in (
+        packet_text
+    )
+    assert "`worktree` | `clean`" in packet_text
+    assert "`logs_directory` | `MISSING`" in packet_text
+    assert "`run_reports_directory` | `MISSING`" in packet_text
+    assert "`replay_packages_directory` | `MISSING`" in packet_text
+    assert "`last_run_report_json` | `ABSENT`" in packet_text
+    assert "`order_state_json` | `ABSENT_EXCLUDED_NOT_BOUND`" in packet_text
+    assert "`package_capture_executed` | `false`" in packet_text
+    assert "`replay_executed` | `false`" in packet_text
+    assert "`scoring_executed` | `false`" in packet_text
+    assert "`candidate_generation_executed` | `false`" in packet_text
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_runtime_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`package_capture_orchestrator_behavior_changed` | `false`" in (
+        packet_text
+    )
+    assert "`unit_12_implemented_or_opened` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_PLAN`"
+        in packet_text
+    )
+
+    for blocker in (
+        "No eligible `run_id` can be selected.",
+        "No local package target state exists.",
+        "Authorization/source-context mismatch.",
+        "Current package orchestrator production VPS path is not authorized",
+        "`order_state.json` remains absent and excluded.",
+    ):
+        assert blocker in packet_text
+
+    assert "logs=MISSING" in packet_text
+    assert "run_reports=MISSING" in packet_text
+    assert "last_run_report.json=ABSENT" in packet_text
+    assert "`logs/<run_id>.jsonl` exists" in packet_text
+    assert "`run_reports/<run_id>.json` or `last_run_report.json` exists" in (
+        packet_text
+    )
+    assert "capture readiness reproved" in packet_text
+    assert "capture --run-id <run_id> --expected-commit <commit> --authorize-vps-package-write" in (
+        packet_text
+    )
+    assert (
+        "package_execution_orchestrator --run-id <run_id> --execution-mode vps --authorize-vps-package-write"
+        in packet_text
+    )
+    assert "does not authorize VPS execution" in packet_text
+    assert "No such VPS execution gate is authorized here" in packet_text
+    assert "order_state_json=ABSENT_EXCLUDED_NOT_BOUND" in packet_text
+    assert "must remain absent/excluded/not-bound" in packet_text
+    assert "This blocker\nrecord does not authorize order-state binding" in (
+        packet_text
+    )
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| Package-capture/orchestrator production behavior changes | `BLOCKED` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This blocker record performed no package capture" in packet_text
+    assert "no replay, no scoring" in packet_text
+    assert "no\ncandidate generation" in packet_text
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no IBKR\nconnection" in packet_text
+    assert "no TWS/Gateway inspection" in packet_text
+    assert "no package-capture/orchestrator\nproduction behavior change" in (
+        packet_text
+    )
+    assert "This blocker record performed no commit and no push" in packet_text
+
+    assert (
+        "### Post-D11 Replay Package Capture Operator Run Preflight Blocker Record"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=917af7e67e20faf8494afabe425716efd6ae3ae7`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKED_PENDING_LOCAL_ARTIFACTS_AND_AUTHORITY_SURFACE_REMEDIATION`"
+        in map_text
+    )
+    assert "`logs=MISSING`" in map_text
+    assert "`run_reports=MISSING`" in map_text
+    assert "`replay_packages=MISSING`" in map_text
+    assert "`last_run_report.json=ABSENT`" in map_text
+    assert "`order_state.json=ABSENT`" in map_text
+    assert "approved `authorized_source_context=LOCAL_MAC_ONLY`" in map_text
+    assert "`--execution-mode vps`" in map_text
+    assert "did not\nauthorize a VPS execution gate" in map_text
+    assert "`replay_execution=NOT_AUTHORIZED`" in map_text
+    assert "`scoring_execution=NOT_AUTHORIZED`" in map_text
+    assert "`candidate_generation_execution=NOT_AUTHORIZED`" in map_text
+    assert "`unit_12_implementation=NOT_OPENED`" in map_text
+    assert "performed no package capture" in map_text
+    assert "no package-\ncapture/orchestrator production behavior change" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_PLAN`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

@@ -6519,6 +6519,71 @@ implementation, no Unit 12 opening, and no commit or push.
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN`.
 
+### Post-D11 Replay Package Capture Operator Run Preflight Blocker Record
+
+The source-controlled preflight blocker record for the authorized operator-run
+gate is recorded here:
+
+docs/post_d11_replay_package_capture_operator_run_preflight_blocker_record.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_PREFLIGHT_BLOCKER_RECORD` at
+`source_commit=917af7e67e20faf8494afabe425716efd6ae3ae7` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKED_PENDING_LOCAL_ARTIFACTS_AND_AUTHORITY_SURFACE_REMEDIATION`.
+
+The operator-run gate is blocked by missing local artifacts: operator static
+discovery records `logs=MISSING`, `run_reports=MISSING`,
+`replay_packages=MISSING`, `last_run_report.json=ABSENT`, and
+`order_state.json=ABSENT`. No eligible `run_id` can be selected because the
+source-controlled capture preflight requires `logs/<run_id>.jsonl` and either
+`run_reports/<run_id>.json` or `last_run_report.json`, plus safe `run_id`,
+absent `replay_packages/<run_id>`, and capture readiness reproved.
+
+The operator-run gate is also blocked by authority-surface mismatch. The
+authorization packet approved `authorized_source_context=LOCAL_MAC_ONLY`, but
+`tools/ops/gate_d_market_session_operator.py` capture requires
+`capture --run-id <run_id> --expected-commit <commit>
+--authorize-vps-package-write` and delegates to
+`package_execution_orchestrator --run-id <run_id> --execution-mode vps --authorize-vps-package-write`.
+`tools/replay/package_execution_orchestrator.py`
+states production `vps` execution and the standalone `--execution-mode vps`
+surface defer unless a future bounded VPS execution gate authorizes real `/opt`
+reads and writes. The current gate did not
+authorize a VPS execution gate.
+
+`order_state.json` remains absent/excluded/not-bound. The source-controlled
+runtime artifact reader and package writer block order-state reads and writes
+pending a later explicit binding gate, so order-state absence must not be used
+to unblock package capture.
+
+The blocker record preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The blocker record performed no package capture, no replay, no scoring, no
+candidate generation, no broker/TWS/API/network/runtime action, no IBKR
+connection, no TWS/Gateway inspection, no VPS action, no service/systemd/
+scheduler/timer/runtime command, no credential or environment-file access, no
+account/portfolio/balance/position/order/execution/trade/P&L/margin/
+buying-power access, no strategy/risk/execution/scheduler behavior change, no
+production runtime or provider-selection runtime behavior change, no package-
+capture/orchestrator production behavior change, no Unit 12 implementation, no
+Unit 12 opening, and no commit or push.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_PLAN`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
