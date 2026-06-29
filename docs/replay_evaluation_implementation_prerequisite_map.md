@@ -6305,6 +6305,66 @@ The exact next permissible gate is
 D11.79 must perform the final source-controlled IBKR primary eligibility and
 D11 closure adjudication.
 
+### D11.79 Final IBKR Primary Eligibility And D11 Closure Adjudication
+
+D11.79 adds the final source-controlled IBKR read-only market-data primary
+eligibility and D11 closure adjudication packet:
+
+docs/ibkr_market_data_d11_79_final_primary_eligibility_and_d11_closure_adjudication.md
+
+D11.79 records
+`IBKR_D11_FINAL_READ_ONLY_MARKET_DATA_PRIMARY_ELIGIBILITY_AND_D11_CLOSURE_ADJUDICATION`
+at `source_commit=74c2cad5087214aff9cc7b108900547f250d28cd` and selects the
+single decision
+`IBKR_READ_ONLY_MARKET_DATA_PRIMARY_ELIGIBILITY_APPROVED_AND_D11_CLOSED`.
+
+D11.79 uses only the D11.75/D11.76 clean countable LOCAL_MAC evidence, D11.77
+adjudication, and D11.78 remediation basis. The D11.75/D11.76 evidence covered
+`AAPL`, `MSFT`, `NVDA`, `TSLA`, and `MSTR`, `15Min`, `120` minutes,
+`latest_candle_timestamp=2026-06-29T14:00:00+00:00`,
+`requested_start=2026-06-29T12:20:17.713714+00:00`,
+`requested_end=2026-06-29T14:20:17.713714+00:00`,
+`lag_minutes=20.295228566666665`, `freshness_classification=clean`, empty
+`failure_reason`, `d11_countable=true`, and `read_only=true`.
+
+D11.79 accepts D11.78 remediation of the D11.77 blockers: candidate status is
+a diagnostic artifact status, `d11_primary_eligible=false` is a non-self-
+approval marker, `broker_coupled=true` is compatible only with read-only
+market-data qualification under negative-authority boundaries,
+`candidate_can_count_for_d11` is remediated for the D11.75/D11.76 clean
+countable LOCAL_MAC bundle, and the separate VPS read-only freshness proof
+criterion is narrowed and retired for this LOCAL_MAC-only path with no VPS
+endpoint approved.
+
+D11.79 sets
+`IBKR_PRIMARY_ELIGIBILITY=APPROVED_READ_ONLY_MARKET_DATA_PROVIDER_QUALIFICATION_ONLY`
+and `D11=D11_CLOSED_READ_ONLY_MARKET_DATA_PROVIDER_QUALIFICATION_ONLY`.
+This approval and closure are limited to IBKR read-only market-data provider
+qualification only.
+
+D11.79 preserves `UNIT_12=UNIT_12_NOT_OPENED_BOUNDARY_REVIEW_REQUIRED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`package_capture=NOT_AUTHORIZED`, `replay=NOT_AUTHORIZED`,
+`scoring=NOT_AUTHORIZED`, `candidate_generation=NOT_AUTHORIZED`, and
+`strategy_risk_execution_changes=NOT_AUTHORIZED`.
+
+D11.79 also preserves endpoint locality: LOCAL_MAC `127.0.0.1:7497` remains a
+LOCAL_MAC process-context endpoint and is not VPS `127.0.0.1:7497`. D11.79
+approves no VPS endpoint, no `18789`, no `18791`, no bridge, no tunnel, and no
+proxy.
+
+D11.79 collected no evidence, ran no executable broker/TWS/API/network/runtime
+command, performed no broker/runtime/VPS/scheduler/systemd/credential action,
+changed no production provider-selection runtime behavior, implemented no Unit
+12, and performed no commit or push.
+
+The exact next permissible gate is
+`POST_D11_SOURCE_CONTROLLED_REPLAY_PACKAGE_PREREQUISITE_AND_UNIT_12_BOUNDARY_REVIEW`.
+This next gate is a review/authorization prerequisite only and must not itself
+perform package capture, replay, scoring, candidate generation, strategy/risk/
+execution changes, broker actions, live trading, or Unit 12 implementation.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
