@@ -7617,6 +7617,47 @@ absent after the failed attempt. It preserves
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_INVOCATION_CONTEXT_CORRECTION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Invocation Context Correction Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production
+invocation-context correction packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_invocation_context_correction_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_INVOCATION_CONTEXT_CORRECTION_PACKET`
+at `source_commit=47968d8ad0bcc785f1cebb0653696883db2f4885` with
+`local_head=47968d8ad0bcc785f1cebb0653696883db2f4885`,
+`origin_main=47968d8ad0bcc785f1cebb0653696883db2f4885`, `branch=main`, and
+`worktree=clean`. It preserves the prior concrete blocker
+`DIRECT_SCRIPT_INVOCATION_DOES_NOT_RESOLVE_REPO_ROOT_TOOLS_PACKAGE_IMPORT` and
+selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_INVOCATION_CONTEXT_CORRECTION_PACKET_READY_FOR_CORRECTED_OPERATOR_COMMAND_RESOLUTION`.
+
+The correction changes the future invocation shape from direct script execution
+to module execution from the repository root. The corrected future invocation is
+`.venv-312/bin/python -m tools.ops.gate_d_market_session_operator produce-read-only-artifacts --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --authorize-direct-mac-terminal-read-only-artifact-production`.
+
+The required final command block shape still requires `git fetch origin main`,
+branch `main`, clean worktree, LOCAL_MAC HEAD equal to `origin/main`,
+`EXPECTED_COMMIT="$(git rev-parse HEAD)"`, and `test "$EXPECTED_COMMIT" = "$(git rev-parse origin/main)"`
+before invoking the module command. The packet records VPS validation evidence:
+`PASS_head_matches_expected_47968d8`, `PASS_head_origin_main_aligned`, and
+`126 tests passed`.
+
+The packet preserves `produce_read_only_artifacts_rerun_by_this_gate=false`,
+`artifact_production_performed_by_this_gate=false`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action_by_this_gate=false`, and `bounded_vps_execution=NOT_AUTHORIZED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_COMMAND_RESOLUTION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
