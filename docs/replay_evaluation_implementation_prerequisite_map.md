@@ -7239,6 +7239,45 @@ It preserves `package_capture_execution=NOT_AUTHORIZED`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Run Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production run
+packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_run_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN_PACKET`
+at `source_commit=99c64e16a992c4ce320fea20263ad600468bb6da` with
+`local_head=99c64e16a992c4ce320fea20263ad600468bb6da`,
+`origin_main=99c64e16a992c4ce320fea20263ad600468bb6da`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN_PACKET_APPROVED_FOR_ONE_DIRECT_MAC_TERMINAL_READ_ONLY_RUN`.
+
+The packet defines the exact next operator step as
+`ONE_BOUNDED_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN`. It does
+not execute that operator step and does not create artifacts in this Codex
+gate.
+
+The packet records the current inventory as `logs=ABSENT`,
+`run_reports=ABSENT`, `replay_packages=ABSENT`,
+`last_run_report.json=ABSENT`, and `order_state.json=ABSENT_EXCLUDED_NOT_BOUND`.
+It preserves `package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_in_this_codex_gate=NOT_PERFORMED`,
+`runtime_artifact_generation_in_this_codex_gate=NOT_PERFORMED`,
+`diagnostic_runtime_report_generation_in_this_codex_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action=NOT_AUTHORIZED`, `bounded_vps_execution=NOT_AUTHORIZED`,
+`production_behavior_changes=BLOCKED`,
+`production_command_surface_changes=BLOCKED`, and
+`package_writer_reader_orchestrator_changes=BLOCKED`.
+
+The exact next operator step is
+`ONE_BOUNDED_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
