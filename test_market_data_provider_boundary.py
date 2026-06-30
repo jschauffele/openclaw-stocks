@@ -12900,6 +12900,184 @@ def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_
     )
 
 
+def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_corrected_operator_command_resolution_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_corrected_operator_command_resolution_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Corrected Operator Command Resolution Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_COMMAND_RESOLUTION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `b431a5389ee991e52806e8dd982eba9666f10581`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert (
+        "`local_head` | `b431a5389ee991e52806e8dd982eba9666f10581`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `b431a5389ee991e52806e8dd982eba9666f10581`"
+        in packet_text
+    )
+    assert "`worktree` | `clean`" in packet_text
+    assert (
+        "`prior_packet` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_INVOCATION_CONTEXT_CORRECTION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`prior_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_INVOCATION_CONTEXT_CORRECTION_PACKET_READY_FOR_CORRECTED_OPERATOR_COMMAND_RESOLUTION`"
+        in packet_text
+    )
+    assert "`PASS_head_matches_expected_b431a53`" in packet_text
+    assert "`PASS_head_origin_main_aligned`" in packet_text
+    assert "`127 tests passed`" in packet_text
+    assert (
+        "`prior_failed_invocation_shape` | "
+        "`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts"
+        in packet_text
+    )
+    assert "`prior_failure` | `ModuleNotFoundError: No module named 'tools'`" in (
+        packet_text
+    )
+    assert (
+        "`corrected_invocation_shape` | "
+        "`.venv-312/bin/python -m tools.ops.gate_d_market_session_operator produce-read-only-artifacts"
+        in packet_text
+    )
+    assert (
+        "`authorized_run_id` | `post_d11_direct_mac_read_only_artifacts_001`"
+        in packet_text
+    )
+    assert (
+        "`expected_commit_resolution` | `EXPECTED_COMMIT=\"$(git rev-parse HEAD)\"`"
+        in packet_text
+    )
+    assert (
+        "`expected_commit_terminal_evidence` | `echo \"EXPECTED_COMMIT=$EXPECTED_COMMIT\"`"
+        in packet_text
+    )
+    assert (
+        "`corrected_operator_command_resolution_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_COMMAND_RESOLUTION_PACKET_READY_FOR_ONE_BOUNDED_CORRECTED_OPERATOR_RUN`"
+        in packet_text
+    )
+
+    for command_line in (
+        "git fetch origin main",
+        'test "$(git rev-parse --abbrev-ref HEAD)" = "main"',
+        'test -z "$(git status --short)"',
+        'test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"',
+        'EXPECTED_COMMIT="$(git rev-parse HEAD)"',
+        'test "$EXPECTED_COMMIT" = "$(git rev-parse origin/main)"',
+        'echo "EXPECTED_COMMIT=$EXPECTED_COMMIT"',
+        '.venv-312/bin/python -m tools.ops.gate_d_market_session_operator produce-read-only-artifacts --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --authorize-direct-mac-terminal-read-only-artifact-production',
+    ):
+        assert command_line in packet_text
+
+    for false_field in (
+        "`produce_read_only_artifacts_run_by_this_gate` | `false`",
+        "`artifact_production_performed_by_this_gate` | `false`",
+        "`package_capture_executed_by_this_gate` | `false`",
+        "`replay_executed_by_this_gate` | `false`",
+        "`scoring_executed_by_this_gate` | `false`",
+        "`candidate_generation_executed_by_this_gate` | `false`",
+        "`broker_tws_api_network_runtime_action` | `false`",
+        "`vps_action_by_this_gate` | `false`",
+        "`unit_12_action` | `false`",
+        "`scheduler_service_systemd_timer_mutation` | `false`",
+        "`credential_env_mutation` | `false`",
+        "`strategy_risk_execution_behavior_change` | `false`",
+        "`provider_selection_or_broker_behavior_change` | `false`",
+        "`production_code_changed_by_this_gate` | `false`",
+        "`commit_performed_by_this_gate` | `false`",
+        "`push_performed_by_this_gate` | `false`",
+    ):
+        assert false_field in packet_text
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Runtime artifact production execution in this gate | `NOT_PERFORMED` |",
+        "| Package capture execution in this gate | `NOT_AUTHORIZED` |",
+        "| Package capture beyond later single corrected read-only operator run | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+        "| VPS action by this gate | `NOT_AUTHORIZED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+    ):
+        assert authority in packet_text
+
+    assert "no `produce-read-only-artifacts` run in this gate" in packet_text
+    assert "no artifact production in this gate" in packet_text
+    assert "no package capture execution in this gate" in packet_text
+    assert "no replay" in packet_text
+    assert "no scoring" in packet_text
+    assert "no candidate generation" in packet_text
+    assert "no Unit 12 action" in packet_text
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no VPS runtime action" in packet_text
+    assert "no production code change" in packet_text
+    assert "no\ncommit, and no push" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET`"
+        in packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Corrected Operator Command Resolution Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=b431a5389ee991e52806e8dd982eba9666f10581`" in (
+        map_text
+    )
+    assert "`PASS_head_matches_expected_b431a53`" in map_text
+    assert "`127 tests passed`" in map_text
+    assert "`ModuleNotFoundError: No module named 'tools'`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_COMMAND_RESOLUTION_PACKET_READY_FOR_ONE_BOUNDED_CORRECTED_OPERATOR_RUN`"
+        in map_text
+    )
+    assert 'echo "EXPECTED_COMMIT=$EXPECTED_COMMIT"' in map_text
+    assert (
+        ".venv-312/bin/python -m tools.ops.gate_d_market_session_operator produce-read-only-artifacts"
+        in map_text
+    )
+    assert "`produce_read_only_artifacts_run_by_this_gate=false`" in map_text
+    assert (
+        "`package_capture_execution=NOT_AUTHORIZED_BEYOND_LATER_SINGLE_CORRECTED_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN`"
+        in map_text
+    )
+    assert (
+        "`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`"
+        in map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

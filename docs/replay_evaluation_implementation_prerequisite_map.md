@@ -7658,6 +7658,47 @@ The packet preserves `produce_read_only_artifacts_rerun_by_this_gate=false`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_COMMAND_RESOLUTION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Corrected Operator Command Resolution Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production corrected
+operator command-resolution packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_corrected_operator_command_resolution_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_COMMAND_RESOLUTION_PACKET`
+at `source_commit=b431a5389ee991e52806e8dd982eba9666f10581` with
+`local_head=b431a5389ee991e52806e8dd982eba9666f10581`,
+`origin_main=b431a5389ee991e52806e8dd982eba9666f10581`, `branch=main`, and
+`worktree=clean`. It records VPS validation evidence:
+`PASS_head_matches_expected_b431a53`, `PASS_head_origin_main_aligned`, and
+`127 tests passed`.
+
+The packet preserves the prior failed invocation
+`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --authorize-direct-mac-terminal-read-only-artifact-production`
+and the prior failure `ModuleNotFoundError: No module named 'tools'`. It selects
+the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_COMMAND_RESOLUTION_PACKET_READY_FOR_ONE_BOUNDED_CORRECTED_OPERATOR_RUN`.
+
+The final corrected command block requires `git fetch origin main`,
+branch `main`, clean worktree, LOCAL_MAC HEAD equal to `origin/main`,
+`EXPECTED_COMMIT="$(git rev-parse HEAD)"`, `test "$EXPECTED_COMMIT" = "$(git rev-parse origin/main)"`,
+`echo "EXPECTED_COMMIT=$EXPECTED_COMMIT"`, and then module execution:
+`.venv-312/bin/python -m tools.ops.gate_d_market_session_operator produce-read-only-artifacts --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --authorize-direct-mac-terminal-read-only-artifact-production`.
+
+The packet preserves `produce_read_only_artifacts_run_by_this_gate=false`,
+`artifact_production_performed_by_this_gate=false`,
+`package_capture_execution=NOT_AUTHORIZED_BEYOND_LATER_SINGLE_CORRECTED_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN`,
+`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action_by_this_gate=false`, and `bounded_vps_execution=NOT_AUTHORIZED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
