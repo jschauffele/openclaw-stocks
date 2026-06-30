@@ -7472,6 +7472,42 @@ The packet preserves `produce_read_only_artifacts_run_by_this_gate=false`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Operator Run Expected-Commit Adjudication Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production operator
+run expected-commit adjudication packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_operator_run_expected_commit_adjudication_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_EXPECTED_COMMIT_ADJUDICATION_PACKET`
+at `source_commit=44a39de7728c681aa5f5f8e1ef1a0fec67745bf3` with
+`local_head=44a39de7728c681aa5f5f8e1ef1a0fec67745bf3`,
+`origin_main=44a39de7728c681aa5f5f8e1ef1a0fec67745bf3`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_EXPECTED_COMMIT_ADJUDICATION_PACKET_BLOCKED_PENDING_CORRECTED_OPERATOR_RUN_AUTHORIZATION`.
+
+The concrete blocker is
+`AUTHORIZED_EXPECTED_COMMIT_DOES_NOT_MATCH_CURRENT_SOURCE_OF_TRUTH_HEAD`. The
+prior authorization command used expected commit
+`dcdf6e91ce8942226ae50e4cbf0e11743ec8cfc2`, while the current source-of-truth
+HEAD and `origin/main` are `44a39de7728c681aa5f5f8e1ef1a0fec67745bf3`.
+
+The packet records VPS validation evidence:
+`PASS_head_matches_expected_44a39de`, `PASS_head_origin_main_aligned`, and
+`122 tests passed`. It preserves
+`produce_read_only_artifacts_run_by_this_gate=false`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action_by_this_gate=false`, and `bounded_vps_execution=NOT_AUTHORIZED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_AUTHORIZATION_CORRECTION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
