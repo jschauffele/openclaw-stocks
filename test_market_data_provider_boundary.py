@@ -11242,6 +11242,202 @@ def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_
     )
 
 
+def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_design_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_design_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Design Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `e9a10ff406d46a77417af50800155cb8f057d4b7`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert (
+        "`local_head` | `e9a10ff406d46a77417af50800155cb8f057d4b7`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `e9a10ff406d46a77417af50800155cb8f057d4b7`"
+        in packet_text
+    )
+    assert "`worktree` | `clean`" in packet_text
+    assert (
+        "`prior_packet` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_BLOCKER_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`prior_concrete_blocker` | "
+        "`NO_EXACT_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_DEFINED`"
+        in packet_text
+    )
+    assert (
+        "`design_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET_READY_FOR_IMPLEMENTATION_GATE`"
+        in packet_text
+    )
+    assert "`exact_proposed_command_name` | `produce-read-only-artifacts`" in (
+        packet_text
+    )
+    assert (
+        "`exact_proposed_command_shape` | "
+        "`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id <run_id> --expected-commit <commit> --authorize-direct-mac-terminal-read-only-artifact-production`"
+        in packet_text
+    )
+    assert "`required_flag_run_id` | `--run-id <run_id>`" in packet_text
+    assert (
+        "`required_flag_expected_commit` | `--expected-commit <commit>`"
+        in packet_text
+    )
+    assert (
+        "`required_flag_authorization` | "
+        "`--authorize-direct-mac-terminal-read-only-artifact-production`"
+        in packet_text
+    )
+    assert "`local_mac_only_boundary` | `REQUIRED`" in packet_text
+    assert "`direct_mac_terminal_boundary` | `REQUIRED`" in packet_text
+    assert "`clean_worktree_required` | `true`" in packet_text
+    assert "`expected_commit_verification_required` | `true`" in packet_text
+    assert (
+        "`read_only_no_broker_no_order_no_execution_boundary` | `REQUIRED`"
+        in packet_text
+    )
+    assert "`allowed_outputs` | `logs/<run_id>.jsonl; run_reports/<run_id>.json`" in (
+        packet_text
+    )
+    assert "`prohibited_outputs` | `replay_packages/<run_id>" in packet_text
+
+    for false_field in (
+        "`implementation_performed_by_this_gate` | `false`",
+        "`artifact_production_performed_by_this_gate` | `false`",
+        "`package_capture_executed_by_this_gate` | `false`",
+        "`replay_executed_by_this_gate` | `false`",
+        "`scoring_executed_by_this_gate` | `false`",
+        "`candidate_generation_executed_by_this_gate` | `false`",
+        "`broker_tws_api_network_runtime_action` | `false`",
+        "`vps_action` | `false`",
+        "`unit_12_action` | `false`",
+        "`production_code_changed` | `false`",
+        "`command_surface_code_changed` | `false`",
+        "`commit_performed` | `false`",
+        "`push_performed` | `false`",
+    ):
+        assert false_field in packet_text
+
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        ".venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id <run_id> --expected-commit <commit> --authorize-direct-mac-terminal-read-only-artifact-production"
+        in packet_text
+    )
+    assert "The future implementation must not treat `capture-local` as this command" in (
+        packet_text
+    )
+    assert "LOCAL_MAC-only and DIRECT_MAC_TERMINAL-only" in packet_text
+    assert "must not perform VPS action" in packet_text
+    assert "must not require or accept VPS authorization flags" in packet_text
+    assert "must not delegate to a VPS execution path" in packet_text
+    assert "read-only runtime artifact\nproduction" in packet_text
+    assert "logs/<run_id>.jsonl" in packet_text
+    assert "run_reports/<run_id>.json" in packet_text
+    assert "replay_packages/<run_id>" in packet_text
+    assert "`order_state.json`" in packet_text
+    assert "Package capture execution | `NOT_AUTHORIZED`" in packet_text
+
+    for evidence_requirement in (
+        "the exact command parser entry added or exposed",
+        "the exact required flags",
+        "parser behavior proving missing required flags fail closed",
+        "parser behavior proving package-capture flags are not accepted as authority",
+        "source checks proving no package capture path is invoked",
+        "tests proving expected commit and clean worktree checks are enforced",
+        "tests proving `order_state.json` is not read, written, created, bound",
+    ):
+        assert evidence_requirement in packet_text
+
+    for fail_closed in (
+        "branch is not `main`",
+        "LOCAL_MAC HEAD does not equal `origin/main`",
+        "`--expected-commit` does not equal LOCAL_MAC HEAD and `origin/main`",
+        "the worktree is dirty",
+        "`--run-id` is absent or unsafe",
+        "`--authorize-direct-mac-terminal-read-only-artifact-production` is absent",
+        "a package-capture authorization flag is supplied as a substitute",
+    ):
+        assert fail_closed in packet_text
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Runtime artifact production execution | `NOT_AUTHORIZED_BY_THIS_DESIGN_GATE` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+        "| VPS action | `NOT_AUTHORIZED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+        "| Production code changes | `BLOCKED_BY_THIS_GATE` |",
+        "| Command-surface code changes | `DESIGNED_ONLY_NOT_IMPLEMENTED` |",
+        "| Package writer/reader/orchestrator changes | `BLOCKED` |",
+    ):
+        assert authority in packet_text
+
+    assert "performed no implementation" in packet_text
+    assert "no artifact\nproduction" in packet_text
+    assert "no package capture" in packet_text
+    assert "no replay, no scoring" in packet_text
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no VPS action" in packet_text
+    assert "no Unit 12 action" in packet_text
+    assert "performed no commit and no push" in packet_text
+
+    assert (
+        "### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Design Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=e9a10ff406d46a77417af50800155cb8f057d4b7`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET_READY_FOR_IMPLEMENTATION_GATE`"
+        in map_text
+    )
+    assert "produce-read-only-artifacts --run-id <run_id>" in map_text
+    assert "`package_capture_execution=NOT_AUTHORIZED`" in map_text
+    assert (
+        "`runtime_artifact_production_execution=NOT_AUTHORIZED_BY_THIS_DESIGN_GATE`"
+        in map_text
+    )
+    assert "`command_surface_code_changes=DESIGNED_ONLY_NOT_IMPLEMENTED`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

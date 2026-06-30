@@ -7317,6 +7317,49 @@ and `package_writer_reader_orchestrator_changes=BLOCKED`.
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Design Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production command
+surface design packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_design_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET`
+at `source_commit=e9a10ff406d46a77417af50800155cb8f057d4b7` with
+`local_head=e9a10ff406d46a77417af50800155cb8f057d4b7`,
+`origin_main=e9a10ff406d46a77417af50800155cb8f057d4b7`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET_READY_FOR_IMPLEMENTATION_GATE`.
+
+The exact proposed command surface is
+`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id <run_id> --expected-commit <commit> --authorize-direct-mac-terminal-read-only-artifact-production`.
+The design requires branch `main`, clean worktree, LOCAL_MAC HEAD equal to
+`origin/main`, expected commit equal to both, LOCAL_MAC-only execution,
+DIRECT_MAC_TERMINAL-only operation, and read-only/no-broker/no-order/no-execution
+authority boundaries.
+
+The designed allowed outputs are `logs/<run_id>.jsonl` and
+`run_reports/<run_id>.json`. Prohibited outputs include `replay_packages/<run_id>`,
+package capture artifacts, replay output, scoring output, candidate-generation
+output, Unit 12 output, `order_state.json`, broker/account/order/execution
+artifacts, credential or environment files, and scheduler/runtime/service/
+systemd/timer mutation artifacts.
+
+The packet preserves `package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution=NOT_AUTHORIZED_BY_THIS_DESIGN_GATE`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action=NOT_AUTHORIZED`, `bounded_vps_execution=NOT_AUTHORIZED`,
+`production_code_changes=BLOCKED_BY_THIS_GATE`,
+`command_surface_code_changes=DESIGNED_ONLY_NOT_IMPLEMENTED`, and
+`package_writer_reader_orchestrator_changes=BLOCKED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
