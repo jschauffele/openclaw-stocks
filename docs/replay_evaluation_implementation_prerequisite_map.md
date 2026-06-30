@@ -6710,6 +6710,70 @@ change, no Unit 12 implementation, no commit, and no push.
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET`.
 
+### Post-D11 Replay Package Capture Operator Run Blocker Remediation Edit Packet
+
+The bounded source-controlled remediation edit packet is recorded here:
+
+docs/post_d11_replay_package_capture_operator_run_blocker_remediation_edit_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET`
+at `source_commit=340f26fce661c0a36179d3a7473dafe8a209d086` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`.
+
+Artifact-path remediation criteria are source-controlled: any later bounded
+operator-run reauthorization must fail closed unless an explicit safe `run_id`
+is supplied, `logs/<run_id>.jsonl` exists, `run_reports/<run_id>.json` or
+`last_run_report.json` exists and aligns to the selected `run_id`, terminal
+completion is present, D13 market-session eligibility is evaluated from
+already-existing artifacts, `replay_packages/<run_id>` is absent, capture
+readiness is reproved, and no mixed-run-id, stale report, path traversal,
+overwrite, future, leaked, or post-decision evidence appears.
+
+The artifact criteria create no `logs/`, no `run_reports/`, no
+`replay_packages/`, no `last_run_report.json`, and no `order_state.json`.
+`replay_packages` remains a package-output target only, not proof of runtime
+artifact availability.
+
+Authority-surface remediation is blocked by the concrete blocker
+`NO_SAFE_LOCAL_MAC_PACKAGE_CAPTURE_EXECUTION_SURFACE_WITHOUT_PRODUCTION_PACKAGE_CAPTURE_ORCHESTRATOR_BEHAVIOR_CHANGE`.
+The inspected operator `capture` path still requires
+`--authorize-vps-package-write` and delegates through `--execution-mode vps`.
+The inspected orchestrator exposes no safe LOCAL_MAC package-capture execution
+mode that can be selected without production package-capture/orchestrator
+behavior changes. `--authorize-vps-package-write` remains authority-bearing,
+bounded VPS execution remains unauthorized, and the current `capture` path must
+not be treated as LOCAL_MAC-safe.
+
+`order_state.json` remains `ABSENT_EXCLUDED_NOT_BOUND`; the edit packet does
+not read, write, create, bind, validate, infer, or use broker-visible order
+state.
+
+The edit packet preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`production_package_capture_orchestrator_behavior_changes=BLOCKED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The edit packet performed no package capture, no replay, no scoring, no
+candidate generation, no broker/TWS/API/network/runtime action, no VPS action,
+no package-capture/orchestrator production behavior change, no Unit 12 action,
+no commit, and no push.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
