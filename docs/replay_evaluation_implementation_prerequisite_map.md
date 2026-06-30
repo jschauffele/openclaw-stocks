@@ -7201,6 +7201,44 @@ It preserves `package_capture_execution=NOT_AUTHORIZED`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_READ_ONLY_RUNTIME_ARTIFACT_PRODUCTION_PACKET`.
 
+### Post-D11 Replay Package Capture Bounded LOCAL_MAC Read-Only Runtime Artifact Production Packet
+
+The source-controlled bounded LOCAL_MAC read-only runtime artifact production
+packet is recorded here:
+
+docs/post_d11_replay_package_capture_bounded_local_mac_read_only_runtime_artifact_production_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_READ_ONLY_RUNTIME_ARTIFACT_PRODUCTION_PACKET`
+at `source_commit=a149cdcae1665edd0637897d340393a53133f9dc` with
+`local_head=a149cdcae1665edd0637897d340393a53133f9dc`,
+`origin_main=a149cdcae1665edd0637897d340393a53133f9dc`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_READ_ONLY_RUNTIME_ARTIFACT_PRODUCTION_PACKET_APPROVED_FOR_ONE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN`.
+
+The packet authorizes only the next source-controlled gate
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN_PACKET`.
+It does not execute that run and does not create artifacts in this Codex step.
+
+The packet records the current inventory as `logs=ABSENT`,
+`run_reports=ABSENT`, `replay_packages=ABSENT`,
+`last_run_report.json=ABSENT`, and `order_state.json=ABSENT_EXCLUDED_NOT_BOUND`.
+It preserves `package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_in_this_gate=NOT_PERFORMED`,
+`runtime_artifact_generation_in_this_gate=NOT_PERFORMED`,
+`diagnostic_runtime_report_generation_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action=NOT_AUTHORIZED`, `bounded_vps_execution=NOT_AUTHORIZED`,
+`production_behavior_changes=BLOCKED`,
+`production_command_surface_changes=BLOCKED`, and
+`package_writer_reader_orchestrator_changes=BLOCKED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
