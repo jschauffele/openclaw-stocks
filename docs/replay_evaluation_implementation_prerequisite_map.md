@@ -6644,6 +6644,72 @@ implementation, no commit, and no push.
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_AUTHORIZATION_PACKET`.
 
+### Post-D11 Replay Package Capture Operator Run Blocker Remediation Authorization Packet
+
+The source-controlled authorization packet for future blocker remediation is
+recorded here:
+
+docs/post_d11_replay_package_capture_operator_run_blocker_remediation_authorization_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_AUTHORIZATION_PACKET`
+at `source_commit=8faf4258e373a467753377150dfcee764483d1c8` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_AUTHORIZATION_PACKET_APPROVED_FOR_SOURCE_CONTROLLED_REMEDIATION_EDIT_GATE`.
+
+The authorization packet approves only a later source-controlled remediation
+edit gate. It authorizes both separable lanes for the next edit packet:
+`artifact-path remediation` and `authority-surface remediation`. The
+recommended next edit priority is LOCAL_MAC command-surface reconciliation plus
+artifact discovery/layout criteria. It does not authorize remediation execution,
+artifact creation, package capture, package-capture/orchestrator production
+behavior changes, bounded VPS execution, or Unit 12 implementation.
+
+Artifact-path adjudication preserves the missing local artifact blocker:
+`logs=MISSING`, `run_reports=MISSING`, `replay_packages=MISSING`, and
+`last_run_report.json=ABSENT`. The next edit packet may define fail-closed
+criteria for `logs/<run_id>.jsonl`, `run_reports/<run_id>.json`,
+`last_run_report.json`, safe `run_id`, absent `replay_packages/<run_id>`, and
+capture readiness, but it must not create artifacts or select an eligible
+`run_id`.
+
+Authority-surface adjudication preserves the `LOCAL_MAC_ONLY` authorization
+boundary while recognizing that the current surface requires
+`--authorize-vps-package-write` and delegates to `--execution-mode vps`. The
+next edit packet may reconcile that source-controlled mismatch. Until later
+source-controlled remediation narrows or renames it,
+`--authorize-vps-package-write` remains authority-bearing. Bounded VPS
+execution remains unauthorized, and legacy-name adjudication is allowed only by
+later source-controlled remediation.
+
+`order_state.json` remains `ABSENT_EXCLUDED_NOT_BOUND`; this authorization
+packet does not authorize order-state binding, reads, writes, or broker-visible
+state expansion.
+
+The authorization packet preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`production_package_capture_orchestrator_behavior_changes=NOT_AUTHORIZED_BY_THIS_GATE`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The authorization packet performed no remediation, no package capture, no
+replay, no scoring, no candidate generation, no broker/TWS/API/network/runtime
+action, no VPS action, no package-capture/orchestrator production behavior
+change, no Unit 12 implementation, no commit, and no push.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

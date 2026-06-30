@@ -8615,6 +8615,202 @@ def test_post_d11_replay_package_capture_operator_run_blocker_remediation_plan()
     )
 
 
+def test_post_d11_replay_package_capture_operator_run_blocker_remediation_authorization_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_operator_run_blocker_remediation_authorization_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture Operator Run Blocker Remediation Authorization Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `8faf4258e373a467753377150dfcee764483d1c8`"
+        in packet_text
+    )
+    assert (
+        "`remediation_authorization_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_AUTHORIZATION_PACKET_APPROVED_FOR_SOURCE_CONTROLLED_REMEDIATION_EDIT_GATE`"
+        in packet_text
+    )
+    assert (
+        "`authorized_future_edit_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`authorized_remediation_lanes` | "
+        "`artifact_path_remediation_and_authority_surface_remediation`"
+        in packet_text
+    )
+    assert (
+        "`recommended_next_edit_priority` | "
+        "`LOCAL_MAC_COMMAND_SURFACE_RECONCILIATION_PLUS_ARTIFACT_DISCOVERY_LAYOUT_CRITERIA`"
+        in packet_text
+    )
+    assert "`bounded_vps_execution_authorized` | `false`" in packet_text
+    assert (
+        "`legacy_name_adjudication_authorized_only_by_later_source_controlled_remediation` | `true`"
+        in packet_text
+    )
+    assert "`remediation_performed_by_this_gate` | `false`" in packet_text
+    assert "`package_capture_executed` | `false`" in packet_text
+    assert "`replay_executed` | `false`" in packet_text
+    assert "`scoring_executed` | `false`" in packet_text
+    assert "`candidate_generation_executed` | `false`" in packet_text
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_runtime_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`package_capture_orchestrator_behavior_changed` | `false`" in (
+        packet_text
+    )
+    assert "`unit_12_implemented_or_opened` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET`"
+        in packet_text
+    )
+
+    assert "Artifact-path remediation" in packet_text
+    assert "Authority-surface remediation" in packet_text
+    assert "`order_state` exclusion" in packet_text
+    assert "approves both lanes for the\nnext edit packet" in packet_text
+    assert "LOCAL_MAC command-surface reconciliation plus artifact discovery/layout criteria" in (
+        packet_text
+    )
+    assert "must not execute package capture" in packet_text
+
+    for artifact_fact in (
+        "logs=MISSING",
+        "run_reports=MISSING",
+        "replay_packages=MISSING",
+        "last_run_report.json=ABSENT",
+        "`logs/<run_id>.jsonl` exists",
+        "`run_reports/<run_id>.json` or `last_run_report.json` exists",
+        "`replay_packages/<run_id>` absent",
+        "capture readiness reproved",
+    ):
+        assert artifact_fact in packet_text
+
+    assert "may not\ncreate `logs`, `run_reports`, `replay_packages`" in packet_text
+    assert "may not discover artifacts by running runtime commands" in packet_text
+    assert "may not\nconvert absent artifacts into an eligible `run_id`" in packet_text
+
+    assert "LOCAL_MAC_ONLY" in packet_text
+    assert "--authorize-vps-package-write" in packet_text
+    assert "--execution-mode vps" in packet_text
+    assert "bounded VPS execution authorization path remains not selected" in (
+        packet_text
+    )
+    assert "bounded VPS execution remains unauthorized" in packet_text
+    assert (
+        "`--authorize-vps-package-write` remains authority-bearing until a later"
+        in packet_text
+    )
+    assert "Legacy\nname adjudication is allowed only by later source-controlled remediation" in (
+        packet_text
+    )
+
+    assert "order_state_json=ABSENT_EXCLUDED_NOT_BOUND" in packet_text
+    assert "does not authorize order-state binding" in packet_text
+    assert "order-state reads" in packet_text
+    assert "order-state writes" in packet_text
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| Production package-capture/orchestrator behavior changes | `NOT_AUTHORIZED_BY_THIS_GATE` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This authorization packet performed no remediation" in packet_text
+    assert "no package capture" in packet_text
+    assert "no\nreplay, no scoring, no candidate generation" in packet_text
+    assert "no broker/TWS/API/network/runtime\naction" in packet_text
+    assert "no VPS action" in packet_text
+    assert "no\nproduction package-capture/orchestrator behavior change" in (
+        packet_text
+    )
+    assert "This authorization packet performed no commit and no push" in (
+        packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Capture Operator Run Blocker Remediation Authorization Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=8faf4258e373a467753377150dfcee764483d1c8`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_AUTHORIZATION_PACKET_APPROVED_FOR_SOURCE_CONTROLLED_REMEDIATION_EDIT_GATE`"
+        in map_text
+    )
+    assert "`artifact-path remediation` and `authority-surface remediation`" in (
+        map_text
+    )
+    assert "does not authorize remediation execution" in map_text
+    assert "does not authorize artifact creation" in map_text
+    assert "bounded VPS execution" in map_text
+    assert "`logs=MISSING`" in map_text
+    assert "`run_reports=MISSING`" in map_text
+    assert "`replay_packages=MISSING`" in map_text
+    assert "`last_run_report.json=ABSENT`" in map_text
+    assert "`--authorize-vps-package-write` remains authority-bearing" in map_text
+    assert "Bounded VPS\nexecution remains unauthorized" in map_text
+    assert "`order_state.json` remains `ABSENT_EXCLUDED_NOT_BOUND`" in map_text
+    assert "`package_capture_execution=NOT_AUTHORIZED`" in map_text
+    assert "`replay_execution=NOT_AUTHORIZED`" in map_text
+    assert "`scoring_execution=NOT_AUTHORIZED`" in map_text
+    assert "`candidate_generation_execution=NOT_AUTHORIZED`" in map_text
+    assert (
+        "`production_package_capture_orchestrator_behavior_changes=NOT_AUTHORIZED_BY_THIS_GATE`"
+        in map_text
+    )
+    assert "`unit_12_implementation=NOT_OPENED`" in map_text
+    assert "The authorization packet performed no remediation" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
