@@ -7580,6 +7580,43 @@ The packet records VPS validation evidence:
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Operator Run Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production operator
+run packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_operator_run_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_PACKET`
+at `source_commit=9de2ae86961fce1602895d0caa96063ed7dc2f27` with
+`local_head=9de2ae86961fce1602895d0caa96063ed7dc2f27`,
+`origin_main=9de2ae86961fce1602895d0caa96063ed7dc2f27`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_PACKET_FAILED_BEFORE_ARTIFACT_PRODUCTION_WITH_CONCRETE_BLOCKER`.
+
+The concrete blocker is
+`DIRECT_SCRIPT_INVOCATION_DOES_NOT_RESOLVE_REPO_ROOT_TOOLS_PACKAGE_IMPORT`. The
+attempted run ID was `post_d11_direct_mac_read_only_artifacts_001`; the runtime
+resolved expected commit was `9de2ae86961fce1602895d0caa96063ed7dc2f27`; and
+the observed exception was `ModuleNotFoundError: No module named 'tools'`.
+
+The packet records that `logs/post_d11_direct_mac_read_only_artifacts_001.jsonl`,
+`run_reports/post_d11_direct_mac_read_only_artifacts_001.json`,
+`last_run_report.json`, `replay_packages`, and `order_state.json` remained
+absent after the failed attempt. It preserves
+`produce_read_only_artifacts_rerun_by_this_gate=false`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action_by_this_gate=false`, and `bounded_vps_execution=NOT_AUTHORIZED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_INVOCATION_CONTEXT_CORRECTION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
