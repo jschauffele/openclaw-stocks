@@ -11743,6 +11743,154 @@ def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_
     )
 
 
+def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_implementation_local_review_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_implementation_local_review_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Implementation Local Review Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_LOCAL_REVIEW_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `19aff6b597e632427f54e9d8f52972b5eae9f546`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert (
+        "`local_head` | `19aff6b597e632427f54e9d8f52972b5eae9f546`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `19aff6b597e632427f54e9d8f52972b5eae9f546`"
+        in packet_text
+    )
+    assert "`worktree` | `clean`" in packet_text
+    assert (
+        "`prior_packet` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`local_review_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_LOCAL_REVIEW_PACKET_READY_FOR_OPERATOR_RUN_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id <run_id> --expected-commit <commit> --authorize-direct-mac-terminal-read-only-artifact-production`"
+        in packet_text
+    )
+    assert "`local_compact_review_allowed_paths_only` | `PASS`" in packet_text
+    assert "`local_compact_review_command_surface_present` | `PASS`" in (
+        packet_text
+    )
+    assert "`local_compact_review_authorization_flag_present` | `PASS`" in (
+        packet_text
+    )
+    assert "`local_compact_review_fail_closed_terms_present` | `PASS`" in (
+        packet_text
+    )
+    assert "`local_validation_pytest` | `120 passed`" in packet_text
+    assert "`local_validation_git_diff_check` | `PASS`" in packet_text
+    assert (
+        "`local_commit` | `19aff6b597e632427f54e9d8f52972b5eae9f546`"
+        in packet_text
+    )
+    assert "`local_push_head_origin_aligned` | `PASS`" in packet_text
+    assert (
+        "`vps_validation_head_matches_expected` | `PASS_head_matches_expected_19aff6b`"
+        in packet_text
+    )
+    assert (
+        "`vps_validation_head_origin_main_aligned` | `PASS_head_origin_main_aligned`"
+        in packet_text
+    )
+    assert "`vps_validation_pytest` | `120 passed`" in packet_text
+
+    for false_field in (
+        "`produce_read_only_artifacts_run_by_this_gate` | `false`",
+        "`artifact_production_performed_by_this_gate` | `false`",
+        "`package_capture_executed_by_this_gate` | `false`",
+        "`replay_executed_by_this_gate` | `false`",
+        "`scoring_executed_by_this_gate` | `false`",
+        "`candidate_generation_executed_by_this_gate` | `false`",
+        "`broker_tws_api_network_runtime_action` | `false`",
+        "`vps_action_by_this_gate` | `false`",
+        "`unit_12_action` | `false`",
+        "`commit_performed_by_this_gate` | `false`",
+        "`push_performed_by_this_gate` | `false`",
+    ):
+        assert false_field in packet_text
+
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert "does not run `produce-read-only-artifacts`" in packet_text
+    assert "does not authorize an operator run by itself" in packet_text
+    assert "performed no `produce-read-only-artifacts` run" in packet_text
+    assert "no\nartifact production" in packet_text
+    assert "no package capture" in packet_text
+    assert "no replay, no scoring" in packet_text
+    assert "broker/TWS/API/network/runtime action" in packet_text
+    assert "no VPS action" in packet_text
+    assert "no Unit 12\naction" in packet_text
+    assert "no commit, and no push" in packet_text
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Runtime artifact production execution in this gate | `NOT_PERFORMED` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+        "| VPS action by this gate | `NOT_AUTHORIZED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+    ):
+        assert authority in packet_text
+
+    assert (
+        "### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Implementation Local Review Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=19aff6b597e632427f54e9d8f52972b5eae9f546`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_LOCAL_REVIEW_PACKET_READY_FOR_OPERATOR_RUN_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+    assert "produce-read-only-artifacts --run-id <run_id>" in map_text
+    assert "`PASS_head_matches_expected_19aff6b`" in map_text
+    assert "`PASS_head_origin_main_aligned`" in map_text
+    assert "`produce_read_only_artifacts_run_by_this_gate=false`" in map_text
+    assert "`package_capture_execution=NOT_AUTHORIZED`" in map_text
+    assert (
+        "`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`"
+        in map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

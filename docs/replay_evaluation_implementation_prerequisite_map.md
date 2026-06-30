@@ -7399,6 +7399,40 @@ The packet preserves `package_capture_execution=NOT_AUTHORIZED`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_LOCAL_REVIEW_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Implementation Local Review Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production command
+surface implementation local review packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_implementation_local_review_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_LOCAL_REVIEW_PACKET`
+at `source_commit=19aff6b597e632427f54e9d8f52972b5eae9f546` with
+`local_head=19aff6b597e632427f54e9d8f52972b5eae9f546`,
+`origin_main=19aff6b597e632427f54e9d8f52972b5eae9f546`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_LOCAL_REVIEW_PACKET_READY_FOR_OPERATOR_RUN_AUTHORIZATION_PACKET`.
+
+The reviewed command surface is
+`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id <run_id> --expected-commit <commit> --authorize-direct-mac-terminal-read-only-artifact-production`.
+The packet records the completed LOCAL_MAC compact review, LOCAL_MAC commit and
+push alignment at `19aff6b597e632427f54e9d8f52972b5eae9f546`, and VPS
+validation evidence: `PASS_head_matches_expected_19aff6b`,
+`PASS_head_origin_main_aligned`, and `120 passed`.
+
+The packet preserves `produce_read_only_artifacts_run_by_this_gate=false`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action_by_this_gate=false`, and `bounded_vps_execution=NOT_AUTHORIZED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_AUTHORIZATION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
