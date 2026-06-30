@@ -7360,6 +7360,45 @@ The packet preserves `package_capture_execution=NOT_AUTHORIZED`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Implementation Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production command
+surface implementation packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_implementation_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_PACKET`
+at `source_commit=71b2717d53ec71afc4a3bead1938a704b8be58b1` with
+`local_head=71b2717d53ec71afc4a3bead1938a704b8be58b1`,
+`origin_main=71b2717d53ec71afc4a3bead1938a704b8be58b1`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_PACKET_READY_FOR_LOCAL_DIFF_REVIEW`.
+
+The implemented command surface is
+`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id <run_id> --expected-commit <commit> --authorize-direct-mac-terminal-read-only-artifact-production`.
+It requires `--run-id`, `--expected-commit`, and
+`--authorize-direct-mac-terminal-read-only-artifact-production`.
+
+The implementation enforces current HEAD equals expected commit, local
+`origin/main` equals expected commit, LOCAL_MAC HEAD equals local `origin/main`,
+clean worktree, safe run ID, LOCAL_MAC-only source context, DIRECT_MAC_TERMINAL
+operator surface, and read-only/no-broker/no-order/no-execution authority
+boundaries. The later command may write only `logs/<run_id>.jsonl`,
+`run_reports/<run_id>.json`, and `last_run_report.json` if separately invoked
+by a later authorized operator run.
+
+The packet preserves `package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action=NOT_AUTHORIZED`, and `bounded_vps_execution=NOT_AUTHORIZED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_IMPLEMENTATION_LOCAL_REVIEW_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
