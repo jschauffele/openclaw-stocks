@@ -6905,6 +6905,62 @@ VPS action, no Unit 12 action, no commit, and no push.
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_REAUTHORIZATION_PACKET`.
 
+### Post-D11 Replay Package Capture Operator Run Reauthorization Packet
+
+The source-controlled reauthorization packet for the bounded LOCAL_MAC
+operator-run reattempt is recorded here:
+
+docs/post_d11_replay_package_capture_operator_run_reauthorization_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_REAUTHORIZATION_PACKET` at
+`source_commit=53a836ac91e3d9fd11cf9b9368e1eab6128657e4` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_REAUTHORIZATION_PACKET_APPROVED_FOR_BOUNDED_LOCAL_MAC_OPERATOR_RUN`.
+
+The only authorized future command surface is
+`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py capture-local --run-id <run_id> --expected-commit 53a836ac91e3d9fd11cf9b9368e1eab6128657e4 --authorize-local-package-write`.
+This reauthorization packet is source-controlled approval only; it performs no
+package capture and does not execute the operator run.
+
+The later bounded operator-run packet must fail closed unless branch is `main`,
+LOCAL_MAC HEAD and `origin/main` both equal
+`53a836ac91e3d9fd11cf9b9368e1eab6128657e4`, worktree is clean, a concrete safe
+`run_id` is supplied from already-existing eligible artifacts,
+`logs/<run_id>.jsonl` exists, `run_reports/<run_id>.json` exists or
+`last_run_report.json` alignment exists, report evidence is aligned to the
+selected `run_id`, terminal completion evidence is present, capture readiness
+is reproved from already-existing artifacts, and `replay_packages/<run_id>` is
+absent before package capture.
+
+The future operator-run packet must preserve
+`order_state_json=ABSENT_EXCLUDED_NOT_BOUND`; no `order_state` read, write,
+creation, binding, validation, inference, or use is authorized. It must not use
+`--authorize-vps-package-write`, must not use `--execution-mode vps`, must not
+delegate to `package_execution_orchestrator.main`, and must not perform VPS,
+broker/TWS/API/network/runtime/scheduler/systemd/timer/service, replay,
+scoring, candidate-generation, or Unit 12 action.
+
+The packet preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`package_capture_execution_in_this_gate=NOT_AUTHORIZED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`production_broker_behavior_changes=BLOCKED`,
+`bounded_vps_execution=NOT_AUTHORIZED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
