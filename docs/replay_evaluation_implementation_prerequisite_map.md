@@ -6774,6 +6774,71 @@ no commit, and no push.
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET`.
 
+### Post-D11 Replay Package Capture LOCAL_MAC Command Surface Design Packet
+
+The source-controlled design packet for the LOCAL_MAC command-surface blocker is
+recorded here:
+
+docs/post_d11_replay_package_capture_local_mac_command_surface_design_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET` at
+`source_commit=e869845e47f3982b7c74b8151665616964d9af97` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET_COMPLETED_READY_FOR_IMPLEMENTATION_EDIT_PACKET`.
+
+The design defines a distinct LOCAL_MAC package-capture command surface,
+separate from VPS package writing. The future implementation may introduce a
+local-only operator surface such as
+`capture-local --run-id <run_id> --expected-commit <commit> --authorize-local-package-write`,
+or an equivalent source-controlled command surface. The LOCAL_MAC path must not
+require `--authorize-vps-package-write`, must not delegate through
+`--execution-mode vps`, must not perform real `/opt` VPS reads or writes, and
+must not approve VPS endpoint, `18789`, `18791`, bridge, tunnel, or proxy
+authority.
+
+The design preserves `--authorize-vps-package-write` as authority-bearing. It
+does not treat that flag as legacy-only. Bounded VPS execution remains
+`NOT_AUTHORIZED` unless a later bounded VPS execution gate explicitly
+authorizes it. Package capture execution remains `NOT_AUTHORIZED` until a later
+bounded operator-run reauthorization gate explicitly authorizes it.
+
+The future implementation edit packet may choose to expose an existing
+non-synthetic local execution mode if one exists, add a new local execution
+mode if needed, bypass the VPS orchestration path through a safe local-only
+package writer path, or block if none can be implemented without unacceptable
+behavior drift. The design permits only source-controlled LOCAL_MAC command
+surface changes, local-only preflight gating, local-only package output path
+control, and local-only tests/docs.
+
+Artifact fail-closed design remains active: no artifact creation, no `run_id`
+selection from absent artifacts, fail closed if `logs/<run_id>.jsonl` is
+absent, fail closed if `run_reports/<run_id>.json` or `last_run_report.json`
+alignment is absent, preserve `replay_packages` as an output target only, and
+require expected commit, worktree, `run_id`, terminal completion, D13
+eligibility, package-directory absence, and alignment checks before any later
+operator-run reattempt.
+
+`order_state.json` remains `ABSENT_EXCLUDED_NOT_BOUND`; the design prohibits
+order-state reads, writes, creation, binding, validation, inference, and
+broker-visible state inference.
+
+The future implementation edit packet must not change strategy behavior, risk
+behavior, execution behavior, broker behavior, provider-selection runtime
+behavior, scheduler/runtime/service/systemd/timer behavior, credentials or
+environment files, Unit 12, replay behavior, scoring behavior,
+candidate-generation behavior, broker submit readiness, live trading readiness,
+account/order/execution authority, VPS endpoint approval, `18789`/`18791`,
+bridge, tunnel, or proxy approval.
+
+The design packet performed no implementation, no package capture, no replay,
+no scoring, no candidate generation, no broker/TWS/API/network/runtime action,
+no VPS action, no package-capture/orchestrator production behavior change, no
+Unit 12 action, no commit, and no push.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

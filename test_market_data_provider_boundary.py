@@ -9014,6 +9014,220 @@ def test_post_d11_replay_package_capture_operator_run_blocker_remediation_edit_p
     )
 
 
+def test_post_d11_replay_package_capture_local_mac_command_surface_design_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_local_mac_command_surface_design_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture LOCAL_MAC Command Surface Design Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `e869845e47f3982b7c74b8151665616964d9af97`"
+        in packet_text
+    )
+    assert (
+        "`prior_edit_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_BLOCKER_REMEDIATION_EDIT_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in packet_text
+    )
+    assert (
+        "`concrete_blocker` | "
+        "`NO_SAFE_LOCAL_MAC_PACKAGE_CAPTURE_EXECUTION_SURFACE_WITHOUT_PRODUCTION_PACKAGE_CAPTURE_ORCHESTRATOR_BEHAVIOR_CHANGE`"
+        in packet_text
+    )
+    assert (
+        "`design_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET_COMPLETED_READY_FOR_IMPLEMENTATION_EDIT_PACKET`"
+        in packet_text
+    )
+    assert "`local_mac_command_surface_design_completed` | `true`" in packet_text
+    assert "`production_command_surface_changes_implemented` | `false`" in (
+        packet_text
+    )
+    assert "`package_capture_executed` | `false`" in packet_text
+    assert "`replay_executed` | `false`" in packet_text
+    assert "`scoring_executed` | `false`" in packet_text
+    assert "`candidate_generation_executed` | `false`" in packet_text
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert "`vps_action` | `false`" in packet_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_runtime_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_package_capture_orchestrator_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`unit_12_action` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET`"
+        in packet_text
+    )
+
+    assert "capture-local --run-id <run_id> --expected-commit <commit> --authorize-local-package-write" in (
+        packet_text
+    )
+    assert "no `--authorize-vps-package-write` requirement for LOCAL_MAC package capture" in (
+        packet_text
+    )
+    assert "no delegation through `--execution-mode vps`" in packet_text
+    assert "no real `/opt` VPS reads or writes" in packet_text
+    assert "LOCAL_MAC package writing and VPS package writing must remain separate" in (
+        packet_text
+    )
+    assert "`--authorize-vps-package-write` remains\nauthority-bearing" in (
+        packet_text
+    )
+    assert "bounded VPS execution remains `NOT_AUTHORIZED`" in packet_text
+
+    for design_option in (
+        "Expose existing local execution mode",
+        "Add new local execution mode",
+        "Bypass VPS orchestration through a local-only package writer path",
+        "Block",
+    ):
+        assert design_option in packet_text
+
+    for criterion in (
+        "no artifact creation occurs",
+        "no `run_id` is selected from absent artifacts",
+        "`logs/<run_id>.jsonl` exists",
+        "`run_reports/<run_id>.json` or `last_run_report.json` exists",
+        "the report is aligned to the selected `run_id`",
+        "the selected JSONL has a terminal completion event",
+        "D13 market-session eligibility is evaluated from already-existing artifacts",
+        "`replay_packages/<run_id>` is absent",
+        "`replay_packages` is treated as an output target only",
+        "expected commit is checked",
+        "worktree is checked",
+    ):
+        assert criterion in packet_text
+
+    for prohibited_creation in (
+        "`logs/`",
+        "`run_reports/`",
+        "`replay_packages/`",
+        "`last_run_report.json`",
+        "`order_state.json`",
+        "any package artifact",
+    ):
+        assert prohibited_creation in packet_text
+
+    assert "package capture execution remains `NOT_AUTHORIZED`" in packet_text
+    assert "order_state_json=ABSENT_EXCLUDED_NOT_BOUND" in packet_text
+    assert "must not read, write, create, bind, validate, infer,\nor use `order_state`" in (
+        packet_text
+    )
+    assert "must not infer broker-visible state" in packet_text
+
+    for allowed in (
+        "operator command surface",
+        "local-only package-capture preflight gating",
+        "local-only package output path control",
+        "local-only tests and docs",
+        "local-only command naming or parser wiring",
+    ):
+        assert allowed in packet_text
+
+    for prohibited in (
+        "strategy behavior",
+        "risk behavior",
+        "execution behavior",
+        "broker behavior",
+        "provider-selection runtime behavior",
+        "scheduler/runtime/service/systemd/timer behavior",
+        "credentials or environment files",
+        "Unit 12",
+        "replay behavior",
+        "scoring behavior",
+        "candidate-generation behavior",
+    ):
+        assert prohibited in packet_text
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| Production package-capture/orchestrator behavior changes in this gate | `NOT_AUTHORIZED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This design packet performed no implementation" in packet_text
+    assert "no package capture, no replay" in packet_text
+    assert "no scoring, no candidate generation" in packet_text
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no VPS action" in packet_text
+    assert "no\nproduction package-capture/orchestrator behavior change" in (
+        packet_text
+    )
+    assert "no Unit 12 action" in packet_text
+    assert "This design packet performed no commit and no push" in packet_text
+
+    assert (
+        "### Post-D11 Replay Package Capture LOCAL_MAC Command Surface Design Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=e869845e47f3982b7c74b8151665616964d9af97`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET_COMPLETED_READY_FOR_IMPLEMENTATION_EDIT_PACKET`"
+        in map_text
+    )
+    assert "distinct LOCAL_MAC package-capture command surface" in map_text
+    assert "must not\nrequire `--authorize-vps-package-write`" in map_text
+    assert "must not delegate through\n`--execution-mode vps`" in map_text
+    assert "`--authorize-vps-package-write` as authority-bearing" in map_text
+    assert "Bounded VPS execution remains\n`NOT_AUTHORIZED`" in map_text
+    assert "Package capture execution remains `NOT_AUTHORIZED`" in map_text
+    assert "no artifact creation" in map_text
+    assert "no `run_id`\nselection from absent artifacts" in map_text
+    assert "`order_state.json` remains `ABSENT_EXCLUDED_NOT_BOUND`" in map_text
+    assert "must not change strategy behavior" in map_text
+    assert "The design packet performed no implementation" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
