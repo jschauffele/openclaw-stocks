@@ -10185,6 +10185,275 @@ def test_post_d11_replay_package_capture_bounded_local_mac_operator_run_packet()
     )
 
 
+def test_post_d11_replay_package_capture_local_mac_runtime_artifact_availability_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_local_mac_runtime_artifact_availability_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture LOCAL_MAC Runtime Artifact Availability Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_RUNTIME_ARTIFACT_AVAILABILITY_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `b8e9e17ad5fe7377dd721c24e859b66f8024e0e0`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert (
+        "`local_head` | `b8e9e17ad5fe7377dd721c24e859b66f8024e0e0`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `b8e9e17ad5fe7377dd721c24e859b66f8024e0e0`"
+        in packet_text
+    )
+    assert (
+        "`expected_commit` | `b8e9e17ad5fe7377dd721c24e859b66f8024e0e0`"
+        in packet_text
+    )
+    assert "`head_equals_expected_commit` | `PASS`" in packet_text
+    assert "`origin_main_equals_expected_commit` | `PASS`" in packet_text
+    assert "`local_head_equals_origin_main` | `PASS`" in packet_text
+    assert "`worktree` | `clean`" in packet_text
+    assert "`local_mac_python_version` | `Python 3.12.13`" in packet_text
+    assert (
+        "`prior_bounded_operator_run_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in packet_text
+    )
+    assert (
+        "`prior_concrete_blocker` | "
+        "`NO_ELIGIBLE_LOCAL_MAC_RUNTIME_ARTIFACTS_FOR_PACKAGE_CAPTURE`"
+        in packet_text
+    )
+    assert (
+        "`artifact_availability_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_RUNTIME_ARTIFACT_AVAILABILITY_PACKET_READY_FOR_BOUNDED_LOCAL_MAC_ARTIFACT_PRODUCTION_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`current_artifact_availability_result` | "
+        "`NO_ELIGIBLE_LOCAL_MAC_RUNTIME_ARTIFACTS_CURRENTLY_AVAILABLE`"
+        in packet_text
+    )
+    assert "`logs_directory` | `ABSENT`" in packet_text
+    assert "`run_reports_directory` | `ABSENT`" in packet_text
+    assert "`replay_packages_directory` | `ABSENT`" in packet_text
+    assert "`last_run_report_json` | `ABSENT`" in packet_text
+    assert "`order_state_json` | `ABSENT_EXCLUDED_NOT_BOUND`" in packet_text
+    assert "`log_candidates` | `NO_LOGS_DIR`" in packet_text
+    assert "`run_report_candidates` | `NO_RUN_REPORTS_DIR`" in packet_text
+    assert "`eligible_run_id` | `NONE`" in packet_text
+    assert "`runtime_artifact_production_authorized_by_this_gate` | `false`" in (
+        packet_text
+    )
+    assert "`package_capture_executed_by_this_gate` | `false`" in packet_text
+    assert "`replay_executed_by_this_gate` | `false`" in packet_text
+    assert "`scoring_executed_by_this_gate` | `false`" in packet_text
+    assert "`candidate_generation_executed_by_this_gate` | `false`" in packet_text
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert "`vps_action` | `false`" in packet_text
+    assert "`production_command_surface_changed` | `false`" in packet_text
+    assert "`unit_12_action` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_RUNTIME_ARTIFACT_PRODUCTION_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+
+    for inventory_line in (
+        "logs=ABSENT",
+        "run_reports=ABSENT",
+        "replay_packages=ABSENT",
+        "last_run_report.json=ABSENT",
+        "order_state.json=ABSENT",
+        "LOG CANDIDATES=NO_LOGS_DIR",
+        "RUN_REPORT CANDIDATES=NO_RUN_REPORTS_DIR",
+        "REPLAY_PACKAGE EXISTING TARGETS=NO_REPLAY_PACKAGES_DIR",
+        "LAST_RUN_REPORT STATUS=NO_LAST_RUN_REPORT",
+        "ORDER_STATE STATUS=PASS_order_state_absent_excluded_not_bound",
+    ):
+        assert inventory_line in packet_text
+
+    assert "NO_ELIGIBLE_LOCAL_MAC_RUNTIME_ARTIFACTS_CURRENTLY_AVAILABLE" in (
+        packet_text
+    )
+    assert "No eligible package-capture `run_id` is currently available" in (
+        packet_text
+    )
+    assert "logs directory is absent" in packet_text
+    assert "run_reports directory is absent" in packet_text
+    assert "last_run_report.json is absent" in packet_text
+    assert "there are no log candidates" in packet_text
+    assert "there are no run-report candidates" in packet_text
+    assert "no eligible `run_id` can be selected" in packet_text
+    assert "no selected `run_id` has aligned report evidence" in packet_text
+    assert "no selected `run_id` has terminal completion evidence" in packet_text
+    assert "`replay_packages` is a package output\ntarget" in packet_text
+
+    assert "runtime_artifact_production=NOT_AUTHORIZED_BY_THIS_GATE" in (
+        packet_text
+    )
+    assert "does not produce runtime artifacts" in packet_text
+    assert "does not generate runtime\nartifacts" in packet_text
+    assert "does not create `logs/`" in packet_text
+    assert "does not create `run_reports/`" in packet_text
+    assert "does not\ncreate `replay_packages/`" in packet_text
+    assert "does not create `last_run_report.json`" in packet_text
+    assert "does not\ncreate `order_state.json`" in packet_text
+    assert "does not generate diagnostic or runtime reports" in packet_text
+    assert "The next gate is not pre-approved by this packet" in packet_text
+
+    assert "package_capture_execution=NOT_AUTHORIZED" in packet_text
+    assert "No package capture may execute" in packet_text
+
+    for criterion in (
+        "branch `main`",
+        "clean worktree",
+        "LOCAL_MAC HEAD equals `origin/main`",
+        "`expected_commit` equals current LOCAL_MAC HEAD and `origin/main`",
+        "concrete safe `run_id`",
+        "`logs/<run_id>.jsonl` exists",
+        "`run_reports/<run_id>.json` exists or `last_run_report.json` alignment\n  exists",
+        "selected `run_id` is derived only from eligible existing runtime artifacts",
+        "selected `run_id` has aligned report evidence",
+        "selected `run_id` has terminal completion evidence",
+        "`replay_packages/<run_id>` is absent before package capture",
+        "`order_state_json=ABSENT_EXCLUDED_NOT_BOUND`",
+        "no `order_state` read, write, creation, binding, validation, inference, or\n  use",
+        "no `--authorize-vps-package-write`",
+        "no `--execution-mode vps`",
+        "no `package_execution_orchestrator.main` delegation",
+        "no VPS action",
+        "no broker/TWS/API/network/runtime/scheduler/systemd/timer/service action",
+        "no replay, scoring, candidate generation, or Unit 12 action",
+    ):
+        assert criterion in packet_text
+
+    for restriction in (
+        "package capture execution",
+        "runtime artifact production",
+        "runtime artifact generation",
+        "diagnostic or runtime report generation",
+        "replay execution",
+        "scoring execution",
+        "candidate generation execution",
+        "Unit 12 implementation",
+        "broker submit readiness",
+        "live trading readiness",
+        "account authority",
+        "order authority",
+        "execution authority",
+        "VPS action",
+        "bounded VPS execution",
+        "VPS endpoint approval",
+        "`18789` or `18791` endpoint approval",
+        "bridge, tunnel, or proxy approval",
+        "runtime/scheduler/service/systemd/timer mutation",
+        "credential or environment-file mutation",
+        "production runtime/provider-selection changes",
+        "production broker behavior changes",
+        "strategy/risk/execution behavior changes",
+        "production command-surface changes",
+        "package writer/reader/orchestrator changes",
+        "`tools/ops/gate_d_market_session_operator.py` changes",
+        "`logs/`, `run_reports/`, `replay_packages/`, `last_run_report.json`, or\n  `order_state.json` creation or modification",
+    ):
+        assert restriction in packet_text
+
+    assert "order_state_json=ABSENT_EXCLUDED_NOT_BOUND" in packet_text
+    assert "does not read, write, create, bind, validate, infer, or use\n`order_state`" in (
+        packet_text
+    )
+    assert "does not use\n`order_state` to unblock runtime artifact production or package capture" in (
+        packet_text
+    )
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Runtime artifact production | `NOT_AUTHORIZED_BY_THIS_GATE` |",
+        "| Runtime artifact generation | `NOT_AUTHORIZED_BY_THIS_GATE` |",
+        "| Diagnostic/runtime report generation | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| Production command-surface changes | `BLOCKED` |",
+        "| Production broker behavior changes | `BLOCKED` |",
+        "| Package writer/reader/orchestrator changes | `BLOCKED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This artifact availability packet performed no package capture" in (
+        packet_text
+    )
+    assert "no runtime\nartifact production" in packet_text
+    assert "no runtime artifact generation" in packet_text
+    assert "no diagnostic or runtime\nreport generation" in packet_text
+    assert "no replay, no scoring" in packet_text
+    assert "no candidate generation" in packet_text
+    assert "no\nbroker/TWS/API/network/runtime action" in packet_text
+    assert "no VPS action" in packet_text
+    assert "no Unit 12\naction" in packet_text
+    assert "This artifact availability packet performed no commit and no push" in (
+        packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Capture LOCAL_MAC Runtime Artifact Availability Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=b8e9e17ad5fe7377dd721c24e859b66f8024e0e0`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_RUNTIME_ARTIFACT_AVAILABILITY_PACKET_READY_FOR_BOUNDED_LOCAL_MAC_ARTIFACT_PRODUCTION_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+    assert "`NO_ELIGIBLE_LOCAL_MAC_RUNTIME_ARTIFACTS_CURRENTLY_AVAILABLE`" in (
+        map_text
+    )
+    assert "`runtime_artifact_production=NOT_AUTHORIZED_BY_THIS_GATE`" in (
+        map_text
+    )
+    assert "`package_capture_execution=NOT_AUTHORIZED`" in map_text
+    assert "`order_state_json=ABSENT_EXCLUDED_NOT_BOUND`" in map_text
+    assert "`package_writer_reader_orchestrator_changes=BLOCKED`" in map_text
+    assert "`bounded_vps_execution=NOT_AUTHORIZED`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_RUNTIME_ARTIFACT_PRODUCTION_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
