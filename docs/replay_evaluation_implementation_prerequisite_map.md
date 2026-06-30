@@ -7037,6 +7037,66 @@ The packet preserves `broker_submit_readiness=NOT_APPROVED`,
 The exact next permissible gate remains
 `POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`.
 
+### Post-D11 Replay Package Capture Bounded LOCAL_MAC Operator Run Packet
+
+The source-controlled bounded LOCAL_MAC operator-run packet is recorded here:
+
+docs/post_d11_replay_package_capture_bounded_local_mac_operator_run_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET` for
+`local_head=b06d8a4b96c9237911547cffa6bb31b1d8bf829d`,
+`origin_main=b06d8a4b96c9237911547cffa6bb31b1d8bf829d`,
+`expected_commit=b06d8a4b96c9237911547cffa6bb31b1d8bf829d`, `branch=main`,
+and `status_short=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`.
+
+The concrete blocker is
+`NO_ELIGIBLE_LOCAL_MAC_RUNTIME_ARTIFACTS_FOR_PACKAGE_CAPTURE`.
+
+The preflight inventory records `logs=ABSENT`, `run_reports=ABSENT`,
+`replay_packages=ABSENT`, `last_run_report.json=ABSENT`,
+`order_state.json=ABSENT`, `LOG CANDIDATES=NO_LOGS_DIR`,
+`RUN_REPORT CANDIDATES=NO_RUN_REPORTS_DIR`,
+`REPLAY_PACKAGE EXISTING TARGETS=NO_REPLAY_PACKAGES_DIR`,
+`LAST_RUN_REPORT STATUS=NO_LAST_RUN_REPORT`, and
+`ORDER_STATE STATUS=PASS_order_state_absent_excluded_not_bound`.
+
+The `replay_packages` directory absence is not itself the blocking
+runtime-artifact criterion because `replay_packages` is a package output target,
+not proof of runtime artifact availability. The blocking criteria are absence
+of `logs/<run_id>.jsonl`, absence of `run_reports/<run_id>.json` or
+`last_run_report.json`, absence of an eligible `run_id`, absence of aligned
+report evidence, and absence of terminal completion evidence.
+
+The packet preserves `order_state_json=ABSENT_EXCLUDED_NOT_BOUND`; no
+`order_state` read, write, creation, binding, validation, inference, or use is
+authorized. It records no `--authorize-vps-package-write`, no `--execution-mode
+vps`, no `package_execution_orchestrator.main` delegation, no VPS action, no
+broker/TWS/API/network/runtime/scheduler/systemd/timer/service action, no
+replay, no scoring, no candidate generation, and no Unit 12 action.
+
+The packet preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`production_command_surface_changes=BLOCKED`,
+`production_broker_behavior_changes=BLOCKED`,
+`bounded_vps_execution=NOT_AUTHORIZED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_RUNTIME_ARTIFACT_AVAILABILITY_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
