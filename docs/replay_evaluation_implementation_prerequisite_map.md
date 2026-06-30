@@ -7278,6 +7278,45 @@ It preserves `package_capture_execution=NOT_AUTHORIZED`,
 The exact next operator step is
 `ONE_BOUNDED_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Blocker Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production command
+surface blocker packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_blocker_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_BLOCKER_PACKET`
+at `source_commit=b6ecbe488918e3b1d92d9de73327db2eea161989` with
+`local_head=b6ecbe488918e3b1d92d9de73327db2eea161989`,
+`origin_main=b6ecbe488918e3b1d92d9de73327db2eea161989`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_BLOCKER_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`.
+
+The concrete blocker is
+`NO_EXACT_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_DEFINED`.
+The prior packet approved only the symbolic operator step
+`ONE_BOUNDED_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN`.
+Command-surface inspection found `capture-local` references only;
+`capture-local` is package-capture related and requires eligible existing
+runtime artifacts.
+
+The packet records the current inventory as `logs=ABSENT`,
+`run_reports=ABSENT`, `replay_packages=ABSENT`,
+`last_run_report.json=ABSENT`, and `order_state.json=ABSENT_EXCLUDED_NOT_BOUND`.
+It preserves `package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution=NOT_AUTHORIZED_BY_THIS_GATE`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action=NOT_AUTHORIZED`, `bounded_vps_execution=NOT_AUTHORIZED`,
+`production_code_changes=BLOCKED`, `command_surface_code_changes=BLOCKED`,
+and `package_writer_reader_orchestrator_changes=BLOCKED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

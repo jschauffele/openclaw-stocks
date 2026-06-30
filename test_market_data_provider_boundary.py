@@ -11050,6 +11050,198 @@ def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_
     assert "`package_writer_reader_orchestrator_changes=BLOCKED`" in map_text
 
 
+def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_blocker_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_command_surface_blocker_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Blocker Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_BLOCKER_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `b6ecbe488918e3b1d92d9de73327db2eea161989`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert (
+        "`local_head` | `b6ecbe488918e3b1d92d9de73327db2eea161989`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `b6ecbe488918e3b1d92d9de73327db2eea161989`"
+        in packet_text
+    )
+    assert "`worktree` | `clean`" in packet_text
+    assert (
+        "`prior_packet` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`prior_symbolic_operator_step` | "
+        "`ONE_BOUNDED_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN`"
+        in packet_text
+    )
+    assert (
+        "`command_surface_blocker_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_BLOCKER_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in packet_text
+    )
+    assert (
+        "`concrete_blocker` | "
+        "`NO_EXACT_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_DEFINED`"
+        in packet_text
+    )
+    assert (
+        "`exact_executable_direct_mac_terminal_artifact_production_command` | `NOT_DEFINED`"
+        in packet_text
+    )
+    assert "`capture_local_references_found` | `true`" in packet_text
+    assert (
+        "`capture_local_surface_classification` | "
+        "`PACKAGE_CAPTURE_RELATED_REQUIRES_EXISTING_RUNTIME_ARTIFACTS`"
+        in packet_text
+    )
+    assert "`eligible_runtime_artifacts_available` | `false`" in packet_text
+    assert "`current_logs_directory` | `ABSENT`" in packet_text
+    assert "`current_run_reports_directory` | `ABSENT`" in packet_text
+    assert "`current_replay_packages_directory` | `ABSENT`" in packet_text
+    assert "`current_last_run_report_json` | `ABSENT`" in packet_text
+    assert (
+        "`current_order_state_json` | `ABSENT_EXCLUDED_NOT_BOUND`" in packet_text
+    )
+
+    for false_field in (
+        "`runtime_artifact_production_performed_by_this_gate` | `false`",
+        "`package_capture_executed_by_this_gate` | `false`",
+        "`replay_executed_by_this_gate` | `false`",
+        "`scoring_executed_by_this_gate` | `false`",
+        "`candidate_generation_executed_by_this_gate` | `false`",
+        "`broker_tws_api_network_runtime_action` | `false`",
+        "`vps_action` | `false`",
+        "`unit_12_action` | `false`",
+        "`production_code_changed` | `false`",
+        "`command_surface_code_changed` | `false`",
+        "`commit_performed` | `false`",
+        "`push_performed` | `false`",
+    ):
+        assert false_field in packet_text
+
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET`"
+        in packet_text
+    )
+    assert "approved only the symbolic operator step" in packet_text
+    assert "found no exact executable Direct Mac Terminal command" in packet_text
+    assert "`capture-local` is package-capture related" in packet_text
+    assert "requires eligible existing runtime artifacts" in packet_text
+    assert "logs=ABSENT" in packet_text
+    assert "run_reports=ABSENT" in packet_text
+    assert "replay_packages=ABSENT" in packet_text
+    assert "last_run_report.json=ABSENT" in packet_text
+    assert "order_state.json=ABSENT" in packet_text
+    assert "NO_EXACT_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_DEFINED" in (
+        packet_text
+    )
+
+    for not_authorized in (
+        "artifact production",
+        "package capture",
+        "replay",
+        "scoring",
+        "candidate generation",
+        "Unit 12",
+        "broker submit readiness",
+        "live trading readiness",
+        "account authority",
+        "order authority",
+        "execution authority",
+        "broker/TWS/API/network/runtime action",
+        "VPS action",
+        "scheduler/systemd/timer/service mutation",
+        "credential or environment-file mutation",
+        "production code changes",
+        "command-surface code changes",
+        "package writer/reader/orchestrator changes",
+        "creation of `logs/`, `run_reports/`, `replay_packages/`,\n  `last_run_report.json`, or `order_state.json`",
+        "commit",
+        "push",
+    ):
+        assert not_authorized in packet_text
+
+    assert "order_state_json=ABSENT_EXCLUDED_NOT_BOUND" in packet_text
+    assert "does not read, write, create, bind, validate, infer, or use\n`order_state`" in (
+        packet_text
+    )
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Runtime artifact production execution | `NOT_AUTHORIZED_BY_THIS_GATE` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+        "| VPS action | `NOT_AUTHORIZED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+        "| Production code changes | `BLOCKED` |",
+        "| Command-surface code changes | `BLOCKED` |",
+        "| Package writer/reader/orchestrator changes | `BLOCKED` |",
+    ):
+        assert authority in packet_text
+
+    assert "performed no artifact production" in packet_text
+    assert "no package\ncapture" in packet_text
+    assert "no replay, no scoring" in packet_text
+    assert "no\nbroker/TWS/API/network/runtime action" in packet_text
+    assert "no VPS action" in packet_text
+    assert "no Unit 12 action" in packet_text
+    assert "performed no commit and no push" in packet_text
+
+    assert (
+        "### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Command Surface Blocker Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=b6ecbe488918e3b1d92d9de73327db2eea161989`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_BLOCKER_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in map_text
+    )
+    assert "`NO_EXACT_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_DEFINED`" in (
+        map_text
+    )
+    assert "`ONE_BOUNDED_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_RUN`" in (
+        map_text
+    )
+    assert "`package_capture_execution=NOT_AUTHORIZED`" in map_text
+    assert "`runtime_artifact_production_execution=NOT_AUTHORIZED_BY_THIS_GATE`" in (
+        map_text
+    )
+    assert "`command_surface_code_changes=BLOCKED`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMMAND_SURFACE_DESIGN_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
