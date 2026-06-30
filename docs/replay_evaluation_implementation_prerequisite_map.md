@@ -7544,6 +7544,42 @@ The packet records VPS validation evidence:
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_FINAL_OPERATOR_COMMAND_RESOLUTION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Final Operator Command Resolution Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production final
+operator command resolution packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_final_operator_command_resolution_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_FINAL_OPERATOR_COMMAND_RESOLUTION_PACKET`
+at `source_commit=83815993c160282f26fe4a3bc9fad92386f8fe50` with
+`local_head=83815993c160282f26fe4a3bc9fad92386f8fe50`,
+`origin_main=83815993c160282f26fe4a3bc9fad92386f8fe50`, `branch=main`, and
+`worktree=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_FINAL_OPERATOR_COMMAND_RESOLUTION_PACKET_READY_FOR_ONE_BOUNDED_OPERATOR_RUN`.
+
+The final operator command block requires `git fetch origin main`, branch
+`main`, clean worktree, LOCAL_MAC HEAD equal to `origin/main`, and
+`EXPECTED_COMMIT="$(git rev-parse HEAD)"` before invoking
+`.venv-312/bin/python tools/ops/gate_d_market_session_operator.py produce-read-only-artifacts --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --authorize-direct-mac-terminal-read-only-artifact-production`.
+It does not hardcode a static final expected commit.
+
+The packet records VPS validation evidence:
+`PASS_head_matches_expected_8381599`, `PASS_head_origin_main_aligned`, and
+`124 tests passed`. It preserves
+`produce_read_only_artifacts_run_by_this_gate=false`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`runtime_artifact_production_execution_in_this_gate=NOT_PERFORMED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`, `unit_12_implementation=NOT_OPENED`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`vps_action_by_this_gate=false`, and `bounded_vps_execution=NOT_AUTHORIZED`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_OPERATOR_RUN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
