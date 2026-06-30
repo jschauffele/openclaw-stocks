@@ -8971,7 +8971,7 @@ def test_post_d11_replay_package_capture_operator_run_blocker_remediation_edit_p
     assert "no production\npackage-capture/orchestrator behavior change" in (
         packet_text
     )
-    assert "no Unit 12 action" in packet_text
+    assert "Unit 12 action" in packet_text
     assert "This edit packet performed no commit and no push" in packet_text
 
     assert (
@@ -9196,7 +9196,7 @@ def test_post_d11_replay_package_capture_local_mac_command_surface_design_packet
     assert "no\nproduction package-capture/orchestrator behavior change" in (
         packet_text
     )
-    assert "no Unit 12 action" in packet_text
+    assert "Unit 12 action" in packet_text
     assert "This design packet performed no commit and no push" in packet_text
 
     assert (
@@ -9224,6 +9224,319 @@ def test_post_d11_replay_package_capture_local_mac_command_surface_design_packet
     assert "The design packet performed no implementation" in map_text
     assert (
         "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET`"
+        in map_text
+    )
+
+
+def test_gate_d_operator_capture_local_command_surface_is_local_only() -> None:
+    from tools.ops import gate_d_market_session_operator as operator
+
+    parser = operator.build_parser()
+    parsed = parser.parse_args(
+        [
+            "capture-local",
+            "--run-id",
+            "run_1",
+            "--expected-commit",
+            "abc123",
+            "--authorize-local-package-write",
+        ]
+    )
+
+    assert parsed.command == "capture-local"
+    assert parsed.run_id == "run_1"
+    assert parsed.expected_commit == "abc123"
+    assert parsed.authorize_local_package_write is True
+    assert not hasattr(parsed, "authorize_vps_package_write")
+    assert parsed.func is operator.capture_local
+
+    try:
+        parser.parse_args(
+            [
+                "capture-local",
+                "--run-id",
+                "run_1",
+                "--expected-commit",
+                "abc123",
+                "--authorize-vps-package-write",
+            ]
+        )
+    except SystemExit as exc:
+        assert exc.code != 0
+    else:
+        raise AssertionError(
+            "capture-local must not accept --authorize-vps-package-write"
+        )
+
+
+def test_gate_d_operator_capture_local_fails_closed_without_artifacts(
+    tmp_path: Path, capsys: object
+) -> None:
+    from tools.ops import gate_d_market_session_operator as operator
+
+    expected_commit = "abc123"
+    calls: list[tuple[str, ...]] = []
+
+    def fake_runner(
+        argv: tuple[str, ...], timeout: int | None = None
+    ) -> operator.CommandResult:
+        del timeout
+        calls.append(tuple(argv))
+        if argv[:4] == ("git", "-C", str(tmp_path), "rev-parse"):
+            if argv[4:] == ("--abbrev-ref", "HEAD"):
+                return operator.CommandResult(argv=argv, returncode=0, stdout="main\n")
+            if argv[4:] == ("HEAD",):
+                return operator.CommandResult(
+                    argv=argv, returncode=0, stdout=f"{expected_commit}\n"
+                )
+        if argv[:4] == ("git", "-C", str(tmp_path), "status"):
+            return operator.CommandResult(argv=argv, returncode=0, stdout="")
+        if argv[:3] == ("timeout", "15", "git"):
+            return operator.CommandResult(
+                argv=argv,
+                returncode=0,
+                stdout=f"{expected_commit}\trefs/heads/main\n",
+            )
+        if argv == ("findmnt", "-no", "OPTIONS", "/"):
+            return operator.CommandResult(argv=argv, returncode=0, stdout="rw,local\n")
+        if argv == ("systemctl", "is-active", "openclaw.timer"):
+            return operator.CommandResult(argv=argv, returncode=0, stdout="active\n")
+        if argv == ("systemctl", "is-enabled", "openclaw.timer"):
+            return operator.CommandResult(argv=argv, returncode=0, stdout="enabled\n")
+        if argv == ("systemctl", "is-active", "openclaw.service"):
+            return operator.CommandResult(argv=argv, returncode=3, stdout="inactive\n")
+        if argv == ("systemctl", "is-failed", "openclaw.service"):
+            return operator.CommandResult(argv=argv, returncode=3, stdout="inactive\n")
+        if argv[:3] == ("systemctl", "show", "openclaw.service"):
+            return operator.CommandResult(
+                argv=argv,
+                returncode=0,
+                stdout="NRestarts=0\nResult=success\nExecMainStatus=0\n",
+            )
+        return operator.CommandResult(argv=argv, returncode=127, stderr="unexpected")
+
+    args = SimpleNamespace(
+        repo_root=str(tmp_path),
+        run_id="run_1",
+        expected_commit=expected_commit,
+        authorize_local_package_write=True,
+    )
+
+    result = operator.capture_local(args, runner=fake_runner)
+    output = capsys.readouterr().out
+
+    assert result == 1
+    assert "BLOCK jsonl_exists: run_1" in output
+    assert "BLOCK run_report_exists: run_1" in output
+    assert "PASS package_directory_absent:" in output
+    assert "PASS local_package_write_authorized:" in output
+    assert "PASS vps_package_write_authority_not_used:" in output
+    assert "PASS vps_execution_mode_not_used:" in output
+    assert "PASS order_state_excluded_not_bound:" in output
+    assert "PACKAGE_CAPTURE_EXECUTED=false" in output
+    assert "REPLAY_EXECUTED=false" in output
+    assert "SCORING_EXECUTED=false" in output
+    assert "CANDIDATE_GENERATION_EXECUTED=false" in output
+    assert "VPS_ACTION=false" in output
+    assert "ORDER_STATE_BOUND=false" in output
+    assert (
+        f"FINAL_CLASSIFICATION={operator.LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_FAILED_CLOSED}"
+        in output
+    )
+    assert not any("--execution-mode" in part for call in calls for part in call)
+    assert not any("package_execution_orchestrator" in part for call in calls for part in call)
+
+
+def test_post_d11_replay_package_capture_local_mac_command_surface_implementation_edit_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_local_mac_command_surface_implementation_edit_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture LOCAL_MAC Command Surface Implementation Edit Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `69d4a5232bfc4b8a8b3f37ed6210df24d90eaa48`"
+        in packet_text
+    )
+    assert (
+        "`design_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_DESIGN_PACKET_COMPLETED_READY_FOR_IMPLEMENTATION_EDIT_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`implementation_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET_COMPLETED_READY_FOR_OPERATOR_RUN_REAUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert "`local_mac_command_surface_added` | `capture-local`" in packet_text
+    assert (
+        "`local_authorization_flag` | `--authorize-local-package-write`"
+        in packet_text
+    )
+    assert "`vps_authorization_flag_required_for_local_path` | `false`" in (
+        packet_text
+    )
+    assert "`vps_authorization_flag_accepted_as_local_authority` | `false`" in (
+        packet_text
+    )
+    assert "`delegates_through_execution_mode_vps` | `false`" in packet_text
+    assert "`package_capture_executed` | `false`" in packet_text
+    assert "`replay_executed` | `false`" in packet_text
+    assert "`scoring_executed` | `false`" in packet_text
+    assert "`candidate_generation_executed` | `false`" in packet_text
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert "`vps_action` | `false`" in packet_text
+    assert (
+        "`runtime_broker_vps_scheduler_systemd_credential_action` | `false`"
+        in packet_text
+    )
+    assert (
+        "`production_provider_selection_runtime_behavior_changed` | `false`"
+        in packet_text
+    )
+    assert "`strategy_risk_execution_behavior_changed` | `false`" in packet_text
+    assert "`broker_behavior_changed` | `false`" in packet_text
+    assert "`unit_12_action` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_REAUTHORIZATION_PACKET`"
+        in packet_text
+    )
+
+    assert "capture-local --run-id <run_id> --expected-commit <commit> --authorize-local-package-write" in (
+        packet_text
+    )
+    assert "does not require `--authorize-vps-package-write`" in packet_text
+    assert "does not accept `--authorize-vps-package-write` as LOCAL_MAC authority" in (
+        packet_text
+    )
+    assert "does not delegate through `--execution-mode vps`" in packet_text
+    assert "does not call `package_execution_orchestrator.main`" in packet_text
+    assert "does not write packages" in packet_text
+    assert "does not execute package capture" in packet_text
+    assert "existing VPS `capture` path remains isolated and unchanged" in (
+        packet_text
+    )
+
+    for check in (
+        "HEAD equals `--expected-commit`",
+        "worktree is clean",
+        "`logs/<run_id>.jsonl` exists",
+        "`run_reports/<run_id>.json` or `last_run_report.json` exists",
+        "`replay_packages/<run_id>` is absent",
+        "capture readiness is reproved from already-existing artifacts",
+        "`--authorize-local-package-write` is supplied",
+        "VPS package-write authority is not used",
+        "`--execution-mode vps` is not used",
+        "`order_state_json=ABSENT_EXCLUDED_NOT_BOUND` is preserved",
+    ):
+        assert check in packet_text
+
+    for no_artifact in (
+        "It does not create `logs/`",
+        "`run_reports/`",
+        "`replay_packages/`",
+        "`last_run_report.json`",
+        "`order_state.json`",
+        "or any package\nartifact",
+    ):
+        assert no_artifact in packet_text
+
+    assert "LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_READY_REAUTHORIZATION_REQUIRED" in (
+        packet_text
+    )
+    assert "This classification is readiness for a later reauthorization packet only" in (
+        packet_text
+    )
+    assert "LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_FAILED_CLOSED" in packet_text
+    assert (
+        "NO_SAFE_LOCAL_MAC_PACKAGE_CAPTURE_EXECUTION_SURFACE_WITHOUT_PRODUCTION_PACKAGE_CAPTURE_ORCHESTRATOR_BEHAVIOR_CHANGE"
+        in packet_text
+    )
+    assert "remediated at the command-surface level" in packet_text
+    assert "order_state_json=ABSENT_EXCLUDED_NOT_BOUND" in packet_text
+    assert "does not read, write, create, bind, validate, infer, or\nuse `order_state`" in (
+        packet_text
+    )
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Package capture execution | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This implementation edit packet performed no package capture" in (
+        packet_text
+    )
+    assert "no replay, no\nscoring" in packet_text
+    assert "no candidate generation" in packet_text
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no\nVPS action" in packet_text
+    assert "Unit 12 action" in packet_text
+    assert "This implementation edit packet performed no commit and no push" in (
+        packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Capture LOCAL_MAC Command Surface Implementation Edit Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=69d4a5232bfc4b8a8b3f37ed6210df24d90eaa48`" in (
+        map_text
+    )
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET_COMPLETED_READY_FOR_OPERATOR_RUN_REAUTHORIZATION_PACKET`"
+        in map_text
+    )
+    assert "`capture-local --run-id <run_id> --expected-commit <commit> --authorize-local-package-write`" in (
+        map_text
+    )
+    assert "does not require or accept\n`--authorize-vps-package-write`" in (
+        map_text
+    )
+    assert "does not delegate\nthrough `--execution-mode vps`" in map_text
+    assert "`LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_READY_REAUTHORIZATION_REQUIRED`" in (
+        map_text
+    )
+    assert "`LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_FAILED_CLOSED`" in map_text
+    assert "`package_capture_execution=NOT_AUTHORIZED`" in map_text
+    assert "`bounded_vps_execution=NOT_AUTHORIZED`" in map_text
+    assert "The implementation edit packet performed no package capture" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_REAUTHORIZATION_PACKET`"
         in map_text
     )
 

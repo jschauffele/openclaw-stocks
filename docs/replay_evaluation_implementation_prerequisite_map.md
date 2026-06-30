@@ -6839,6 +6839,72 @@ Unit 12 action, no commit, and no push.
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET`.
 
+### Post-D11 Replay Package Capture LOCAL_MAC Command Surface Implementation Edit Packet
+
+The source-controlled implementation edit packet for the LOCAL_MAC command
+surface is recorded here:
+
+docs/post_d11_replay_package_capture_local_mac_command_surface_implementation_edit_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET`
+at `source_commit=69d4a5232bfc4b8a8b3f37ed6210df24d90eaa48` and selects the
+single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_LOCAL_MAC_COMMAND_SURFACE_IMPLEMENTATION_EDIT_PACKET_COMPLETED_READY_FOR_OPERATOR_RUN_REAUTHORIZATION_PACKET`.
+
+The implementation adds a distinct LOCAL_MAC operator command surface:
+`capture-local --run-id <run_id> --expected-commit <commit> --authorize-local-package-write`.
+The command requires `--run-id`, requires `--expected-commit`, requires
+`--authorize-local-package-write`, does not require or accept
+`--authorize-vps-package-write` as LOCAL_MAC authority, does not delegate
+through `--execution-mode vps`, does not call
+`package_execution_orchestrator.main`, does not write packages, and does not
+execute package capture. The existing VPS `capture` path remains isolated and
+unchanged.
+
+The LOCAL_MAC path is fail-closed. It requires clean source-control checks,
+safe `run_id`, `logs/<run_id>.jsonl`, `run_reports/<run_id>.json` or
+`last_run_report.json`, absent `replay_packages/<run_id>`, capture readiness
+reproved from already-existing artifacts, local-only authorization, no VPS
+package-write authority use, no `--execution-mode vps`, and
+`order_state_json=ABSENT_EXCLUDED_NOT_BOUND`. It creates no artifacts, no
+`logs/`, no `run_reports/`, no `replay_packages/`, no `last_run_report.json`,
+no `order_state.json`, and no package artifact.
+
+If all local preflight checks pass, the command reports
+`LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_READY_REAUTHORIZATION_REQUIRED`; this is
+not package-capture authorization. If any check fails, it reports
+`LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_FAILED_CLOSED`.
+
+The prior concrete blocker
+`NO_SAFE_LOCAL_MAC_PACKAGE_CAPTURE_EXECUTION_SURFACE_WITHOUT_PRODUCTION_PACKAGE_CAPTURE_ORCHESTRATOR_BEHAVIOR_CHANGE`
+is remediated at the command-surface level. Package capture execution remains
+`NOT_AUTHORIZED` until a later bounded operator-run reauthorization gate
+explicitly authorizes it. Bounded VPS execution remains `NOT_AUTHORIZED`.
+
+The implementation preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`package_capture_execution=NOT_AUTHORIZED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`bounded_vps_execution=NOT_AUTHORIZED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The implementation edit packet performed no package capture, no replay, no
+scoring, no candidate generation, no broker/TWS/API/network/runtime action, no
+VPS action, no Unit 12 action, no commit, and no push.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_REAUTHORIZATION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

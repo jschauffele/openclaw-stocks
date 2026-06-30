@@ -69,6 +69,12 @@ ONE_GOVERNED_PACKAGE_CAPTURED_PENDING_D14_LEDGER_FOLLOW_UP = (
 CAPTURE_ATTEMPT_FAILED_CLOSED_NO_RETRY_WITHOUT_NEW_AUTHORIZATION = (
     "CAPTURE_ATTEMPT_FAILED_CLOSED_NO_RETRY_WITHOUT_NEW_AUTHORIZATION"
 )
+LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_READY_REAUTHORIZATION_REQUIRED = (
+    "LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_READY_REAUTHORIZATION_REQUIRED"
+)
+LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_FAILED_CLOSED = (
+    "LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_FAILED_CLOSED"
+)
 
 _SAFE_RUN_ID_RE = re.compile(r"^[A-Za-z0-9._:-]+$")
 
@@ -769,6 +775,67 @@ def capture(args: argparse.Namespace, runner: CommandRunner = _run_command) -> i
     return 0 if code == 0 else 1
 
 
+def capture_local(
+    args: argparse.Namespace, runner: CommandRunner = _run_command
+) -> int:
+    """LOCAL_MAC-only package-capture preflight surface.
+
+    This command reconciles the LOCAL_MAC authority surface without delegating
+    to the VPS package execution path. It does not write a replay package;
+    package capture still requires a later bounded operator-run reauthorization
+    gate.
+    """
+
+    repo = _repo_root(args.repo_root)
+    checks = list(_pre_capture_checks(repo, args.expected_commit, args.run_id, runner))
+    if args.run_id and is_safe_run_id(args.run_id):
+        checks.append(_capture_readiness_check(repo, args.run_id))
+    checks.append(
+        Check(
+            "local_package_write_authorized",
+            bool(args.authorize_local_package_write),
+            "local-only authorization flag supplied"
+            if args.authorize_local_package_write
+            else "missing --authorize-local-package-write",
+        )
+    )
+    checks.append(
+        Check(
+            "vps_package_write_authority_not_used",
+            True,
+            "--authorize-vps-package-write is not accepted by capture-local",
+        )
+    )
+    checks.append(
+        Check(
+            "vps_execution_mode_not_used",
+            True,
+            "capture-local does not delegate to --execution-mode vps",
+        )
+    )
+    checks.append(
+        Check(
+            "order_state_excluded_not_bound",
+            True,
+            "order_state_json=ABSENT_EXCLUDED_NOT_BOUND",
+        )
+    )
+    _print_checks(checks)
+    classification = (
+        LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_READY_REAUTHORIZATION_REQUIRED
+        if all(check.ok for check in checks)
+        else LOCAL_MAC_PACKAGE_CAPTURE_PREFLIGHT_FAILED_CLOSED
+    )
+    print("PACKAGE_CAPTURE_EXECUTED=false")
+    print("REPLAY_EXECUTED=false")
+    print("SCORING_EXECUTED=false")
+    print("CANDIDATE_GENERATION_EXECUTED=false")
+    print("VPS_ACTION=false")
+    print("ORDER_STATE_BOUND=false")
+    print(f"FINAL_CLASSIFICATION={classification}")
+    return 0 if all(check.ok for check in checks) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parent = argparse.ArgumentParser(add_help=False)
     parent.add_argument("--repo-root", default=".")
@@ -797,6 +864,14 @@ def build_parser() -> argparse.ArgumentParser:
     cap.add_argument("--expected-commit", default=EXPECTED_COMMIT)
     cap.add_argument("--authorize-vps-package-write", action="store_true", required=True)
     cap.set_defaults(func=capture)
+
+    cap_local = subparsers.add_parser("capture-local", parents=[parent])
+    cap_local.add_argument("--run-id", required=True)
+    cap_local.add_argument("--expected-commit", required=True)
+    cap_local.add_argument(
+        "--authorize-local-package-write", action="store_true", required=True
+    )
+    cap_local.set_defaults(func=capture_local)
     return parser
 
 
