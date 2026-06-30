@@ -7699,6 +7699,58 @@ The packet preserves `produce_read_only_artifacts_run_by_this_gate=false`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Corrected Operator Run Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only artifact production corrected
+operator-run packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_corrected_operator_run_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET`
+at `source_commit=ac75080419e910c39f1a2683641a603f8a8999a1` with
+`local_head=ac75080419e910c39f1a2683641a603f8a8999a1`,
+`origin_main=ac75080419e910c39f1a2683641a603f8a8999a1`, `branch=main`, and
+`worktree=clean`. It records VPS validation evidence:
+`PASS_head_matches_expected_ac75080`, `PASS_head_origin_main_aligned`, and
+`128 tests passed`.
+
+The corrected LOCAL_MAC / DIRECT_MAC_TERMINAL operator run used module execution
+with run ID `post_d11_direct_mac_read_only_artifacts_001`, resolved
+`EXPECTED_COMMIT=ac75080419e910c39f1a2683641a603f8a8999a1`, observed
+`ACTUAL_HEAD=ac75080419e910c39f1a2683641a603f8a8999a1`, observed
+`ORIGIN_MAIN=ac75080419e910c39f1a2683641a603f8a8999a1`, preserved
+`SOURCE_CONTEXT=LOCAL_MAC_ONLY`, preserved
+`OPERATOR_SURFACE=DIRECT_MAC_TERMINAL`, and selected the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET_COMPLETED_READ_ONLY_ARTIFACT_PRODUCTION`.
+
+The produced artifacts are:
+`logs/post_d11_direct_mac_read_only_artifacts_001.jsonl` with
+`sha256=7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`,
+`run_reports/post_d11_direct_mac_read_only_artifacts_001.json` with
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`,
+and `last_run_report.json` with
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+
+The post-run inventory records
+`PRESENT_logs/post_d11_direct_mac_read_only_artifacts_001.jsonl`,
+`PRESENT_run_reports/post_d11_direct_mac_read_only_artifacts_001.json`,
+`PRESENT_last_run_report.json`, `ABSENT_replay_packages`, and
+`ABSENT_order_state.json`.
+
+The packet preserves `produce_read_only_artifacts_rerun_by_this_gate=false`,
+`package_capture_executed=false`, `replay_executed=false`,
+`scoring_executed=false`, `candidate_generation_executed=false`,
+`unit_12_action=false`, `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`tws_api_network_runtime_action=false`, `vps_action=false`,
+`order_state_bound=false`, `commit_performed_by_this_gate=false`, and
+`push_performed_by_this_gate=false`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_ARTIFACT_ADJUDICATION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
