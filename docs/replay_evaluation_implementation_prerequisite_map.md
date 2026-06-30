@@ -6961,6 +6961,82 @@ The packet preserves `broker_submit_readiness=NOT_APPROVED`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`.
 
+### Post-D11 Replay Package Capture Operator Run Expected Commit Alignment Packet
+
+The source-controlled expected-commit alignment packet for the bounded
+LOCAL_MAC operator-run envelope is recorded here:
+
+docs/post_d11_replay_package_capture_operator_run_expected_commit_alignment_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_EXPECTED_COMMIT_ALIGNMENT_PACKET`
+for audit state `local_head=72de932896ca33327efe23f17de055ddf5f9162d`,
+`origin_main=72de932896ca33327efe23f17de055ddf5f9162d`, `branch=main`, and
+`status_short=clean`. It selects the single decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_EXPECTED_COMMIT_ALIGNMENT_PACKET_COMPLETED_READY_FOR_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`.
+
+The historical reauthorization packet remains a valid source-controlled
+approval artifact, but its static future command binding
+`--expected-commit 53a836ac91e3d9fd11cf9b9368e1eab6128657e4` is superseded for
+future execution-envelope resolution. The implementation source commit
+`53a836ac91e3d9fd11cf9b9368e1eab6128657e4` remains the validated LOCAL_MAC
+command-surface implementation basis, not the active operator-run expected
+commit.
+
+The active expected commit must be resolved during bounded operator-run
+preflight from the current clean, branch-main, origin-aligned HEAD. The bounded
+operator-run packet must print and lock `branch=main`,
+`local_head=<resolved_current_head>`, `origin_main=<same_resolved_current_head>`,
+`status_short=clean`, and `expected_commit=<same_resolved_current_head>`. No
+static replacement expected commit is hardcoded in the alignment packet because
+the alignment packet commit itself will advance HEAD.
+
+The only authorized future command template is:
+
+```text
+EXPECTED_COMMIT="$(git rev-parse HEAD)"
+.venv-312/bin/python tools/ops/gate_d_market_session_operator.py capture-local --run-id <run_id> --expected-commit "$EXPECTED_COMMIT" --authorize-local-package-write
+```
+
+The later bounded operator-run packet must fail closed unless branch is `main`,
+worktree is clean, LOCAL_MAC HEAD equals `origin/main`, `expected_commit`
+equals the current LOCAL_MAC HEAD and `origin/main` at bounded-run preflight, a
+concrete safe `run_id` is supplied from already-existing eligible artifacts,
+`logs/<run_id>.jsonl` exists, `run_reports/<run_id>.json` exists or
+`last_run_report.json` alignment exists, report evidence is aligned to the
+selected `run_id`, terminal completion evidence is present, capture readiness
+is reproved from already-existing artifacts, and `replay_packages/<run_id>` is
+absent before package capture.
+
+The future operator-run packet must preserve
+`order_state_json=ABSENT_EXCLUDED_NOT_BOUND`; no `order_state` read, write,
+creation, binding, validation, inference, or use is authorized. It must not use
+`--authorize-vps-package-write`, must not use `--execution-mode vps`, must not
+delegate to `package_execution_orchestrator.main`, and must not perform VPS,
+broker/TWS/API/network/runtime/scheduler/systemd/timer/service, replay,
+scoring, candidate-generation, or Unit 12 action.
+
+The packet preserves `broker_submit_readiness=NOT_APPROVED`,
+`live_trading_readiness=NOT_APPROVED`, `account_authority=NONE`,
+`order_authority=NONE`, `execution_authority=NONE`,
+`package_capture_execution_in_this_gate=NOT_AUTHORIZED`,
+`replay_execution=NOT_AUTHORIZED`, `scoring_execution=NOT_AUTHORIZED`,
+`candidate_generation_execution=NOT_AUTHORIZED`,
+`strategy_risk_execution_changes=BLOCKED`,
+`scheduler_runtime_service_systemd_timer_changes=BLOCKED`,
+`credential_environment_changes=BLOCKED`,
+`production_runtime_provider_selection_runtime_changes=BLOCKED`,
+`production_command_surface_changes=BLOCKED`,
+`production_broker_behavior_changes=BLOCKED`,
+`bounded_vps_execution=NOT_AUTHORIZED`,
+`vps_endpoint_approval=NOT_APPROVED`,
+`endpoint_18789_18791_approval=NOT_APPROVED`,
+`bridge_tunnel_proxy_approval=NOT_APPROVED`, and
+`unit_12_implementation=NOT_OPENED`.
+
+The exact next permissible gate remains
+`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

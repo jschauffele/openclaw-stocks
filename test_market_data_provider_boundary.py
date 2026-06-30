@@ -9731,6 +9731,233 @@ def test_post_d11_replay_package_capture_operator_run_reauthorization_packet() -
     )
 
 
+def test_post_d11_replay_package_capture_operator_run_expected_commit_alignment_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_operator_run_expected_commit_alignment_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture Operator Run Expected Commit Alignment Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_EXPECTED_COMMIT_ALIGNMENT_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`audit_head` | `72de932896ca33327efe23f17de055ddf5f9162d`"
+        in packet_text
+    )
+    assert (
+        "`audit_origin_main` | `72de932896ca33327efe23f17de055ddf5f9162d`"
+        in packet_text
+    )
+    assert "`audit_branch` | `main`" in packet_text
+    assert "`audit_worktree` | `clean`" in packet_text
+    assert (
+        "`historical_reauthorization_source_commit` | "
+        "`53a836ac91e3d9fd11cf9b9368e1eab6128657e4`"
+        in packet_text
+    )
+    assert (
+        "`implementation_basis_commit` | "
+        "`53a836ac91e3d9fd11cf9b9368e1eab6128657e4`"
+        in packet_text
+    )
+    assert (
+        "`implementation_packet_source_commit` | "
+        "`69d4a5232bfc4b8a8b3f37ed6210df24d90eaa48`"
+        in packet_text
+    )
+    assert (
+        "`alignment_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_EXPECTED_COMMIT_ALIGNMENT_PACKET_COMPLETED_READY_FOR_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`"
+        in packet_text
+    )
+    assert "`static_replacement_expected_commit_hardcoded` | `false`" in (
+        packet_text
+    )
+    assert (
+        "`active_expected_commit_resolution` | "
+        "`current_clean_branch_main_origin_aligned_head_at_bounded_run_preflight`"
+        in packet_text
+    )
+    assert "`package_capture_executed_by_this_gate` | `false`" in packet_text
+    assert "`replay_executed_by_this_gate` | `false`" in packet_text
+    assert "`scoring_executed_by_this_gate` | `false`" in packet_text
+    assert "`candidate_generation_executed_by_this_gate` | `false`" in packet_text
+    assert "`broker_tws_api_network_runtime_action` | `false`" in packet_text
+    assert "`vps_action` | `false`" in packet_text
+    assert "`production_command_surface_changed` | `false`" in packet_text
+    assert "`unit_12_action` | `false`" in packet_text
+    assert "`commit_performed` | `false`" in packet_text
+    assert "`push_performed` | `false`" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`"
+        in packet_text
+    )
+
+    assert "--expected-commit 53a836ac91e3d9fd11cf9b9368e1eab6128657e4" in (
+        packet_text
+    )
+    assert "The historical reauthorization packet remains a valid" in packet_text
+    assert "must not proceed using the stale\nstatic expected commit" in packet_text
+    assert (
+        "remains the validated LOCAL_MAC\ncommand-surface implementation basis"
+        in packet_text
+    )
+    assert "It is not the active operator-run\nexpected commit" in packet_text
+    assert "No static replacement expected commit is hardcoded" in packet_text
+    assert (
+        "Replacing\n`53a836ac91e3d9fd11cf9b9368e1eab6128657e4` with\n`72de932896ca33327efe23f17de055ddf5f9162d`"
+        in packet_text
+    )
+
+    command_template = (
+        'EXPECTED_COMMIT="$(git rev-parse HEAD)"\n'
+        '.venv-312/bin/python tools/ops/gate_d_market_session_operator.py '
+        'capture-local --run-id <run_id> --expected-commit "$EXPECTED_COMMIT" '
+        "--authorize-local-package-write"
+    )
+    assert command_template in packet_text
+
+    for locked_field in (
+        "branch=main",
+        "local_head=<resolved_current_head>",
+        "origin_main=<same_resolved_current_head>",
+        "status_short=clean",
+        "expected_commit=<same_resolved_current_head>",
+    ):
+        assert locked_field in packet_text
+
+    for criterion in (
+        "source context is `LOCAL_MAC_ONLY`",
+        "branch is `main`",
+        "worktree is clean",
+        "LOCAL_MAC HEAD equals `origin/main`",
+        "`expected_commit` equals current LOCAL_MAC HEAD and `origin/main` at\n  bounded-run preflight",
+        "`branch=main` is printed and locked",
+        "`local_head=<resolved_current_head>` is printed and locked",
+        "`origin_main=<same_resolved_current_head>` is printed and locked",
+        "`status_short=clean` is printed and locked",
+        "`expected_commit=<same_resolved_current_head>` is printed and locked",
+        "explicit concrete `run_id` is supplied only after preflight proves eligible\n  artifacts",
+        "supplied `run_id` is a safe path segment",
+        "`logs/<run_id>.jsonl` exists",
+        "`run_reports/<run_id>.json` exists or `last_run_report.json` alignment\n  exists",
+        "available report evidence is aligned to the selected `run_id`",
+        "capture readiness is reproved from already-existing artifacts",
+        "`replay_packages/<run_id>` is absent before package capture",
+        "no mixed `run_id` evidence appears",
+        "no stale report evidence appears",
+        "no path traversal appears",
+        "no overwrite attempt appears",
+        "no future, leaked, or post-decision evidence appears",
+        "`order_state_json=ABSENT_EXCLUDED_NOT_BOUND` is preserved",
+        "no `order_state` read, write, creation, binding, validation, inference, or\n  use occurs",
+        "no `--authorize-vps-package-write` appears",
+        "no `--execution-mode vps` appears",
+        "no `package_execution_orchestrator.main` delegation occurs",
+        "no VPS action occurs",
+        "no broker/TWS/API/network/runtime/scheduler/systemd/timer/service action\n  occurs",
+        "no replay, scoring, candidate generation, or Unit 12 action occurs",
+    ):
+        assert criterion in packet_text
+
+    for artifact_requirement in (
+        "exactly one concrete `run_id`",
+        "aligned `logs/<run_id>.jsonl`",
+        "aligned `run_reports/<run_id>.json` or aligned `last_run_report.json`",
+        "terminal completion evidence",
+        "no existing `replay_packages/<run_id>` directory",
+        "resolved current source commit and `run_id` alignment evidence",
+        "does not create `logs/`",
+        "`run_reports/`",
+        "`replay_packages/`",
+        "`last_run_report.json`",
+        "`order_state.json`",
+        "or any package\nartifact",
+        "`replay_packages` remains an output target only",
+    ):
+        assert artifact_requirement in packet_text
+
+    assert "order_state_json=ABSENT_EXCLUDED_NOT_BOUND" in packet_text
+    assert "must not read, write, create, bind, validate,\ninfer, or use `order_state`" in (
+        packet_text
+    )
+    assert "must not infer broker-visible order state" in packet_text
+
+    for authority in (
+        "| Broker submit readiness | `NOT_APPROVED` |",
+        "| Live trading readiness | `NOT_APPROVED` |",
+        "| Account authority | `NONE` |",
+        "| Order authority | `NONE` |",
+        "| Execution authority | `NONE` |",
+        "| Package capture execution in this gate | `NOT_AUTHORIZED` |",
+        "| Replay execution | `NOT_AUTHORIZED` |",
+        "| Scoring execution | `NOT_AUTHORIZED` |",
+        "| Candidate generation execution | `NOT_AUTHORIZED` |",
+        "| Strategy behavior changes | `BLOCKED` |",
+        "| Risk behavior changes | `BLOCKED` |",
+        "| Execution behavior changes | `BLOCKED` |",
+        "| Scheduler/runtime/service/systemd/timer changes | `BLOCKED` |",
+        "| Credential or environment-file changes | `BLOCKED` |",
+        "| Production runtime configuration changes | `BLOCKED` |",
+        "| Production provider-selection runtime behavior changes | `BLOCKED` |",
+        "| Production command-surface changes | `BLOCKED` |",
+        "| Production broker behavior changes | `BLOCKED` |",
+        "| Bounded VPS execution | `NOT_AUTHORIZED` |",
+        "| VPS endpoint approval | `NOT_APPROVED` |",
+        "| `18789` or `18791` endpoint approval | `NOT_APPROVED` |",
+        "| Bridge, tunnel, or proxy approval | `NOT_APPROVED` |",
+        "| Unit 12 implementation | `NOT_OPENED` |",
+    ):
+        assert authority in packet_text
+
+    assert "This expected-commit alignment packet is the active envelope correction" in (
+        packet_text
+    )
+    assert "This alignment packet performed no package capture" in packet_text
+    assert "no replay, no scoring" in packet_text
+    assert "no\ncandidate generation" in packet_text
+    assert "no broker/TWS/API/network/runtime action" in packet_text
+    assert "no VPS action" in packet_text
+    assert "no\nproduction command-surface change" in packet_text
+    assert "Unit 12 action" in packet_text
+    assert "This alignment packet performed no commit and no push" in packet_text
+
+    assert (
+        "### Post-D11 Replay Package Capture Operator Run Expected Commit Alignment Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`local_head=72de932896ca33327efe23f17de055ddf5f9162d`" in map_text
+    assert "`origin_main=72de932896ca33327efe23f17de055ddf5f9162d`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_OPERATOR_RUN_EXPECTED_COMMIT_ALIGNMENT_PACKET_COMPLETED_READY_FOR_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`"
+        in map_text
+    )
+    assert "static future command binding\n`--expected-commit 53a836ac91e3d9fd11cf9b9368e1eab6128657e4` is superseded" in (
+        map_text
+    )
+    assert "not the active operator-run expected\ncommit" in map_text
+    assert command_template in map_text
+    assert "No\nstatic replacement expected commit is hardcoded" in map_text
+    assert "`package_capture_execution_in_this_gate=NOT_AUTHORIZED`" in map_text
+    assert "`production_command_surface_changes=BLOCKED`" in map_text
+    assert "`bounded_vps_execution=NOT_AUTHORIZED`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_BOUNDED_LOCAL_MAC_OPERATOR_RUN_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
