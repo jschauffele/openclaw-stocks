@@ -8437,6 +8437,71 @@ the next permissible gate after artifact adjudication. It does not define a
 subsequent permissible gate, so the ledger packet records
 `next_permissible_gate=NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Transition Closeout Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture transition
+closeout packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_transition_closeout_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_TRANSITION_CLOSEOUT_PACKET`
+at `source_commit=4205fab6f018873c42bf657b683432811d2f02b0` with
+`local_head=4205fab6f018873c42bf657b683432811d2f02b0`,
+`origin_main=4205fab6f018873c42bf657b683432811d2f02b0`, `branch=main`, and
+`head_origin_main_aligned=true`. Prior VPS validation recorded
+`140 passed in 6.94s`, `PASS_DIFF_CHECK`, and `PASS_HEAD_ORIGIN_MAIN_ALIGNED`.
+
+The packet records the prior transition-resolution classification
+`POST_D11_TRANSITION_BLOCKED_NO_SOURCE_CONTROLLED_NEXT_GATE_DEFINED` and the
+previous unresolved state
+`next_permissible_gate=NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`.
+
+The packet selects the decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_TRANSITION_CLOSEOUT_PACKET_RECORDED`.
+It records `post_d11_package_capture_closeout_complete=true`,
+`gate_12_unit_12_source_control_authorized=false`,
+`unit_12_execution_opened=false`, and
+`next_permissible_gate=POST_D11_GATE_12_READINESS_PREAUTHORIZATION_PACKET`.
+
+The closed chain recorded by the packet includes the package-capture operator
+run decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET_PACKAGE_CAPTURE_COMPLETED`,
+the artifact adjudication decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_ARTIFACT_ADJUDICATION_PACKET_ACCEPTED`,
+and the ledger record decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_LEDGER_RECORD_PACKET_RECORDED`.
+
+The local runtime-only package manifest remains
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001/manifest.json` with
+`manifest_sha256=882b126344c818e3eacee4d6d8af6c9e289b922171d73534ce583559ed7ec694`.
+The packet records `manifest_runtime_evidence_only=true`,
+`manifest_git_add_authorized=false`, `manifest_git_tracked=false`,
+`manifest_top_level_final_classification=None`, and
+`manifest_top_level_package_path=None`.
+
+The packet preserves `replay_packages=NOT_TRACKED_DO_NOT_ADD`,
+`logs=NOT_TRACKED_DO_NOT_ADD`, `run_reports=NOT_TRACKED_DO_NOT_ADD`,
+`last_run_report.json=NOT_TRACKED_DO_NOT_ADD`, and
+`order_state.json=ABSENT_NOT_TRACKED_DO_NOT_ADD`.
+
+The next permissible gate
+`POST_D11_GATE_12_READINESS_PREAUTHORIZATION_PACKET` is a future source-controlled decision packet only. It is not active Gate 12 execution, does not implement Unit 12, and does not authorize replay, scoring, candidate generation, broker/runtime/VPS action, or account/order/execution authority.
+
+The packet records `artifact_modification_by_this_packet=false`,
+`artifact_git_add_performed_by_this_packet=false`,
+`replay_package_git_add_performed_by_this_packet=false`,
+`package_capture_rerun_by_this_packet=false`,
+`replay_authorized_by_this_packet=false`,
+`scoring_authorized_by_this_packet=false`,
+`candidate_generation_authorized_by_this_packet=false`,
+`broker_action_authorized_by_this_packet=false`,
+`runtime_action_authorized_by_this_packet=false`,
+`vps_action_authorized_by_this_packet=false`,
+`unit_12_action_authorized_by_this_packet=false`,
+`strategy_risk_execution_behavior_change_authorized_by_this_packet=false`,
+`commit_performed_by_this_packet=false`, and `push_performed_by_this_packet=false`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
