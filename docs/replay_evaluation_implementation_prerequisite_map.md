@@ -7958,6 +7958,64 @@ It preserves `package_capture_executed_by_this_gate=false`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Command Resolution Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture command
+resolution packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_command_resolution_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_PACKET`
+at `source_commit=a910514f693c2ffbcbe8b6ed499811c37904ec4b` with
+`local_head=a910514f693c2ffbcbe8b6ed499811c37904ec4b`,
+`origin_main=a910514f693c2ffbcbe8b6ed499811c37904ec4b`, `branch=main`, and
+`worktree=clean`. It records VPS validation evidence:
+`PASS_head_matches_expected_a910514`, `PASS_head_origin_main_aligned`, and
+`133 tests passed`.
+
+The packet does not resolve a supported executable command. It selects the
+blocked decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`
+with concrete blocker
+`NO_SUPPORTED_LOCAL_MAC_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE`.
+
+The source-controlled command-surface inspection found that `capture-local
+--run-id <run_id> --expected-commit <commit> --authorize-local-package-write` is
+LOCAL_MAC preflight only and does not write a replay package. The legacy
+`capture --run-id <run_id> --expected-commit <commit> --authorize-vps-package-write`
+delegates through `--execution-mode vps` and `--authorize-vps-package-write`.
+The package execution orchestrator CLI exposes a VPS command candidate, but VPS
+execution requires a separate bounded VPS execution gate and is not authorized
+by this LOCAL_MAC-only packet.
+
+The packet preserves input anchors for run ID
+`post_d11_direct_mac_read_only_artifacts_001`, artifact runtime commit anchor
+`ac75080419e910c39f1a2683641a603f8a8999a1`, authorization source commit
+`a910514f693c2ffbcbe8b6ed499811c37904ec4b`, artifact adjudication source commit
+`7829aa5c5d4aee36f70218724b774238a56ac4ef`, log artifact hash
+`7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`, and run
+report / last run report hash
+`fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+
+The expected future output path remains
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001`, but no output is
+created by this packet. The packet records `replay_packages_current_state=ABSENT`,
+`order_state_json_current_state=ABSENT`,
+`supported_package_capture_command_resolved=false`,
+`package_capture_executed_by_this_gate=false`,
+`replay_packages_created_by_this_gate=false`,
+`artifact_files_modified_by_this_gate=false`,
+`artifact_git_add_performed_by_this_gate=false`,
+`replay_executed_by_this_gate=false`, `scoring_executed_by_this_gate=false`,
+`candidate_generation_executed_by_this_gate=false`,
+`broker_tws_api_network_runtime_action_by_this_gate=false`,
+`vps_action_by_this_gate=false`, `unit_12_action_by_this_gate=false`,
+`commit_performed_by_this_gate=false`, and `push_performed_by_this_gate=false`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE_REMEDIATION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status

@@ -14004,6 +14004,170 @@ def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_package_c
     )
 
 
+def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_command_resolution_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_command_resolution_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Command Resolution Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `a910514f693c2ffbcbe8b6ed499811c37904ec4b`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert (
+        "`local_head` | `a910514f693c2ffbcbe8b6ed499811c37904ec4b`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `a910514f693c2ffbcbe8b6ed499811c37904ec4b`"
+        in packet_text
+    )
+    assert "`worktree` | `clean`" in packet_text
+    assert (
+        "`prior_packet` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`prior_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET_READY_FOR_PACKAGE_CAPTURE_COMMAND_RESOLUTION`"
+        in packet_text
+    )
+    assert "`PASS_head_matches_expected_a910514`" in packet_text
+    assert "`PASS_head_origin_main_aligned`" in packet_text
+    assert "`133 tests passed`" in packet_text
+    assert (
+        "`package_capture_command_resolution_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in packet_text
+    )
+    assert (
+        "`concrete_blocker` | "
+        "`NO_SUPPORTED_LOCAL_MAC_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE`"
+        in packet_text
+    )
+    assert "`supported_package_capture_command_resolved` | `false`" in packet_text
+    assert "`resolved_future_operator_command` | `NONE_BLOCKED`" in packet_text
+
+    for anchor in (
+        "`authorization_source_commit` | `a910514f693c2ffbcbe8b6ed499811c37904ec4b`",
+        "`artifact_adjudication_source_commit` | `7829aa5c5d4aee36f70218724b774238a56ac4ef`",
+        "`artifact_runtime_commit_anchor` | `ac75080419e910c39f1a2683641a603f8a8999a1`",
+        "`run_id` | `post_d11_direct_mac_read_only_artifacts_001`",
+        "`log_artifact_path` | `logs/post_d11_direct_mac_read_only_artifacts_001.jsonl`",
+        "`log_artifact_sha256` | `7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`",
+        "`run_report_artifact_path` | `run_reports/post_d11_direct_mac_read_only_artifacts_001.json`",
+        "`run_report_artifact_sha256` | `fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`",
+        "`last_run_report_path` | `last_run_report.json`",
+        "`last_run_report_sha256` | `fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`",
+        "`last_run_report_identity` | `BYTE_IDENTICAL_AND_HASH_IDENTICAL_TO_RUN_REPORT`",
+    ):
+        assert anchor in packet_text
+
+    assert "`replay_packages_current_state` | `ABSENT`" in packet_text
+    assert "`order_state_json_current_state` | `ABSENT`" in packet_text
+    assert (
+        "`expected_future_package_output_path` | "
+        "`replay_packages/post_d11_direct_mac_read_only_artifacts_001`"
+        in packet_text
+    )
+    assert (
+        "`capture_local_resolution_result` | "
+        "`UNSUPPORTED_FOR_PACKAGE_CAPTURE_EXECUTION_PREFLIGHT_ONLY_DOES_NOT_WRITE_REPLAY_PACKAGE`"
+        in packet_text
+    )
+    assert (
+        "`legacy_capture_resolution_result` | "
+        "`UNSUPPORTED_FOR_LOCAL_MAC_ONLY_DELEGATES_TO_EXECUTION_MODE_VPS_AND_VPS_PACKAGE_WRITE_AUTHORITY`"
+        in packet_text
+    )
+    assert (
+        "`package_execution_orchestrator_resolution_result` | "
+        "`UNSUPPORTED_FOR_LOCAL_MAC_ONLY_VPS_EXECUTION_REQUIRES_SEPARATE_BOUNDED_VPS_EXECUTION_GATE`"
+        in packet_text
+    )
+
+    for false_field in (
+        "`package_capture_executed_by_this_gate` | `false`",
+        "`replay_packages_created_by_this_gate` | `false`",
+        "`produce_read_only_artifacts_rerun_by_this_gate` | `false`",
+        "`artifact_files_modified_by_this_gate` | `false`",
+        "`artifact_git_add_performed_by_this_gate` | `false`",
+        "`replay_executed_by_this_gate` | `false`",
+        "`scoring_executed_by_this_gate` | `false`",
+        "`candidate_generation_executed_by_this_gate` | `false`",
+        "`broker_tws_api_network_runtime_action_by_this_gate` | `false`",
+        "`vps_action_by_this_gate` | `false`",
+        "`unit_12_action_by_this_gate` | `false`",
+        "`scheduler_service_systemd_timer_mutation` | `false`",
+        "`credential_env_mutation` | `false`",
+        "`strategy_risk_execution_behavior_change` | `false`",
+        "`provider_selection_or_broker_behavior_change` | `false`",
+        "`production_code_changed_by_this_gate` | `false`",
+        "`commit_performed_by_this_gate` | `false`",
+        "`push_performed_by_this_gate` | `false`",
+    ):
+        assert false_field in packet_text
+
+    assert "No supported command was resolved for this exact boundary" in packet_text
+    assert "LOCAL_MAC preflight surface only; does not write a replay package" in (
+        packet_text
+    )
+    assert "Delegates to `package_execution_orchestrator.main` with `--execution-mode vps`" in (
+        packet_text
+    )
+    assert "VPS execution requires separate bounded VPS execution authorization" in (
+        packet_text
+    )
+    assert "replay_packages/post_d11_direct_mac_read_only_artifacts_001" in (
+        packet_text
+    )
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE_REMEDIATION_PACKET`"
+        in packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Command Resolution Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=a910514f693c2ffbcbe8b6ed499811c37904ec4b`" in (
+        map_text
+    )
+    assert "`PASS_head_matches_expected_a910514`" in map_text
+    assert "`133 tests passed`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in map_text
+    )
+    assert "`NO_SUPPORTED_LOCAL_MAC_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE`" in (
+        map_text
+    )
+    assert "capture-local" in map_text
+    assert "--execution-mode vps" in map_text
+    assert "`supported_package_capture_command_resolved=false`" in map_text
+    assert "`replay_packages_created_by_this_gate=false`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE_REMEDIATION_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
