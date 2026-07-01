@@ -7904,6 +7904,60 @@ The packet records `PASS_ABSENT_replay_packages`, `PASS_ABSENT_order_state.json`
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Authorization Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture
+authorization packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_authorization_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET`
+at `source_commit=7829aa5c5d4aee36f70218724b774238a56ac4ef` with
+`local_head=7829aa5c5d4aee36f70218724b774238a56ac4ef`,
+`origin_main=7829aa5c5d4aee36f70218724b774238a56ac4ef`, `branch=main`, and
+`worktree=clean`. It records VPS validation evidence:
+`PASS_head_matches_expected_7829aa5`, `PASS_head_origin_main_aligned`, and
+`132 tests passed`.
+
+The packet is authorization-only and authorizes only package-capture command
+resolution. It selects the decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_AUTHORIZATION_PACKET_READY_FOR_PACKAGE_CAPTURE_COMMAND_RESOLUTION`.
+It records `package_capture_execution_authorized_by_this_packet=false` and
+`package_capture_command_resolution_authorized_by_this_packet=true`.
+
+The package-capture input anchors are run ID
+`post_d11_direct_mac_read_only_artifacts_001`, artifact runtime commit anchor
+`ac75080419e910c39f1a2683641a603f8a8999a1`, and authorization source commit
+`7829aa5c5d4aee36f70218724b774238a56ac4ef`. The artifact anchors are
+`logs/post_d11_direct_mac_read_only_artifacts_001.jsonl` with
+`sha256=7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`,
+`run_reports/post_d11_direct_mac_read_only_artifacts_001.json` with
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`,
+and `last_run_report.json` with
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+
+The packet records `replay_packages_current_state=ABSENT`,
+`order_state_json_current_state=ABSENT`, future package output as
+`BOUNDED_REPLAY_PACKAGE_UNDER_REPLAY_PACKAGES_FOR_ADJUDICATED_RUN_ID_ONLY`, and
+the order-state boundary as
+`MUST_NOT_READ_WRITE_REQUIRE_OR_BIND_ORDER_STATE_JSON_UNLESS_LATER_PACKET_EXPLICITLY_AUTHORIZES`.
+It preserves `package_capture_executed_by_this_gate=false`,
+`replay_packages_created_by_this_gate=false`,
+`produce_read_only_artifacts_rerun_by_this_gate=false`,
+`artifact_files_modified_by_this_gate=false`,
+`artifact_git_add_performed_by_this_gate=false`,
+`replay_executed_by_this_gate=false`, `scoring_executed_by_this_gate=false`,
+`candidate_generation_executed_by_this_gate=false`,
+`broker_tws_api_network_runtime_action_by_this_gate=false`,
+`vps_action_by_this_gate=false`, `unit_12_action_by_this_gate=false`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`commit_performed_by_this_gate=false`, and `push_performed_by_this_gate=false`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
