@@ -81,6 +81,12 @@ DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMPLETED = (
 DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_FAILED_CLOSED = (
     "DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_FAILED_CLOSED"
 )
+DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMPLETED = (
+    "DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMPLETED"
+)
+DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_FAILED_CLOSED = (
+    "DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_FAILED_CLOSED"
+)
 
 _SAFE_RUN_ID_RE = re.compile(r"^[A-Za-z0-9._:-]+$")
 
@@ -832,6 +838,271 @@ def _artifact_digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _read_json_object(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"{path} did not contain a JSON object")
+    return value
+
+
+def _first_jsonl_object(path: Path) -> dict[str, Any]:
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        value = json.loads(line)
+        if not isinstance(value, dict):
+            raise ValueError(f"{path} contained a non-object JSONL record")
+        return value
+    raise ValueError(f"{path} contained no JSONL records")
+
+
+def _artifact_json_field(path: Path, field: str) -> str:
+    try:
+        return str(_read_json_object(path).get(field, ""))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return ""
+
+
+def _artifact_jsonl_field(path: Path, field: str) -> str:
+    try:
+        return str(_first_jsonl_object(path).get(field, ""))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return ""
+
+
+def _direct_mac_terminal_read_only_package_checks(
+    repo: Path,
+    expected_commit: str,
+    run_id: str,
+    artifact_runtime_commit: str,
+    expected_log_sha256: str,
+    expected_run_report_sha256: str,
+    expected_last_run_report_sha256: str,
+    authorized: bool,
+    runner: CommandRunner,
+) -> tuple[Check, ...]:
+    branch = _git_stdout(repo, runner, ("rev-parse", "--abbrev-ref", "HEAD"))
+    head = _git_stdout(repo, runner, ("rev-parse", "HEAD"))
+    origin_main = _git_stdout(repo, runner, ("rev-parse", "origin/main"))
+    status = _git(repo, runner, ("status", "--short"))
+    status_short = status.stdout.strip()
+    log_path = repo / "logs" / f"{run_id}.jsonl"
+    run_report_path = repo / "run_reports" / f"{run_id}.json"
+    last_run_report_path = repo / "last_run_report.json"
+    replay_package_path = repo / "replay_packages" / run_id
+    order_state_path = repo / "order_state.json"
+
+    log_exists = log_path.exists()
+    run_report_exists = run_report_path.exists()
+    last_run_report_exists = last_run_report_path.exists()
+    log_sha256 = _artifact_digest(log_path) if log_exists else ""
+    run_report_sha256 = _artifact_digest(run_report_path) if run_report_exists else ""
+    last_run_report_sha256 = (
+        _artifact_digest(last_run_report_path) if last_run_report_exists else ""
+    )
+    last_run_report_identical = (
+        run_report_exists
+        and last_run_report_exists
+        and run_report_path.read_bytes() == last_run_report_path.read_bytes()
+    )
+
+    return (
+        Check("repo_path_exists", repo.exists(), str(repo)),
+        Check("branch_is_main", branch == "main", branch),
+        Check("head_equals_expected", head == expected_commit, head),
+        Check("origin_main_equals_expected", origin_main == expected_commit, origin_main),
+        Check("local_head_equals_origin_main", head == origin_main and bool(head), origin_main),
+        Check(
+            "git_status_short_clean",
+            status.returncode == 0 and status_short == "",
+            status_short or "clean",
+        ),
+        Check("run_id_supplied", bool(run_id), run_id),
+        Check("run_id_safe_path_segment", is_safe_run_id(run_id), run_id),
+        Check(
+            "direct_mac_terminal_read_only_package_capture_authorized",
+            authorized,
+            "authorization flag supplied"
+            if authorized
+            else "missing --authorize-direct-mac-terminal-read-only-package-capture",
+        ),
+        Check("local_mac_only_source_context", True, "LOCAL_MAC_ONLY"),
+        Check("direct_mac_terminal_operator_surface", True, "DIRECT_MAC_TERMINAL"),
+        Check("read_only_package_capture_boundary", True, "read_only_file_package_only"),
+        Check("broker_submit_readiness_not_approved", True, "NOT_APPROVED"),
+        Check("live_trading_readiness_not_approved", True, "NOT_APPROVED"),
+        Check("account_authority_none", True, "NONE"),
+        Check("order_authority_none", True, "NONE"),
+        Check("execution_authority_none", True, "NONE"),
+        Check("tws_api_network_runtime_action_not_used", True, "false"),
+        Check("vps_action_not_used", True, "false"),
+        Check("scheduler_service_systemd_timer_mutation_not_used", True, "false"),
+        Check("credential_env_mutation_not_used", True, "false"),
+        Check("replay_not_executed", True, "false"),
+        Check("scoring_not_executed", True, "false"),
+        Check("candidate_generation_not_executed", True, "false"),
+        Check("unit_12_not_opened", True, "false"),
+        Check("log_artifact_exists", log_exists, str(log_path)),
+        Check("run_report_artifact_exists", run_report_exists, str(run_report_path)),
+        Check(
+            "last_run_report_artifact_exists",
+            last_run_report_exists,
+            str(last_run_report_path),
+        ),
+        Check("log_sha256_matches", log_sha256 == expected_log_sha256, log_sha256),
+        Check(
+            "run_report_sha256_matches",
+            run_report_sha256 == expected_run_report_sha256,
+            run_report_sha256,
+        ),
+        Check(
+            "last_run_report_sha256_matches",
+            last_run_report_sha256 == expected_last_run_report_sha256,
+            last_run_report_sha256,
+        ),
+        Check(
+            "last_run_report_byte_identical_to_run_report",
+            last_run_report_identical,
+            "BYTE_IDENTICAL" if last_run_report_identical else "NOT_IDENTICAL",
+        ),
+        Check(
+            "log_expected_commit_matches_artifact_runtime_commit",
+            _artifact_jsonl_field(log_path, "expected_commit") == artifact_runtime_commit,
+            _artifact_jsonl_field(log_path, "expected_commit"),
+        ),
+        Check(
+            "log_actual_head_matches_artifact_runtime_commit",
+            _artifact_jsonl_field(log_path, "actual_head") == artifact_runtime_commit,
+            _artifact_jsonl_field(log_path, "actual_head"),
+        ),
+        Check(
+            "run_report_expected_commit_matches_artifact_runtime_commit",
+            _artifact_json_field(run_report_path, "expected_commit")
+            == artifact_runtime_commit,
+            _artifact_json_field(run_report_path, "expected_commit"),
+        ),
+        Check(
+            "run_report_origin_main_matches_artifact_runtime_commit",
+            _artifact_json_field(run_report_path, "origin_main") == artifact_runtime_commit,
+            _artifact_json_field(run_report_path, "origin_main"),
+        ),
+        Check(
+            "package_directory_absent",
+            not replay_package_path.exists(),
+            str(replay_package_path),
+        ),
+        Check(
+            "order_state_absent_excluded_not_bound",
+            not order_state_path.exists(),
+            "order_state_json=ABSENT_EXCLUDED_NOT_BOUND",
+        ),
+    )
+
+
+def capture_local_read_only_package(
+    args: argparse.Namespace, runner: CommandRunner = _run_command
+) -> int:
+    """LOCAL_MAC-only replay package write from adjudicated read-only artifacts."""
+
+    repo = _repo_root(args.repo_root)
+    checks = list(
+        _direct_mac_terminal_read_only_package_checks(
+            repo,
+            args.expected_commit,
+            args.run_id,
+            args.artifact_runtime_commit,
+            args.expected_log_sha256,
+            args.expected_run_report_sha256,
+            args.expected_last_run_report_sha256,
+            args.authorize_direct_mac_terminal_read_only_package_capture,
+            runner,
+        )
+    )
+    _print_checks(checks)
+
+    print(f"RUN_ID={args.run_id}")
+    print(f"EXPECTED_COMMIT={args.expected_commit}")
+    print(f"ARTIFACT_RUNTIME_COMMIT={args.artifact_runtime_commit}")
+    print("SOURCE_CONTEXT=LOCAL_MAC_ONLY")
+    print("OPERATOR_SURFACE=DIRECT_MAC_TERMINAL")
+    print("READ_ONLY_PACKAGE_CAPTURE_AUTHORITY=true")
+    print("BROKER_SUBMIT_READINESS=NOT_APPROVED")
+    print("LIVE_TRADING_READINESS=NOT_APPROVED")
+    print("ACCOUNT_AUTHORITY=NONE")
+    print("ORDER_AUTHORITY=NONE")
+    print("EXECUTION_AUTHORITY=NONE")
+    print("TWS_API_NETWORK_RUNTIME_ACTION=false")
+    print("VPS_ACTION=false")
+    print("REPLAY_EXECUTED=false")
+    print("SCORING_EXECUTED=false")
+    print("CANDIDATE_GENERATION_EXECUTED=false")
+    print("UNIT_12_ACTION=false")
+    print("ORDER_STATE_BOUND=false")
+    print("VPS_PACKAGE_WRITE_AUTHORITY_USED=false")
+    print("EXECUTION_MODE_VPS_USED=false")
+
+    if not all(check.ok for check in checks):
+        print("PACKAGE_CAPTURE_EXECUTED=false")
+        print("REPLAY_PACKAGE_PATH=")
+        print(
+            "FINAL_CLASSIFICATION="
+            f"{DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_FAILED_CLOSED}"
+        )
+        return 1
+
+    log_path = repo / "logs" / f"{args.run_id}.jsonl"
+    run_report_path = repo / "run_reports" / f"{args.run_id}.json"
+    last_run_report_path = repo / "last_run_report.json"
+    package_dir = repo / "replay_packages" / args.run_id
+    manifest_path = package_dir / "manifest.json"
+
+    package_dir.mkdir(parents=True, exist_ok=False)
+    manifest = {
+        "artifact_runtime_commit": args.artifact_runtime_commit,
+        "authority": {
+            "account_authority": "NONE",
+            "broker_submit_readiness": "NOT_APPROVED",
+            "execution_authority": "NONE",
+            "live_trading_readiness": "NOT_APPROVED",
+            "order_authority": "NONE",
+            "order_state_bound": False,
+            "vps_action": False,
+        },
+        "input_artifacts": [
+            {
+                "path": str(log_path.relative_to(repo)),
+                "sha256": _artifact_digest(log_path),
+            },
+            {
+                "path": str(run_report_path.relative_to(repo)),
+                "sha256": _artifact_digest(run_report_path),
+            },
+            {
+                "path": str(last_run_report_path.relative_to(repo)),
+                "sha256": _artifact_digest(last_run_report_path),
+            },
+        ],
+        "package_capture": {
+            "execution_mode_vps_used": False,
+            "local_mac_only": True,
+            "package_path": str(package_dir.relative_to(repo)),
+            "source_artifacts_mutated": False,
+            "vps_package_write_authority_used": False,
+        },
+        "run_id": args.run_id,
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+    print("PACKAGE_CAPTURE_EXECUTED=true")
+    print(f"REPLAY_PACKAGE_PATH={package_dir.relative_to(repo)}")
+    print(f"PACKAGE_FILE manifest.json sha256={_artifact_digest(manifest_path)}")
+    print(
+        "FINAL_CLASSIFICATION="
+        f"{DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMPLETED}"
+    )
+    return 0
+
+
 def produce_read_only_artifacts(
     args: argparse.Namespace, runner: CommandRunner = _run_command
 ) -> int:
@@ -1098,6 +1369,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--authorize-local-package-write", action="store_true", required=True
     )
     cap_local.set_defaults(func=capture_local)
+
+    cap_local_read_only_package = subparsers.add_parser(
+        "capture-local-read-only-package", parents=[parent]
+    )
+    cap_local_read_only_package.add_argument("--run-id", required=True)
+    cap_local_read_only_package.add_argument("--expected-commit", required=True)
+    cap_local_read_only_package.add_argument("--artifact-runtime-commit", required=True)
+    cap_local_read_only_package.add_argument("--expected-log-sha256", required=True)
+    cap_local_read_only_package.add_argument(
+        "--expected-run-report-sha256", required=True
+    )
+    cap_local_read_only_package.add_argument(
+        "--expected-last-run-report-sha256", required=True
+    )
+    cap_local_read_only_package.add_argument(
+        "--authorize-direct-mac-terminal-read-only-package-capture",
+        action="store_true",
+        required=True,
+    )
+    cap_local_read_only_package.set_defaults(func=capture_local_read_only_package)
 
     read_only_artifacts = subparsers.add_parser(
         "produce-read-only-artifacts", parents=[parent]

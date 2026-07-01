@@ -8016,6 +8016,61 @@ created by this packet. The packet records `replay_packages_current_state=ABSENT
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE_REMEDIATION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Command Surface Remediation Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture command
+surface remediation packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_command_surface_remediation_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE_REMEDIATION_PACKET`
+at `source_commit=42a72f0814b49c31500031e83e1c737cdee8c8a3` with
+`local_head=42a72f0814b49c31500031e83e1c737cdee8c8a3`,
+`origin_main=42a72f0814b49c31500031e83e1c737cdee8c8a3`, `branch=main`, and
+`worktree=clean`. It records VPS validation evidence:
+`PASS_head_matches_expected_42a72f0`, `PASS_head_origin_main_aligned`, and
+`134 tests passed`.
+
+The packet remediates the concrete blocker
+`NO_SUPPORTED_LOCAL_MAC_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE` and selects
+the decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE_REMEDIATION_PACKET_READY_FOR_COMMAND_RESOLUTION_RETRY`.
+The remediated command surface is `capture-local-read-only-package` with local
+authorization flag
+`--authorize-direct-mac-terminal-read-only-package-capture`.
+
+The new surface is LOCAL_MAC only, has
+`supported_package_capture_command_resolved=true`, does not use
+`--execution-mode vps`, does not call `package_execution_orchestrator.main`,
+does not require, accept, or reinterpret `--authorize-vps-package-write`, and
+preserves the expected future package output path
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001`.
+
+The packet preserves input anchors for run ID
+`post_d11_direct_mac_read_only_artifacts_001`, artifact runtime commit anchor
+`ac75080419e910c39f1a2683641a603f8a8999a1`, log artifact hash
+`7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`, and run
+report / last run report hash
+`fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+
+The packet records `replay_packages_current_state=ABSENT`,
+`order_state_json_current_state=ABSENT`,
+`package_capture_executed_by_this_gate=false`,
+`replay_packages_created_by_this_gate=false`,
+`artifact_files_modified_by_this_gate=false`,
+`artifact_git_add_performed_by_this_gate=false`,
+`order_state_json=ABSENT_EXCLUDED_NOT_BOUND`,
+`broker_tws_api_network_runtime_action_by_this_gate=false`,
+`vps_action_by_this_gate=false`, `replay_executed_by_this_gate=false`,
+`scoring_executed_by_this_gate=false`,
+`candidate_generation_executed_by_this_gate=false`,
+`unit_12_action_by_this_gate=false`, `commit_performed_by_this_gate=false`, and
+`push_performed_by_this_gate=false`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_RETRY_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
