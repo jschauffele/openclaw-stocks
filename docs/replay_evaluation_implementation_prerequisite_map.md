@@ -8348,6 +8348,95 @@ The packet records `artifact_modification_by_this_packet=false`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_LEDGER_RECORD_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Ledger Record Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture ledger
+record packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_ledger_record_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_LEDGER_RECORD_PACKET`
+at `source_commit=42c53b190dd3ef96b62071ca4fa2726150150a33` with
+`local_head=42c53b190dd3ef96b62071ca4fa2726150150a33`,
+`origin_main=42c53b190dd3ef96b62071ca4fa2726150150a33`, `branch=main`, and
+`head_origin_main_aligned=true`. Prior VPS validation recorded
+`PASS_HEAD_MATCHES_EXPECTED_42c53b1`, `PASS_HEAD_ORIGIN_MAIN_ALIGNED`,
+`139 passed in 6.01s`, and `PASS_DIFF_CHECK`.
+
+The packet selects the decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_LEDGER_RECORD_PACKET_RECORDED`.
+Fresh LOCAL_MAC precheck recorded
+`PASS_HEAD_MATCHES_ARTIFACT_ADJUDICATION_CLOSE`, `PASS_HEAD_ORIGIN_MAIN_ALIGNED`,
+`PASS_MANIFEST_EXISTS`, `PASS_ORDER_STATE_ABSENT`, and
+`PASS_NO_ARTIFACTS_TRACKED`.
+
+The ledger records the completed package-capture operator-run packet commit
+`7fa98bccd0c1390466f33d699503b4a21413fa26` with decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET_PACKAGE_CAPTURE_COMPLETED`
+and the completed artifact adjudication packet commit
+`42c53b190dd3ef96b62071ca4fa2726150150a33` with decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_ARTIFACT_ADJUDICATION_PACKET_ACCEPTED`.
+
+The local runtime-only package manifest is
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001/manifest.json` with
+`manifest_sha256=882b126344c818e3eacee4d6d8af6c9e289b922171d73534ce583559ed7ec694`.
+The packet records `manifest_runtime_evidence_only=true`,
+`manifest_git_add_authorized=false`, `manifest_git_tracked=false`, and
+`package_artifact_git_tracking_boundary=DO_NOT_ADD_REPLAY_PACKAGES_TO_GIT`.
+
+Manifest schema observations are recorded as facts:
+`manifest_top_level_keys=artifact_runtime_commit, authority, input_artifacts, package_capture, run_id`,
+`manifest_top_level_run_id=post_d11_direct_mac_read_only_artifacts_001`,
+`manifest_top_level_final_classification=None`, and
+`manifest_top_level_package_path=None`. The packet records
+`manifest_missing_top_level_final_classification_blocker=false` and
+`manifest_missing_top_level_package_path_blocker=false`.
+
+Source artifact hashes are recorded exactly:
+`logs/post_d11_direct_mac_read_only_artifacts_001.jsonl`
+`sha256=7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`,
+`run_reports/post_d11_direct_mac_read_only_artifacts_001.json`
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`,
+and `last_run_report.json`
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+The artifact runtime commit remains
+`ac75080419e910c39f1a2683641a603f8a8999a1`.
+
+The packet records `replay_packages=NOT_TRACKED_DO_NOT_ADD`,
+`logs=NOT_TRACKED_DO_NOT_ADD`, `run_reports=NOT_TRACKED_DO_NOT_ADD`,
+`last_run_report.json=NOT_TRACKED_DO_NOT_ADD`, and
+`order_state.json=ABSENT_NOT_TRACKED_DO_NOT_ADD`. `order_state_json_absence_state=ABSENT`,
+`order_state_bound=false`, `order_state_read_authorized=false`,
+`order_state_write_authorized=false`, and `order_state_git_add_authorized=false`
+are preserved.
+
+The packet records `artifact_modification_by_this_packet=false`,
+`artifact_git_add_performed_by_this_packet=false`,
+`replay_package_git_add_performed_by_this_packet=false`,
+`package_capture_rerun_by_this_packet=false`,
+`produce_read_only_artifacts_rerun_by_this_packet=false`,
+`replay_authorized_by_this_packet=false`,
+`scoring_authorized_by_this_packet=false`,
+`candidate_generation_authorized_by_this_packet=false`,
+`broker_action_authorized_by_this_packet=false`,
+`tws_action_authorized_by_this_packet=false`,
+`runtime_action_authorized_by_this_packet=false`,
+`vps_action_authorized_by_this_packet=false`,
+`unit_12_action_authorized_by_this_packet=false`,
+`order_submission_authorized_by_this_packet=false`,
+`order_cancellation_authorized_by_this_packet=false`,
+`cleanup_flatten_sell_authorized_by_this_packet=false`,
+`scheduler_systemd_action_authorized_by_this_packet=false`,
+`credential_mutation_authorized_by_this_packet=false`,
+`strategy_risk_execution_behavior_change_authorized_by_this_packet=false`,
+`commit_performed_by_this_packet=false`, and `push_performed_by_this_packet=false`.
+
+The inspected source-controlled prerequisite map defines this ledger record as
+the next permissible gate after artifact adjudication. It does not define a
+subsequent permissible gate, so the ledger packet records
+`next_permissible_gate=NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
