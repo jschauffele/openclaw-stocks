@@ -8130,6 +8130,68 @@ The packet records the expected future package output path as
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Operator Run Authorization Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture operator-run
+authorization packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_operator_run_authorization_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION_PACKET`
+at `source_commit=db269ead5d981777f2e45397109e0c5a1259e6c4` with
+`local_head=db269ead5d981777f2e45397109e0c5a1259e6c4`,
+`origin_main=db269ead5d981777f2e45397109e0c5a1259e6c4`, `branch=main`, and
+`worktree=clean`. It records VPS validation evidence:
+`PASS_head_matches_expected_db269ea`, `PASS_head_origin_main_aligned`, and
+`136 tests passed`.
+
+The packet selects the decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION_PACKET_READY_FOR_PACKAGE_CAPTURE_OPERATOR_RUN`
+and authorizes exactly one future bounded LOCAL_MAC package-capture operator
+attempt. It does not execute package capture and records
+`package_capture_executed_by_this_gate=false` and
+`replay_package_created_by_this_gate=false`.
+
+The authorized future command is
+`.venv-312/bin/python -m tools.ops.gate_d_market_session_operator capture-local-read-only-package --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --artifact-runtime-commit ac75080419e910c39f1a2683641a603f8a8999a1 --expected-log-sha256 7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea --expected-run-report-sha256 fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 --expected-last-run-report-sha256 fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 --authorize-direct-mac-terminal-read-only-package-capture`.
+
+The future operator run must use source context `LOCAL_MAC_ONLY`, operator
+surface `DIRECT_MAC_TERMINAL`, and expected commit
+`db269ead5d981777f2e45397109e0c5a1259e6c4_UNLESS_SUPERSEDED_BY_LATER_PACKET`.
+It must fail closed unless HEAD, origin/main, and expected commit align,
+worktree is clean, artifact hashes match, artifact runtime commit anchor equals
+`ac75080419e910c39f1a2683641a603f8a8999a1`,
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001` is absent, and
+`order_state.json` is absent and not read, written, required, or bound.
+
+The packet preserves input anchors for run ID
+`post_d11_direct_mac_read_only_artifacts_001`, artifact adjudication commit
+`7829aa5c5d4aee36f70218724b774238a56ac4ef`, package capture authorization
+commit `a910514f693c2ffbcbe8b6ed499811c37904ec4b`, command surface blocker
+commit `42a72f0814b49c31500031e83e1c737cdee8c8a3`, command surface remediation
+commit `f2034397f862b5a44bad53d8dc36896e20d175d3`, command resolution retry
+commit `db269ead5d981777f2e45397109e0c5a1259e6c4`, log artifact hash
+`7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`, and run
+report / last run report hash
+`fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+
+The packet records `replay_packages_current_state=ABSENT`,
+`order_state_json_current_state=ABSENT`,
+`package_capture_operator_run_authorized=ONE_FUTURE_BOUNDED_LOCAL_MAC_ATTEMPT_ONLY`,
+`replay_authorized=false`, `scoring_authorized=false`,
+`candidate_generation_authorized=false`, `unit_12_authorized=false`,
+`broker_tws_api_network_runtime_action_authorized=false`,
+`vps_runtime_action_authorized=false`,
+`artifact_files_modified_by_this_gate=false`,
+`artifact_git_add_performed_by_this_gate=false`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`commit_performed_by_this_gate=false`, and `push_performed_by_this_gate=false`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
