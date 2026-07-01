@@ -14357,6 +14357,174 @@ def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_package_c
     )
 
 
+def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_command_resolution_retry_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_command_resolution_retry_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+    operator_source = Path("tools/ops/gate_d_market_session_operator.py").read_text(
+        encoding="utf-8"
+    )
+    local_surface_source = operator_source.split(
+        "def _direct_mac_terminal_read_only_package_checks", 1
+    )[1].split("\ndef produce_read_only_artifacts", 1)[0]
+
+    command_shape = (
+        ".venv-312/bin/python -m tools.ops.gate_d_market_session_operator "
+        "capture-local-read-only-package --run-id "
+        "post_d11_direct_mac_read_only_artifacts_001 --expected-commit "
+        '"$EXPECTED_COMMIT" --artifact-runtime-commit '
+        "ac75080419e910c39f1a2683641a603f8a8999a1 --expected-log-sha256 "
+        "7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea "
+        "--expected-run-report-sha256 "
+        "fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 "
+        "--expected-last-run-report-sha256 "
+        "fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 "
+        "--authorize-direct-mac-terminal-read-only-package-capture"
+    )
+
+    assert (
+        "Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Command Resolution Retry Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_RETRY_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `f2034397f862b5a44bad53d8dc36896e20d175d3`"
+        in packet_text
+    )
+    assert (
+        "`local_head` | `f2034397f862b5a44bad53d8dc36896e20d175d3`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `f2034397f862b5a44bad53d8dc36896e20d175d3`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert "`worktree` | `clean`" in packet_text
+    assert "`PASS_head_matches_expected_f203439`" in packet_text
+    assert "`PASS_head_origin_main_aligned`" in packet_text
+    assert "`135 tests passed`" in packet_text
+    assert (
+        "`prior_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_SURFACE_REMEDIATION_PACKET_READY_FOR_COMMAND_RESOLUTION_RETRY`"
+        in packet_text
+    )
+    assert (
+        "`command_resolution_retry_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_RETRY_PACKET_READY_FOR_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION`"
+        in packet_text
+    )
+    assert command_shape in packet_text
+    assert "`resolved_command_surface` | `capture-local-read-only-package`" in (
+        packet_text
+    )
+    assert (
+        "`local_authorization_flag` | "
+        "`--authorize-direct-mac-terminal-read-only-package-capture`"
+        in packet_text
+    )
+    assert "`supported_package_capture_command_resolved` | `true`" in packet_text
+    assert (
+        "`package_capture_execution_authorized_by_this_packet` | `false`"
+        in packet_text
+    )
+
+    resolved_command_value = packet_text.split(
+        "`resolved_future_operator_command` | `", 1
+    )[1].split("` |", 1)[0]
+    assert "--execution-mode vps" not in resolved_command_value
+    assert "--authorize-vps-package-write" not in resolved_command_value
+    assert "package_execution_orchestrator" not in resolved_command_value
+    assert "package_execution_orchestrator.main" not in local_surface_source
+    assert "--execution-mode" not in local_surface_source
+    assert "authorize_vps_package_write" not in local_surface_source
+
+    for anchor in (
+        "`prior_blocker_commit` | `42a72f0814b49c31500031e83e1c737cdee8c8a3`",
+        "`authorization_packet_commit` | `a910514f693c2ffbcbe8b6ed499811c37904ec4b`",
+        "`artifact_adjudication_commit` | `7829aa5c5d4aee36f70218724b774238a56ac4ef`",
+        "`artifact_runtime_commit_anchor` | `ac75080419e910c39f1a2683641a603f8a8999a1`",
+        "`run_id` | `post_d11_direct_mac_read_only_artifacts_001`",
+        "`log_artifact_path` | `logs/post_d11_direct_mac_read_only_artifacts_001.jsonl`",
+        "`log_artifact_sha256` | `7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`",
+        "`run_report_artifact_path` | `run_reports/post_d11_direct_mac_read_only_artifacts_001.json`",
+        "`run_report_artifact_sha256` | `fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`",
+        "`last_run_report_path` | `last_run_report.json`",
+        "`last_run_report_sha256` | `fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`",
+        "`expected_future_package_output_path` | `replay_packages/post_d11_direct_mac_read_only_artifacts_001`",
+        "`replay_packages_current_state` | `ABSENT`",
+        "`order_state_json_current_state` | `ABSENT`",
+    ):
+        assert anchor in packet_text
+
+    for false_field in (
+        "`package_capture_executed_by_this_gate` | `false`",
+        "`replay_package_created_by_this_gate` | `false`",
+        "`produce_read_only_artifacts_rerun_by_this_gate` | `false`",
+        "`artifact_files_modified_by_this_gate` | `false`",
+        "`artifact_git_add_performed_by_this_gate` | `false`",
+        "`replay_executed_by_this_gate` | `false`",
+        "`scoring_executed_by_this_gate` | `false`",
+        "`candidate_generation_executed_by_this_gate` | `false`",
+        "`unit_12_action_by_this_gate` | `false`",
+        "`broker_tws_api_network_runtime_action_by_this_gate` | `false`",
+        "`vps_action_by_this_gate` | `false`",
+        "`broker_submit_readiness` | `NOT_APPROVED`",
+        "`live_trading_readiness` | `NOT_APPROVED`",
+        "`account_authority` | `NONE`",
+        "`order_authority` | `NONE`",
+        "`execution_authority` | `NONE`",
+        "`order_state_json` | `ABSENT_EXCLUDED_NOT_BOUND`",
+        "`commit_performed_by_this_gate` | `false`",
+        "`push_performed_by_this_gate` | `false`",
+    ):
+        assert false_field in packet_text
+
+    assert "`replay_packages` remains absent" in packet_text
+    assert "`order_state.json` remains absent" in packet_text
+    assert "does not execute it" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION_PACKET`"
+        in packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Command Resolution Retry Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=f2034397f862b5a44bad53d8dc36896e20d175d3`" in (
+        map_text
+    )
+    assert "`PASS_head_matches_expected_f203439`" in map_text
+    assert "`135 tests passed`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_RETRY_PACKET_READY_FOR_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION`"
+        in map_text
+    )
+    assert "`capture-local-read-only-package`" in map_text
+    assert "`--authorize-direct-mac-terminal-read-only-package-capture`" in map_text
+    assert "`supported_package_capture_command_resolved=true`" in map_text
+    assert "`package_capture_execution_authorized_by_this_packet=false`" in (
+        map_text
+    )
+    assert "`replay_package_created_by_this_gate=false`" in map_text
+    assert "`artifact_git_add_performed_by_this_gate=false`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"

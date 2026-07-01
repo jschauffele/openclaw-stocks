@@ -8071,6 +8071,65 @@ The packet records `replay_packages_current_state=ABSENT`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_RETRY_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Command Resolution Retry Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture command
+resolution retry packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_command_resolution_retry_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_RETRY_PACKET`
+at `source_commit=f2034397f862b5a44bad53d8dc36896e20d175d3` with
+`local_head=f2034397f862b5a44bad53d8dc36896e20d175d3`,
+`origin_main=f2034397f862b5a44bad53d8dc36896e20d175d3`, `branch=main`, and
+`worktree=clean`. It records VPS validation evidence:
+`PASS_head_matches_expected_f203439`, `PASS_head_origin_main_aligned`, and
+`135 tests passed`.
+
+The packet applies the remediated LOCAL_MAC command surface and selects the
+decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMMAND_RESOLUTION_RETRY_PACKET_READY_FOR_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION`.
+The resolved command surface is `capture-local-read-only-package` with
+`--authorize-direct-mac-terminal-read-only-package-capture`.
+
+The resolved future operator command is
+`.venv-312/bin/python -m tools.ops.gate_d_market_session_operator capture-local-read-only-package --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --artifact-runtime-commit ac75080419e910c39f1a2683641a603f8a8999a1 --expected-log-sha256 7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea --expected-run-report-sha256 fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 --expected-last-run-report-sha256 fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 --authorize-direct-mac-terminal-read-only-package-capture`.
+
+The resolved command does not include `--execution-mode vps`, does not include
+`--authorize-vps-package-write`, does not invoke
+`package_execution_orchestrator`, does not bind `order_state.json`, and does not
+add broker/account/order/execution authority.
+
+The packet preserves input anchors for run ID
+`post_d11_direct_mac_read_only_artifacts_001`, artifact runtime commit anchor
+`ac75080419e910c39f1a2683641a603f8a8999a1`, prior blocker commit
+`42a72f0814b49c31500031e83e1c737cdee8c8a3`, authorization packet commit
+`a910514f693c2ffbcbe8b6ed499811c37904ec4b`, artifact adjudication commit
+`7829aa5c5d4aee36f70218724b774238a56ac4ef`, log artifact hash
+`7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`, and run
+report / last run report hash
+`fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+
+The packet records the expected future package output path as
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001` and preserves
+`replay_packages_current_state=ABSENT`, `order_state_json_current_state=ABSENT`,
+`supported_package_capture_command_resolved=true`,
+`package_capture_execution_authorized_by_this_packet=false`,
+`package_capture_executed_by_this_gate=false`,
+`replay_package_created_by_this_gate=false`,
+`artifact_files_modified_by_this_gate=false`,
+`artifact_git_add_performed_by_this_gate=false`,
+`broker_tws_api_network_runtime_action_by_this_gate=false`,
+`vps_action_by_this_gate=false`, `replay_executed_by_this_gate=false`,
+`scoring_executed_by_this_gate=false`,
+`candidate_generation_executed_by_this_gate=false`,
+`unit_12_action_by_this_gate=false`, `commit_performed_by_this_gate=false`, and
+`push_performed_by_this_gate=false`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_AUTHORIZATION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
