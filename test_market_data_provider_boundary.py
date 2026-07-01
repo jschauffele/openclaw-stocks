@@ -13285,6 +13285,184 @@ def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_
     )
 
 
+def test_post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_artifact_adjudication_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_artifact_production_artifact_adjudication_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Artifact Adjudication Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_ARTIFACT_ADJUDICATION_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`source_commit` | `f65222c59a244f8a784565295f699001a0027ded`"
+        in packet_text
+    )
+    assert "`branch` | `main`" in packet_text
+    assert (
+        "`local_head` | `f65222c59a244f8a784565295f699001a0027ded`"
+        in packet_text
+    )
+    assert (
+        "`origin_main` | `f65222c59a244f8a784565295f699001a0027ded`"
+        in packet_text
+    )
+    assert "`worktree` | `clean`" in packet_text
+    assert (
+        "`prior_packet` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET`"
+        in packet_text
+    )
+    assert (
+        "`prior_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_CORRECTED_OPERATOR_RUN_PACKET_COMPLETED_READ_ONLY_ARTIFACT_PRODUCTION`"
+        in packet_text
+    )
+    assert "`PASS_head_matches_expected_f65222c`" in packet_text
+    assert "`PASS_head_origin_main_aligned`" in packet_text
+    assert "`129 tests passed`" in packet_text
+    assert (
+        "`artifact_adjudication_decision` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_ARTIFACT_ADJUDICATION_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in packet_text
+    )
+    assert (
+        "`concrete_blocker` | "
+        "`PRODUCED_ARTIFACT_COMMIT_ALIGNMENT_DOES_NOT_MATCH_CURRENT_SOURCE_OF_TRUTH_HEAD`"
+        in packet_text
+    )
+    assert (
+        "`required_alignment_commit` | `f65222c59a244f8a784565295f699001a0027ded`"
+        in packet_text
+    )
+    for observed_commit_field in (
+        "`observed_artifact_expected_commit` | `ac75080419e910c39f1a2683641a603f8a8999a1`",
+        "`observed_artifact_actual_head` | `ac75080419e910c39f1a2683641a603f8a8999a1`",
+        "`observed_artifact_origin_main` | `ac75080419e910c39f1a2683641a603f8a8999a1`",
+    ):
+        assert observed_commit_field in packet_text
+    assert (
+        "`commit_alignment_result` | "
+        "`FAIL_REQUIRED_f65222c59a244f8a784565295f699001a0027ded_OBSERVED_ac75080419e910c39f1a2683641a603f8a8999a1`"
+        in packet_text
+    )
+    assert "`run_id_alignment` | `PASS_post_d11_direct_mac_read_only_artifacts_001`" in (
+        packet_text
+    )
+    assert (
+        "`final_classification_alignment` | "
+        "`PASS_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_COMPLETED`"
+        in packet_text
+    )
+
+    for hash_field in (
+        "`observed_log_artifact_sha256` | `7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`",
+        "`observed_run_report_artifact_sha256` | `fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`",
+        "`observed_last_run_report_sha256` | `fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`",
+        "`log_artifact_hash_result` | `PASS`",
+        "`run_report_artifact_hash_result` | `PASS`",
+        "`last_run_report_hash_result` | `PASS`",
+    ):
+        assert hash_field in packet_text
+    assert "`last_run_report_byte_identical_to_run_report` | `true`" in packet_text
+    assert "`last_run_report_hash_identical_to_run_report` | `true`" in packet_text
+    assert "`replay_packages_absence_result` | `PASS_ABSENT_replay_packages`" in (
+        packet_text
+    )
+    assert "`order_state_absence_result` | `PASS_ABSENT_order_state.json`" in (
+        packet_text
+    )
+
+    for false_field in (
+        "`tws_api_network_runtime_action` | `false`",
+        "`vps_action` | `false`",
+        "`package_capture_executed` | `false`",
+        "`replay_executed` | `false`",
+        "`scoring_executed` | `false`",
+        "`candidate_generation_executed` | `false`",
+        "`unit_12_action` | `false`",
+        "`produce_read_only_artifacts_rerun_by_this_gate` | `false`",
+        "`artifact_files_modified_by_this_gate` | `false`",
+        "`artifact_git_add_performed_by_this_gate` | `false`",
+        "`package_capture_executed_by_this_gate` | `false`",
+        "`broker_tws_api_network_runtime_action_by_this_gate` | `false`",
+        "`vps_action_by_this_gate` | `false`",
+        "`unit_12_action_by_this_gate` | `false`",
+        "`scheduler_service_systemd_timer_mutation` | `false`",
+        "`credential_env_mutation` | `false`",
+        "`strategy_risk_execution_behavior_change` | `false`",
+        "`provider_selection_or_broker_behavior_change` | `false`",
+        "`production_code_changed_by_this_gate` | `false`",
+        "`commit_performed_by_this_gate` | `false`",
+        "`push_performed_by_this_gate` | `false`",
+    ):
+        assert false_field in packet_text
+
+    assert "`expected_commit` | `f65222c59a244f8a784565295f699001a0027ded` | `ac75080419e910c39f1a2683641a603f8a8999a1` | `FAIL` |" in (
+        packet_text
+    )
+    assert "`actual_head` | `f65222c59a244f8a784565295f699001a0027ded` | `ac75080419e910c39f1a2683641a603f8a8999a1` | `FAIL` |" in (
+        packet_text
+    )
+    assert "`origin_main` | `f65222c59a244f8a784565295f699001a0027ded` | `ac75080419e910c39f1a2683641a603f8a8999a1` | `FAIL` |" in (
+        packet_text
+    )
+    assert "The passing clean adjudication decision is not used" in packet_text
+    assert "byte-identical and hash-identical" in packet_text
+    assert "did not add produced artifacts to git" in packet_text
+    assert (
+        "`next_permissible_gate` | "
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_ARTIFACT_ALIGNMENT_REMEDIATION_PACKET`"
+        in packet_text
+    )
+
+    assert (
+        "### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Artifact Production Artifact Adjudication Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert "`source_commit=f65222c59a244f8a784565295f699001a0027ded`" in (
+        map_text
+    )
+    assert "`PASS_head_matches_expected_f65222c`" in map_text
+    assert "`129 tests passed`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_ARTIFACT_ADJUDICATION_PACKET_BLOCKED_WITH_CONCRETE_BLOCKER`"
+        in map_text
+    )
+    assert (
+        "`PRODUCED_ARTIFACT_COMMIT_ALIGNMENT_DOES_NOT_MATCH_CURRENT_SOURCE_OF_TRUTH_HEAD`"
+        in map_text
+    )
+    assert "`observed_artifact_expected_commit=ac75080419e910c39f1a2683641a603f8a8999a1`" in (
+        map_text
+    )
+    assert (
+        "`sha256=7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`"
+        in map_text
+    )
+    assert (
+        "`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`"
+        in map_text
+    )
+    assert "`PASS_ABSENT_replay_packages`" in map_text
+    assert "`PASS_ABSENT_order_state.json`" in map_text
+    assert "`artifact_git_add_performed_by_this_gate=false`" in map_text
+    assert (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_ARTIFACT_PRODUCTION_ARTIFACT_ALIGNMENT_REMEDIATION_PACKET`"
+        in map_text
+    )
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
