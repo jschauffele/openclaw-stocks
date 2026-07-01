@@ -8192,6 +8192,84 @@ The packet records `replay_packages_current_state=ABSENT`,
 The exact next permissible gate is
 `POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET`.
 
+### Post-D11 Replay Package Capture DIRECT_MAC_TERMINAL Read-Only Package Capture Operator Run Packet
+
+The source-controlled DIRECT_MAC_TERMINAL read-only package-capture operator-run
+packet is recorded here:
+
+docs/post_d11_replay_package_capture_direct_mac_terminal_read_only_package_capture_operator_run_packet.md
+
+The packet records
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET`
+at `source_commit=f0df62f029ded48418df401e7997e85a994d7b0c` with
+`local_head=f0df62f029ded48418df401e7997e85a994d7b0c`,
+`origin_main=f0df62f029ded48418df401e7997e85a994d7b0c`, and
+`expected_commit=f0df62f029ded48418df401e7997e85a994d7b0c`. Prior VPS
+validation at the same commit recorded `PASS_head_matches_expected_f0df62f`,
+`PASS_head_origin_main_aligned`, and `137 tests passed`.
+
+The packet selects the decision
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET_PACKAGE_CAPTURE_COMPLETED`
+and records operator stdout final classification
+`DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_COMPLETED`.
+
+The executed LOCAL_MAC command was
+`.venv-312/bin/python -m tools.ops.gate_d_market_session_operator capture-local-read-only-package --run-id post_d11_direct_mac_read_only_artifacts_001 --expected-commit "$EXPECTED_COMMIT" --artifact-runtime-commit ac75080419e910c39f1a2683641a603f8a8999a1 --expected-log-sha256 7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea --expected-run-report-sha256 fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 --expected-last-run-report-sha256 fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09 --authorize-direct-mac-terminal-read-only-package-capture`.
+
+Preflight and run evidence passed for HEAD/expected/origin alignment, clean
+worktree, target replay package absence before run, `order_state.json` absence,
+source artifact existence, source artifact SHA-256 values, last-run-report byte
+identity, and artifact runtime commit alignment to
+`ac75080419e910c39f1a2683641a603f8a8999a1`.
+
+The packet records `source_context=LOCAL_MAC_ONLY`,
+`operator_surface=DIRECT_MAC_TERMINAL`,
+`read_only_package_capture_authority=true`,
+`broker_submit_readiness=NOT_APPROVED`, `live_trading_readiness=NOT_APPROVED`,
+`account_authority=NONE`, `order_authority=NONE`, `execution_authority=NONE`,
+`tws_api_network_runtime_action=false`, `vps_action=false`,
+`replay_executed=false`, `scoring_executed=false`,
+`candidate_generation_executed=false`, `unit_12_action=false`,
+`order_state_bound=false`, `vps_package_write_authority_used=false`,
+`execution_mode_vps_used=false`, and `package_capture_executed=true`.
+
+The local package artifact is
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001/manifest.json` with
+`manifest_sha256=882b126344c818e3eacee4d6d8af6c9e289b922171d73534ce583559ed7ec694`.
+The package artifact exists locally and must not be added to git. The packet
+records `generated_artifacts_git_tracked=false` and
+`replay_package_git_add_performed_by_this_packet=false`.
+
+Manifest schema observations are recorded as facts:
+`manifest_top_level_keys=artifact_runtime_commit, authority, input_artifacts, package_capture, run_id`,
+`manifest_top_level_run_id=post_d11_direct_mac_read_only_artifacts_001`,
+`manifest_top_level_final_classification=None`, and
+`manifest_top_level_package_path=None`. These missing top-level keys are not
+classified as blockers in this packet.
+
+Source artifacts remained hash-stable after the operator run:
+`logs/post_d11_direct_mac_read_only_artifacts_001.jsonl`
+`sha256=7e7ec6303d0defc2e2ff1234823eb6679e2ae44620d5e74f9935aa00c4f87eea`,
+`run_reports/post_d11_direct_mac_read_only_artifacts_001.json`
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`,
+and `last_run_report.json`
+`sha256=fe3066a526851a81d59802064c0a9cb76c641ad5595de7d27b4c1ce3adb80b09`.
+`order_state_json_after_run=ABSENT` and
+`PASS_order_state_json_still_absent` are recorded.
+
+The packet records `package_capture_rerun_by_this_packet=false`,
+`produce_read_only_artifacts_rerun_by_this_packet=false`,
+`artifact_modification_by_this_packet=false`,
+`artifact_git_add_performed_by_this_packet=false`,
+`replay_executed_by_this_packet=false`, `scoring_executed_by_this_packet=false`,
+`candidate_generation_executed_by_this_packet=false`,
+`broker_tws_api_network_runtime_action_by_this_packet=false`,
+`vps_action_by_this_packet=false`, `unit_12_action_by_this_packet=false`,
+`commit_performed_by_this_packet=false`, and `push_performed_by_this_packet=false`.
+
+The exact next permissible gate is
+`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_ARTIFACT_ADJUDICATION_PACKET`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
