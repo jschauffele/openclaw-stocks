@@ -16902,6 +16902,197 @@ def test_post_d11_gate_12_scoped_implementation_closeout_packet() -> None:
     assert "`artifact_git_add_performed_by_this_packet=false`" in map_text
 
 
+def test_post_d11_scoped_implementation_closeout_transition_gap_resolution_packet() -> None:
+    packet_path = Path(
+        "docs/post_d11_scoped_implementation_closeout_transition_gap_resolution_packet.md"
+    )
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "Post-D11 Scoped Implementation Closeout Transition Gap Resolution Packet"
+        in packet_text
+    )
+    assert (
+        "`classification` | "
+        "`POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_GAP_RESOLUTION_PACKET`"
+        in packet_text
+    )
+    for source_state in (
+        "`source_commit` | `3217952aedba5cd9dd1c8cd0f3658e036e91f128`",
+        "`local_head` | `3217952aedba5cd9dd1c8cd0f3658e036e91f128`",
+        "`origin_main` | `3217952aedba5cd9dd1c8cd0f3658e036e91f128`",
+        "`branch` | `main`",
+        "`head_origin_main_aligned` | `true`",
+    ):
+        assert source_state in packet_text
+
+    assert (
+        "`prior_decision` | "
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_CLOSEOUT_PACKET_RECORDED`"
+        in packet_text
+    )
+    assert "`PASS_HEAD_MATCHES_EXPECTED_3217952`" in packet_text
+    assert "`PASS_HEAD_ORIGIN_MAIN_ALIGNED`" in packet_text
+    assert "`150 passed in 6.08s`" in packet_text
+    assert "`PASS_DIFF_CHECK`" in packet_text
+    assert (
+        "`invalid_local_mac_opt_validation_excluded_from_vps_evidence` | `true`"
+        in packet_text
+    )
+    assert "cd: no such file or directory: /opt/openclaw-stocks" in packet_text
+    assert (
+        "zsh: no such file or directory: /opt/openclaw-stocks/venv/bin/python"
+        in packet_text
+    )
+    assert "`PASS_HEAD_MATCHES_SCOPED_IMPLEMENTATION_CLOSEOUT_CLOSE`" in packet_text
+    assert "`PASS_POST_CLOSEOUT_GAP_MARKERS`" in packet_text
+    assert (
+        "`transition_gap_resolution_decision` | "
+        "`POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_GAP_RESOLUTION_PACKET_RECORDED`"
+        in packet_text
+    )
+
+    for status in (
+        "`scoped_implementation_closeout_complete` | `true`",
+        "`source_controlled_no_next_gate_gap_confirmed` | `true`",
+        "`confirmed_gap` | `NO_SOURCE_CONTROLLED_NEXT_GATE_DEFINED_AFTER_SCOPED_IMPLEMENTATION_CLOSEOUT`",
+        "`prior_next_permissible_gate` | `NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`",
+        "`gap_resolution_recordkeeping_only` | `true`",
+        "`future_transition_readiness_packet_supported_by_source_control` | `true`",
+        "`gate_12_unit_12_source_control_authorized` | `false`",
+        "`gate_12_execution_authorized` | `false`",
+        "`unit_12_execution_opened` | `false`",
+        "`next_permissible_gate` | `POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_READINESS_PACKET`",
+    ):
+        assert status in packet_text
+
+    for closed_chain in (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET_PACKAGE_CAPTURE_COMPLETED`",
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_ARTIFACT_ADJUDICATION_PACKET_ACCEPTED`",
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_LEDGER_RECORD_PACKET_RECORDED`",
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_TRANSITION_CLOSEOUT_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_READINESS_PREAUTHORIZATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_READINESS_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_AUTHORIZATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_PLANNING_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_AUTHORIZATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_PREFLIGHT_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_REVIEW_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_CLOSEOUT_PACKET_RECORDED`",
+    ):
+        assert closed_chain in packet_text
+
+    for resolution in (
+        "`reviewed_closeout_packet_path` | `docs/post_d11_gate_12_scoped_implementation_closeout_packet.md`",
+        "`reviewed_closeout_packet_decision` | `POST_D11_GATE_12_SCOPED_IMPLEMENTATION_CLOSEOUT_PACKET_RECORDED`",
+        "`reviewed_closeout_next_permissible_gate` | `NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`",
+        "`reviewed_closeout_gap` | `NO_SOURCE_CONTROLLED_NEXT_GATE_DEFINED_AFTER_SCOPED_IMPLEMENTATION_CLOSEOUT`",
+        "`gap_resolution_result` | `SOURCE_CONTROLLED_TRANSITION_READINESS_PACKET_DEFINED`",
+        "`defined_next_packet_scope` | `future_source_controlled_transition_readiness_recordkeeping_only`",
+        "`defined_next_packet` | `POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_READINESS_PACKET`",
+        "`defined_next_packet_active_runtime_execution` | `false`",
+        "`defined_next_packet_unit_12_execution` | `false`",
+        "`defined_next_packet_broker_runtime_vps_authority` | `false`",
+    ):
+        assert resolution in packet_text
+    assert "future transition-readiness packet only" in packet_text
+
+    for manifest in (
+        "`manifest_path` | `replay_packages/post_d11_direct_mac_read_only_artifacts_001/manifest.json`",
+        "`manifest_sha256` | `882b126344c818e3eacee4d6d8af6c9e289b922171d73534ce583559ed7ec694`",
+        "`manifest_runtime_evidence_only` | `true`",
+        "`manifest_git_add_authorized` | `false`",
+        "`manifest_git_tracked` | `false`",
+    ):
+        assert manifest in packet_text
+    assert "Runtime artifacts remain local evidence only" in packet_text
+
+    for tracking in (
+        "`replay_packages` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`logs` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`run_reports` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`last_run_report.json` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`order_state.json` | `ABSENT_NOT_TRACKED_DO_NOT_ADD`",
+    ):
+        assert tracking in packet_text
+    assert "does not authorize artifact git-add" in packet_text
+
+    for negative in (
+        "`artifact_modification_by_this_packet` | `false`",
+        "`artifact_git_add_performed_by_this_packet` | `false`",
+        "`replay_package_git_add_performed_by_this_packet` | `false`",
+        "`package_capture_rerun_by_this_packet` | `false`",
+        "`produce_read_only_artifacts_rerun_by_this_packet` | `false`",
+        "`replay_execution_authorized_by_this_packet` | `false`",
+        "`scoring_execution_authorized_by_this_packet` | `false`",
+        "`candidate_generation_authorized_by_this_packet` | `false`",
+        "`broker_action_authorized_by_this_packet` | `false`",
+        "`tws_action_authorized_by_this_packet` | `false`",
+        "`runtime_action_authorized_by_this_packet` | `false`",
+        "`vps_runtime_action_authorized_by_this_packet` | `false`",
+        "`unit_12_action_authorized_by_this_packet` | `false`",
+        "`order_submission_authorized_by_this_packet` | `false`",
+        "`order_cancellation_authorized_by_this_packet` | `false`",
+        "`cleanup_flatten_sell_authorized_by_this_packet` | `false`",
+        "`scheduler_systemd_mutation_authorized_by_this_packet` | `false`",
+        "`credential_mutation_authorized_by_this_packet` | `false`",
+        "`strategy_risk_execution_behavior_change_authorized_by_this_packet` | `false`",
+        "`provider_selection_or_broker_behavior_change_authorized_by_this_packet` | `false`",
+        "`production_command_surface_edit_performed_by_this_packet` | `false`",
+        "`production_code_edit_performed_by_this_packet` | `false`",
+        "`source_code_file_edited_by_this_packet` | `false`",
+        "`commit_performed_by_this_packet` | `false`",
+        "`push_performed_by_this_packet` | `false`",
+    ):
+        assert negative in packet_text
+
+    assert (
+        "### Post-D11 Scoped Implementation Closeout Transition Gap Resolution Packet"
+        in map_text
+    )
+    assert str(packet_path) in map_text
+    assert (
+        "`POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_GAP_RESOLUTION_PACKET`"
+        in map_text
+    )
+    assert "`source_commit=3217952aedba5cd9dd1c8cd0f3658e036e91f128`" in map_text
+    assert "`PASS_HEAD_MATCHES_EXPECTED_3217952`" in map_text
+    assert "`150 passed in 6.08s`" in map_text
+    assert (
+        "`invalid_local_mac_opt_validation_excluded_from_vps_evidence=true`"
+        in map_text
+    )
+    assert (
+        "`POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_GAP_RESOLUTION_PACKET_RECORDED`"
+        in map_text
+    )
+    assert "`scoped_implementation_closeout_complete=true`" in map_text
+    assert "`source_controlled_no_next_gate_gap_confirmed=true`" in map_text
+    assert (
+        "`confirmed_gap=NO_SOURCE_CONTROLLED_NEXT_GATE_DEFINED_AFTER_SCOPED_IMPLEMENTATION_CLOSEOUT`"
+        in map_text
+    )
+    assert (
+        "`prior_next_permissible_gate=NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`"
+        in map_text
+    )
+    assert (
+        "`gap_resolution_result=SOURCE_CONTROLLED_TRANSITION_READINESS_PACKET_DEFINED`"
+        in map_text
+    )
+    assert (
+        "`next_permissible_gate=POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_READINESS_PACKET`"
+        in map_text
+    )
+    assert "Gate 12 / Unit 12 execution remains blocked." in map_text
+    assert "`unit_12_action_authorized_by_this_packet=false`" in map_text
+    assert "`artifact_git_add_performed_by_this_packet=false`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
