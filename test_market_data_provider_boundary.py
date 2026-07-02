@@ -16726,6 +16726,182 @@ def test_post_d11_gate_12_scoped_implementation_review_packet() -> None:
     assert "`artifact_git_add_performed_by_this_packet=false`" in map_text
 
 
+def test_post_d11_gate_12_scoped_implementation_closeout_packet() -> None:
+    packet_path = Path("docs/post_d11_gate_12_scoped_implementation_closeout_packet.md")
+    packet_text = packet_path.read_text(encoding="utf-8")
+    map_text = Path(
+        "docs/replay_evaluation_implementation_prerequisite_map.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Post-D11 Gate 12 Scoped Implementation Closeout Packet" in packet_text
+    assert (
+        "`classification` | `POST_D11_GATE_12_SCOPED_IMPLEMENTATION_CLOSEOUT_PACKET`"
+        in packet_text
+    )
+    for source_state in (
+        "`source_commit` | `50001c0417b84e17ea1c81b75eccd0b9eaaad75a`",
+        "`local_head` | `50001c0417b84e17ea1c81b75eccd0b9eaaad75a`",
+        "`origin_main` | `50001c0417b84e17ea1c81b75eccd0b9eaaad75a`",
+        "`branch` | `main`",
+        "`head_origin_main_aligned` | `true`",
+    ):
+        assert source_state in packet_text
+
+    assert (
+        "`prior_decision` | "
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_REVIEW_PACKET_RECORDED`"
+        in packet_text
+    )
+    assert "`PASS_HEAD_MATCHES_EXPECTED_50001c0`" in packet_text
+    assert "`PASS_HEAD_ORIGIN_MAIN_ALIGNED`" in packet_text
+    assert "`149 passed in 6.16s`" in packet_text
+    assert "`PASS_DIFF_CHECK`" in packet_text
+    assert "`PASS_HEAD_MATCHES_SCOPED_IMPLEMENTATION_REVIEW_CLOSE`" in packet_text
+    assert "`PASS_SCOPED_IMPLEMENTATION_CLOSEOUT_MARKERS`" in packet_text
+    assert (
+        "`gate_12_scoped_implementation_closeout_decision` | "
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_CLOSEOUT_PACKET_RECORDED`"
+        in packet_text
+    )
+    for status in (
+        "`scoped_implementation_lane_stayed_within_source_controlled_authority` | `true`",
+        "`scoped_implementation_lane_recordkeeping_only` | `true`",
+        "`implementation_lane_source_code_file_edited` | `false`",
+        "`implementation_lane_production_code_file_edited` | `false`",
+        "`implementation_lane_exact_source_file_authority` | `none`",
+        "`runtime_authority_created_by_implementation_lane` | `false`",
+        "`post_d11_package_capture_closeout_complete` | `true`",
+        "`gate_12_readiness_preauthorization_complete` | `true`",
+        "`gate_12_readiness_complete` | `true`",
+        "`gate_12_authorization_recordkeeping_complete` | `true`",
+        "`gate_12_scoped_planning_complete` | `true`",
+        "`gate_12_scoped_implementation_authorization_complete` | `true`",
+        "`gate_12_scoped_implementation_preflight_complete` | `true`",
+        "`gate_12_scoped_implementation_complete` | `true`",
+        "`gate_12_scoped_implementation_review_complete` | `true`",
+        "`gate_12_scoped_implementation_closeout_satisfied` | `true`",
+        "`gate_12_unit_12_source_control_authorized` | `false`",
+        "`gate_12_execution_authorized` | `false`",
+        "`unit_12_execution_opened` | `false`",
+        "`next_permissible_gate` | `NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`",
+    ):
+        assert status in packet_text
+
+    for closed_chain in (
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_OPERATOR_RUN_PACKET_PACKAGE_CAPTURE_COMPLETED`",
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_ARTIFACT_ADJUDICATION_PACKET_ACCEPTED`",
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_LEDGER_RECORD_PACKET_RECORDED`",
+        "`POST_D11_REPLAY_PACKAGE_CAPTURE_DIRECT_MAC_TERMINAL_READ_ONLY_PACKAGE_CAPTURE_TRANSITION_CLOSEOUT_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_READINESS_PREAUTHORIZATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_READINESS_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_AUTHORIZATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_PLANNING_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_AUTHORIZATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_PREFLIGHT_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_PACKET_RECORDED`",
+        "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_REVIEW_PACKET_RECORDED`",
+    ):
+        assert closed_chain in packet_text
+
+    for closeout in (
+        "`reviewed_packet_path` | `docs/post_d11_gate_12_scoped_implementation_review_packet.md`",
+        "`reviewed_packet_decision` | `POST_D11_GATE_12_SCOPED_IMPLEMENTATION_REVIEW_PACKET_RECORDED`",
+        "`closeout_result` | `SCOPED_IMPLEMENTATION_LANE_CLOSED_WITHIN_SOURCE_CONTROLLED_AUTHORITY`",
+        "`implementation_lane_scope` | `docs_packet_prerequisite_map_boundary_test_only`",
+        "`implementation_lane_exact_non_runtime_source_files_authorized` | `none`",
+        "`implementation_lane_source_code_file_edited` | `false`",
+        "`implementation_lane_production_code_file_edited` | `false`",
+        "`implementation_lane_production_command_surface_edit_performed` | `false`",
+        "`implementation_lane_executable_authority_created` | `false`",
+        "`implementation_lane_runtime_authority_created` | `false`",
+        "`post_closeout_next_gate_defined_by_inspected_prerequisite_map` | `false`",
+        "`post_closeout_next_gate_gap` | `NO_SOURCE_CONTROLLED_NEXT_GATE_DEFINED_AFTER_SCOPED_IMPLEMENTATION_CLOSEOUT`",
+        "No source-code file was edited in the scoped implementation lane",
+    ):
+        assert closeout in packet_text
+
+    for manifest in (
+        "`manifest_path` | `replay_packages/post_d11_direct_mac_read_only_artifacts_001/manifest.json`",
+        "`manifest_sha256` | `882b126344c818e3eacee4d6d8af6c9e289b922171d73534ce583559ed7ec694`",
+        "`artifact_runtime_commit` | `ac75080419e910c39f1a2683641a603f8a8999a1`",
+        "`manifest_runtime_evidence_only` | `true`",
+        "`manifest_git_add_authorized` | `false`",
+        "`manifest_git_tracked` | `false`",
+    ):
+        assert manifest in packet_text
+    assert "Runtime artifacts remain local evidence only" in packet_text
+
+    for tracking in (
+        "`replay_packages` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`logs` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`run_reports` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`last_run_report.json` | `NOT_TRACKED_DO_NOT_ADD`",
+        "`order_state.json` | `ABSENT_NOT_TRACKED_DO_NOT_ADD`",
+    ):
+        assert tracking in packet_text
+    assert "does not authorize artifact git-add" in packet_text
+
+    for negative in (
+        "`artifact_modification_by_this_packet` | `false`",
+        "`artifact_git_add_performed_by_this_packet` | `false`",
+        "`replay_package_git_add_performed_by_this_packet` | `false`",
+        "`package_capture_rerun_by_this_packet` | `false`",
+        "`produce_read_only_artifacts_rerun_by_this_packet` | `false`",
+        "`replay_execution_authorized_by_this_packet` | `false`",
+        "`scoring_execution_authorized_by_this_packet` | `false`",
+        "`candidate_generation_authorized_by_this_packet` | `false`",
+        "`broker_action_authorized_by_this_packet` | `false`",
+        "`tws_action_authorized_by_this_packet` | `false`",
+        "`runtime_action_authorized_by_this_packet` | `false`",
+        "`vps_runtime_action_authorized_by_this_packet` | `false`",
+        "`unit_12_action_authorized_by_this_packet` | `false`",
+        "`order_submission_authorized_by_this_packet` | `false`",
+        "`order_cancellation_authorized_by_this_packet` | `false`",
+        "`cleanup_flatten_sell_authorized_by_this_packet` | `false`",
+        "`scheduler_systemd_mutation_authorized_by_this_packet` | `false`",
+        "`credential_mutation_authorized_by_this_packet` | `false`",
+        "`strategy_risk_execution_behavior_change_authorized_by_this_packet` | `false`",
+        "`provider_selection_or_broker_behavior_change_authorized_by_this_packet` | `false`",
+        "`production_command_surface_edit_performed_by_this_packet` | `false`",
+        "`production_code_edit_performed_by_this_packet` | `false`",
+        "`source_code_file_edited_by_this_packet` | `false`",
+        "`commit_performed_by_this_packet` | `false`",
+        "`push_performed_by_this_packet` | `false`",
+    ):
+        assert negative in packet_text
+
+    assert "### Post-D11 Gate 12 Scoped Implementation Closeout Packet" in map_text
+    assert str(packet_path) in map_text
+    assert "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_CLOSEOUT_PACKET`" in map_text
+    assert "`source_commit=50001c0417b84e17ea1c81b75eccd0b9eaaad75a`" in map_text
+    assert "`PASS_HEAD_MATCHES_EXPECTED_50001c0`" in map_text
+    assert "`149 passed in 6.16s`" in map_text
+    assert "`POST_D11_GATE_12_SCOPED_IMPLEMENTATION_CLOSEOUT_PACKET_RECORDED`" in (
+        map_text
+    )
+    assert (
+        "`scoped_implementation_lane_stayed_within_source_controlled_authority=true`"
+        in map_text
+    )
+    assert "`implementation_lane_source_code_file_edited=false`" in map_text
+    assert "`implementation_lane_exact_source_file_authority=none`" in map_text
+    assert "`gate_12_scoped_implementation_review_complete=true`" in map_text
+    assert "`gate_12_scoped_implementation_closeout_satisfied=true`" in map_text
+    assert "`gate_12_execution_authorized=false`" in map_text
+    assert "`unit_12_execution_opened=false`" in map_text
+    assert (
+        "`next_permissible_gate=NOT_DEFINED_BY_SOURCE_CONTROLLED_PREREQUISITE_MAP`"
+        in map_text
+    )
+    assert (
+        "`post_closeout_next_gate_gap=NO_SOURCE_CONTROLLED_NEXT_GATE_DEFINED_AFTER_SCOPED_IMPLEMENTATION_CLOSEOUT`"
+        in map_text
+    )
+    assert "Gate 12 / Unit 12 execution remains blocked." in map_text
+    assert "`unit_12_action_authorized_by_this_packet=false`" in map_text
+    assert "`artifact_git_add_performed_by_this_packet=false`" in map_text
+
+
 def test_d11_23_preflight_packet_is_control_prep_only_without_authority() -> None:
     packet_path = Path(
         "docs/ibkr_market_data_repeatability_run_1_preflight_packet.md"
