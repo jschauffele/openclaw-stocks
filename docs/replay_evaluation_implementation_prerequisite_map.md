@@ -9522,6 +9522,84 @@ The packet records `artifact_modification_by_this_packet=false`,
 `source_code_file_edited_by_this_packet=false`,
 `commit_performed_by_this_packet=false`, and `push_performed_by_this_packet=false`.
 
+### Post-D11 Scoped Implementation Closeout Transition Closeout Packet
+
+The source-controlled Post-D11 scoped implementation closeout transition
+closeout packet is recorded here:
+
+docs/post_d11_scoped_implementation_closeout_transition_closeout_packet.md
+
+The packet records
+`POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_CLOSEOUT_PACKET` at
+`source_commit=fa4781314f9c717b9220596f0a983f58e61a53ee` with
+`local_head=fa4781314f9c717b9220596f0a983f58e61a53ee`,
+`origin_main=fa4781314f9c717b9220596f0a983f58e61a53ee`, `branch=main`, and
+`head_origin_main_aligned=true`. Prior VPS validation recorded
+`PASS_HEAD_MATCHES_EXPECTED_fa47813`, `PASS_HEAD_ORIGIN_MAIN_ALIGNED`,
+`154 passed in 6.50s`, and `PASS_DIFF_CHECK`.
+
+The packet excludes wrong-context evidence from controlling validation:
+`wrong_context_evidence_excluded=true`,
+`invalid_local_mac_opt_validation_excluded_from_vps_evidence=true`, and
+`invalid_vps_local_mac_path_verification_excluded_from_local_mac_evidence=true`.
+
+The packet selects the decision
+`POST_D11_SCOPED_IMPLEMENTATION_CLOSEOUT_TRANSITION_CLOSEOUT_PACKET_RECORDED`.
+It records `transition_review_complete=true`,
+`transition_authorization_complete=true`,
+`transition_readiness_complete=true`, `transition_gap_resolution_complete=true`,
+`scoped_implementation_closeout_complete=true`,
+`transition_closeout_recordkeeping_only=true`,
+`transition_closeout_satisfied=true`,
+`scoped_implementation_closeout_transition_lane_closed=true`,
+`runtime_authority_created_by_transition_lane=false`,
+`future_next_gate_readiness_packet_supported_by_source_control=true`,
+`gate_12_unit_12_source_control_authorized=false`,
+`gate_12_execution_authorized=false`, `unit_12_execution_opened=false`, and
+`next_permissible_gate=POST_D11_NEXT_GATE_READINESS_PACKET`.
+
+The closeout result is
+`closeout_result=SOURCE_CONTROLLED_TRANSITION_LANE_CLOSED_WITHIN_SCOPE`.
+The defined next packet scope is
+`defined_next_packet_scope=future_source_controlled_next_gate_readiness_recordkeeping_only`;
+it is not active runtime execution and does not open Unit 12 execution.
+
+The runtime-only package manifest remains
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001/manifest.json` with
+`manifest_sha256=882b126344c818e3eacee4d6d8af6c9e289b922171d73534ce583559ed7ec694`.
+Runtime artifacts remain local evidence only and must not be added to git.
+
+Gate 12 / Unit 12 execution remains blocked. This closeout packet does not
+authorize replay execution, scoring execution, candidate generation,
+broker/runtime/VPS action, or account/order/execution authority.
+
+The packet preserves `replay_packages=NOT_TRACKED_DO_NOT_ADD`,
+`logs=NOT_TRACKED_DO_NOT_ADD`, `run_reports=NOT_TRACKED_DO_NOT_ADD`,
+`last_run_report.json=NOT_TRACKED_DO_NOT_ADD`, and
+`order_state.json=ABSENT_NOT_TRACKED_DO_NOT_ADD`.
+
+The packet records `artifact_modification_by_this_packet=false`,
+`artifact_git_add_performed_by_this_packet=false`,
+`replay_package_git_add_performed_by_this_packet=false`,
+`package_capture_rerun_by_this_packet=false`,
+`replay_execution_authorized_by_this_packet=false`,
+`scoring_execution_authorized_by_this_packet=false`,
+`candidate_generation_authorized_by_this_packet=false`,
+`broker_action_authorized_by_this_packet=false`,
+`runtime_action_authorized_by_this_packet=false`,
+`vps_runtime_action_authorized_by_this_packet=false`,
+`unit_12_action_authorized_by_this_packet=false`,
+`order_submission_authorized_by_this_packet=false`,
+`order_cancellation_authorized_by_this_packet=false`,
+`cleanup_flatten_sell_authorized_by_this_packet=false`,
+`scheduler_systemd_mutation_authorized_by_this_packet=false`,
+`credential_mutation_authorized_by_this_packet=false`,
+`strategy_risk_execution_behavior_change_authorized_by_this_packet=false`,
+`production_command_surface_edit_performed_by_this_packet=false`,
+`production_code_edit_performed_by_this_packet=false`,
+`source_code_file_edited_by_this_packet=false`,
+`commit_performed_by_this_packet=false`, and `push_performed_by_this_packet=false`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
