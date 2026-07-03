@@ -143,6 +143,14 @@ def _contains_metadata_schema_version(value) -> bool:
     return False
 
 
+def _strategy_events(events: list[dict], stage: str) -> list[dict]:
+    return [
+        event
+        for event in events
+        if event["event_type"] == "strategy" and event["stage"] == stage
+    ]
+
+
 @pytest.fixture
 def main_harness(monkeypatch):
     broker = FakeBroker()
@@ -347,6 +355,14 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
     assert main_harness["broker"].buying_power_calls == 1
     assert main_harness["broker"].build_order_calls == 1
     assert main_harness["broker"].submit_calls == 1
+    strategy_evaluated_events = _strategy_events(
+        main_harness["events"],
+        "strategy_evaluated",
+    )
+    assert len(strategy_evaluated_events) == 1
+    assert strategy_evaluated_events[0]["payload"]["action"] == "buy"
+    assert strategy_evaluated_events[0]["payload"]["decision"] == "buy"
+    assert strategy_evaluated_events[0]["payload"]["reason"] == "test_submit"
 
 
 def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
@@ -386,6 +402,22 @@ def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
         "Strategy reason=strategy_routing_no_selected_strategy"
         in report["notes"]
     )
+    strategy_evaluated_events = _strategy_events(
+        main_harness["events"],
+        "strategy_evaluated",
+    )
+    assert len(strategy_evaluated_events) == 1
+    assert strategy_evaluated_events[0]["payload"]["action"] == "hold"
+    assert strategy_evaluated_events[0]["payload"]["decision"] == "hold"
+    assert (
+        strategy_evaluated_events[0]["payload"]["reason"]
+        == "strategy_routing_no_selected_strategy"
+    )
+    assert not any(
+        event["payload"]["action"] == "buy"
+        and event["payload"]["decision"] == "buy"
+        for event in strategy_evaluated_events
+    )
 
 
 def test_sideways_buy_signal_emits_deterministic_routing_block_reason(
@@ -404,12 +436,7 @@ def test_sideways_buy_signal_emits_deterministic_routing_block_reason(
 
     main.main()
 
-    action_events = [
-        event
-        for event in main_harness["events"]
-        if event["event_type"] == "strategy"
-        and event["stage"] == "action_proposal"
-    ]
+    action_events = _strategy_events(main_harness["events"], "action_proposal")
     assert len(action_events) == 1
     assert action_events[0]["status"] == "blocked"
     assert action_events[0]["payload"]["action"] == "hold"

@@ -611,19 +611,6 @@ def main():
         "ok",
         market_input_payload,
     )
-    logging.info(
-        "Strategy pipeline completed: "
-        f"signal={action_proposal['signal']}, "
-        f"decision={action_proposal['decision']}, "
-        f"action={action_proposal['action']}, "
-        f"reason={action_proposal['reason']}"
-    )
-    log_event(
-        "strategy",
-        "strategy_evaluated",
-        "ok",
-        build_strategy_signal_event_payload(action_proposal),
-    )
     try:
         runtime_strategy_metadata = build_runtime_strategy_metadata(
             RuntimeStrategySeamInput(closes=tuple(closes))
@@ -642,6 +629,20 @@ def main():
         )
     except ValueError:
         pass
+
+    logging.info(
+        "Strategy pipeline completed: "
+        f"signal={action_proposal['signal']}, "
+        f"decision={action_proposal['decision']}, "
+        f"action={action_proposal['action']}, "
+        f"reason={action_proposal['reason']}"
+    )
+    log_event(
+        "strategy",
+        "strategy_evaluated",
+        "ok",
+        build_strategy_signal_event_payload(action_proposal),
+    )
 
     def log_observation(result=None, **observation_fields) -> None:
         try:
