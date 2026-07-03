@@ -115,6 +115,20 @@ def _hold_action_proposal() -> dict:
     return action_proposal
 
 
+def _sell_action_proposal() -> dict:
+    action_proposal = _action_proposal()
+    action_proposal.update(
+        {
+            "should_submit": False,
+            "action": "sell",
+            "signal": "sell",
+            "decision": "sell",
+            "reason": "test_sell",
+        }
+    )
+    return action_proposal
+
+
 def _runtime_visibility_summary() -> dict:
     return {
         "runtime_visibility_reports": [],
@@ -158,7 +172,9 @@ def main_harness(monkeypatch):
     events = []
     observations = []
     market_data_calls = []
+    duplicate_check_calls = []
     risk_check_calls = []
+    reconcile_position_calls = []
     action_proposal_calls = []
     call_order = []
 
@@ -187,6 +203,25 @@ def main_harness(monkeypatch):
     def risk_check_call(*args, **kwargs):
         risk_check_calls.append((args, kwargs))
         return {"passed": True, "estimated_cost": 100.0}
+
+    def duplicate_check_call(*args, **kwargs):
+        duplicate_check_calls.append((args, kwargs))
+        return {
+            "is_duplicate": False,
+            "reason": "no_matching_state",
+            "age_seconds": None,
+        }
+
+    def reconcile_position_call(*args, **kwargs):
+        reconcile_position_calls.append((args, kwargs))
+        return {
+            "passed": True,
+            "reason": "broker_reconciliation_passed",
+            "message": "broker_reconciliation_passed",
+            "existing_qty": 0,
+            "open_buy_order_qty": 0,
+            "projected_qty": 1,
+        }
 
     monkeypatch.setattr("config.load_config", lambda: None)
     monkeypatch.setattr("config.BASE_DIR", "/tmp/openclaw-test", raising=False)
@@ -235,14 +270,7 @@ def main_harness(monkeypatch):
     monkeypatch.setattr("main.risk_check", risk_check_call)
     monkeypatch.setattr(
         "main.reconcile_position",
-        lambda *_args, **_kwargs: {
-            "passed": True,
-            "reason": "broker_reconciliation_passed",
-            "message": "broker_reconciliation_passed",
-            "existing_qty": 0,
-            "open_buy_order_qty": 0,
-            "projected_qty": 1,
-        },
+        reconcile_position_call,
     )
     monkeypatch.setattr(
         "main.build_runtime_visibility_providers",
@@ -254,11 +282,7 @@ def main_harness(monkeypatch):
     )
     monkeypatch.setattr(
         "state_manager.duplicate_check",
-        lambda *_args, **_kwargs: {
-            "is_duplicate": False,
-            "reason": "no_matching_state",
-            "age_seconds": None,
-        },
+        duplicate_check_call,
     )
     monkeypatch.setattr(
         "state_manager.write_order_state", lambda *_args, **_kwargs: None
@@ -275,7 +299,9 @@ def main_harness(monkeypatch):
         "events": events,
         "observations": observations,
         "market_data_calls": market_data_calls,
+        "duplicate_check_calls": duplicate_check_calls,
         "risk_check_calls": risk_check_calls,
+        "reconcile_position_calls": reconcile_position_calls,
         "action_proposal_calls": action_proposal_calls,
         "call_order": call_order,
     }
@@ -351,7 +377,9 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
         "build_orchestration_strategy_architecture_payload",
         "persist_report",
     ]
+    assert len(main_harness["duplicate_check_calls"]) == 1
     assert len(main_harness["risk_check_calls"]) == 1
+    assert len(main_harness["reconcile_position_calls"]) == 1
     assert main_harness["broker"].buying_power_calls == 1
     assert main_harness["broker"].build_order_calls == 1
     assert main_harness["broker"].submit_calls == 1
@@ -382,6 +410,8 @@ def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
     main.main()
 
     assert len(main_harness["risk_check_calls"]) == 0
+    assert len(main_harness["duplicate_check_calls"]) == 0
+    assert len(main_harness["reconcile_position_calls"]) == 0
     assert main_harness["broker"].buying_power_calls == 0
     assert main_harness["broker"].build_order_calls == 0
     assert main_harness["broker"].submit_calls == 0
@@ -447,6 +477,70 @@ def test_sideways_buy_signal_emits_deterministic_routing_block_reason(
     )
 
 
+def test_no_selected_strategy_sell_signal_normalizes_to_hold_without_submission(
+    monkeypatch, main_harness
+) -> None:
+    monkeypatch.setattr(
+        "main.build_action_proposal",
+        lambda *args, **kwargs: _sell_action_proposal(),
+    )
+    monkeypatch.setattr(
+        "main.build_runtime_strategy_metadata",
+        lambda _input_model: RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no_eligible_strategy_for_regime",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1",),
+        ),
+    )
+
+    main.main()
+
+    assert len(main_harness["duplicate_check_calls"]) == 0
+    assert len(main_harness["risk_check_calls"]) == 0
+    assert len(main_harness["reconcile_position_calls"]) == 0
+    assert main_harness["broker"].buying_power_calls == 0
+    assert main_harness["broker"].build_order_calls == 0
+    assert main_harness["broker"].submit_calls == 0
+    report = main_harness["reports"][0]
+    assert report["result"] == "blocked"
+    assert report["reason"] == "strategy_routing_no_selected_strategy"
+    assert report["side"] == "sell"
+    assert report["orchestration"]["strategy_architecture"] == {
+        "metadata_schema_version": "1",
+        "regime_id": "sideways",
+        "selected_strategy_id": None,
+        "routing_reason": "no_eligible_strategy_for_regime",
+        "eligible_strategy_ids": (),
+        "rejected_strategy_ids": ("close_momentum_v1",),
+        "source": "runtime_strategy_seam",
+    }
+    assert "Strategy action=hold" in report["notes"]
+    assert (
+        "Strategy reason=strategy_routing_no_selected_strategy"
+        in report["notes"]
+    )
+
+    strategy_evaluated_events = _strategy_events(
+        main_harness["events"],
+        "strategy_evaluated",
+    )
+    assert len(strategy_evaluated_events) == 1
+    assert strategy_evaluated_events[0]["payload"]["signal"] == "sell"
+    assert strategy_evaluated_events[0]["payload"]["action"] == "hold"
+    assert strategy_evaluated_events[0]["payload"]["decision"] == "hold"
+    assert (
+        strategy_evaluated_events[0]["payload"]["reason"]
+        == "strategy_routing_no_selected_strategy"
+    )
+    assert not any(
+        event["payload"]["action"] == "sell"
+        and event["payload"]["decision"] == "sell"
+        for event in strategy_evaluated_events
+    )
+
+
 def test_existing_non_submit_proposal_remains_non_submit_after_strategy_routing(
     monkeypatch, main_harness
 ) -> None:
@@ -468,6 +562,8 @@ def test_existing_non_submit_proposal_remains_non_submit_after_strategy_routing(
     main.main()
 
     assert len(main_harness["risk_check_calls"]) == 0
+    assert len(main_harness["duplicate_check_calls"]) == 0
+    assert len(main_harness["reconcile_position_calls"]) == 0
     assert main_harness["broker"].buying_power_calls == 0
     assert main_harness["broker"].build_order_calls == 0
     assert main_harness["broker"].submit_calls == 0

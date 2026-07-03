@@ -204,10 +204,10 @@ def apply_strategy_routing_submit_gate(
     action_proposal: dict,
     runtime_strategy_metadata,
 ) -> dict:
-    if (
-        not action_proposal["should_submit"]
-        or runtime_strategy_metadata.selected_strategy_id is not None
-    ):
+    if runtime_strategy_metadata.selected_strategy_id is not None:
+        return action_proposal
+
+    if action_proposal["action"] == "hold":
         return action_proposal
 
     gated_action_proposal = dict(action_proposal)
