@@ -106,6 +106,12 @@ def test_default_strategy_has_no_execution_authority() -> None:
     assert definition.execution_authority is False
 
 
+def test_default_strategy_is_only_allowed_for_uptrend_regime() -> None:
+    definition = get_strategy_definition("close_momentum_v1")
+
+    assert definition.allowed_regimes == ("uptrend",)
+
+
 def test_default_strategy_has_no_broker_compatibility_enabled() -> None:
     definition = get_strategy_definition("close_momentum_v1")
 

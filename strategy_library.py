@@ -68,6 +68,7 @@ def build_default_strategy_catalog() -> tuple[StrategyDefinition, ...]:
                     "percent_change",
                     "three_close_percent_change",
                 ),
+                allowed_regimes=("uptrend",),
                 validation_status="active_metadata",
                 risk_profile=("pure_signal", "non_executing"),
                 observability_fields=(

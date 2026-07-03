@@ -56,7 +56,10 @@ def test_returns_regime_id_from_classify_regime() -> None:
 
 def test_returns_selected_strategy_id_from_route_strategy() -> None:
     result = evaluate_strategy_integration(
-        StrategyIntegrationInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+        StrategyIntegrationInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            volatility_percent=2.0,
+        )
     )
 
     assert result.selected_strategy_id == "close_momentum_v1"
@@ -65,7 +68,10 @@ def test_returns_selected_strategy_id_from_route_strategy() -> None:
 
 def test_returns_eligible_and_rejected_ids_from_route_result() -> None:
     result = evaluate_strategy_integration(
-        StrategyIntegrationInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+        StrategyIntegrationInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            volatility_percent=2.0,
+        )
     )
 
     assert result.eligible_strategy_ids == ("close_momentum_v1",)
@@ -90,6 +96,49 @@ def test_passes_thresholds_into_regime_classification_behavior() -> None:
 
     assert sideways_result.regime_id == "sideways"
     assert volatile_result.regime_id == "volatile"
+
+
+def test_close_momentum_strategy_is_not_selected_for_sideways_regime() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(closes=(100.0, 100.1, 99.9, 100.2, 100.4))
+    )
+
+    assert result.regime_id == "sideways"
+    assert result.selected_strategy_id is None
+    assert result.routing_reason == "no_eligible_strategy"
+    assert result.eligible_strategy_ids == ()
+    assert result.rejected_strategy_ids == ("close_momentum_v1",)
+
+
+def test_close_momentum_strategy_is_not_selected_for_downtrend_regime() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(
+            closes=(100.0, 99.8, 99.4, 99.1, 98.8),
+            volatility_percent=2.0,
+        )
+    )
+
+    assert result.regime_id == "downtrend"
+    assert result.selected_strategy_id is None
+    assert result.routing_reason == "no_eligible_strategy"
+    assert result.eligible_strategy_ids == ()
+    assert result.rejected_strategy_ids == ("close_momentum_v1",)
+
+
+def test_close_momentum_strategy_is_not_selected_for_volatile_regime() -> None:
+    result = evaluate_strategy_integration(
+        StrategyIntegrationInput(
+            closes=(100.0, 103.0, 104.0, 105.0, 106.0),
+            min_trend_percent=1.0,
+            volatility_percent=2.0,
+        )
+    )
+
+    assert result.regime_id == "volatile"
+    assert result.selected_strategy_id is None
+    assert result.routing_reason == "no_eligible_strategy"
+    assert result.eligible_strategy_ids == ()
+    assert result.rejected_strategy_ids == ("close_momentum_v1",)
 
 
 def test_input_and_result_dataclasses_are_frozen() -> None:
@@ -293,7 +342,10 @@ def test_result_rejects_selected_strategy_when_eligible_ids_empty() -> None:
 
 def test_result_exposes_no_signal_order_broker_execution_or_runtime_fields() -> None:
     result = evaluate_strategy_integration(
-        StrategyIntegrationInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+        StrategyIntegrationInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            volatility_percent=2.0,
+        )
     )
     forbidden_fields = {
         "signal",
