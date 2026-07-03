@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
@@ -12,15 +13,43 @@ from runtime_strategy_metadata_adapter import StrategyArchitectureMetadata
 from runtime_strategy_seam import RuntimeStrategySeamResult
 
 
+FORBIDDEN_MODULES_TO_UNLOAD_AFTER_MAIN_TESTS = (
+    "main",
+    "config",
+    "broker_factory",
+    "risk_engine",
+    "execution_engine",
+    "execution_use_case",
+    "reporting",
+    "observation_logger",
+    "state_manager",
+    "market_data",
+    "strategy_engine",
+    "signal_validator",
+)
+
+
+def teardown_module(_module) -> None:
+    for module_name in FORBIDDEN_MODULES_TO_UNLOAD_AFTER_MAIN_TESTS:
+        sys.modules.pop(module_name, None)
+    for module_name in tuple(sys.modules):
+        if module_name.startswith("ibkr_"):
+            sys.modules.pop(module_name, None)
+
+
 class FakeBroker:
     def __init__(self) -> None:
         self.client = object()
+        self.buying_power_calls = 0
+        self.build_order_calls = 0
         self.submit_calls = 0
 
     def get_account_buying_power(self) -> BrokerAccountState:
+        self.buying_power_calls += 1
         return BrokerAccountState(broker_name="test", buying_power=100000.0)
 
     def build_market_order(self, symbol: str, qty: int):
+        self.build_order_calls += 1
         return SimpleNamespace(symbol=symbol, qty=qty)
 
     def submit_market_order(self, order) -> BrokerOrderResult:
@@ -71,6 +100,19 @@ def _action_proposal() -> dict:
         "percent_change": 0.4,
         "three_close_percent_change": 1.2,
     }
+
+
+def _hold_action_proposal() -> dict:
+    action_proposal = _action_proposal()
+    action_proposal.update(
+        {
+            "should_submit": False,
+            "action": "hold",
+            "decision": "hold",
+            "reason": "test_hold",
+        }
+    )
+    return action_proposal
 
 
 def _runtime_visibility_summary() -> dict:
@@ -301,6 +343,112 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
         "build_orchestration_strategy_architecture_payload",
         "persist_report",
     ]
+    assert len(main_harness["risk_check_calls"]) == 1
+    assert main_harness["broker"].buying_power_calls == 1
+    assert main_harness["broker"].build_order_calls == 1
+    assert main_harness["broker"].submit_calls == 1
+
+
+def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
+    monkeypatch, main_harness
+) -> None:
+    monkeypatch.setattr(
+        "main.build_runtime_strategy_metadata",
+        lambda _input_model: RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no_eligible_strategy_for_regime",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1",),
+        ),
+    )
+
+    main.main()
+
+    assert len(main_harness["risk_check_calls"]) == 0
+    assert main_harness["broker"].buying_power_calls == 0
+    assert main_harness["broker"].build_order_calls == 0
+    assert main_harness["broker"].submit_calls == 0
+    report = main_harness["reports"][0]
+    assert report["result"] == "blocked"
+    assert report["reason"] == "strategy_routing_no_selected_strategy"
+    assert report["orchestration"]["strategy_architecture"] == {
+        "metadata_schema_version": "1",
+        "regime_id": "sideways",
+        "selected_strategy_id": None,
+        "routing_reason": "no_eligible_strategy_for_regime",
+        "eligible_strategy_ids": (),
+        "rejected_strategy_ids": ("close_momentum_v1",),
+        "source": "runtime_strategy_seam",
+    }
+    assert "Strategy action=hold" in report["notes"]
+    assert (
+        "Strategy reason=strategy_routing_no_selected_strategy"
+        in report["notes"]
+    )
+
+
+def test_sideways_buy_signal_emits_deterministic_routing_block_reason(
+    monkeypatch, main_harness
+) -> None:
+    monkeypatch.setattr(
+        "main.build_runtime_strategy_metadata",
+        lambda _input_model: RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no_eligible_strategy_for_regime",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1",),
+        ),
+    )
+
+    main.main()
+
+    action_events = [
+        event
+        for event in main_harness["events"]
+        if event["event_type"] == "strategy"
+        and event["stage"] == "action_proposal"
+    ]
+    assert len(action_events) == 1
+    assert action_events[0]["status"] == "blocked"
+    assert action_events[0]["payload"]["action"] == "hold"
+    assert action_events[0]["payload"]["decision"] == "hold"
+    assert (
+        action_events[0]["payload"]["reason"]
+        == "strategy_routing_no_selected_strategy"
+    )
+
+
+def test_existing_non_submit_proposal_remains_non_submit_after_strategy_routing(
+    monkeypatch, main_harness
+) -> None:
+    monkeypatch.setattr(
+        "main.build_action_proposal",
+        lambda *args, **kwargs: _hold_action_proposal(),
+    )
+    monkeypatch.setattr(
+        "main.build_runtime_strategy_metadata",
+        lambda _input_model: RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no_eligible_strategy_for_regime",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1",),
+        ),
+    )
+
+    main.main()
+
+    assert len(main_harness["risk_check_calls"]) == 0
+    assert main_harness["broker"].buying_power_calls == 0
+    assert main_harness["broker"].build_order_calls == 0
+    assert main_harness["broker"].submit_calls == 0
+    report = main_harness["reports"][0]
+    assert report["result"] == "blocked"
+    assert report["reason"] == "strategy_hold"
+    assert "Strategy action=hold" in report["notes"]
+    assert "Strategy reason=test_hold" in report["notes"]
 
 
 def test_metadata_assembly_failure_omits_strategy_architecture_and_still_persists_report(

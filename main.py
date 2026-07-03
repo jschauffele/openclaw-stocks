@@ -32,6 +32,10 @@ from strategy_engine import generate_signal_from_closes
 from utils import setup_logging, utc_now_iso
 
 
+STRATEGY_ROUTING_NO_SELECTED_STRATEGY_REASON = (
+    "strategy_routing_no_selected_strategy"
+)
+
 IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER = None
 
 IBKR_LIFECYCLE_PROVIDER_REQUIRED_FIELDS = frozenset(
@@ -194,6 +198,28 @@ def build_strategy_hold_report_notes(action_proposal: dict) -> list[str]:
         "three_close_percent_change="
         f"{action_proposal['three_close_percent_change']}",
     ]
+
+
+def apply_strategy_routing_submit_gate(
+    action_proposal: dict,
+    runtime_strategy_metadata,
+) -> dict:
+    if (
+        not action_proposal["should_submit"]
+        or runtime_strategy_metadata.selected_strategy_id is not None
+    ):
+        return action_proposal
+
+    gated_action_proposal = dict(action_proposal)
+    gated_action_proposal.update(
+        {
+            "should_submit": False,
+            "action": "hold",
+            "decision": "hold",
+            "reason": STRATEGY_ROUTING_NO_SELECTED_STRATEGY_REASON,
+        }
+    )
+    return gated_action_proposal
 
 
 def build_market_input_event_payload(bars_result, *, run_timestamp=None) -> dict:
@@ -610,6 +636,10 @@ def main():
                 strategy_architecture_metadata
             )
         )
+        action_proposal = apply_strategy_routing_submit_gate(
+            action_proposal,
+            runtime_strategy_metadata,
+        )
     except ValueError:
         pass
 
@@ -631,6 +661,8 @@ def main():
         strategy_block_reason = (
             action_proposal["reason"]
             if action_proposal["action"] == "sell"
+            or action_proposal["reason"]
+            == STRATEGY_ROUTING_NO_SELECTED_STRATEGY_REASON
             else "strategy_hold"
         )
         logging.info(
