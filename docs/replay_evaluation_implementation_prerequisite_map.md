@@ -10391,6 +10391,99 @@ The packet records `artifact_modification_by_this_packet=false`,
 `source_code_file_edited_by_this_packet=false`,
 `commit_performed_by_this_packet=false`, and `push_performed_by_this_packet=false`.
 
+### Post-D11 Final Closeout Packet
+
+The source-controlled Post-D11 final closeout packet is recorded here:
+
+docs/post_d11_final_closeout_packet.md
+
+The packet records `POST_D11_FINAL_CLOSEOUT_PACKET` at
+`source_commit=cd30b15f50e9794ad3de926f25bbbcda0780f6cc` with
+`local_head=cd30b15f50e9794ad3de926f25bbbcda0780f6cc`,
+`origin_main=cd30b15f50e9794ad3de926f25bbbcda0780f6cc`,
+`remote_origin_main=cd30b15f50e9794ad3de926f25bbbcda0780f6cc`,
+`branch=main`, and `head_origin_main_aligned=true`. Prior VPS validation
+recorded `PASS_HEAD_MATCHES_EXPECTED_cd30b15`,
+`PASS_HEAD_ORIGIN_MAIN_ALIGNED`, `165 passed in 7.67s`, and
+`PASS_DIFF_CHECK`.
+
+Fresh current-chat LOCAL_MAC pre-action verification recorded
+`PASS_LOCAL_MAC_REPO_PATH`, `PASS_LOCAL_MAC_VENV_PATH`, `PASS_BRANCH_MAIN`,
+`PASS_HEAD_EXPECTED`, `PASS_LOCAL_ORIGIN_MAIN_ALIGNED`,
+`PASS_REMOTE_ORIGIN_MAIN_ALIGNED`, `PASS_WORKTREE_CLEAN`, `PASS_DIFF_CHECK`,
+and `PASS_NO_TRACKED_RUNTIME_ARTIFACTS`.
+
+The packet records `docs_post_d11_final_closeout_packet_preexisting=false` and
+treats handoff-reported precheck evidence as background only:
+`handoff_precheck_background_only=true`. The packet excludes wrong-context
+evidence from controlling validation: `wrong_context_evidence_excluded=true`
+and `prior_wrong_context_attempts_excluded=true`.
+
+The packet selects the decision `POST_D11_FINAL_CLOSEOUT_PACKET_RECORDED`. It
+records `implementation_scoped_closeout_complete=true`,
+`implementation_scoped_review_complete=true`,
+`implementation_scoped_preflight_complete=true`,
+`implementation_scoped_authorization_complete=true`,
+`implementation_scoped_planning_complete=true`,
+`readiness_to_implementation_complete=true`,
+`next_gate_closeout_complete=true`, `next_gate_review_complete=true`,
+`next_gate_authorization_complete=true`, `next_gate_readiness_complete=true`,
+`scoped_implementation_closeout_transition_lane_complete=true`,
+`post_d11_final_closeout_recordkeeping_only=true`,
+`post_d11_final_closeout_satisfied=true`, `post_d11_closed=true`,
+`runtime_authority_created_by_post_d11_final_closeout=false`,
+`future_post_d11_to_next_phase_transition_packet_supported_by_source_control=true`,
+`gate_12_unit_12_source_control_authorized=false`,
+`gate_12_execution_authorized=false`, `unit_12_execution_opened=false`, and
+`next_permissible_gate=POST_D11_TO_NEXT_PHASE_TRANSITION_PACKET`.
+
+The final closeout result is
+`post_d11_final_closeout_result=SOURCE_CONTROLLED_POST_D11_CLOSED_READY_FOR_NEXT_PHASE_TRANSITION_RECORDKEEPING`.
+The final closeout boundary is
+`defined_final_closeout_boundary=source_controlled_recordkeeping_only_no_execution_authority`.
+The defined next packet scope is
+`defined_next_packet_scope=future_source_controlled_post_d11_to_next_phase_transition_recordkeeping_only`;
+it is not active runtime execution and does not open Unit 12 execution.
+
+The runtime-only package manifest remains
+`replay_packages/post_d11_direct_mac_read_only_artifacts_001/manifest.json` with
+`manifest_sha256=882b126344c818e3eacee4d6d8af6c9e289b922171d73534ce583559ed7ec694`.
+Runtime artifacts remain local evidence only and must not be added to git.
+
+Gate 12 / Unit 12 execution remains blocked. This final closeout packet does
+not authorize replay execution, scoring execution, candidate generation,
+package capture, broker/runtime/VPS action, or account/order/execution
+authority.
+
+The packet preserves `replay_packages=NOT_TRACKED_DO_NOT_ADD`,
+`logs=NOT_TRACKED_DO_NOT_ADD`, `run_reports=NOT_TRACKED_DO_NOT_ADD`,
+`last_run_report.json=NOT_TRACKED_DO_NOT_ADD`, and
+`order_state.json=ABSENT_NOT_TRACKED_DO_NOT_ADD`.
+
+The packet records `artifact_modification_by_this_packet=false`,
+`artifact_git_add_performed_by_this_packet=false`,
+`replay_package_git_add_performed_by_this_packet=false`,
+`package_capture_rerun_by_this_packet=false`,
+`replay_execution_authorized_by_this_packet=false`,
+`scoring_execution_authorized_by_this_packet=false`,
+`candidate_generation_authorized_by_this_packet=false`,
+`broker_action_authorized_by_this_packet=false`,
+`runtime_action_authorized_by_this_packet=false`,
+`vps_runtime_action_authorized_by_this_packet=false`,
+`unit_12_action_authorized_by_this_packet=false`,
+`order_submission_authorized_by_this_packet=false`,
+`order_cancellation_authorized_by_this_packet=false`,
+`cleanup_flatten_sell_authorized_by_this_packet=false`,
+`scheduler_systemd_mutation_authorized_by_this_packet=false`,
+`credential_mutation_authorized_by_this_packet=false`,
+`strategy_risk_execution_behavior_change_authorized_by_this_packet=false`,
+`provider_selection_or_broker_behavior_change_authorized_by_this_packet=false`,
+`production_behavior_edit_performed_by_this_packet=false`,
+`production_command_surface_edit_performed_by_this_packet=false`,
+`production_code_edit_performed_by_this_packet=false`,
+`source_code_file_edited_by_this_packet=false`,
+`commit_performed_by_this_packet=false`, and `push_performed_by_this_packet=false`.
+
 ## Gate D Record D15: Candidate-Evidence Mechanism Design Record
 
 ### D15 Status
