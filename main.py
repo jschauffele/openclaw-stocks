@@ -191,22 +191,18 @@ def build_strategy_signal_event_payload(
         ),
     }
     if runtime_strategy_metadata is not None:
-        payload.update(
-            {
-                "regime_id": runtime_strategy_metadata.regime_id,
-                "selected_strategy_id": (
-                    runtime_strategy_metadata.selected_strategy_id
-                ),
-                "routing_reason": runtime_strategy_metadata.routing_reason,
-                "eligible_strategy_ids": (
-                    runtime_strategy_metadata.eligible_strategy_ids
-                ),
-                "rejected_strategy_ids": (
-                    runtime_strategy_metadata.rejected_strategy_ids
-                ),
-            }
-        )
+        payload.update(build_runtime_strategy_attribution_payload(runtime_strategy_metadata))
     return payload
+
+
+def build_runtime_strategy_attribution_payload(runtime_strategy_metadata) -> dict:
+    return {
+        "regime_id": runtime_strategy_metadata.regime_id,
+        "selected_strategy_id": runtime_strategy_metadata.selected_strategy_id,
+        "routing_reason": runtime_strategy_metadata.routing_reason,
+        "eligible_strategy_ids": runtime_strategy_metadata.eligible_strategy_ids,
+        "rejected_strategy_ids": runtime_strategy_metadata.rejected_strategy_ids,
+    }
 
 
 def build_strategy_hold_report_notes(action_proposal: dict) -> list[str]:
@@ -687,6 +683,13 @@ def main():
 
     def log_observation(result=None, **observation_fields) -> None:
         try:
+            runtime_strategy_observation_fields = {}
+            if runtime_strategy_metadata is not None:
+                runtime_strategy_observation_fields.update(
+                    build_runtime_strategy_attribution_payload(
+                        runtime_strategy_metadata
+                    )
+                )
             append_observation(
                 run_id=run_id,
                 action_proposal=action_proposal,
@@ -694,6 +697,7 @@ def main():
                 signal_timeframe=signal_timeframe,
                 signal_limit=signal_limit,
                 latest_candle_timestamp=latest_candle_timestamp,
+                **runtime_strategy_observation_fields,
                 **observation_fields,
             )
         except Exception:

@@ -10,6 +10,7 @@ from utils import utc_now_iso
 OBSERVATION_LOG_FILE = (
     Path(config.BASE_DIR) / "observations" / "observation_log.jsonl"
 )
+_UNSET = object()
 
 
 def build_observation_row(
@@ -26,6 +27,11 @@ def build_observation_row(
     terminal_for_run: bool | None = None,
     filled_qty: float | None = None,
     working_qty: float | None = None,
+    regime_id: str | None | object = _UNSET,
+    selected_strategy_id: str | None | object = _UNSET,
+    routing_reason: str | None | object = _UNSET,
+    eligible_strategy_ids: tuple[str, ...] | object = _UNSET,
+    rejected_strategy_ids: tuple[str, ...] | object = _UNSET,
     timestamp_utc: str | None = None,
 ) -> dict:
     row = {
@@ -62,6 +68,20 @@ def build_observation_row(
             if value is not None
         }
     )
+    routing_fields = {
+        "regime_id": regime_id,
+        "selected_strategy_id": selected_strategy_id,
+        "routing_reason": routing_reason,
+        "eligible_strategy_ids": eligible_strategy_ids,
+        "rejected_strategy_ids": rejected_strategy_ids,
+    }
+    row.update(
+        {
+            field: value
+            for field, value in routing_fields.items()
+            if value is not _UNSET
+        }
+    )
     return row
 
 
@@ -79,6 +99,11 @@ def append_observation(
     terminal_for_run: bool | None = None,
     filled_qty: float | None = None,
     working_qty: float | None = None,
+    regime_id: str | None | object = _UNSET,
+    selected_strategy_id: str | None | object = _UNSET,
+    routing_reason: str | None | object = _UNSET,
+    eligible_strategy_ids: tuple[str, ...] | object = _UNSET,
+    rejected_strategy_ids: tuple[str, ...] | object = _UNSET,
     log_file: str | Path = OBSERVATION_LOG_FILE,
 ) -> None:
     row = build_observation_row(
@@ -94,6 +119,11 @@ def append_observation(
         terminal_for_run=terminal_for_run,
         filled_qty=filled_qty,
         working_qty=working_qty,
+        regime_id=regime_id,
+        selected_strategy_id=selected_strategy_id,
+        routing_reason=routing_reason,
+        eligible_strategy_ids=eligible_strategy_ids,
+        rejected_strategy_ids=rejected_strategy_ids,
     )
     path = Path(log_file)
     path.parent.mkdir(parents=True, exist_ok=True)

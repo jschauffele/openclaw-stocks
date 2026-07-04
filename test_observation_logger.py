@@ -121,6 +121,43 @@ class ObservationLoggerTests(unittest.TestCase):
         self.assertNotIn("filled_qty", row)
         self.assertNotIn("working_qty", row)
 
+    def test_routing_fields_are_included_when_supplied(self) -> None:
+        row = build_observation_row(
+            run_id="run_1",
+            action_proposal=ACTION_PROPOSAL,
+            result="blocked",
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no_eligible_strategy_for_regime",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=("close_momentum_v1",),
+            timestamp_utc="2026-04-27T00:00:00+00:00",
+        )
+
+        self.assertEqual(row["regime_id"], "sideways")
+        self.assertIsNone(row["selected_strategy_id"])
+        self.assertEqual(
+            row["routing_reason"],
+            "no_eligible_strategy_for_regime",
+        )
+        self.assertEqual(row["eligible_strategy_ids"], ())
+        self.assertEqual(row["rejected_strategy_ids"], ("close_momentum_v1",))
+        self.assertNotIn("strategy_architecture", row)
+
+    def test_routing_fields_are_omitted_when_not_supplied(self) -> None:
+        row = build_observation_row(
+            run_id="run_1",
+            action_proposal=ACTION_PROPOSAL,
+            result="success",
+            timestamp_utc="2026-04-27T00:00:00+00:00",
+        )
+
+        self.assertNotIn("regime_id", row)
+        self.assertNotIn("selected_strategy_id", row)
+        self.assertNotIn("routing_reason", row)
+        self.assertNotIn("eligible_strategy_ids", row)
+        self.assertNotIn("rejected_strategy_ids", row)
+
     def test_append_behavior_preserves_prior_observations(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             log_file = Path(temp_dir) / "observations" / "observation_log.jsonl"

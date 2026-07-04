@@ -182,6 +182,17 @@ def _assert_flat_routing_fields(
     assert "strategy_architecture" not in payload
 
 
+def _assert_no_flat_routing_fields(payload: dict) -> None:
+    for field_name in (
+        "regime_id",
+        "selected_strategy_id",
+        "routing_reason",
+        "eligible_strategy_ids",
+        "rejected_strategy_ids",
+    ):
+        assert field_name not in payload
+
+
 @pytest.fixture
 def main_harness(monkeypatch):
     broker = FakeBroker()
@@ -416,6 +427,18 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
         eligible_strategy_ids=("close_momentum_v1",),
         rejected_strategy_ids=(),
     )
+    assert len(main_harness["observations"]) == 1
+    observation = main_harness["observations"][0]
+    assert observation["action_proposal"]["action"] == "buy"
+    assert observation["action_proposal"]["decision"] == "buy"
+    _assert_flat_routing_fields(
+        observation,
+        regime_id="uptrend",
+        selected_strategy_id="close_momentum_v1",
+        routing_reason="selected_first_eligible_strategy",
+        eligible_strategy_ids=("close_momentum_v1",),
+        rejected_strategy_ids=(),
+    )
 
 
 def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
@@ -480,6 +503,22 @@ def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
         event["payload"]["action"] == "buy"
         and event["payload"]["decision"] == "buy"
         for event in strategy_evaluated_events
+    )
+    assert len(main_harness["observations"]) == 1
+    observation = main_harness["observations"][0]
+    assert observation["action_proposal"]["action"] == "hold"
+    assert observation["action_proposal"]["decision"] == "hold"
+    assert (
+        observation["action_proposal"]["reason"]
+        == "strategy_routing_no_selected_strategy"
+    )
+    _assert_flat_routing_fields(
+        observation,
+        regime_id="sideways",
+        selected_strategy_id=None,
+        routing_reason="no_eligible_strategy_for_regime",
+        eligible_strategy_ids=(),
+        rejected_strategy_ids=("close_momentum_v1",),
     )
 
 
@@ -579,6 +618,23 @@ def test_no_selected_strategy_sell_signal_normalizes_to_hold_without_submission(
         event["payload"]["action"] == "sell"
         and event["payload"]["decision"] == "sell"
         for event in strategy_evaluated_events
+    )
+    assert len(main_harness["observations"]) == 1
+    observation = main_harness["observations"][0]
+    assert observation["action_proposal"]["signal"] == "sell"
+    assert observation["action_proposal"]["action"] == "hold"
+    assert observation["action_proposal"]["decision"] == "hold"
+    assert (
+        observation["action_proposal"]["reason"]
+        == "strategy_routing_no_selected_strategy"
+    )
+    _assert_flat_routing_fields(
+        observation,
+        regime_id="sideways",
+        selected_strategy_id=None,
+        routing_reason="no_eligible_strategy_for_regime",
+        eligible_strategy_ids=(),
+        rejected_strategy_ids=("close_momentum_v1",),
     )
 
 
@@ -723,6 +779,23 @@ def test_selected_close_momentum_sell_normalizes_to_hold_without_submission(
         and event["payload"]["decision"] == "sell"
         for event in strategy_evaluated_events
     )
+    assert len(main_harness["observations"]) == 1
+    observation = main_harness["observations"][0]
+    assert observation["action_proposal"]["signal"] == "sell"
+    assert observation["action_proposal"]["action"] == "hold"
+    assert observation["action_proposal"]["decision"] == "hold"
+    assert (
+        observation["action_proposal"]["reason"]
+        == "strategy_routing_action_not_allowed"
+    )
+    _assert_flat_routing_fields(
+        observation,
+        regime_id="uptrend",
+        selected_strategy_id="close_momentum_v1",
+        routing_reason="selected_first_eligible_strategy",
+        eligible_strategy_ids=("close_momentum_v1",),
+        rejected_strategy_ids=(),
+    )
 
 
 def test_metadata_assembly_failure_omits_strategy_architecture_and_still_persists_report(
@@ -753,6 +826,8 @@ def test_metadata_assembly_failure_omits_strategy_architecture_and_still_persist
         "rejected_strategy_ids",
     ):
         assert field_name not in strategy_evaluated_events[0]["payload"]
+    assert len(main_harness["observations"]) == 1
+    _assert_no_flat_routing_fields(main_harness["observations"][0])
 
 
 def test_metadata_assembly_failure_does_not_change_runtime_decision_fields(
@@ -793,6 +868,14 @@ def test_metadata_assembly_does_not_alter_append_observation_behavior(
     assert len(main_harness["observations"]) == 1
     assert "strategy_architecture" not in main_harness["observations"][0]
     assert "metadata_schema_version" not in main_harness["observations"][0]
+    _assert_flat_routing_fields(
+        main_harness["observations"][0],
+        regime_id="uptrend",
+        selected_strategy_id="close_momentum_v1",
+        routing_reason="selected_first_eligible_strategy",
+        eligible_strategy_ids=("close_momentum_v1",),
+        rejected_strategy_ids=(),
+    )
 
 
 def test_metadata_success_does_not_emit_strategy_architecture_to_jsonl_events(
