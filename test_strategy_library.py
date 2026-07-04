@@ -56,6 +56,7 @@ def test_returned_catalog_and_metadata_collections_are_immutable() -> None:
     assert isinstance(definition.output_schema, tuple)
     assert isinstance(definition.allowed_symbols, tuple)
     assert isinstance(definition.allowed_regimes, tuple)
+    assert isinstance(definition.allowed_actions, tuple)
     assert isinstance(definition.broker_compatibility, tuple)
     assert isinstance(definition.risk_profile, tuple)
     assert isinstance(definition.observability_fields, tuple)
@@ -112,6 +113,12 @@ def test_default_strategy_is_only_allowed_for_uptrend_regime() -> None:
     assert definition.allowed_regimes == ("uptrend",)
 
 
+def test_default_strategy_advertises_long_only_allowed_actions() -> None:
+    definition = get_strategy_definition("close_momentum_v1")
+
+    assert definition.allowed_actions == ("buy", "hold")
+
+
 def test_default_strategy_has_no_broker_compatibility_enabled() -> None:
     definition = get_strategy_definition("close_momentum_v1")
 
@@ -140,6 +147,7 @@ def test_strategy_definition_requires_dependency_free_tuple_metadata() -> None:
     )
 
     assert definition.execution_authority is False
+    assert definition.allowed_actions == ()
     assert definition.broker_compatibility == ()
 
 
@@ -249,6 +257,34 @@ def test_duplicate_observability_fields_are_rejected() -> None:
             required_inputs=("closes",),
             output_schema=("signal",),
             observability_fields=("signal", "signal"),
+        )
+
+
+def test_duplicate_allowed_actions_are_rejected() -> None:
+    with pytest.raises(ValueError, match="allowed_actions contains duplicate value"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+            allowed_actions=("buy", "buy"),
+        )
+
+
+def test_unsupported_allowed_actions_are_rejected() -> None:
+    with pytest.raises(ValueError, match="Unsupported allowed_action"):
+        StrategyDefinition(
+            strategy_id="example",
+            version="1.0.0",
+            name="Example",
+            description="Example metadata.",
+            family="example",
+            required_inputs=("closes",),
+            output_schema=("signal",),
+            allowed_actions=("short",),
         )
 
 

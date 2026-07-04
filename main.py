@@ -29,12 +29,14 @@ from runtime_strategy_report_metadata import (
 from runtime_strategy_seam import RuntimeStrategySeamInput, build_runtime_strategy_metadata
 from signal_validator import validate_signal_result
 from strategy_engine import generate_signal_from_closes
+from strategy_library import get_strategy_definition
 from utils import setup_logging, utc_now_iso
 
 
 STRATEGY_ROUTING_NO_SELECTED_STRATEGY_REASON = (
     "strategy_routing_no_selected_strategy"
 )
+STRATEGY_ROUTING_ACTION_NOT_ALLOWED_REASON = "strategy_routing_action_not_allowed"
 
 IBKR_FAKE_NATIVE_LIFECYCLE_PROVIDER = None
 
@@ -204,19 +206,34 @@ def apply_strategy_routing_submit_gate(
     action_proposal: dict,
     runtime_strategy_metadata,
 ) -> dict:
-    if runtime_strategy_metadata.selected_strategy_id is not None:
+    selected_strategy_id = runtime_strategy_metadata.selected_strategy_id
+    if selected_strategy_id is None:
+        if action_proposal["action"] == "hold":
+            return action_proposal
+
+        return build_strategy_routing_hold_proposal(
+            action_proposal,
+            STRATEGY_ROUTING_NO_SELECTED_STRATEGY_REASON,
+        )
+
+    selected_strategy = get_strategy_definition(selected_strategy_id)
+    if action_proposal["action"] in selected_strategy.allowed_actions:
         return action_proposal
 
-    if action_proposal["action"] == "hold":
-        return action_proposal
+    return build_strategy_routing_hold_proposal(
+        action_proposal,
+        STRATEGY_ROUTING_ACTION_NOT_ALLOWED_REASON,
+    )
 
+
+def build_strategy_routing_hold_proposal(action_proposal: dict, reason: str) -> dict:
     gated_action_proposal = dict(action_proposal)
     gated_action_proposal.update(
         {
             "should_submit": False,
             "action": "hold",
             "decision": "hold",
-            "reason": STRATEGY_ROUTING_NO_SELECTED_STRATEGY_REASON,
+            "reason": reason,
         }
     )
     return gated_action_proposal
@@ -664,6 +681,8 @@ def main():
             if action_proposal["action"] == "sell"
             or action_proposal["reason"]
             == STRATEGY_ROUTING_NO_SELECTED_STRATEGY_REASON
+            or action_proposal["reason"]
+            == STRATEGY_ROUTING_ACTION_NOT_ALLOWED_REASON
             else "strategy_hold"
         )
         logging.info(

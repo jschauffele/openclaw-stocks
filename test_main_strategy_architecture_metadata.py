@@ -574,6 +574,108 @@ def test_existing_non_submit_proposal_remains_non_submit_after_strategy_routing(
     assert "Strategy reason=test_hold" in report["notes"]
 
 
+def test_selected_close_momentum_hold_remains_non_submit(
+    monkeypatch, main_harness
+) -> None:
+    monkeypatch.setattr(
+        "main.build_action_proposal",
+        lambda *args, **kwargs: _hold_action_proposal(),
+    )
+    monkeypatch.setattr(
+        "main.build_runtime_strategy_metadata",
+        lambda _input_model: RuntimeStrategySeamResult(
+            regime_id="uptrend",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1",),
+            rejected_strategy_ids=(),
+        ),
+    )
+
+    main.main()
+
+    assert len(main_harness["duplicate_check_calls"]) == 0
+    assert len(main_harness["risk_check_calls"]) == 0
+    assert len(main_harness["reconcile_position_calls"]) == 0
+    assert main_harness["broker"].buying_power_calls == 0
+    assert main_harness["broker"].build_order_calls == 0
+    assert main_harness["broker"].submit_calls == 0
+    report = main_harness["reports"][0]
+    assert report["result"] == "blocked"
+    assert report["reason"] == "strategy_hold"
+    assert "Strategy action=hold" in report["notes"]
+    assert "Strategy reason=test_hold" in report["notes"]
+    assert report["orchestration"]["strategy_architecture"] == {
+        "metadata_schema_version": "1",
+        "regime_id": "uptrend",
+        "selected_strategy_id": "close_momentum_v1",
+        "routing_reason": "selected_first_eligible_strategy",
+        "eligible_strategy_ids": ("close_momentum_v1",),
+        "rejected_strategy_ids": (),
+        "source": "runtime_strategy_seam",
+    }
+
+
+def test_selected_close_momentum_sell_normalizes_to_hold_without_submission(
+    monkeypatch, main_harness
+) -> None:
+    monkeypatch.setattr(
+        "main.build_action_proposal",
+        lambda *args, **kwargs: _sell_action_proposal(),
+    )
+    monkeypatch.setattr(
+        "main.build_runtime_strategy_metadata",
+        lambda _input_model: RuntimeStrategySeamResult(
+            regime_id="uptrend",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1",),
+            rejected_strategy_ids=(),
+        ),
+    )
+
+    main.main()
+
+    assert len(main_harness["duplicate_check_calls"]) == 0
+    assert len(main_harness["risk_check_calls"]) == 0
+    assert len(main_harness["reconcile_position_calls"]) == 0
+    assert main_harness["broker"].buying_power_calls == 0
+    assert main_harness["broker"].build_order_calls == 0
+    assert main_harness["broker"].submit_calls == 0
+    report = main_harness["reports"][0]
+    assert report["result"] == "blocked"
+    assert report["reason"] == "strategy_routing_action_not_allowed"
+    assert report["orchestration"]["strategy_architecture"] == {
+        "metadata_schema_version": "1",
+        "regime_id": "uptrend",
+        "selected_strategy_id": "close_momentum_v1",
+        "routing_reason": "selected_first_eligible_strategy",
+        "eligible_strategy_ids": ("close_momentum_v1",),
+        "rejected_strategy_ids": (),
+        "source": "runtime_strategy_seam",
+    }
+    assert "Strategy action=hold" in report["notes"]
+    assert "Strategy reason=strategy_routing_action_not_allowed" in report["notes"]
+
+    strategy_evaluated_events = _strategy_events(
+        main_harness["events"],
+        "strategy_evaluated",
+    )
+    assert len(strategy_evaluated_events) == 1
+    assert strategy_evaluated_events[0]["payload"]["signal"] == "sell"
+    assert strategy_evaluated_events[0]["payload"]["action"] == "hold"
+    assert strategy_evaluated_events[0]["payload"]["decision"] == "hold"
+    assert (
+        strategy_evaluated_events[0]["payload"]["reason"]
+        == "strategy_routing_action_not_allowed"
+    )
+    assert not any(
+        event["payload"]["action"] == "sell"
+        and event["payload"]["decision"] == "sell"
+        for event in strategy_evaluated_events
+    )
+
+
 def test_metadata_assembly_failure_omits_strategy_architecture_and_still_persists_report(
     monkeypatch, main_harness
 ) -> None:

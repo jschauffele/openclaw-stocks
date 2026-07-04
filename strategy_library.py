@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+ALLOWED_ACTIONS = frozenset({"buy", "hold", "sell"})
+
 ALLOWED_VALIDATION_STATUSES = frozenset(
     {
         "scaffolded",
@@ -23,6 +25,7 @@ class StrategyDefinition:
     output_schema: tuple[str, ...]
     allowed_symbols: tuple[str, ...] = ()
     allowed_regimes: tuple[str, ...] = ()
+    allowed_actions: tuple[str, ...] = ()
     validation_status: str = "scaffolded"
     execution_authority: bool = False
     broker_compatibility: tuple[str, ...] = ()
@@ -38,6 +41,7 @@ class StrategyDefinition:
             raise ValueError("execution_authority must be a bool")
         _validate_unique_values("required_inputs", self.required_inputs)
         _validate_unique_values("output_schema", self.output_schema)
+        _validate_allowed_actions(self.allowed_actions)
         _validate_unique_values("observability_fields", self.observability_fields)
         if self.validation_status not in ALLOWED_VALIDATION_STATUSES:
             raise ValueError(f"Unsupported validation_status: {self.validation_status}")
@@ -69,6 +73,7 @@ def build_default_strategy_catalog() -> tuple[StrategyDefinition, ...]:
                     "three_close_percent_change",
                 ),
                 allowed_regimes=("uptrend",),
+                allowed_actions=("buy", "hold"),
                 validation_status="active_metadata",
                 risk_profile=("pure_signal", "non_executing"),
                 observability_fields=(
@@ -119,3 +124,18 @@ def _validate_unique_values(field_name: str, values: tuple[str, ...]) -> None:
         if value in seen_values:
             raise ValueError(f"{field_name} contains duplicate value: {value}")
         seen_values.add(value)
+
+
+def _validate_allowed_actions(allowed_actions: tuple[str, ...]) -> None:
+    if not isinstance(allowed_actions, tuple):
+        raise ValueError("allowed_actions must be a tuple")
+
+    seen_actions: set[str] = set()
+    for action in allowed_actions:
+        if not isinstance(action, str):
+            raise ValueError("allowed_actions must contain strings")
+        if action not in ALLOWED_ACTIONS:
+            raise ValueError(f"Unsupported allowed_action: {action}")
+        if action in seen_actions:
+            raise ValueError(f"allowed_actions contains duplicate value: {action}")
+        seen_actions.add(action)
