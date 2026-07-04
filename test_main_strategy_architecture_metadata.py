@@ -203,6 +203,8 @@ def main_harness(monkeypatch):
     duplicate_check_calls = []
     risk_check_calls = []
     reconcile_position_calls = []
+    signal_generation_calls = []
+    strategy_evaluator_calls = []
     action_proposal_calls = []
     call_order = []
 
@@ -227,6 +229,15 @@ def main_harness(monkeypatch):
     def build_action_proposal_call(*args, **kwargs):
         action_proposal_calls.append((args, kwargs))
         return _action_proposal()
+
+    def generate_signal_from_closes_call(*args, **kwargs):
+        signal_generation_calls.append((args, kwargs))
+        return object()
+
+    def evaluate_selected_strategy_signal_call(input_model):
+        call_order.append("evaluate_selected_strategy_signal")
+        strategy_evaluator_calls.append(input_model)
+        return SimpleNamespace(signal_result=object())
 
     def risk_check_call(*args, **kwargs):
         risk_check_calls.append((args, kwargs))
@@ -292,7 +303,14 @@ def main_harness(monkeypatch):
     )
     monkeypatch.setattr("main.AlpacaMarketDataProvider", lambda: object())
     monkeypatch.setattr("main.get_historical_bars", get_historical_bars_call)
-    monkeypatch.setattr("main.generate_signal_from_closes", lambda _closes: object())
+    monkeypatch.setattr(
+        "main.generate_signal_from_closes",
+        generate_signal_from_closes_call,
+    )
+    monkeypatch.setattr(
+        "main.evaluate_selected_strategy_signal",
+        evaluate_selected_strategy_signal_call,
+    )
     monkeypatch.setattr("main.validate_signal_result", lambda _result: object())
     monkeypatch.setattr("main.build_action_proposal", build_action_proposal_call)
     monkeypatch.setattr("main.risk_check", risk_check_call)
@@ -330,6 +348,8 @@ def main_harness(monkeypatch):
         "duplicate_check_calls": duplicate_check_calls,
         "risk_check_calls": risk_check_calls,
         "reconcile_position_calls": reconcile_position_calls,
+        "signal_generation_calls": signal_generation_calls,
+        "strategy_evaluator_calls": strategy_evaluator_calls,
         "action_proposal_calls": action_proposal_calls,
         "call_order": call_order,
     }
@@ -403,8 +423,21 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
         "build_runtime_strategy_metadata",
         "build_strategy_architecture_metadata",
         "build_orchestration_strategy_architecture_payload",
+        "evaluate_selected_strategy_signal",
         "persist_report",
     ]
+    assert main_harness["strategy_evaluator_calls"][0].closes == (
+        100.0,
+        100.2,
+        100.4,
+        100.8,
+        101.2,
+    )
+    assert (
+        main_harness["strategy_evaluator_calls"][0].selected_strategy_id
+        == "close_momentum_v1"
+    )
+    assert main_harness["signal_generation_calls"] == []
     assert len(main_harness["duplicate_check_calls"]) == 1
     assert len(main_harness["risk_check_calls"]) == 1
     assert len(main_harness["reconcile_position_calls"]) == 1
@@ -841,6 +874,15 @@ def test_metadata_assembly_failure_does_not_change_runtime_decision_fields(
     main.main()
 
     assert main_harness["action_proposal_calls"]
+    assert len(main_harness["signal_generation_calls"]) == 1
+    assert main_harness["signal_generation_calls"][0][0][0] == [
+        100.0,
+        100.2,
+        100.4,
+        100.8,
+        101.2,
+    ]
+    assert main_harness["strategy_evaluator_calls"] == []
     assert len(main_harness["risk_check_calls"]) == 1
     assert main_harness["broker"].submit_calls == 1
     report = main_harness["reports"][0]

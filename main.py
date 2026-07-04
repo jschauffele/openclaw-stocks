@@ -29,6 +29,10 @@ from runtime_strategy_report_metadata import (
 from runtime_strategy_seam import RuntimeStrategySeamInput, build_runtime_strategy_metadata
 from signal_validator import validate_signal_result
 from strategy_engine import generate_signal_from_closes
+from strategy_evaluator import (
+    StrategyEvaluationInput,
+    evaluate_selected_strategy_signal,
+)
 from strategy_library import get_strategy_definition
 from utils import setup_logging, utc_now_iso
 
@@ -579,15 +583,6 @@ def main():
             bars_result,
             run_timestamp=utc_now_iso(),
         )
-        raw_signal_result = generate_signal_from_closes(closes)
-        signal_result = validate_signal_result(raw_signal_result)
-        action_proposal = build_action_proposal(
-            symbol=OPENCLAW_SYMBOL,
-            qty=OPENCLAW_QTY,
-            signal_result=signal_result,
-        )
-        if action_proposal["action"] == "sell":
-            side = "sell"
     except InsufficientMarketDataError as exc:
         logging.warning("Insufficient market data: need at least 3 closes")
         log_event("data", "fetch", "insufficient", {"symbol": OPENCLAW_SYMBOL, "error": str(exc)})
@@ -657,12 +652,48 @@ def main():
                 strategy_architecture_metadata
             )
         )
-        action_proposal = apply_strategy_routing_submit_gate(
-            action_proposal,
-            runtime_strategy_metadata,
-        )
     except ValueError:
         pass
+
+    try:
+        if runtime_strategy_metadata is None:
+            raw_signal_result = generate_signal_from_closes(closes)
+        else:
+            raw_signal_result = evaluate_selected_strategy_signal(
+                StrategyEvaluationInput(
+                    closes=tuple(closes),
+                    selected_strategy_id=runtime_strategy_metadata.selected_strategy_id,
+                )
+            ).signal_result
+        signal_result = validate_signal_result(raw_signal_result)
+        action_proposal = build_action_proposal(
+            symbol=OPENCLAW_SYMBOL,
+            qty=OPENCLAW_QTY,
+            signal_result=signal_result,
+        )
+        if action_proposal["action"] == "sell":
+            side = "sell"
+        if runtime_strategy_metadata is not None:
+            action_proposal = apply_strategy_routing_submit_gate(
+                action_proposal,
+                runtime_strategy_metadata,
+            )
+    except Exception as exc:
+        logging.exception("Strategy pipeline failed")
+        log_event("data", "fetch", "error", {"symbol": OPENCLAW_SYMBOL, "error": str(exc)})
+        persist_report(
+            run_id=run_id,
+            mode=mode,
+            result="error",
+            reason="strategy_pipeline_failed",
+            trigger_source=trigger_source,
+            side=side,
+            **report_config,
+            notes=["Strategy pipeline failed before action proposal completed"],
+        )
+        log_event("system", "completion", "error", {"reason": "strategy_pipeline_failed"})
+        logging.info("========== OpenClaw run finished ==========")
+        return
 
     logging.info(
         "Strategy pipeline completed: "
