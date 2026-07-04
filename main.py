@@ -173,8 +173,11 @@ def validate_data_config(
         )
 
 
-def build_strategy_signal_event_payload(action_proposal: dict) -> dict:
-    return {
+def build_strategy_signal_event_payload(
+    action_proposal: dict,
+    runtime_strategy_metadata=None,
+) -> dict:
+    payload = {
         "signal": action_proposal.get("signal"),
         "decision": action_proposal.get("decision"),
         "action": action_proposal.get("action"),
@@ -187,6 +190,23 @@ def build_strategy_signal_event_payload(action_proposal: dict) -> dict:
             "three_close_percent_change"
         ),
     }
+    if runtime_strategy_metadata is not None:
+        payload.update(
+            {
+                "regime_id": runtime_strategy_metadata.regime_id,
+                "selected_strategy_id": (
+                    runtime_strategy_metadata.selected_strategy_id
+                ),
+                "routing_reason": runtime_strategy_metadata.routing_reason,
+                "eligible_strategy_ids": (
+                    runtime_strategy_metadata.eligible_strategy_ids
+                ),
+                "rejected_strategy_ids": (
+                    runtime_strategy_metadata.rejected_strategy_ids
+                ),
+            }
+        )
+    return payload
 
 
 def build_strategy_hold_report_notes(action_proposal: dict) -> list[str]:
@@ -628,6 +648,7 @@ def main():
         "ok",
         market_input_payload,
     )
+    runtime_strategy_metadata = None
     try:
         runtime_strategy_metadata = build_runtime_strategy_metadata(
             RuntimeStrategySeamInput(closes=tuple(closes))
@@ -658,7 +679,10 @@ def main():
         "strategy",
         "strategy_evaluated",
         "ok",
-        build_strategy_signal_event_payload(action_proposal),
+        build_strategy_signal_event_payload(
+            action_proposal,
+            runtime_strategy_metadata,
+        ),
     )
 
     def log_observation(result=None, **observation_fields) -> None:
@@ -694,7 +718,10 @@ def main():
             "strategy",
             "action_proposal",
             "blocked",
-            build_strategy_signal_event_payload(action_proposal),
+            build_strategy_signal_event_payload(
+                action_proposal,
+                runtime_strategy_metadata,
+            ),
         )
         persist_report(
             run_id=run_id,

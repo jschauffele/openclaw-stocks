@@ -165,6 +165,23 @@ def _strategy_events(events: list[dict], stage: str) -> list[dict]:
     ]
 
 
+def _assert_flat_routing_fields(
+    payload: dict,
+    *,
+    regime_id: str,
+    selected_strategy_id: str | None,
+    routing_reason: str,
+    eligible_strategy_ids: tuple[str, ...],
+    rejected_strategy_ids: tuple[str, ...],
+) -> None:
+    assert payload["regime_id"] == regime_id
+    assert payload["selected_strategy_id"] == selected_strategy_id
+    assert payload["routing_reason"] == routing_reason
+    assert payload["eligible_strategy_ids"] == eligible_strategy_ids
+    assert payload["rejected_strategy_ids"] == rejected_strategy_ids
+    assert "strategy_architecture" not in payload
+
+
 @pytest.fixture
 def main_harness(monkeypatch):
     broker = FakeBroker()
@@ -391,6 +408,14 @@ def test_main_success_path_assembles_strategy_architecture_before_persist_report
     assert strategy_evaluated_events[0]["payload"]["action"] == "buy"
     assert strategy_evaluated_events[0]["payload"]["decision"] == "buy"
     assert strategy_evaluated_events[0]["payload"]["reason"] == "test_submit"
+    _assert_flat_routing_fields(
+        strategy_evaluated_events[0]["payload"],
+        regime_id="uptrend",
+        selected_strategy_id="close_momentum_v1",
+        routing_reason="selected_first_eligible_strategy",
+        eligible_strategy_ids=("close_momentum_v1",),
+        rejected_strategy_ids=(),
+    )
 
 
 def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
@@ -443,6 +468,14 @@ def test_sideways_buy_signal_is_blocked_by_strategy_routing_without_submission(
         strategy_evaluated_events[0]["payload"]["reason"]
         == "strategy_routing_no_selected_strategy"
     )
+    _assert_flat_routing_fields(
+        strategy_evaluated_events[0]["payload"],
+        regime_id="sideways",
+        selected_strategy_id=None,
+        routing_reason="no_eligible_strategy_for_regime",
+        eligible_strategy_ids=(),
+        rejected_strategy_ids=("close_momentum_v1",),
+    )
     assert not any(
         event["payload"]["action"] == "buy"
         and event["payload"]["decision"] == "buy"
@@ -474,6 +507,14 @@ def test_sideways_buy_signal_emits_deterministic_routing_block_reason(
     assert (
         action_events[0]["payload"]["reason"]
         == "strategy_routing_no_selected_strategy"
+    )
+    _assert_flat_routing_fields(
+        action_events[0]["payload"],
+        regime_id="sideways",
+        selected_strategy_id=None,
+        routing_reason="no_eligible_strategy_for_regime",
+        eligible_strategy_ids=(),
+        rejected_strategy_ids=("close_momentum_v1",),
     )
 
 
@@ -669,6 +710,14 @@ def test_selected_close_momentum_sell_normalizes_to_hold_without_submission(
         strategy_evaluated_events[0]["payload"]["reason"]
         == "strategy_routing_action_not_allowed"
     )
+    _assert_flat_routing_fields(
+        strategy_evaluated_events[0]["payload"],
+        regime_id="uptrend",
+        selected_strategy_id="close_momentum_v1",
+        routing_reason="selected_first_eligible_strategy",
+        eligible_strategy_ids=("close_momentum_v1",),
+        rejected_strategy_ids=(),
+    )
     assert not any(
         event["payload"]["action"] == "sell"
         and event["payload"]["decision"] == "sell"
@@ -691,6 +740,19 @@ def test_metadata_assembly_failure_omits_strategy_architecture_and_still_persist
     assert "strategy_architecture" not in report["orchestration"]
     assert report["result"] == "success"
     assert report["reason"] == "paper_order_submitted"
+    strategy_evaluated_events = _strategy_events(
+        main_harness["events"],
+        "strategy_evaluated",
+    )
+    assert len(strategy_evaluated_events) == 1
+    for field_name in (
+        "regime_id",
+        "selected_strategy_id",
+        "routing_reason",
+        "eligible_strategy_ids",
+        "rejected_strategy_ids",
+    ):
+        assert field_name not in strategy_evaluated_events[0]["payload"]
 
 
 def test_metadata_assembly_failure_does_not_change_runtime_decision_fields(
