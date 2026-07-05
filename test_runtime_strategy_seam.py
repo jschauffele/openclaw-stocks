@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import inspect
+import json
+import subprocess
 import sys
 
 import pytest
@@ -41,7 +43,10 @@ def test_builds_metadata_from_already_available_closes() -> None:
         regime_id="uptrend",
         selected_strategy_id="close_momentum_v1",
         routing_reason="selected_first_eligible_strategy",
-        eligible_strategy_ids=("close_momentum_v1",),
+        eligible_strategy_ids=(
+            "close_momentum_v1",
+            "equity_momentum_continuation_v1",
+        ),
         rejected_strategy_ids=(),
     )
 
@@ -55,8 +60,13 @@ def test_propagates_regime_id_from_strategy_integration() -> None:
 
 
 def test_propagates_selected_strategy_id() -> None:
+    # This fixture crosses the default 1.0% uptrend threshold; the weaker
+    # 100.0..100.4 fixture below is sideways and must not assert selection.
     result = build_runtime_strategy_metadata(
-        RuntimeStrategySeamInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+        RuntimeStrategySeamInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            volatility_percent=2.0,
+        )
     )
 
     assert result.selected_strategy_id == "close_momentum_v1"
@@ -64,7 +74,10 @@ def test_propagates_selected_strategy_id() -> None:
 
 def test_propagates_routing_reason() -> None:
     result = build_runtime_strategy_metadata(
-        RuntimeStrategySeamInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
+        RuntimeStrategySeamInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            volatility_percent=2.0,
+        )
     )
 
     assert result.routing_reason == "selected_first_eligible_strategy"
@@ -72,11 +85,32 @@ def test_propagates_routing_reason() -> None:
 
 def test_propagates_eligible_and_rejected_strategy_ids() -> None:
     result = build_runtime_strategy_metadata(
+        RuntimeStrategySeamInput(
+            closes=(100.0, 100.2, 100.4, 100.8, 101.2),
+            volatility_percent=2.0,
+        )
+    )
+
+    assert result.eligible_strategy_ids == (
+        "close_momentum_v1",
+        "equity_momentum_continuation_v1",
+    )
+    assert result.rejected_strategy_ids == ()
+
+
+def test_original_weak_fixture_is_sideways_and_selects_no_strategy() -> None:
+    result = build_runtime_strategy_metadata(
         RuntimeStrategySeamInput(closes=(100.0, 100.1, 100.2, 100.3, 100.4))
     )
 
-    assert result.eligible_strategy_ids == ("close_momentum_v1",)
-    assert result.rejected_strategy_ids == ()
+    assert result.regime_id == "sideways"
+    assert result.selected_strategy_id is None
+    assert result.routing_reason == "no_eligible_strategy"
+    assert result.eligible_strategy_ids == ()
+    assert result.rejected_strategy_ids == (
+        "close_momentum_v1",
+        "equity_momentum_continuation_v1",
+    )
 
 
 def test_passes_thresholds_through_to_strategy_integration() -> None:
@@ -309,24 +343,14 @@ def test_result_exposes_no_signal_action_order_broker_execution_or_runtime_field
 
 
 def test_module_does_not_import_main_strategy_engine_or_signal_validator() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert "main" not in loaded_modules
-    assert "strategy_engine" not in loaded_modules
-    assert "signal_validator" not in loaded_modules
     assert not hasattr(runtime_strategy_seam, "main")
     assert not hasattr(runtime_strategy_seam, "generate_signal_from_closes")
     assert not hasattr(runtime_strategy_seam, "validate_signal_result")
+    _assert_clean_import_does_not_load_forbidden_modules("runtime_strategy_seam")
 
 
 def test_module_does_not_import_forbidden_outer_modules() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert not loaded_modules.intersection(FORBIDDEN_MODULES)
-    assert not any(module_name.startswith("ibkr_") for module_name in loaded_modules)
-    assert not any(
-        module_name.startswith("manual_ibkr_") for module_name in loaded_modules
-    )
+    _assert_clean_import_does_not_load_forbidden_modules("runtime_strategy_seam")
 
 
 def test_repeated_calls_return_equal_results() -> None:
@@ -353,3 +377,28 @@ def test_no_file_env_or_network_side_effects_are_present() -> None:
     )
 
     assert not any(fragment in source for fragment in forbidden_fragments)
+
+
+def _assert_clean_import_does_not_load_forbidden_modules(module_name: str) -> None:
+    code = f"""
+import json
+import sys
+import {module_name}
+
+forbidden = set({FORBIDDEN_MODULES!r})
+loaded = set(sys.modules)
+violations = sorted(
+    forbidden.intersection(loaded)
+    | {{name for name in loaded if name.startswith("ibkr_")}}
+    | {{name for name in loaded if name.startswith("manual_ibkr_")}}
+)
+print(json.dumps(violations))
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == []

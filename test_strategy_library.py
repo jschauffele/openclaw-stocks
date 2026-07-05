@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 
 import pytest
@@ -29,7 +31,10 @@ FORBIDDEN_MODULES = (
 def test_default_catalog_contains_close_momentum_strategy() -> None:
     catalog = build_default_strategy_catalog()
 
-    assert [definition.strategy_id for definition in catalog] == ["close_momentum_v1"]
+    assert [definition.strategy_id for definition in catalog] == [
+        "close_momentum_v1",
+        "equity_momentum_continuation_v1",
+    ]
     assert get_strategy_definition("close_momentum_v1") == catalog[0]
 
 
@@ -125,14 +130,27 @@ def test_default_strategy_has_no_broker_compatibility_enabled() -> None:
     assert definition.broker_compatibility == ()
 
 
-def test_import_does_not_load_forbidden_modules() -> None:
-    loaded_modules = set(sys.modules)
+def test_catalog_includes_candidate_with_report_only_uptrend_buy_hold_metadata() -> None:
+    definition = get_strategy_definition("equity_momentum_continuation_v1")
 
-    assert not loaded_modules.intersection(FORBIDDEN_MODULES)
-    assert not any(module_name.startswith("ibkr_") for module_name in loaded_modules)
-    assert not any(
-        module_name.startswith("manual_ibkr_") for module_name in loaded_modules
+    assert definition.strategy_id == "equity_momentum_continuation_v1"
+    assert definition.version == "1.0.0"
+    assert definition.family == "momentum"
+    assert definition.required_inputs == ("closes",)
+    assert definition.allowed_regimes == ("uptrend",)
+    assert definition.allowed_actions == ("buy", "hold")
+    assert definition.validation_status == "active_metadata"
+    assert definition.execution_authority is False
+    assert definition.broker_compatibility == ()
+    assert definition.risk_profile == (
+        "pure_signal",
+        "non_executing",
+        "report_only_candidate",
     )
+
+
+def test_import_does_not_load_forbidden_modules() -> None:
+    _assert_clean_import_does_not_load_forbidden_modules("strategy_library")
 
 
 def test_strategy_definition_requires_dependency_free_tuple_metadata() -> None:
@@ -337,3 +355,28 @@ def test_repeated_list_and_get_calls_are_deterministic_and_read_only() -> None:
     assert first_catalog is not second_catalog
     assert first_definition == second_definition
     assert first_definition is not second_definition
+
+
+def _assert_clean_import_does_not_load_forbidden_modules(module_name: str) -> None:
+    code = f"""
+import json
+import sys
+import {module_name}
+
+forbidden = set({FORBIDDEN_MODULES!r})
+loaded = set(sys.modules)
+violations = sorted(
+    forbidden.intersection(loaded)
+    | {{name for name in loaded if name.startswith("ibkr_")}}
+    | {{name for name in loaded if name.startswith("manual_ibkr_")}}
+)
+print(json.dumps(violations))
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == []

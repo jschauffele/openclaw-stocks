@@ -86,6 +86,33 @@ def build_default_strategy_catalog() -> tuple[StrategyDefinition, ...]:
                     "latest_candle_timestamp",
                 ),
             ),
+            StrategyDefinition(
+                strategy_id="equity_momentum_continuation_v1",
+                version="1.0.0",
+                name="Equity Momentum Continuation",
+                description=(
+                    "Report-only close-based candidate strategy requiring "
+                    "deterministic multi-close continuation."
+                ),
+                family="momentum",
+                required_inputs=("closes",),
+                output_schema=(
+                    "signal",
+                    "decision",
+                    "reason",
+                    "previous_close",
+                    "latest_close",
+                    "price_delta",
+                    "percent_change",
+                    "three_close_percent_change",
+                ),
+                allowed_regimes=("uptrend",),
+                allowed_actions=("buy", "hold"),
+                validation_status="active_metadata",
+                execution_authority=False,
+                broker_compatibility=(),
+                risk_profile=("pure_signal", "non_executing", "report_only_candidate"),
+            ),
         )
     )
 

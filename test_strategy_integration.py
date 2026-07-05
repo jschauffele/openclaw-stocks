@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import inspect
+import json
+import subprocess
 import sys
 
 import pytest
@@ -41,7 +43,10 @@ def test_integrates_default_catalog_regime_classifier_and_router_deterministical
         regime_id="uptrend",
         selected_strategy_id="close_momentum_v1",
         routing_reason="selected_first_eligible_strategy",
-        eligible_strategy_ids=("close_momentum_v1",),
+        eligible_strategy_ids=(
+            "close_momentum_v1",
+            "equity_momentum_continuation_v1",
+        ),
         rejected_strategy_ids=(),
     )
 
@@ -74,7 +79,10 @@ def test_returns_eligible_and_rejected_ids_from_route_result() -> None:
         )
     )
 
-    assert result.eligible_strategy_ids == ("close_momentum_v1",)
+    assert result.eligible_strategy_ids == (
+        "close_momentum_v1",
+        "equity_momentum_continuation_v1",
+    )
     assert result.rejected_strategy_ids == ()
 
 
@@ -107,7 +115,10 @@ def test_close_momentum_strategy_is_not_selected_for_sideways_regime() -> None:
     assert result.selected_strategy_id is None
     assert result.routing_reason == "no_eligible_strategy"
     assert result.eligible_strategy_ids == ()
-    assert result.rejected_strategy_ids == ("close_momentum_v1",)
+    assert result.rejected_strategy_ids == (
+        "close_momentum_v1",
+        "equity_momentum_continuation_v1",
+    )
 
 
 def test_close_momentum_strategy_is_not_selected_for_downtrend_regime() -> None:
@@ -122,7 +133,10 @@ def test_close_momentum_strategy_is_not_selected_for_downtrend_regime() -> None:
     assert result.selected_strategy_id is None
     assert result.routing_reason == "no_eligible_strategy"
     assert result.eligible_strategy_ids == ()
-    assert result.rejected_strategy_ids == ("close_momentum_v1",)
+    assert result.rejected_strategy_ids == (
+        "close_momentum_v1",
+        "equity_momentum_continuation_v1",
+    )
 
 
 def test_close_momentum_strategy_is_not_selected_for_volatile_regime() -> None:
@@ -138,7 +152,10 @@ def test_close_momentum_strategy_is_not_selected_for_volatile_regime() -> None:
     assert result.selected_strategy_id is None
     assert result.routing_reason == "no_eligible_strategy"
     assert result.eligible_strategy_ids == ()
-    assert result.rejected_strategy_ids == ("close_momentum_v1",)
+    assert result.rejected_strategy_ids == (
+        "close_momentum_v1",
+        "equity_momentum_continuation_v1",
+    )
 
 
 def test_input_and_result_dataclasses_are_frozen() -> None:
@@ -372,22 +389,13 @@ def test_result_exposes_no_signal_order_broker_execution_or_runtime_fields() -> 
 
 
 def test_module_does_not_import_strategy_engine_or_signal_validator() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert "strategy_engine" not in loaded_modules
-    assert "signal_validator" not in loaded_modules
     assert not hasattr(strategy_integration, "generate_signal_from_closes")
     assert not hasattr(strategy_integration, "validate_signal_result")
+    _assert_clean_import_does_not_load_forbidden_modules("strategy_integration")
 
 
 def test_module_does_not_import_forbidden_outer_modules() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert not loaded_modules.intersection(FORBIDDEN_MODULES)
-    assert not any(module_name.startswith("ibkr_") for module_name in loaded_modules)
-    assert not any(
-        module_name.startswith("manual_ibkr_") for module_name in loaded_modules
-    )
+    _assert_clean_import_does_not_load_forbidden_modules("strategy_integration")
 
 
 def test_repeated_calls_return_equal_results() -> None:
@@ -414,3 +422,28 @@ def test_no_file_env_or_network_side_effects_are_present() -> None:
     )
 
     assert not any(fragment in source for fragment in forbidden_fragments)
+
+
+def _assert_clean_import_does_not_load_forbidden_modules(module_name: str) -> None:
+    code = f"""
+import json
+import sys
+import {module_name}
+
+forbidden = set({FORBIDDEN_MODULES!r})
+loaded = set(sys.modules)
+violations = sorted(
+    forbidden.intersection(loaded)
+    | {{name for name in loaded if name.startswith("ibkr_")}}
+    | {{name for name in loaded if name.startswith("manual_ibkr_")}}
+)
+print(json.dumps(violations))
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == []

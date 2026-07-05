@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 
 import pytest
@@ -258,13 +260,7 @@ def test_result_exposes_no_execution_broker_risk_order_action_or_signal_fields()
 
 
 def test_import_does_not_load_forbidden_modules() -> None:
-    loaded_modules = set(sys.modules)
-
-    assert not loaded_modules.intersection(FORBIDDEN_MODULES)
-    assert not any(module_name.startswith("ibkr_") for module_name in loaded_modules)
-    assert not any(
-        module_name.startswith("manual_ibkr_") for module_name in loaded_modules
-    )
+    _assert_clean_import_does_not_load_forbidden_modules("strategy_router")
 
 
 def test_repeated_calls_return_equal_results() -> None:
@@ -506,3 +502,28 @@ def regime_result(regime_id: str) -> RegimeClassificationResult:
         absolute_percent_change=1.0,
         max_one_period_move_percent=1.0,
     )
+
+
+def _assert_clean_import_does_not_load_forbidden_modules(module_name: str) -> None:
+    code = f"""
+import json
+import sys
+import {module_name}
+
+forbidden = set({FORBIDDEN_MODULES!r})
+loaded = set(sys.modules)
+violations = sorted(
+    forbidden.intersection(loaded)
+    | {{name for name in loaded if name.startswith("ibkr_")}}
+    | {{name for name in loaded if name.startswith("manual_ibkr_")}}
+)
+print(json.dumps(violations))
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == []

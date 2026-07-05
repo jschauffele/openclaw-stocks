@@ -5,6 +5,9 @@ import sys
 import pytest
 
 from strategy_engine import generate_signal_from_closes
+from equity_momentum_continuation_strategy import (
+    generate_equity_momentum_continuation_signal_from_closes,
+)
 from strategy_evaluator import (
     StrategyEvaluationInput,
     evaluate_selected_strategy_signal,
@@ -27,6 +30,21 @@ def test_selected_close_momentum_delegates_to_close_momentum_signal() -> None:
     )
 
     assert result.signal_result == generate_signal_from_closes(closes)
+
+
+def test_selected_equity_momentum_continuation_delegates_to_candidate_signal() -> None:
+    closes = (100.0, 100.5, 100.2, 101.0, 101.2)
+
+    result = evaluate_selected_strategy_signal(
+        StrategyEvaluationInput(
+            closes=closes,
+            selected_strategy_id="equity_momentum_continuation_v1",
+        )
+    )
+
+    assert result.signal_result == (
+        generate_equity_momentum_continuation_signal_from_closes(closes)
+    )
 
 
 def test_no_selected_strategy_returns_deterministic_hold_signal() -> None:

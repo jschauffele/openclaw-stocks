@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from equity_momentum_continuation_strategy import (
+    generate_equity_momentum_continuation_signal_from_closes,
+)
 from strategy_engine import generate_signal_from_closes
 
 
 NO_SELECTED_STRATEGY_REASON = "strategy_routing_no_selected_strategy"
 CLOSE_MOMENTUM_STRATEGY_ID = "close_momentum_v1"
+EQUITY_MOMENTUM_CONTINUATION_STRATEGY_ID = "equity_momentum_continuation_v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +51,13 @@ def evaluate_selected_strategy_signal(
     if input_model.selected_strategy_id == CLOSE_MOMENTUM_STRATEGY_ID:
         return StrategyEvaluationResult(
             signal_result=generate_signal_from_closes(input_model.closes)
+        )
+
+    if input_model.selected_strategy_id == EQUITY_MOMENTUM_CONTINUATION_STRATEGY_ID:
+        return StrategyEvaluationResult(
+            signal_result=generate_equity_momentum_continuation_signal_from_closes(
+                input_model.closes
+            )
         )
 
     raise ValueError(f"Unknown selected_strategy_id: {input_model.selected_strategy_id}")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
@@ -9,8 +10,13 @@ import pytest
 import main
 import reporting
 from broker_interface import BrokerAccountState, BrokerOrderResult
+from decision_engine import build_action_proposal
+from regime_classifier import RegimeClassificationInput, classify_regime
 from runtime_strategy_metadata_adapter import StrategyArchitectureMetadata
 from runtime_strategy_seam import RuntimeStrategySeamResult
+from strategy_evaluator import StrategyEvaluationInput, evaluate_selected_strategy_signal
+from strategy_library import get_strategy_definition
+from strategy_router import StrategyRoutingInput, route_strategy
 
 
 FORBIDDEN_MODULES_TO_UNLOAD_AFTER_MAIN_TESTS = (
@@ -829,6 +835,137 @@ def test_selected_close_momentum_sell_normalizes_to_hold_without_submission(
         eligible_strategy_ids=("close_momentum_v1",),
         rejected_strategy_ids=(),
     )
+
+
+def test_report_only_candidate_buy_proposal_is_forced_to_hold_no_submit() -> None:
+    action_proposal = _action_proposal()
+    result = main.apply_strategy_routing_submit_gate(
+        action_proposal,
+        RuntimeStrategySeamResult(
+            regime_id="uptrend",
+            selected_strategy_id="equity_momentum_continuation_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("equity_momentum_continuation_v1",),
+            rejected_strategy_ids=("close_momentum_v1",),
+        ),
+    )
+
+    assert result["should_submit"] is False
+    assert result["action"] == "hold"
+    assert result["decision"] == "hold"
+    assert result["reason"] == "strategy_report_only_candidate_no_submit"
+    assert action_proposal["should_submit"] is True
+    assert action_proposal["action"] == "buy"
+
+
+def test_close_momentum_buy_proposal_is_not_changed_by_report_only_gate() -> None:
+    action_proposal = _action_proposal()
+
+    result = main.apply_strategy_routing_submit_gate(
+        action_proposal,
+        RuntimeStrategySeamResult(
+            regime_id="uptrend",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1",),
+            rejected_strategy_ids=(),
+        ),
+    )
+
+    assert result is action_proposal
+    assert result["should_submit"] is True
+    assert result["action"] == "buy"
+    assert result["decision"] == "buy"
+    assert result["reason"] == "test_submit"
+
+
+def test_no_selected_strategy_behavior_remains_no_submit_hold() -> None:
+    result = main.apply_strategy_routing_submit_gate(
+        _action_proposal(),
+        RuntimeStrategySeamResult(
+            regime_id="sideways",
+            selected_strategy_id=None,
+            routing_reason="no_eligible_strategy",
+            eligible_strategy_ids=(),
+            rejected_strategy_ids=(
+                "close_momentum_v1",
+                "equity_momentum_continuation_v1",
+            ),
+        ),
+    )
+
+    assert result["should_submit"] is False
+    assert result["action"] == "hold"
+    assert result["decision"] == "hold"
+    assert result["reason"] == "strategy_routing_no_selected_strategy"
+
+
+def test_action_not_allowed_behavior_remains_no_submit_hold() -> None:
+    result = main.apply_strategy_routing_submit_gate(
+        _sell_action_proposal(),
+        RuntimeStrategySeamResult(
+            regime_id="uptrend",
+            selected_strategy_id="close_momentum_v1",
+            routing_reason="selected_first_eligible_strategy",
+            eligible_strategy_ids=("close_momentum_v1",),
+            rejected_strategy_ids=(),
+        ),
+    )
+
+    assert result["should_submit"] is False
+    assert result["action"] == "hold"
+    assert result["decision"] == "hold"
+    assert result["reason"] == "strategy_routing_action_not_allowed"
+
+
+def test_router_selected_report_only_candidate_is_hard_gated_to_no_submit() -> None:
+    close_momentum = get_strategy_definition("close_momentum_v1")
+    candidate = get_strategy_definition("equity_momentum_continuation_v1")
+    test_catalog = (
+        replace(close_momentum, validation_status="deprecated_metadata"),
+        candidate,
+    )
+    closes = (100.0, 100.5, 100.2, 101.0, 101.2)
+    regime_result = classify_regime(
+        RegimeClassificationInput(closes=closes, volatility_percent=2.0)
+    )
+    routing_result = route_strategy(
+        StrategyRoutingInput(
+            strategy_catalog=test_catalog,
+            regime_result=regime_result,
+        )
+    )
+
+    assert routing_result.selected_strategy_id == "equity_momentum_continuation_v1"
+
+    signal_result = evaluate_selected_strategy_signal(
+        StrategyEvaluationInput(
+            closes=closes,
+            selected_strategy_id=routing_result.selected_strategy_id,
+        )
+    ).signal_result
+    action_proposal = build_action_proposal(
+        symbol="AAPL",
+        qty=1,
+        signal_result=signal_result,
+    )
+    final_proposal = main.apply_strategy_routing_submit_gate(
+        action_proposal,
+        RuntimeStrategySeamResult(
+            regime_id=routing_result.regime_id,
+            selected_strategy_id=routing_result.selected_strategy_id,
+            routing_reason=routing_result.reason,
+            eligible_strategy_ids=routing_result.eligible_strategy_ids,
+            rejected_strategy_ids=routing_result.rejected_strategy_ids,
+        ),
+    )
+
+    assert action_proposal["should_submit"] is True
+    assert action_proposal["action"] == "buy"
+    assert final_proposal["should_submit"] is False
+    assert final_proposal["action"] == "hold"
+    assert final_proposal["decision"] == "hold"
+    assert final_proposal["reason"] == "strategy_report_only_candidate_no_submit"
 
 
 def test_metadata_assembly_failure_omits_strategy_architecture_and_still_persists_report(

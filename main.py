@@ -237,6 +237,12 @@ def apply_strategy_routing_submit_gate(
         )
 
     selected_strategy = get_strategy_definition(selected_strategy_id)
+    if "report_only_candidate" in selected_strategy.risk_profile:
+        return build_strategy_routing_hold_proposal(
+            action_proposal,
+            "strategy_report_only_candidate_no_submit",
+        )
+
     if action_proposal["action"] in selected_strategy.allowed_actions:
         return action_proposal
 
