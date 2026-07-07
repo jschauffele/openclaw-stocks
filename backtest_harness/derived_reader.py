@@ -104,6 +104,10 @@ def _read_and_validate_ticker(path: Path, expected_ticker: str) -> pd.DataFrame:
     missing = [column for column in REQUIRED_DERIVED_COLUMNS if column not in frame.columns]
     if missing:
         raise BacktestHarnessError(HarnessFailureCode.SCHEMA_MISMATCH, f"missing columns: {missing}")
+    allowed_columns = set(REQUIRED_DERIVED_COLUMNS).union(OPTIONAL_DERIVED_COLUMNS)
+    unexpected = sorted(set(frame.columns).difference(allowed_columns))
+    if unexpected:
+        raise BacktestHarnessError(HarnessFailureCode.SCHEMA_MISMATCH, f"unexpected columns: {unexpected}")
     if "ingest_run_id" not in frame.columns:
         frame = frame.copy()
         frame["ingest_run_id"] = ""

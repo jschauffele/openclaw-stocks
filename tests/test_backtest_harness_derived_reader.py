@@ -71,6 +71,30 @@ def test_reader_rejects_vendor_adjclose_column(tmp_path) -> None:
     assert excinfo.value.code == HarnessFailureCode.VENDOR_ADJCLOSE_FORBIDDEN
 
 
+def test_reader_rejects_missing_required_column(tmp_path) -> None:
+    manifest = "tiingo-20260102T000000Z-bbbbbbbbbbbb"
+    row = _row("AAPL", "2026-01-03", 101.0, manifest)
+    del row["adjustment_method"]
+    _write_fixture(tmp_path, "AAPL", manifest, [row], f"{manifest}.parquet")
+
+    with pytest.raises(BacktestHarnessError) as excinfo:
+        read_derived_adjusted_series(_config(tmp_path))
+
+    assert excinfo.value.code == HarnessFailureCode.SCHEMA_MISMATCH
+
+
+def test_reader_rejects_unexpected_extra_column(tmp_path) -> None:
+    manifest = "tiingo-20260102T000000Z-bbbbbbbbbbbb"
+    row = _row("AAPL", "2026-01-03", 101.0, manifest)
+    row["research_note"] = "not part of the derived schema"
+    _write_fixture(tmp_path, "AAPL", manifest, [row], f"{manifest}.parquet")
+
+    with pytest.raises(BacktestHarnessError) as excinfo:
+        read_derived_adjusted_series(_config(tmp_path))
+
+    assert excinfo.value.code == HarnessFailureCode.SCHEMA_MISMATCH
+
+
 def test_reader_rejects_duplicate_dates(tmp_path) -> None:
     manifest = "tiingo-20260102T000000Z-bbbbbbbbbbbb"
     _write_fixture(

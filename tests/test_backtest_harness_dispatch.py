@@ -84,6 +84,34 @@ def test_dispatch_future_row_removal_does_not_change_prior_signal() -> None:
     )
 
 
+def test_dispatch_multi_date_canary_truncates_each_decision_date() -> None:
+    dates = pd.bdate_range("2026-01-01", periods=30)
+    starting_close = 100.0
+    frame = pd.DataFrame(
+        {
+            "date": dates,
+            "ticker": ["AAPL"] * len(dates),
+            "computed_adjClose": [starting_close + offset for offset in range(len(dates))],
+        }
+    )
+    observed_inputs = []
+
+    def strategy(closes: tuple[float, ...]) -> dict:
+        observed_inputs.append((len(closes), closes[-1]))
+        return {"signal": "hold"}
+
+    replay_signal_dispatch(
+        frame,
+        decision_dates=tuple(dates),
+        strategy=strategy,
+        evaluator_id="multi_date_canary",
+    )
+
+    expected_inputs = [(index + 1, starting_close + index) for index in range(len(dates))]
+    assert len(observed_inputs) == 30
+    assert observed_inputs == expected_inputs
+
+
 def test_dispatch_uses_copy_not_view() -> None:
     def mutating_strategy(closes: tuple[float, ...]) -> dict:
         assert isinstance(closes, tuple)
@@ -135,11 +163,18 @@ def test_dispatch_records_are_deterministically_serializable() -> None:
     def strategy(closes: tuple[float, ...]) -> dict:
         return {"signal": "hold"}
 
-    records = replay_signal_dispatch(
+    first_run = replay_signal_dispatch(
+        _frame(),
+        decision_dates=(pd.Timestamp("2026-01-02"), pd.Timestamp("2026-01-05")),
+        strategy=strategy,
+        evaluator_id="deterministic_strategy",
+    )
+    second_run = replay_signal_dispatch(
         _frame(),
         decision_dates=(pd.Timestamp("2026-01-02"), pd.Timestamp("2026-01-05")),
         strategy=strategy,
         evaluator_id="deterministic_strategy",
     )
 
-    assert stable_sha256(records) == stable_sha256(tuple(records))
+    assert first_run == second_run
+    assert stable_sha256(first_run) == stable_sha256(second_run)
