@@ -44,6 +44,9 @@ def run_signal_rule(ohlcv: pd.DataFrame, rule_spec: dict[str, Any]) -> dict[str,
     enriched = _with_indicators(frame)
     entry_expr = str(rule_spec["entry"])
     exit_expr = str(rule_spec["exit"])
+    direction = str(rule_spec.get("direction", "long")).strip().lower()
+    if direction not in {"long", "short"}:
+        raise ValueError(f"unsupported direction: {direction}")
     _validate_expression(entry_expr)
     _validate_expression(exit_expr)
 
@@ -64,14 +67,23 @@ def run_signal_rule(ohlcv: pd.DataFrame, rule_spec: dict[str, Any]) -> dict[str,
                     "entry_date": next_row["date"],
                     "entry_price": float(next_row["open"]),
                     "entry_index": index + 1,
+                    "direction": direction,
                 }
         else:
             bars_held = index - int(position["entry_index"]) + 1
-            return_since_entry = (float(row["close"]) / float(position["entry_price"])) - 1.0
+            return_since_entry = _position_return(
+                direction=str(position["direction"]),
+                entry_price=float(position["entry_price"]),
+                current_price=float(row["close"]),
+            )
             context.update({"return_since_entry": return_since_entry, "bars_held": bars_held})
             if _eval_rule(exit_expr, context):
                 exit_price = float(next_row["open"])
-                trade_return = (exit_price / float(position["entry_price"])) - 1.0
+                trade_return = _position_return(
+                    direction=str(position["direction"]),
+                    entry_price=float(position["entry_price"]),
+                    current_price=exit_price,
+                )
                 equity *= 1.0 + trade_return
                 equity_curve.append(equity)
                 trades.append(
@@ -79,6 +91,7 @@ def run_signal_rule(ohlcv: pd.DataFrame, rule_spec: dict[str, Any]) -> dict[str,
                         "entry_signal_date": _date_string(position["entry_signal_date"]),
                         "entry_date": _date_string(position["entry_date"]),
                         "entry_price": float(position["entry_price"]),
+                        "direction": str(position["direction"]),
                         "exit_signal_date": _date_string(row["date"]),
                         "exit_date": _date_string(next_row["date"]),
                         "exit_price": exit_price,
@@ -124,6 +137,7 @@ def _with_indicators(frame: pd.DataFrame) -> pd.DataFrame:
     enriched["volume_spike_20_2"] = indicators.volume_spike(enriched["volume"], 20, 2.0)
     enriched["sma_20"] = indicators.sma(enriched["close"], 20)
     enriched["ema_20"] = indicators.ema(enriched["close"], 20)
+    enriched["ema_50"] = indicators.ema(enriched["close"], 50)
     enriched["vwap_proxy_20"] = indicators.vwap_proxy(
         enriched["high"],
         enriched["low"],
@@ -146,6 +160,14 @@ def _context(row: pd.Series) -> dict[str, Any]:
         else:
             context[key] = float(value)
     return context
+
+
+def _position_return(*, direction: str, entry_price: float, current_price: float) -> float:
+    if direction == "long":
+        return (current_price / entry_price) - 1.0
+    if direction == "short":
+        return (entry_price / current_price) - 1.0
+    raise ValueError(f"unsupported direction: {direction}")
 
 
 def _validate_expression(expression: str) -> None:
