@@ -8,23 +8,27 @@
   "expected_sign": "long assets with at least two positive trailing total-return horizons; otherwise cash",
   "universe": ["SPY", "QQQ", "IWM", "EFA", "EEM", "VNQ", "SHY", "IEF", "TLT", "LQD", "HYG", "GLD", "DBC", "UUP"],
   "prediction_frequency": "monthly at final common trading-day close",
-  "execution": "next common trading-day adjusted open; primary delay one trading day",
+  "execution": "IBKR paper execution no earlier than the next common regular trading session; live raw prices for order sizing and reconciliation",
+  "execution_broker": "IBKR",
+  "research_data_boundary": "certified point-in-time total-return data; broker execution data are not substituted for historical research certification",
   "lookbacks_trading_days": [63, 126, 252],
   "eligibility": "at least two of three total returns are strictly positive",
   "sizing": "positive-vote confidence divided by trailing 63-day annualized volatility, normalized, 15% single-ETF cap, 35% asset-class cap, residual cash, no leverage",
   "transaction_costs": {
     "base_one_way_bps": 5,
-    "stress_one_way_bps": [10, 15]
+    "stress_one_way_bps": [10, 15],
+    "paper_evaluation": "actual IBKR-reported commissions and fill slippage are recorded and compared with the frozen research model"
   },
   "benchmarks": ["monthly_rebalanced_60_40_SPY_IEF", "SPY_buy_and_hold", "equal_weight_universe"],
   "sample_policy": {
     "development": "2010-01-01/2017-12-31",
     "validation": "2018-01-01/2021-12-31",
     "historical_holdout": "2022-01-01/latest",
-    "genuine_oos": "paper trading after strategy freeze"
+    "genuine_oos": "IBKR paper trading after strategy freeze"
   },
   "predeclared_kill_criteria": [
     "Any point-in-time, adjusted-price, coverage, or execution-timing defect",
+    "Any IBKR contract qualification ambiguity or inability to reconcile target, order, fill, and final position",
     "Net validation or historical-holdout CAGR is non-positive",
     "Net historical-holdout excess return versus 60/40 is non-positive",
     "Primary excess-return t-stat is below 2.0 or fails to exceed the current tournament noise ceiling by at least 0.25",
@@ -33,7 +37,8 @@
     "Maximum drawdown exceeds 25%",
     "One calendar year contributes more than 50% of total net profit",
     "Independent clean-environment reproduction fails",
-    "Any post-result parameter rescue is proposed"
+    "IBKR shadow or paper reconciliation produces an unresolved state mismatch",
+    "Any post-result parameter or execution rescue is proposed"
   ],
   "standing_rules": [
     "No parameter optimization",
@@ -41,6 +46,7 @@
     "No universe deletion after results",
     "No leverage",
     "All robustness variants count in the global trial ledger",
+    "No broker activation or safety-gate bypass from candidate code",
     "No production integration before lockbox and independent reproduction"
   ]
 }
