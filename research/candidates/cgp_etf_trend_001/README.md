@@ -8,77 +8,129 @@ Status: **FROZEN_UNRUN**. This is a candidate, not a claim of success.
 
 This candidate has no Alpaca broker dependency. Historical research data and broker execution are separate control planes:
 
-- historical testing must use a certified point-in-time daily total-return dataset from the OpenClaw research data layer;
-- paper orders, positions, fills, commissions, rejects, and reconciliation must use the repository's current IBKR adapter/runtime path;
+- historical testing uses the certified Tiingo daily data layout under the OpenClaw research data root;
+- paper orders, positions, fills, commissions, rejects, and reconciliation use the repository's IBKR adapter/runtime path;
 - live raw IBKR prices are used for order sizing and reconciliation;
 - adjusted research prices are never submitted as executable prices;
-- no candidate code may activate or bypass IBKR safety gates;
-- no production or paper integration occurs before the candidate passes all research gates.
-
-The prior README language referring to existing Alpaca infrastructure and an Alpaca research feed was incorrect and has been removed.
-
-## Purpose
-
-Build a practical multi-asset candidate while obeying OpenClaw's no-rescue, point-in-time, effective-breadth, cost, and multiple-testing rules.
+- candidate code may not activate or bypass IBKR safety gates;
+- no paper integration occurs before all research gates pass.
 
 ## Frozen rule
 
 At the final common trading-day close of each month:
 
-1. Compute total returns over 63, 126, and 252 trading days for each ETF using data available at that close.
+1. Compute total returns over 63, 126, and 252 trading days for each ETF.
 2. An ETF is eligible when at least two returns are strictly positive.
 3. Set raw risk weight to `(positive_votes / 3) / trailing_63_day_volatility`.
 4. Normalize across eligible ETFs.
 5. Cap each ETF at 15% and each asset class at 35%; leave residual in cash.
-6. Submit target orders through IBKR no earlier than the next common regular trading session.
+6. Execute no earlier than the next common regular trading session.
 7. Rebalance monthly. No shorting and no leverage.
 
-Primary research costs are 5 bps one way. Stress tests use 10 and 15 bps plus an additional trading-day execution delay. Paper evaluation uses actual IBKR-reported commissions and fill slippage in addition to the frozen research assumptions.
+Primary research costs are 5 bps one way. Stress tests use 10 and 15 bps plus an additional trading-day execution delay. Paper evaluation uses actual IBKR commissions and fill slippage.
 
 ## Universe
 
 `SPY, QQQ, IWM, EFA, EEM, VNQ, SHY, IEF, TLT, LQD, HYG, GLD, DBC, UUP`
 
-IBKR contract qualification must succeed for every symbol before shadow or paper activation. Any ambiguous, unavailable, or non-primary listing fails closed.
+## Exact local run sequence
 
-## Why this candidate
+From the repository root:
 
-It deliberately avoids:
+```bash
+cd /Users/openclawcontrol/Documents/openclaw-stocks
+git fetch origin
+git switch research/cgp-etf-trend-001
+git pull --ff-only origin research/cgp-etf-trend-001
+```
 
-- single-security inference;
-- inaccessible alternative data;
-- fragile event timestamps;
-- high turnover;
-- optimized portfolio weights;
-- leverage and borrow assumptions;
-- machine-learning degrees of freedom.
+Activate the project environment:
 
-It is not novel. That is intentional: the first goal is a credible paper-tradable survivor, not an impressive narrative.
+```bash
+source .venv-312/bin/activate
+```
 
-## Current implementation
+Install research dependencies only when missing:
 
-- `model.py` contains the frozen signal and target-weight logic.
-- `simulation.py` contains the broker-neutral historical simulator.
-- `test_candidate.py` contains deterministic mechanical tests.
-- `candidate.json` contains the preregistered specification and kill criteria.
-- `ibkr_paper_deployment.md` defines the IBKR-only deployment boundary.
+```bash
+python -m pip install pandas pyarrow pytest
+```
 
-There is currently no `backtest.py` CLI in this candidate directory. The earlier README command naming that nonexistent file was incorrect. A repository-native certified-data runner must be added without changing the frozen signal rules.
+### 1. Ingest the complete ETF universe
+
+The ingestion command requires `TIINGO_API_TOKEN` in the environment and writes outside the repository to `/Users/openclawcontrol/openclaw-market-data` by default.
+
+```bash
+python -m data_layer.ingest \
+  --symbols SPY QQQ IWM EFA EEM VNQ SHY IEF TLT LQD HYG GLD DBC UUP
+```
+
+The command must end with:
+
+```text
+PHASE_1_INGESTION_IMPLEMENTATION_OBSERVED
+```
+
+If it reports `BLOCKED`, do not run the candidate until the stated data problem is resolved.
+
+### 2. Run mechanical tests
+
+```bash
+python -m pytest research/candidates/cgp_etf_trend_001/test_candidate.py -q
+```
+
+### 3. Run the frozen primary backtest once
+
+```bash
+python research/candidates/cgp_etf_trend_001/backtest.py \
+  --data-root /Users/openclawcontrol/openclaw-market-data \
+  --start 2010-01-01 \
+  --cost-bps 5 \
+  --execution-delay-days 1 \
+  --output research/candidates/cgp_etf_trend_001/artifacts/primary.json
+```
+
+The command prints the output path, observation count, rebalance count, final date, and final portfolio value. The full daily and rebalance records are written to `artifacts/primary.json`.
+
+### 4. Run only the preregistered stress cases
+
+```bash
+python research/candidates/cgp_etf_trend_001/backtest.py \
+  --data-root /Users/openclawcontrol/openclaw-market-data \
+  --start 2010-01-01 --cost-bps 10 --execution-delay-days 1 \
+  --output research/candidates/cgp_etf_trend_001/artifacts/cost_10bps.json
+
+python research/candidates/cgp_etf_trend_001/backtest.py \
+  --data-root /Users/openclawcontrol/openclaw-market-data \
+  --start 2010-01-01 --cost-bps 15 --execution-delay-days 1 \
+  --output research/candidates/cgp_etf_trend_001/artifacts/cost_15bps.json
+
+python research/candidates/cgp_etf_trend_001/backtest.py \
+  --data-root /Users/openclawcontrol/openclaw-market-data \
+  --start 2010-01-01 --cost-bps 5 --execution-delay-days 2 \
+  --output research/candidates/cgp_etf_trend_001/artifacts/delay_2days.json
+```
+
+Do not change lookbacks, the ETF universe, caps, signal threshold, volatility window, or execution timing after seeing these results.
+
+## IBKR paper phase
+
+There is intentionally no one-command IBKR strategy submission yet. The candidate must first clear the historical validation, noise-ceiling, DSR, cost, delay, concentration, and independent-reproduction gates. After that, a separate shadow adapter must translate frozen target weights into IBKR-qualified contracts and proposed orders, with no submission authority. Only after shadow reconciliation passes can the existing paper-only IBKR execution gates be used.
 
 ## Required evaluation
 
-Do not advance from a backtest alone. Results must pass:
+A backtest does not advance the candidate by itself. Results must pass:
 
 - benchmark-relative and factor-adjusted inference;
-- verified global trial count and updated false-strategy noise ceiling;
+- verified global trial count and updated noise ceiling;
 - Deflated Sharpe Ratio;
-- block-bootstrap or appropriate dependent-return inference;
+- dependent-return inference;
 - yearly and return-concentration diagnostics;
-- base, doubled-cost, tripled-cost, and delayed-execution stress;
+- all preregistered cost and delay stresses;
 - clean-environment independent reproduction;
-- IBKR shadow-order reconciliation;
+- IBKR shadow reconciliation;
 - IBKR paper trading with actual fills and commissions.
 
 ## Non-negotiable decision rule
 
-Any failed predeclared gate kills the candidate. No filter, lookback, universe, weighting, broker-fill interpretation, or execution change may be introduced after viewing results. A modification is a new candidate and a new trial.
+Any failed predeclared gate kills the candidate. No rescue modification is permitted.
