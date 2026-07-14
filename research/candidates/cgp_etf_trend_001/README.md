@@ -2,23 +2,44 @@
 
 Status: **FROZEN_UNRUN**. This is a candidate, not a claim of success.
 
+## Broker and data boundary
+
+**Execution broker: Interactive Brokers (IBKR), paper account first.**
+
+This candidate has no Alpaca broker dependency. Historical research data and broker execution are separate control planes:
+
+- historical testing must use a certified point-in-time daily total-return dataset from the OpenClaw research data layer;
+- paper orders, positions, fills, commissions, rejects, and reconciliation must use the repository's current IBKR adapter/runtime path;
+- live raw IBKR prices are used for order sizing and reconciliation;
+- adjusted research prices are never submitted as executable prices;
+- no candidate code may activate or bypass IBKR safety gates;
+- no production or paper integration occurs before the candidate passes all research gates.
+
+The prior README language referring to existing Alpaca infrastructure and an Alpaca research feed was incorrect and has been removed.
+
 ## Purpose
 
-Build the highest-probability practical candidate that can be researched and paper traded with retail-accessible data and the existing Alpaca infrastructure, while obeying OpenClaw's no-rescue, multi-asset, point-in-time, and multiple-testing rules.
+Build a practical multi-asset candidate while obeying OpenClaw's no-rescue, point-in-time, effective-breadth, cost, and multiple-testing rules.
 
-## Rule
+## Frozen rule
 
 At the final common trading-day close of each month:
 
-1. Compute adjusted total returns over 63, 126, and 252 trading days for each ETF.
-2. An ETF is eligible when at least two returns are positive.
+1. Compute total returns over 63, 126, and 252 trading days for each ETF using data available at that close.
+2. An ETF is eligible when at least two returns are strictly positive.
 3. Set raw risk weight to `(positive_votes / 3) / trailing_63_day_volatility`.
 4. Normalize across eligible ETFs.
 5. Cap each ETF at 15% and each asset class at 35%; leave residual in cash.
-6. Execute at the next common trading-day adjusted open.
+6. Submit target orders through IBKR no earlier than the next common regular trading session.
 7. Rebalance monthly. No shorting and no leverage.
 
-The primary test assumes 5 bps one-way costs. Stress tests use 10 and 15 bps and an additional execution-day delay.
+Primary research costs are 5 bps one way. Stress tests use 10 and 15 bps plus an additional trading-day execution delay. Paper evaluation uses actual IBKR-reported commissions and fill slippage in addition to the frozen research assumptions.
+
+## Universe
+
+`SPY, QQQ, IWM, EFA, EEM, VNQ, SHY, IEF, TLT, LQD, HYG, GLD, DBC, UUP`
+
+IBKR contract qualification must succeed for every symbol before shadow or paper activation. Any ambiguous, unavailable, or non-primary listing fails closed.
 
 ## Why this candidate
 
@@ -34,49 +55,30 @@ It deliberately avoids:
 
 It is not novel. That is intentional: the first goal is a credible paper-tradable survivor, not an impressive narrative.
 
-## Data requirement
+## Current implementation
 
-The script requests Alpaca daily bars with `adjustment="all"`. It fails closed when any ETF lacks sufficient pre-start history or common dates. The research feed defaults to `iex`; use `OPENCLAW_RESEARCH_FEED=sip` only when the account is entitled to it.
+- `model.py` contains the frozen signal and target-weight logic.
+- `simulation.py` contains the broker-neutral historical simulator.
+- `test_candidate.py` contains deterministic mechanical tests.
+- `candidate.json` contains the preregistered specification and kill criteria.
+- `ibkr_paper_deployment.md` defines the IBKR-only deployment boundary.
 
-Historical adjusted data are appropriate for research return construction, but the strategy must use live raw prices for orders. Production integration is a separate gate.
+There is currently no `backtest.py` CLI in this candidate directory. The earlier README command naming that nonexistent file was incorrect. A repository-native certified-data runner must be added without changing the frozen signal rules.
 
-## Run
+## Required evaluation
 
-From the repository root after activating the environment:
-
-```bash
-python research/candidates/cgp_etf_trend_001/backtest.py \
-  --start 2010-01-01 \
-  --end 2026-07-13 \
-  --cost-bps 5 \
-  --execution-delay-days 1
-```
-
-Run tests:
-
-```bash
-python -m pytest research/candidates/cgp_etf_trend_001/test_backtest.py -q
-```
-
-If `pytest` is unavailable:
-
-```bash
-python -m pip install pytest
-```
-
-## Required evaluation after execution
-
-Do not advance from the backtest alone. The output must be passed through the tournament validator for:
+Do not advance from a backtest alone. Results must pass:
 
 - benchmark-relative and factor-adjusted inference;
 - verified global trial count and updated false-strategy noise ceiling;
 - Deflated Sharpe Ratio;
-- block-bootstrap/HAC inference;
-- yearly and trade-concentration diagnostics;
-- cost and delayed-execution stress;
-- clean-environment reproduction;
-- forward shadow and paper trading.
+- block-bootstrap or appropriate dependent-return inference;
+- yearly and return-concentration diagnostics;
+- base, doubled-cost, tripled-cost, and delayed-execution stress;
+- clean-environment independent reproduction;
+- IBKR shadow-order reconciliation;
+- IBKR paper trading with actual fills and commissions.
 
 ## Non-negotiable decision rule
 
-Any failed predeclared gate kills the candidate. No filter, lookback, universe, weighting, or execution change may be introduced after viewing results. A modification is a new candidate and a new trial.
+Any failed predeclared gate kills the candidate. No filter, lookback, universe, weighting, broker-fill interpretation, or execution change may be introduced after viewing results. A modification is a new candidate and a new trial.
